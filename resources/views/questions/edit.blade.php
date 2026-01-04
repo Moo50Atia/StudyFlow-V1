@@ -49,15 +49,41 @@
                         </div>
 
                         <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.4s">
-                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Current Solution Image</label>
-                            @if($question->solution_image)
-                            <img src="{{ Storage::url($question->solution_image) }}" alt="Solution" class="w-full max-w-md rounded-xl mb-4 shadow-lg">
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Solution Images</label>
+                            @if($question->solution_images && count($question->solution_images) > 0)
+                            <div class="grid grid-cols-4 gap-2 mb-4">
+                                @foreach($question->solution_images as $index => $image)
+                                <div class="relative group">
+                                    <img src="{{ Storage::url($image) }}" alt="Solution {{ $index + 1 }}" class="w-full aspect-square object-cover rounded-lg shadow-sm">
+                                    <div class="absolute top-1 left-1 bg-indigo-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{{ $index + 1 }}</div>
+                                </div>
+                                @endforeach
+                            </div>
+                            <p class="text-sm text-amber-600 dark:text-amber-400 mb-4 bg-amber-50 dark:bg-amber-900/20 p-2 rounded-lg">
+                                Tip: Uploading new images will replace all existing ones.
+                            </p>
                             @else
-                            <p class="text-gray-500 dark:text-gray-400 mb-4">No solution image uploaded</p>
+                            <p class="text-gray-500 dark:text-gray-400 mb-4">No solution images uploaded</p>
                             @endif
-                            <label for="solution_image" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Replace Solution Image</label>
-                            <input type="file" name="solution_image" id="solution_image" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
-                            @error('solution_image')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
+
+                            <div id="solutions-drop-zone" class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-xl hover:border-green-500 transition-colors duration-200 cursor-pointer">
+                                <div class="space-y-1 text-center">
+                                    <svg id="solutions-icon" class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                    <div class="flex text-sm text-gray-600 dark:text-gray-400 justify-center">
+                                        <label for="solution_images" class="relative cursor-pointer rounded-md font-medium text-green-600 hover:text-green-500">
+                                            <span>Upload solutions</span>
+                                            <input id="solution_images" name="solution_images[]" type="file" accept="image/*" multiple class="sr-only">
+                                        </label>
+                                        <p class="pl-1">or drag and drop</p>
+                                    </div>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">PNG, JPG up to 5MB each (max 10 images)</p>
+                                    <p id="solutions-file-name" class="text-sm font-medium text-green-600 dark:text-green-400 hidden"></p>
+                                </div>
+                            </div>
+                            @error('solution_images')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
+                            @error('solution_images.*')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
                         </div>
 
                         <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.5s">
@@ -86,7 +112,82 @@
         </div>
     </div>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            setupDragDrop('solutions-drop-zone', 'solution_images', 'solutions-file-name', 'solutions-icon', true);
+
+            function setupDragDrop(dropZoneId, inputId, fileNameId, iconId, multiple) {
+                const dropZone = document.getElementById(dropZoneId);
+                const fileInput = document.getElementById(inputId);
+                const fileName = document.getElementById(fileNameId);
+                const icon = document.getElementById(iconId);
+
+                if (!dropZone || !fileInput) return;
+
+                dropZone.addEventListener('click', function(e) {
+                    if (e.target !== fileInput) {
+                        fileInput.click();
+                    }
+                });
+
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, preventDefaults, false);
+                });
+
+                function preventDefaults(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, () => dropZone.classList.add('drag-over'), false);
+                });
+
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-over'), false);
+                });
+
+                dropZone.addEventListener('drop', function(e) {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+                    if (files.length > 0) {
+                        const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+                        if (imageFiles.length > 0) {
+                            const dataTransfer = new DataTransfer();
+                            imageFiles.forEach(f => dataTransfer.items.add(f));
+                            fileInput.files = dataTransfer.files;
+                            updateFileName(multiple ? imageFiles.length + ' files selected' : imageFiles[0].name);
+                        } else {
+                            alert('Please upload image files only.');
+                        }
+                    }
+                });
+
+                fileInput.addEventListener('change', function() {
+                    if (this.files.length > 0) {
+                        updateFileName(multiple ? this.files.length + ' files selected' : this.files[0].name);
+                    }
+                });
+
+                function updateFileName(name) {
+                    if (fileName) {
+                        fileName.textContent = '✓ ' + name;
+                        fileName.classList.remove('hidden');
+                    }
+                    if (icon) {
+                        icon.classList.add('text-green-500');
+                        icon.classList.remove('text-gray-400');
+                    }
+                }
+            }
+        });
+    </script>
     <style>
+        .drag-over {
+            border-color: #10b981 !important;
+            background-color: rgba(16, 185, 129, 0.1);
+        }
+
         @keyframes fadeIn {
             from {
                 opacity: 0;

@@ -57,11 +57,6 @@ class QuestionController extends Controller
             $data['question_image'] = $request->file('question_image')->store('questions/images', 'public');
         }
 
-        // Handle single solution image (backward compatibility)
-        if ($request->hasFile('solution_image')) {
-            $data['solution_image'] = $request->file('solution_image')->store('questions/solutions', 'public');
-        }
-
         // Handle multiple solution images
         if ($request->hasFile('solution_images')) {
             $solutionImages = [];
@@ -99,14 +94,6 @@ class QuestionController extends Controller
             $data['question_image'] = $request->file('question_image')->store('questions/images', 'public');
         }
 
-        // Handle single solution image (backward compatibility)
-        if ($request->hasFile('solution_image')) {
-            if ($question->solution_image) {
-                Storage::disk('public')->delete($question->solution_image);
-            }
-            $data['solution_image'] = $request->file('solution_image')->store('questions/solutions', 'public');
-        }
-
         // Handle multiple solution images
         if ($request->hasFile('solution_images')) {
             // Delete old images if replacing
@@ -131,9 +118,6 @@ class QuestionController extends Controller
         // Delete images if exist
         if ($question->question_image) {
             Storage::disk('public')->delete($question->question_image);
-        }
-        if ($question->solution_image) {
-            Storage::disk('public')->delete($question->solution_image);
         }
         if ($question->solution_images) {
             foreach ($question->solution_images as $image) {

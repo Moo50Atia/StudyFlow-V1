@@ -85,7 +85,7 @@ class DatabaseSeeder extends Seeder
                         'lecture_id' => $lecture->id,
                         'title' => $this->getSectionTitle($j),
                         'quick_summary' => fake()->sentence(8),
-                        'notebook_link' => rand(0, 1) ? fake()->url() : null,
+                        'core_concept' => fake()->sentence(10),
                         'dynamic_view_link' => rand(0, 1) ? fake()->url() : null,
                     ]);
                 }
@@ -97,7 +97,7 @@ class DatabaseSeeder extends Seeder
                         'lecture_id' => $lecture->id,
                         'question_image' => null,
                         'idea_text' => $this->getIdeaText(),
-                        'solution_image' => null,
+                        'solution_images' => null,
                         'solution_explanation' => fake()->paragraph(2),
                         'dynamic_view_link' => rand(0, 1) ? fake()->url() : null,
                     ]);

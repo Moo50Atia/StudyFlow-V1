@@ -31,7 +31,10 @@ class QuestionFactory extends Factory
             'lecture_id' => Lecture::factory(),
             'question_image' => 'questions/placeholder_question_' . fake()->numberBetween(1, 10) . '.png',
             'idea_text' => fake()->randomElement($ideas),
-            'solution_image' => 'questions/placeholder_solution_' . fake()->numberBetween(1, 10) . '.png',
+            'solution_images' => [
+                'questions/placeholder_solution_' . fake()->numberBetween(1, 10) . '.png',
+                'questions/placeholder_solution_' . fake()->numberBetween(1, 10) . '.png'
+            ],
             'solution_explanation' => fake()->paragraph(2),
             'dynamic_view_link' => 'https://docs.google.com/document/d/' . fake()->uuid() . '/edit',
         ];

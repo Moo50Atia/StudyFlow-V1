@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('title');
             $table->string('pdf_path')->nullable();
             $table->text('summary')->nullable();
+            $table->string('mindmap_path')->nullable();
             $table->timestamps();
         });
     }

@@ -52,21 +52,10 @@
                         <p class="mt-1 text-gray-600 dark:text-gray-400">{{ $question->idea_text ?? 'No hint available.' }}</p>
                     </div>
 
-                    @if($question->solution_image || ($question->solution_images && count($question->solution_images) > 0))
+                    @if($question->solution_images && count($question->solution_images) > 0)
                     <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.5s;">
                         <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Solution Images</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            @if($question->solution_image)
-                            <div class="relative group">
-                                <img src="{{ Storage::url($question->solution_image) }}" alt="Solution" class="w-full rounded-lg shadow-lg cursor-pointer hover:shadow-xl transition-shadow duration-200" onclick="openImageModal(this.src)">
-                                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg transition-all duration-200 flex items-center justify-center">
-                                    <svg class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                                    </svg>
-                                </div>
-                            </div>
-                            @endif
-                            @if($question->solution_images)
                             @foreach($question->solution_images as $index => $image)
                             <div class="relative group">
                                 <img src="{{ Storage::url($image) }}" alt="Solution {{ $index + 1 }}" class="w-full rounded-lg shadow-lg cursor-pointer hover:shadow-xl transition-shadow duration-200" onclick="openImageModal(this.src)">
@@ -78,7 +67,6 @@
                                 </div>
                             </div>
                             @endforeach
-                            @endif
                         </div>
                     </div>
                     @else

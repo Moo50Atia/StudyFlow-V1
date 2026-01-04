@@ -8,6 +8,12 @@
                     Exit Flow
                 </a>
                 @endif
+                <a href="{{ route('lectures.show', $section->lecture_id) }}" class="inline-flex items-center text-purple-600 hover:text-purple-800 dark:text-purple-400 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.168.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    Back to Lec
+                </a>
                 <a href="{{ route('sections.index') }}" class="inline-flex items-center text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 transition-colors duration-200">
                     <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -59,27 +65,10 @@
                     @endif
 
                     <!-- Links -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        @if($section->notebook_link)
-                        <a href="{{ $section->notebook_link }}" target="_blank" class="flex items-center p-4 bg-gradient-to-r from-blue-50 to-indigo-100 dark:from-gray-700 dark:to-gray-600 rounded-xl hover:shadow-lg transition-all duration-200">
-                            <div class="w-12 h-12 rounded-lg bg-blue-500 flex items-center justify-center text-white mr-4">📓</div>
-                            <div>
-                                <p class="font-semibold text-gray-900 dark:text-gray-100">Google NotebookLM</p>
-                                <p class="text-sm text-gray-500 dark:text-gray-400">Open in new tab</p>
-                            </div>
-                        </a>
-                        @else
-                        <div class="flex items-center p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl">
-                            <div class="w-12 h-12 rounded-lg bg-amber-400 flex items-center justify-center text-white mr-4">📓</div>
-                            <div>
-                                <p class="font-semibold text-amber-700 dark:text-amber-400">Google NotebookLM</p>
-                                <p class="text-sm text-amber-600 dark:text-amber-500">Link doesn't exist yet - we will add it soon!</p>
-                            </div>
-                        </div>
-                        @endif
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                         @if($section->dynamic_view_link)
                         <a href="{{ $section->dynamic_view_link }}" target="_blank" class="flex items-center p-4 bg-gradient-to-r from-green-50 to-emerald-100 dark:from-gray-700 dark:to-gray-600 rounded-xl hover:shadow-lg transition-all duration-200">
-                            <div class="w-12 h-12 rounded-lg bg-green-500 flex items-center justify-center text-white mr-4">🔗</div>
+                            <div class="w-12 h-12 rounded-lg bg-green-500 flex items-center justify-center text-white mr-4 shadow-md">🔗</div>
                             <div>
                                 <p class="font-semibold text-gray-900 dark:text-gray-100">Google Dynamic View</p>
                                 <p class="text-sm text-gray-500 dark:text-gray-400">Open in new tab</p>
@@ -87,10 +76,73 @@
                         </a>
                         @else
                         <div class="flex items-center p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl">
-                            <div class="w-12 h-12 rounded-lg bg-amber-400 flex items-center justify-center text-white mr-4">🔗</div>
+                            <div class="w-12 h-12 rounded-lg bg-amber-400 flex items-center justify-center text-white mr-4 shadow-md">🔗</div>
                             <div>
                                 <p class="font-semibold text-amber-700 dark:text-amber-400">Google Dynamic View</p>
                                 <p class="text-sm text-amber-600 dark:text-amber-500">Link doesn't exist yet - we will add it soon!</p>
+                            </div>
+                        </div>
+                        @endif
+
+                        <a href="{{ route('questions.index', ['subject_id' => $section->lecture->subject_id ?? '', 'lecture_id' => $section->lecture_id ?? '']) }}" class="flex items-center p-4 bg-gradient-to-r from-purple-50 to-indigo-100 dark:from-gray-700 dark:to-gray-600 rounded-xl hover:shadow-lg transition-all duration-200">
+                            <div class="w-12 h-12 rounded-lg bg-indigo-500 flex items-center justify-center text-white mr-4 shadow-md">❓</div>
+                            <div>
+                                <p class="font-semibold text-gray-900 dark:text-gray-100">Practice Questions</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">View all for this lecture</p>
+                            </div>
+                        </a>
+                    </div>
+
+                    <!-- Learning Content Sections -->
+                    <div class="space-y-6 mb-8">
+                        <!-- Core Concept -->
+                        @if($section->core_concept)
+                        <div class="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-6 border border-blue-100 dark:border-blue-800 animate-fade-in-up" style="animation-delay: 0.05s">
+                            <h4 class="text-xl font-bold text-blue-900 dark:text-blue-300 mb-3 flex items-center">
+                                <span class="mr-3 text-2xl">💡</span>
+                                Core Concept
+                            </h4>
+                            <div class="text-gray-700 dark:text-gray-300 text-lg italic">
+                                "{!! nl2br(e($section->core_concept)) !!}"
+                            </div>
+                        </div>
+                        @endif
+
+                        <!-- Egyptian Explain -->
+                        @if($section->egyptian_explain)
+                        <div class="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-6 border border-indigo-100 dark:border-indigo-800 animate-fade-in-up" style="animation-delay: 0.1s">
+                            <h4 class="text-xl font-bold text-indigo-900 dark:text-indigo-300 mb-4 flex items-center justify-between" dir="rtl">
+                                <span> الشرح بالمصري</span>
+                                <span class="text-2xl">🗣️</span>
+                            </h4>
+                            <div class="text-gray-700 dark:text-gray-300 leading-relaxed text-right text-lg" dir="rtl">
+                                {!! nl2br(e($section->egyptian_explain)) !!}
+                            </div>
+                        </div>
+                        @endif
+
+                        <!-- Formulas -->
+                        @if($section->formulas)
+                        <div class="bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl p-6 border border-emerald-100 dark:border-emerald-800 animate-fade-in-up" style="animation-delay: 0.2s">
+                            <h4 class="text-xl font-bold text-emerald-900 dark:text-emerald-300 mb-4 flex items-center">
+                                <span class="mr-3 text-2xl">📐</span>
+                                Formulas & Laws
+                            </h4>
+                            <div class="bg-white/50 dark:bg-black/20 rounded-xl p-4 font-mono text-lg text-emerald-800 dark:text-emerald-400">
+                                {!! nl2br(e($section->formulas)) !!}
+                            </div>
+                        </div>
+                        @endif
+
+                        <!-- Real Life Examples -->
+                        @if($section->real_life)
+                        <div class="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-6 border border-amber-100 dark:border-amber-800 animate-fade-in-up" style="animation-delay: 0.3s">
+                            <h4 class="text-xl font-bold text-amber-900 dark:text-amber-300 mb-4 flex items-center justify-between" dir="rtl">
+                                <span> أمثلة من الحياة</span>
+                                <span class="text-2xl">🌍</span>
+                            </h4>
+                            <div class="text-gray-700 dark:text-gray-300 leading-relaxed text-right text-lg" dir="rtl">
+                                {!! nl2br(e($section->real_life)) !!}
                             </div>
                         </div>
                         @endif
@@ -192,11 +244,7 @@
                             <span class="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mr-3">🔗</span>
                             Update Links
                         </h5>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Google NotebookLM Link</label>
-                                <input type="url" name="notebook_link" value="{{ $section->notebook_link }}" placeholder="https://" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                            </div>
+                        <div class="grid grid-cols-1 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Google Dynamic View Link</label>
                                 <input type="url" name="dynamic_view_link" value="{{ $section->dynamic_view_link }}" placeholder="https://" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">

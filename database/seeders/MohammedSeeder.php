@@ -229,7 +229,7 @@ class MohammedSeeder extends Seeder
                     'lecture_id' => $lecture->id,
                     'title' => $data['title'],
                     'quick_summary' => $data['quick_summary'],
-                    'notebook_link' => 'https://notebooklm.google.com/notebook/' . uniqid(),
+                    'core_concept' => 'This is the core concept for ' . $data['title'],
                     'dynamic_view_link' => 'https://docs.google.com/document/d/' . uniqid() . '/edit',
                 ]
             );
@@ -249,7 +249,7 @@ class MohammedSeeder extends Seeder
                     'lecture_id' => $lecture->id,
                     'question_image' => 'questions/question_placeholder_' . $i . '.png',
                     'idea_text' => $data['idea_text'],
-                    'solution_image' => 'questions/solution_placeholder_' . $i . '.png',
+                    'solution_images' => ['questions/solution_placeholder_' . $i . '.png'],
                     'solution_explanation' => $data['solution_explanation'],
                     'dynamic_view_link' => 'https://docs.google.com/document/d/' . uniqid() . '/edit',
                 ]

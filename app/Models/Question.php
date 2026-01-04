@@ -14,7 +14,6 @@ class Question extends Model
         'lecture_id',
         'question_image',
         'idea_text',
-        'solution_image',
         'solution_images',
         'solution_explanation',
         'dynamic_view_link',

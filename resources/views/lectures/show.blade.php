@@ -281,11 +281,19 @@
                             </div>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notebook Link</label>
-                                <input type="url" name="sections[${i}][notebook_link]" placeholder="https://" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Core Concept (Key Takeaway)</label>
+                                <textarea name="sections[${i}][core_concept]" rows="2" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm" placeholder="The primary takeaway..."></textarea>
                             </div>
-                            <div>
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Egyptian Explanation (بالمصري)</label>
+                                <textarea name="sections[${i}][egyptian_explain]" rows="2" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm text-right" dir="rtl" placeholder="شرح مبسط بالعامية المصرية..."></textarea>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Real Life Examples (أمثلة من الحياة)</label>
+                                <textarea name="sections[${i}][real_life]" rows="2" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm text-right" dir="rtl" placeholder="أمثلة واقعية للموضوع..."></textarea>
+                            </div>
+                            <div class="md:col-span-2">
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dynamic View Link</label>
                                 <input type="url" name="sections[${i}][dynamic_view_link]" placeholder="https://" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                             </div>

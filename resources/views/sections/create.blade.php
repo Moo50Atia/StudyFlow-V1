@@ -12,14 +12,14 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-xl rounded-2xl animate-fade-in-up">
                 <div class="p-8">
                     <form action="{{ route('sections.store') }}" method="POST">
                         @csrf
 
                         <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.1s">
-                            <label for="lecture_id" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Lecture</label>
+                            <label for="lecture_id" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Lecture *</label>
                             <select name="lecture_id" id="lecture_id" required class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200">
                                 <option value="">-- Select Lecture --</option>
                                 @foreach($lectures as $lecture)
@@ -30,21 +30,39 @@
                         </div>
 
                         <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.2s">
-                            <label for="title" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Section Title</label>
+                            <label for="title" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Section Title *</label>
                             <input type="text" name="title" id="title" value="{{ old('title') }}" required class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200">
                             @error('title')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
                         </div>
 
+                        <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.25s">
+                            <label for="core_concept" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Core Concept</label>
+                            <textarea name="core_concept" id="core_concept" rows="3" placeholder="What is the primary takeaway?" class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200">{{ old('core_concept') }}</textarea>
+                            @error('core_concept')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
+                        </div>
+
                         <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.3s">
                             <label for="quick_summary" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Quick Summary</label>
-                            <textarea name="quick_summary" id="quick_summary" rows="4" class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200">{{ old('quick_summary') }}</textarea>
+                            <textarea name="quick_summary" id="quick_summary" rows="3" class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200">{{ old('quick_summary') }}</textarea>
                             @error('quick_summary')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
                         </div>
 
+                        <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.35s">
+                            <label for="egyptian_explain" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">🇪🇬 Egyptian Explanation (بالمصري)</label>
+                            <textarea name="egyptian_explain" id="egyptian_explain" rows="4" dir="rtl" class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200 text-right" style="direction: rtl; text-align: right;" placeholder="اشرح الموضوع بالمصري عشان الطالب يفهم...">{{ old('egyptian_explain') }}</textarea>
+                            @error('egyptian_explain')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
+                        </div>
+
                         <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.4s">
-                            <label for="notebook_link" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Notebook Link</label>
-                            <input type="url" name="notebook_link" id="notebook_link" value="{{ old('notebook_link') }}" class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200">
-                            @error('notebook_link')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
+                            <label for="formulas" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">📐 Formulas (المعادلات)</label>
+                            <textarea name="formulas" id="formulas" rows="4" class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200 font-mono" placeholder="E = mc²&#10;F = ma">{{ old('formulas') }}</textarea>
+                            @error('formulas')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.45s">
+                            <label for="real_life" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 text-right" dir="rtl">🌍 Real Life Examples (أمثلة من الحياة)</label>
+                            <textarea name="real_life" id="real_life" rows="4" dir="rtl" class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200 text-right" style="direction: rtl; text-align: right;" placeholder="تخيل إنك بتسوق عربية وفجأة دست على الفرامل...">{{ old('real_life') }}</textarea>
+                            @error('real_life')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
                         </div>
 
                         <div class="mb-8 animate-fade-in-up" style="animation-delay: 0.5s">

@@ -52,7 +52,10 @@ class StudyFlowController extends Controller
             $lecture->sections()->create([
                 'title' => $sectionData['title'],
                 'quick_summary' => $sectionData['quick_summary'] ?? null,
-                'notebook_link' => $sectionData['notebook_link'] ?? null,
+                'core_concept' => $sectionData['core_concept'] ?? null,
+                'egyptian_explain' => $sectionData['egyptian_explain'] ?? null,
+                'formulas' => $sectionData['formulas'] ?? null,
+                'real_life' => $sectionData['real_life'] ?? null,
                 'dynamic_view_link' => $sectionData['dynamic_view_link'] ?? null,
             ]);
             $count++;
@@ -70,9 +73,8 @@ class StudyFlowController extends Controller
         $messages = [];
 
         // Update section links if provided
-        if ($request->notebook_link || $request->dynamic_view_link) {
+        if ($request->dynamic_view_link) {
             $section->update([
-                'notebook_link' => $request->notebook_link ?? $section->notebook_link,
                 'dynamic_view_link' => $request->dynamic_view_link ?? $section->dynamic_view_link,
             ]);
             $messages[] = 'Links updated';
@@ -83,8 +85,8 @@ class StudyFlowController extends Controller
             foreach ($request->questions as $questionData) {
                 Question::create([
                     'lecture_id' => $section->lecture_id,
-                    'idea' => $questionData['idea'],
-                    'explanation' => $questionData['explanation'] ?? null,
+                    'idea_text' => $questionData['idea'],
+                    'solution_explanation' => $questionData['explanation'] ?? null,
                     'dynamic_view_link' => $questionData['dynamic_view_link'] ?? null,
                 ]);
             }

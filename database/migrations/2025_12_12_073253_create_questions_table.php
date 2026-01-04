@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('lecture_id')->constrained()->onDelete('cascade');
             $table->string('question_image')->nullable();
             $table->text('idea_text')->nullable();
-            $table->string('solution_image')->nullable();
+            $table->json('solution_images')->nullable();
             $table->text('solution_explanation')->nullable();
             $table->string('dynamic_view_link')->nullable();
             $table->timestamps();

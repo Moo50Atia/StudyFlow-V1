@@ -24,7 +24,6 @@ class BulkContentRequest extends FormRequest
             'exam_questions.*.explanation' => 'nullable|string',
             'exam_questions.*.dynamic_view_link' => 'nullable|url',
 
-            'notebook_link' => 'nullable|url',
             'dynamic_view_link' => 'nullable|url',
         ];
     }

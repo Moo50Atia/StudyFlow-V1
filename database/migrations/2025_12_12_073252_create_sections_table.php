@@ -16,7 +16,10 @@ return new class extends Migration
             $table->foreignId('lecture_id')->constrained()->onDelete('cascade');
             $table->string('title');
             $table->text('quick_summary')->nullable();
-            $table->string('notebook_link')->nullable();
+            $table->text('core_concept')->nullable();
+            $table->text('egyptian_explain')->nullable();
+            $table->text('formulas')->nullable();
+            $table->text('real_life')->nullable();
             $table->string('dynamic_view_link')->nullable();
             $table->timestamps();
         });
