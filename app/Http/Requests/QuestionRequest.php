@@ -15,8 +15,10 @@ class QuestionRequest extends FormRequest
     {
         return [
             'lecture_id' => 'required|exists:lectures,id',
+            'question_text' => 'nullable|string',
             'question_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
             'idea_text' => 'nullable|string',
+            'hint' => 'nullable|string',
             'solution_images' => 'nullable|array|max:10',
             'solution_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
             'solution_explanation' => 'nullable|string',

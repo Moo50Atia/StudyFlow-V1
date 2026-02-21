@@ -12,8 +12,10 @@ class Question extends Model
 
     protected $fillable = [
         'lecture_id',
+        'question_text',
         'question_image',
         'idea_text',
+        'hint',
         'solution_images',
         'solution_explanation',
         'dynamic_view_link',

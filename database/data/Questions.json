@@ -1,0 +1,198 @@
+[
+    {
+        "lecture_id": 23,
+        "question_text": "How to repair an electronic multimeter?",
+        "idea_text": "Follow a sequence starting with the battery, leads, and fuse.",
+        "hint": "بطارية، مجسات، فيوز، لحام، تجميع.",
+        "solution_explanation": "Start by checking the battery, testing the probe leads, and checking the internal fuse. Then, disassemble the device to re-solder broken wires and check for loose parts or screws before reassembling."
+    },
+    {
+        "lecture_id": 23,
+        "question_text": "Draw and explain the block diagram of simple digital Voltmeter?",
+        "idea_text": "Uses a pulse generator, AND gate, and Decimal display.",
+        "hint": "مولد نبضات، بوابة AND، عداد، شاشة.",
+        "solution_explanation": "The signal is fed to a pulse generator to create a rectangular pulse that gates a train of pulses through an AND gate. These pulses are then counted by a decimal display, which is calibrated to show the voltage directly."
+    },
+    {
+        "lecture_id": 23,
+        "question_text": "List the usages of the digital frequency meter?",
+        "idea_text": "Testing radio gear and measuring physical values via transducers.",
+        "hint": "راديو، سنسورات، اهتزازات، ضغط، حرارة.",
+        "solution_explanation": "It is used for testing radio equipment and measuring transducers. It also measures temperature, pressure, and other physical values. Additionally, it is essential for measuring vibrations and strain."
+    },
+    {
+        "lecture_id": 23,
+        "question_text": "Compare between the digital voltmeter and the analog voltmeter?",
+        "idea_text": "Numerical digits display versus needle deflection on a scale.",
+        "hint": "أرقام، إبرة، دقة، خطأ القراءة، سرعة.",
+        "solution_explanation": "Digital voltmeters display measured voltage directly as discrete numerical digits, eliminating observational errors like parallax. Analog voltmeters use a needle moving over a continuous scale. DVMs offer higher accuracy and faster reading speeds."
+    },
+    {
+        "lecture_id": 24,
+        "question_text": "Give reasons: Oscilloscope is diagnostic instrument?",
+        "idea_text": "Visualises signals to identify frequency, noise, and malfunctions.",
+        "hint": "رسم بياني، رؤية تردد، كشف أعطال، نويز.",
+        "solution_explanation": "It draws a graph of voltage over time, allowing engineers to identify frequencies and see invisible electrical activity. It also helps detect circuit malfunctions and signal distortion."
+    },
+    {
+        "lecture_id": 24,
+        "question_text": "Why is the sine wave considered the fundamental wave shape?",
+        "idea_text": "Harmonious properties and prevalence in AC power sources.",
+        "hint": "خصائص رياضية، مصادر AC، إشارة اختبار.",
+        "solution_explanation": "The sine wave is fundamental because it has harmonious mathematical properties. Furthermore, most AC power sources produce voltage that varies as a sine wave."
+    },
+    {
+        "lecture_id": 25,
+        "question_text": "Draw and explain the block diagram of the digital storage oscilloscope (DSO)?",
+        "idea_text": "Sequential processing through Amp, ADC, Memory, and uP.",
+        "hint": "مكبر، ADC، ذاكرة، معالج، عرض.",
+        "solution_explanation": "The DSO uses a serial-processing architecture where the input signal passes through a vertical amplifier to an ADC. The resulting digital sample points are stored in acquisition memory and processed by a microprocessor."
+    },
+    {
+        "lecture_id": 25,
+        "question_text": "Give reasons: DPO Oscilloscope employ parallel processing architecture?",
+        "idea_text": "Uses ASIC hardware for high capture rates and real-time display.",
+        "hint": "معالجة موازية، ASIC، سرعة التقاط، فوسفور.",
+        "solution_explanation": "The DPO uses parallel architecture and dedicated ASIC hardware to acquire waveform images. This enables it to deliver much higher waveform capture rates and real-time visualization."
+    },
+    {
+        "lecture_id": 25,
+        "question_text": "What is the purpose of sampling in DSO?",
+        "idea_text": "Capturing discrete points to digitize and reconstruct signals.",
+        "hint": "لقطات، تحويل رقمي، نقاط عينة، تخزين.",
+        "solution_explanation": "Sampling takes snapshots of a signal at discrete points in time. This process converts the analog voltage into digital values (sample points) which are then used to reconstruct the waveform for display."
+    },
+    {
+        "lecture_id": 25,
+        "question_text": "Explain the function of the mixed signal oscilloscope (MSO)?",
+        "idea_text": "Displays and time-correlates both analog and digital signals.",
+        "hint": "قنوات تناظرية، قنوات رقمية، توازن زمني، ميكروبروسيسور.",
+        "solution_explanation": "The MSO combines DPO performance with a 16-channel logic analyzer. It measures analog channels (voltage vs time) alongside digital logic channels, allowing for time-correlation of events in a single instrument."
+    },
+    {
+        "lecture_id": 26,
+        "question_text": "Define: Oscilloscope bandwidth?",
+        "idea_text": "Frequency range where signal amplitude drops to 70.7% (-3 dB).",
+        "hint": "مدى تردد، نقطة -3dB، دقة سعة.",
+        "solution_explanation": "Bandwidth indicates the frequency range that the oscilloscope can accurately measure. It is defined as the frequency at which a sinusoidal input signal is attenuated to 70.7% of its true amplitude."
+    },
+    {
+        "lecture_id": 26,
+        "question_text": "The relation between the rise time and the bandwidth is Rise time X the bandwidth = 0.35",
+        "idea_text": "Mathematical link between time and frequency response.",
+        "hint": "ثابت 0.35، علاقة عكسية، حساب زمن.",
+        "solution_explanation": "This relationship allows for the calculation of one parameter if the other is known. For example, if bandwidth is 100MHz, rise time is 0.35/100MHz = 3.5ns."
+    },
+    {
+        "lecture_id": 26,
+        "question_text": "Define: Oscilloscope rise time?",
+        "idea_text": "The instrument's ability to capture rapid signal transitions.",
+        "hint": "سرعة استجابة، حواف الموجة، دقة زمنية، انتقال سريع.",
+        "solution_explanation": "Rise time describes the oscilloscope's ability to capture rapid transitions accurately. It is critical for digital signals where 'edges' carry information. A faster rise time ensures more accurate reproduction of fast signal details."
+    },
+    {
+        "lecture_id": 26,
+        "question_text": "Define: Sampling rate?",
+        "idea_text": "Snapshots taken per second, defining resolution and detail.",
+        "hint": "عينات/ثانية، دقة عرض، تفاصيل، فقدان داتا.",
+        "solution_explanation": "Sample rate defines how frequently a digital oscilloscope takes a snapshot of the signal (measured in S/s). A higher sample rate provides greater signal resolution and ensures intermittent events are captured."
+    },
+    {
+        "lecture_id": 26,
+        "question_text": "Define the record length of digital data stream?",
+        "idea_text": "Number of points that make up a complete waveform record.",
+        "hint": "عدد النقاط، سعة تخزين، مدة التسجيل، ذاكرة.",
+        "solution_explanation": "Record length is the number of waveform points used to create a complete record. It determines the total time duration that can be captured at a specific sample rate."
+    },
+    {
+        "lecture_id": 26,
+        "question_text": "Compare between the waveform capture rate and the record length?",
+        "idea_text": "Acquisition speed per second versus points per waveform record.",
+        "hint": "سرعة معالجة، طول الموجة، تحديث الشاشة، دقة.",
+        "solution_explanation": "Capture rate refers to how quickly an oscilloscope acquires full waveforms per second (wfms/s). Record length is the number of points in one single waveform. Capture rate is about speed; record length is about duration."
+    },
+    {
+        "lecture_id": 27,
+        "question_text": "Explain the function of coupling (AC, DC, GND)?",
+        "idea_text": "Determines the connection method between the circuit and oscilloscope.",
+        "hint": "تصفية DC، إشارة كاملة، مرجع صفر.",
+        "solution_explanation": "DC coupling displays the entire signal. AC coupling blocks the DC component to see ripples. GND disconnects the input to show the zero-volt baseline."
+    },
+    {
+        "lecture_id": 27,
+        "question_text": "Explain the Vertical system scaling (volts/div)?",
+        "idea_text": "Adjusts the amplitude and vertical position of the waveform.",
+        "hint": "تكبير، تصغير، فولت/مربع، سعة، موضع.",
+        "solution_explanation": "The vertical system uses the volts/div control to adjust the size of the waveform on the screen. It allows the user to scale the signal vertically to fit the measurement range."
+    },
+    {
+        "lecture_id": 27,
+        "question_text": "Compare in detail between the drum plotter and flatbed plotter?",
+        "idea_text": "Drum moves paper; Flatbed keeps paper stationary.",
+        "hint": "ورق متحرك، ورق ثابت، محاور X-Y.",
+        "solution_explanation": "In a drum plotter, the paper moves over a roller (X-axis) while the pen moves on the Y-axis. In a flatbed plotter, the paper is fixed on a table while robotic arms move the pen."
+    },
+    {
+        "lecture_id": 28,
+        "question_text": "List the advantages of the frequency domain measurements?",
+        "idea_text": "Separates complex components and reduces visible noise.",
+        "hint": "تفكيك ترددات، كشف تشوه، تقليل نويز.",
+        "solution_explanation": "It allows complex signals to be separated into individual frequency components, revealing distortions invisible in the time domain. It also reduces noise by narrowing measurement bandwidth."
+    },
+    {
+        "lecture_id": 28,
+        "question_text": "Explain the process of Data Acquisition (DAQ)?",
+        "idea_text": "Measuring physical phenomena and converting them into digital data.",
+        "hint": "سنسور، تحويل كهربائي، رقمي، معالجة.",
+        "solution_explanation": "DAQ uses sensors to convert physical phenomena (temp/force) into electrical signals. These analog signals are then digitized for computer processing and storage."
+    },
+    {
+        "lecture_id": 28,
+        "question_text": "What do you need to know about a spectrum analyzer in order to choose one adequately?",
+        "idea_text": "Frequency range, amplitude range, and resolution levels.",
+        "hint": "مدى ترددي، مدى سعة، دقة، حساسية.",
+        "solution_explanation": "You must identify the required frequency range and the amplitude range (including sensitivity). Additionally, determine the required resolution to differentiate between close signals."
+    },
+    {
+        "lecture_id": 28,
+        "question_text": "Can the spectrum analyzer provide measurements in the time domain. How?",
+        "idea_text": "Yes, by using fixed-tune or zero-span mode.",
+        "hint": "Zero span، وضع ثابت، نطاق زمني، تذبذب.",
+        "solution_explanation": "Yes, spectrum analyzers can be used in 'fixed-tune' mode or 'zero span'. This mode provides time-domain measurement capability similar to an oscilloscope."
+    },
+    {
+        "lecture_id": 28,
+        "question_text": "Compare Electrocardiography (ECG) and Electromyography (EMG)?",
+        "idea_text": "Heart activity vs Muscle activity.",
+        "hint": "كهرباء قلب، كهرباء عضلات، تشخيص، نبض.",
+        "solution_explanation": "ECG records electrical signals from the heart to check its condition. EMG measures the electrical activity response of muscles to nerve stimulation."
+    },
+    {
+        "lecture_id": 29,
+        "question_text": "How can you improve the S / N ratio?",
+        "idea_text": "Reduce noise bandwidth or increase signal strength.",
+        "hint": "تقليل نويز، تقوية إشارة، فلاتر، دقة.",
+        "solution_explanation": "Improving the ratio involves reducing the noise floor or bandwidth. If practical, increasing signal power without causing distortion can also enhance integrity."
+    },
+    {
+        "lecture_id": 29,
+        "question_text": "Explain how the thermal noise can be modeled as a Norton current source?",
+        "idea_text": "A current source in parallel with a noiseless resistor.",
+        "hint": "نورتون، توازي، إلكترونات، حرارة.",
+        "solution_explanation": "Thermal noise is modeled as a current source In=√(4KTB/R) in parallel with a noiseless resistor to represent the noise generated by a resistance."
+    },
+    {
+        "lecture_id": 29,
+        "question_text": "Compare in brief Extrinsic noise and intrinsic noise?",
+        "idea_text": "Outside pickup vs inside generation.",
+        "hint": "نويز داخلي، تداخل خارجي، حرارة، مغناطيس.",
+        "solution_explanation": "Intrinsic noise is generated internally (like thermal noise). Extrinsic noise (interference) is picked up from external sources like magnetic coupling or radiation."
+    },
+    {
+        "lecture_id": 29,
+        "question_text": "Calculate the noise factor and the noise figure?",
+        "idea_text": "Ratio of input SNR to output SNR.",
+        "hint": "معامل النويز، نسبة SNR، ديسيبل، جودة مكبر.",
+        "solution_explanation": "Noise factor (F) is the ratio of input SNR to output SNR. Noise figure (NF) is the same value expressed in decibels (10logF). It measures how much noise an amplifier adds."
+    }
+]

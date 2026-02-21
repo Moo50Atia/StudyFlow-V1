@@ -30,6 +30,12 @@
                             @error('lecture_id')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
                         </div>
 
+                        <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.15s">
+                            <label for="question_text" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Question Text</label>
+                            <textarea name="question_text" id="question_text" rows="3" class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200">{{ old('question_text', $question->question_text) }}</textarea>
+                            @error('question_text')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
+                        </div>
+
                         <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.2s">
                             <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Current Question Image</label>
                             @if($question->question_image)
@@ -43,9 +49,15 @@
                         </div>
 
                         <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.3s">
-                            <label for="idea" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Idea</label>
-                            <textarea name="idea" id="idea" rows="3" class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200">{{ old('idea', $question->idea) }}</textarea>
-                            @error('idea')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
+                            <label for="idea_text" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Idea</label>
+                            <textarea name="idea_text" id="idea_text" rows="3" class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200">{{ old('idea_text', $question->idea_text) }}</textarea>
+                            @error('idea_text')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.35s">
+                            <label for="hint" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Hint</label>
+                            <textarea name="hint" id="hint" rows="2" class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200">{{ old('hint', $question->hint) }}</textarea>
+                            @error('hint')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
                         </div>
 
                         <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.4s">

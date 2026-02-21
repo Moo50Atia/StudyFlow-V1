@@ -294,6 +294,73 @@
             </div>
             @endif
 
+            <!-- Teacher Study Flow: Content Management Panel -->
+            @if(session('study_flow') && Auth::check() && Auth::user()->role === 'teacher')
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl shadow-xl p-6 mb-8 animate-fade-in-up" style="animation-delay: 0.1s">
+                <div class="flex items-center justify-between mb-6">
+                    <h4 class="text-xl font-bold text-gray-900 dark:text-gray-100">🎯 Add Content (Teacher Flow)</h4>
+                    <a href="{{ route('teacher-study-flow.exit') }}" class="px-4 py-2 bg-gray-500 text-white rounded-lg text-sm hover:bg-gray-600 transition-colors">Exit Flow</a>
+                </div>
+
+                <form action="{{ route('teacher-study-flow.bulk-content', $section) }}" method="POST">
+                    @csrf
+
+                    <!-- Links Section -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4 border border-gray-200 dark:border-gray-600">
+                        <h5 class="font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center">
+                            <span class="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mr-3">🔗</span>
+                            Update Links
+                        </h5>
+                        <div class="grid grid-cols-1 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Google Dynamic View Link</label>
+                                <input type="url" name="dynamic_view_link" value="{{ $section->dynamic_view_link }}" placeholder="https://" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Questions Section -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4 border border-gray-200 dark:border-gray-600">
+                        <div class="flex items-center justify-between mb-4">
+                            <h5 class="font-semibold text-gray-700 dark:text-gray-300 flex items-center">
+                                <span class="w-8 h-8 bg-green-100 text-green-600 rounded-full flex items-center justify-center mr-3">❓</span>
+                                Add Questions
+                            </h5>
+                            <div class="flex items-center space-x-2">
+                                <input type="number" id="teacher-question-count" min="0" max="10" value="0" class="w-16 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm">
+                                <button type="button" onclick="generateTeacherQuestionForms()" class="px-3 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors">Generate</button>
+                            </div>
+                        </div>
+                        <div id="teacher-question-forms-container" class="space-y-3"></div>
+                    </div>
+
+                    <!-- Exam Questions Section -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4 border border-gray-200 dark:border-gray-600">
+                        <div class="flex items-center justify-between mb-4">
+                            <h5 class="font-semibold text-gray-700 dark:text-gray-300 flex items-center">
+                                <span class="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center mr-3">📝</span>
+                                Add Exam Questions
+                            </h5>
+                            <div class="flex items-center space-x-2">
+                                <input type="number" id="teacher-exam-question-count" min="0" max="10" value="0" class="w-16 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm">
+                                <button type="button" onclick="generateTeacherExamQuestionForms()" class="px-3 py-1 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-colors">Generate</button>
+                            </div>
+                        </div>
+                        <div id="teacher-exam-question-forms-container" class="space-y-3"></div>
+                    </div>
+
+                    <div class="flex justify-end">
+                        <button type="submit" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold hover:from-green-600 hover:to-emerald-600 transition-all duration-300 transform hover:scale-105 shadow-lg">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            Save All Content
+                        </button>
+                    </div>
+                </form>
+            </div>
+            @endif
+
             @if(Auth::check() && Auth::user()->role !== 'student')
             <div class="flex space-x-4 animate-fade-in-up" style="animation-delay: 0.3s">
                 <a href="{{ route('sections.edit', $section) }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold hover:from-amber-600 hover:to-orange-600 transition-all duration-300 transform hover:scale-105 shadow-lg">
@@ -392,6 +459,51 @@
         function generateExamQuestionForms() {
             const count = parseInt(document.getElementById('exam-question-count').value) || 0;
             const container = document.getElementById('exam-question-forms-container');
+            container.innerHTML = '';
+            for (let i = 0; i < count; i++) {
+                container.innerHTML += `
+                    <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Idea *</label>
+                                <textarea name="exam_questions[${i}][idea]" required rows="2" class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Explanation</label>
+                                <textarea name="exam_questions[${i}][explanation]" rows="2" class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Teacher Study Flow form generators
+        function generateTeacherQuestionForms() {
+            const count = parseInt(document.getElementById('teacher-question-count').value) || 0;
+            const container = document.getElementById('teacher-question-forms-container');
+            container.innerHTML = '';
+            for (let i = 0; i < count; i++) {
+                container.innerHTML += `
+                    <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Idea *</label>
+                                <textarea name="questions[${i}][idea]" required rows="2" class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Explanation</label>
+                                <textarea name="questions[${i}][explanation]" rows="2" class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function generateTeacherExamQuestionForms() {
+            const count = parseInt(document.getElementById('teacher-exam-question-count').value) || 0;
+            const container = document.getElementById('teacher-exam-question-forms-container');
             container.innerHTML = '';
             for (let i = 0; i < count; i++) {
                 container.innerHTML += `

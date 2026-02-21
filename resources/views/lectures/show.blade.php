@@ -142,6 +142,38 @@
             </div>
             @endif
 
+            <!-- Teacher Study Flow: Bulk Section Creation -->
+            @if(session('study_flow') && Auth::check() && Auth::user()->role === 'teacher')
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl shadow-xl p-6 mb-8 animate-fade-in-up" style="animation-delay: 0.15s">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h4 class="text-xl font-bold text-gray-900 dark:text-gray-100">📑 Add Sections (Teacher Flow)</h4>
+                        <p class="text-gray-600 dark:text-gray-400">Create multiple sections at once</p>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <a href="{{ route('teacher-study-flow.exit') }}" class="px-4 py-2 bg-gray-500 text-white rounded-lg text-sm hover:bg-gray-600 transition-colors">Exit Flow</a>
+                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Number of sections:</label>
+                        <input type="number" id="teacher-section-count" min="1" max="10" value="1" class="w-20 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                        <button type="button" onclick="generateTeacherSectionForms()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                            Generate
+                        </button>
+                    </div>
+                </div>
+                <form action="{{ route('teacher-study-flow.bulk-sections', $lecture) }}" method="POST" id="teacher-bulk-sections-form">
+                    @csrf
+                    <div id="teacher-section-forms-container" class="space-y-4"></div>
+                    <div class="mt-6 flex justify-end">
+                        <button type="submit" id="teacher-submit-sections-btn" class="hidden inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold hover:from-green-600 hover:to-emerald-600 transition-all duration-300 transform hover:scale-105 shadow-lg">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            Create All Sections
+                        </button>
+                    </div>
+                </form>
+            </div>
+            @endif
+
             <!-- Existing Sections List -->
             @if($lecture->sections->count() > 0)
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden animate-fade-in-up" style="animation-delay: 0.2s">
@@ -292,6 +324,48 @@
                             <div class="md:col-span-2">
                                 <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Real Life Examples (أمثلة من الحياة)</label>
                                 <textarea name="sections[${i}][real_life]" rows="2" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm text-right" dir="rtl" placeholder="أمثلة واقعية للموضوع..."></textarea>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dynamic View Link</label>
+                                <input type="url" name="sections[${i}][dynamic_view_link]" placeholder="https://" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            submitBtn.classList.remove('hidden');
+            submitBtn.classList.add('inline-flex');
+        }
+
+        // Teacher Study Flow bulk section forms
+        function generateTeacherSectionForms() {
+            const count = parseInt(document.getElementById('teacher-section-count').value) || 1;
+            const container = document.getElementById('teacher-section-forms-container');
+            const submitBtn = document.getElementById('teacher-submit-sections-btn');
+            container.innerHTML = '';
+
+            for (let i = 0; i < count; i++) {
+                container.innerHTML += `
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-600">
+                        <div class="flex items-center mb-3">
+                            <span class="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold text-sm">${i + 1}</span>
+                            <span class="ml-3 font-medium text-gray-700 dark:text-gray-300">Section ${i + 1}</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title *</label>
+                                <input type="text" name="sections[${i}][title]" required class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quick Summary</label>
+                                <input type="text" name="sections[${i}][quick_summary]" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Core Concept</label>
+                                <textarea name="sections[${i}][core_concept]" rows="2" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm" placeholder="Key takeaway..."></textarea>
                             </div>
                             <div class="md:col-span-2">
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dynamic View Link</label>

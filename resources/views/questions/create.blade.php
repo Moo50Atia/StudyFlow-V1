@@ -29,6 +29,12 @@
                             @error('lecture_id')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
                         </div>
 
+                        <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.15s">
+                            <label for="question_text" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Question Text</label>
+                            <textarea name="question_text" id="question_text" rows="3" class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200">{{ old('question_text') }}</textarea>
+                            @error('question_text')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
+                        </div>
+
                         <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.2s">
                             <label for="question_image" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Question Image</label>
                             <div id="question-drop-zone" class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-xl hover:border-indigo-500 transition-colors duration-200 cursor-pointer">
@@ -51,9 +57,15 @@
                         </div>
 
                         <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.3s">
-                            <label for="idea_text" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Idea / Hint</label>
+                            <label for="idea_text" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Idea</label>
                             <textarea name="idea_text" id="idea_text" rows="3" class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200">{{ old('idea_text') }}</textarea>
                             @error('idea_text')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.35s">
+                            <label for="hint" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Hint</label>
+                            <textarea name="hint" id="hint" rows="2" class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200">{{ old('hint') }}</textarea>
+                            @error('hint')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
                         </div>
 
                         <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.4s">

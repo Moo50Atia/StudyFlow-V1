@@ -31,6 +31,11 @@
                         </div>
                     </div>
 
+                    <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.25s;">
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Question Text</h3>
+                        <p class="mt-1 text-gray-600 dark:text-gray-400">{{ $question->question_text ?? 'No text available.' }}</p>
+                    </div>
+
                     @if($question->question_image)
                     <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.3s;">
                         <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Question Image</h3>
@@ -42,14 +47,19 @@
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            Question Image doesn't exist yet - we will add it soon!
+                            Question Image doesn't exist yet
                         </p>
                     </div>
                     @endif
 
                     <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.4s;">
-                        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Idea/Hint</h3>
-                        <p class="mt-1 text-gray-600 dark:text-gray-400">{{ $question->idea_text ?? 'No hint available.' }}</p>
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Idea</h3>
+                        <p class="mt-1 text-gray-600 dark:text-gray-400">{{ $question->idea_text ?? 'No idea available.' }}</p>
+                    </div>
+
+                    <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.45s;">
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Hint</h3>
+                        <p class="mt-1 text-gray-600 dark:text-gray-400">{{ $question->hint ?? 'No hint available.' }}</p>
                     </div>
 
                     @if($question->solution_images && count($question->solution_images) > 0)

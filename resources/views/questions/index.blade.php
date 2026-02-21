@@ -109,7 +109,7 @@
                                     </button>
                                     @endauth
                                 </div>
-                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{{ Str::limit($question->idea_text, 80) }}</p>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{{ Str::limit($question->question_text, 100) }}</p>
                                 <div class="flex items-center justify-between">
                                     <a href="{{ route('questions.show', $question) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">View →</a>
                                     @if(Auth::check() && Auth::user()->role !== 'student')

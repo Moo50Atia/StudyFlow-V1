@@ -9,8 +9,18 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <!-- Welcome Banner -->
             <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl shadow-lg p-6 mb-8 text-white animate-fade-in-up">
-                <h3 class="text-2xl font-bold">Welcome back, {{ auth()->user()->name }}!</h3>
-                <p class="mt-2 text-blue-100">You have access to {{ $permissions->count() }} lecture permissions.</p>
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="text-2xl font-bold">Welcome back, {{ auth()->user()->name }}!</h3>
+                        <p class="mt-2 text-blue-100">You have access to {{ $permissions->count() }} lecture permissions.</p>
+                    </div>
+                    <a href="{{ route('teacher-study-flow.start') }}" class="inline-flex items-center px-6 py-3 bg-white text-indigo-600 rounded-xl font-bold hover:bg-indigo-50 transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        Start Study Flow
+                    </a>
+                </div>
             </div>
 
             <!-- Stats Overview -->

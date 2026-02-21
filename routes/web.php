@@ -13,6 +13,7 @@ use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\ExamQuestionController;
 use App\Http\Controllers\StudyFlowController;
 use App\Http\Controllers\APIfilterController;
+use App\Http\Controllers\MohammedTestController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -49,6 +50,18 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     });
 });
 
+// Teacher Study Flow routes
+use App\Http\Controllers\TeacherStudyFlowController;
+
+Route::middleware(['auth', 'role:teacher'])->prefix('teacher-study-flow')->group(function () {
+    Route::get('/start', [TeacherStudyFlowController::class, 'start'])->name('teacher-study-flow.start');
+    Route::get('/lectures', [TeacherStudyFlowController::class, 'lectures'])->name('teacher-study-flow.lectures');
+    Route::post('/lectures', [TeacherStudyFlowController::class, 'storeLecture'])->name('teacher-study-flow.store-lecture');
+    Route::post('/lectures/{lecture}/sections', [TeacherStudyFlowController::class, 'storeBulkSections'])->name('teacher-study-flow.bulk-sections');
+    Route::post('/sections/{section}/content', [TeacherStudyFlowController::class, 'storeBulkContent'])->name('teacher-study-flow.bulk-content');
+    Route::get('/exit', [TeacherStudyFlowController::class, 'exit'])->name('teacher-study-flow.exit');
+});
+
 // Admin and Teacher routes (with teacher access check)
 Route::middleware(['auth', 'teacher.access'])->group(function () {
     Route::resource('/subjects', SubjectController::class);
@@ -62,11 +75,18 @@ Route::middleware(['auth', 'teacher.access'])->group(function () {
 use App\Models\Lecture;
 use App\Models\Section;
 
+// Route::middleware('auth')->prefix('api')->group(function () {
+//     Route::get('/subjects/{subject}/lectures', function ($subjectId) {
+//         return [APIfilterController::class, 'getLectures'];
+//     });
+//     Route::get('/lectures/{lecture}/sections', function ($lectureId) {
+//         return [APIfilterController::class, 'getSections'];
+//     });
+// });
 Route::middleware('auth')->prefix('api')->group(function () {
-    Route::get('/subjects/{subject}/lectures', function ($subjectId) {
-        return [APIfilterController::class, 'getLectures'];
-    });
-    Route::get('/lectures/{lecture}/sections', function ($lectureId) {
-        return [APIfilterController::class, 'getSections'];
-    });
+    // الطريقة القياسية والصحيحة
+    Route::get('/subjects/{subject}/lectures', [APIfilterController::class, 'getLectures']);
+    Route::get('/lectures/{lecture}/sections', [APIfilterController::class, 'getSections']);
 });
+
+Route::get('/mohammed-test', [MohammedTestController::class, 'index'])->name('mohammed-test');
