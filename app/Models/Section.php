@@ -25,4 +25,9 @@ class Section extends Model
     {
         return $this->belongsTo(Lecture::class);
     }
+
+    public function dynamicView()
+    {
+        return $this->hasOne(DynamicViewModel::class);
+    }
 }
