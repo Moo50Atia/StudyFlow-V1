@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signal Theory: Periodicity Visualizer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for premium typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for beautiful icon elements -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617; /* slate-950 */
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Glassmorphism utility */
+        .glass {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        /* Custom Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: #38bdf8; /* sky-400 */
+            cursor: pointer;
+            margin-top: -7px;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+            border: 2px solid #0f172a;
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:active {
+            transform: scale(1.2);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 2px;
+        }
+        input[type=range].shift-slider::-webkit-slider-thumb {
+            background: #a855f7; /* purple-500 */
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+        }
+        
+        .glow-text {
+            text-shadow: 0 0 10px currentColor;
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col selection:bg-purple-500/30 selection:text-purple-200 overflow-x-hidden">
+
+    <!-- Header -->
+    <header class="border-b border-slate-800 bg-slate-900/80 sticky top-0 z-50 backdrop-blur-md shadow-lg shadow-black/20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-br from-purple-500 to-sky-500 p-2 rounded-xl shadow-lg shadow-purple-500/20">
+                    <i class="fa-solid fa-clone text-lg text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-md sm:text-lg font-bold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
+                        Signal Periodicity Visualizer
+                    </h1>
+                    <p class="text-[10px] sm:text-xs text-slate-400 font-medium tracking-wide">
+                        EVALUATING <span class="text-sky-400 font-mono">x(t) = x(t+T)</span> & <span class="text-amber-400 font-mono">x[n] = x[n+N]</span>
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 hidden sm:flex">
+                <span id="headerStatus" class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-800 text-slate-300 border border-slate-700 transition-colors duration-300">
+                    <i class="fa-solid fa-arrows-left-right mr-1.5"></i> Slide window to verify
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 relative">
+
+        <!-- Controls Column (Sidebar) -->
+        <section class="lg:col-span-4 flex flex-col space-y-6">
+            
+            <!-- Signal Parameters Card -->
+            <div class="glass rounded-2xl p-5 shadow-xl border border-slate-800/80">
+                <h2 class="text-xs font-bold tracking-widest uppercase text-slate-400 flex items-center gap-2 mb-4 pb-3 border-b border-slate-800">
+                    <i class="fa-solid fa-wave-square text-sky-400"></i> Signal Configuration
+                </h2>
+
+                <div class="space-y-5">
+                    <!-- Domain Toggle -->
+                    <div>
+                        <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-2 block">Domain</label>
+                        <div class="grid grid-cols-2 gap-2 bg-slate-900/50 p-1 rounded-xl border border-slate-800">
+                            <button id="btnCont" class="domain-btn active py-2 text-xs font-bold rounded-lg bg-slate-700 text-white shadow-sm transition-all">
+                                Continuous <span class="mono ml-1 text-sky-300">x(t)</span>
+                            </button>
+                            <button id="btnDisc" class="domain-btn py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all">
+                                Discrete <span class="mono ml-1 text-amber-300">x[n]</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Signal Type -->
+                    <div>
+                        <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-2 block">Waveform Profile</label>
+                        <select id="signalType" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none cursor-pointer">
+                            <optgroup label="Periodic (Repeating)">
+                                <option value="sine" selected>Standard Sine Wave</option>
+                                <option value="square">Square Wave (Harmonics)</option>
+                            </optgroup>
+                            <optgroup label="Non-Periodic (Aperiodic)">
+                                <option value="damped">Damped Exponential Sine</option>
+                                <option value="chirp">Frequency Chirp (Sweep)</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Time Evolution / Shift Card -->
+            <div class="glass rounded-2xl p-5 shadow-xl border border-purple-500/20 relative overflow-hidden bg-gradient-to-b from-slate-900/80 to-slate-950/80">
+                <div class="absolute -top-10 -right-10 w-24 h-24 bg-purple-500/10 blur-2xl rounded-full pointer-events-none"></div>
+
+                <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3 relative z-10">
+                    <h2 class="text-xs font-bold tracking-widest uppercase text-purple-400 flex items-center gap-2">
+                        <i class="fa-solid fa-arrows-left-right"></i> Sliding Selection Window
+                    </h2>
+                </div>
+
+                <div class="space-y-4 relative z-10">
+                    <p class="text-[11px] text-slate-400 leading-relaxed mb-2">
+                        Drag the selection box along the time axis. We are copying the fundamental block <span class="text-sky-300 font-mono">[0, T]</span> and pasting it at delay <span class="text-purple-400 font-mono">T_shift</span> to check for perfect overlap.
+                    </p>
+
+                    <div>
+                        <div class="flex justify-between items-end mb-2">
+                            <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                Time Shift <span class="lowercase font-mono italic normal-case text-purple-400 ml-1">T_shift / N_shift</span>
+                            </label>
+                            <div class="text-right">
+                                <span class="text-lg mono text-purple-400 font-bold glow-text" id="shiftVal">0.00</span>
+                                <span class="text-xs text-purple-400/50 ml-0.5" id="shiftUnit">s</span>
+                            </div>
+                        </div>
+                        <input type="range" id="shiftSlider" class="shift-slider w-full" min="0" max="4" step="0.01" value="0">
+                        <div class="flex justify-between mt-1 px-1">
+                            <span class="text-[9px] text-slate-600 font-mono">0</span>
+                            <span class="text-[9px] text-slate-600 font-mono">4T</span>
+                        </div>
+                    </div>
+                    
+                    <button id="autoSlideBtn" class="w-full mt-2 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold uppercase tracking-widest rounded-xl border border-slate-700 hover:border-purple-500/50 transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-play text-purple-400"></i> Auto-Sweep Window
+                    </button>
+                </div>
+            </div>
+
+            <!-- Alignment Metrics -->
+            <div class="glass rounded-2xl p-5 shadow-xl border border-slate-800 flex flex-col justify-center items-center relative overflow-hidden transition-colors duration-300" id="metricCard">
+                <h3 class="text-[10px] font-bold uppercase text-slate-500 tracking-wider mb-3 w-full text-left">Correlation / Alignment</h3>
+                
+                <div class="relative w-32 h-32 flex items-center justify-center mb-2">
+                    <!-- Circular Progress -->
+                    <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                        <!-- Background circle -->
+                        <circle cx="50" cy="50" r="40" stroke="#1e293b" stroke-width="8" fill="none" />
+                        <!-- Progress circle -->
+                        <circle id="matchCircle" cx="50" cy="50" r="40" stroke="#a855f7" stroke-width="8" fill="none" stroke-dasharray="251.2" stroke-dashoffset="0" class="transition-all duration-150 ease-out" />
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span id="matchText" class="text-2xl font-bold mono text-white">100%</span>
+                        <span class="text-[9px] text-slate-400 uppercase tracking-widest mt-0.5">Match</span>
+                    </div>
+                </div>
+
+                <div id="equationDisplay" class="mt-2 text-center bg-slate-900/80 px-4 py-2 rounded-lg border border-slate-700/50 w-full transition-all duration-300">
+                    <p class="font-mono text-sm font-bold text-sky-400">x(t) <span class="text-slate-400">=</span> x(t + T)</p>
+                </div>
+            </div>
+            
+        </section>
+
+        <!-- Visualizer Area (Main Canvas & Interactive Charts) -->
+        <section class="lg:col-span-8 flex flex-col space-y-6">
+            
+            <!-- Plot Container Card -->
+            <div class="glass rounded-3xl p-1 shadow-2xl border border-slate-800/80 flex flex-col bg-[#0b1120]">
+                
+                <!-- Canvas Toolbar -->
+                <div class="flex items-center justify-between px-5 py-3 border-b border-slate-800/80 bg-slate-900/50 rounded-t-3xl">
+                    <div class="flex items-center gap-3">
+                        <div class="w-3 h-3 rounded-full bg-rose-500/80"></div>
+                        <div class="w-3 h-3 rounded-full bg-amber-500/80"></div>
+                        <div class="w-3 h-3 rounded-full bg-emerald-500/80"></div>
+                        <span class="ml-2 text-xs font-semibold text-slate-400 tracking-wide">Time Evolution Scope</span>
+                    </div>
+                    <div class="flex gap-4 text-[10px] sm:text-xs font-mono font-medium">
+                        <div class="flex items-center gap-1.5">
+                            <div class="w-2.5 h-2.5 rounded-sm bg-sky-500/20 border border-sky-400"></div>
+                            <span class="text-sky-300">Fundamental <span class="hidden sm:inline">Block</span></span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <div class="w-2.5 h-2.5 rounded-sm bg-purple-500/30 border-2 border-purple-400 border-dashed"></div>
+                            <span class="text-purple-300">Shifted Copy</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dynamic High Definition Canvas with Fallback -->
+                <div class="relative w-full aspect-[16/9] sm:aspect-[21/9] rounded-b-3xl overflow-hidden cursor-crosshair group">
+                    
+                    <!-- HUD Probe (shows on hover) -->
+                    <div id="hudPanel" class="absolute top-4 right-4 z-20 bg-slate-900/95 border border-slate-700 px-3 py-2 rounded-xl pointer-events-none opacity-0 transition-opacity duration-150 shadow-xl min-w-[150px] backdrop-blur-md">
+                        <div class="text-[9px] uppercase text-slate-400 font-bold mb-1.5 border-b border-slate-700 pb-1 flex justify-between">
+                            <span>Instantaneous</span> <span id="hudTime">t = 0.0s</span>
+                        </div>
+                        <div class="flex flex-col gap-1 text-xs mono">
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-500">Base <span class="text-sky-400">x(t)</span></span>
+                                <span id="hudBase" class="text-sky-400 font-bold">0.00</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-500">Shifted <span class="text-purple-400">x(t+<span id="hudTau">0</span>)</span></span>
+                                <span id="hudShift" class="text-purple-400 font-bold">0.00</span>
+                            </div>
+                            <div class="w-full h-px bg-slate-700 my-0.5"></div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-400">Difference</span>
+                                <span id="hudDiff" class="text-rose-400 font-bold">0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Overlay instructions -->
+                    <div id="dragHint" class="absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-700 opacity-0 hidden">
+                        <div class="bg-slate-900/80 border border-slate-700 px-4 py-2 rounded-full backdrop-blur-sm flex items-center gap-2">
+                            <i class="fa-solid fa-hand-pointer text-slate-400 animate-pulse"></i>
+                            <span class="text-xs font-semibold text-slate-300">Drag window inside canvas</span>
+                        </div>
+                    </div>
+
+                    <!-- The Canvas Element -->
+                    <canvas id="periodicityCanvas" class="w-full h-full block" width="1000" height="420"></canvas>
+                </div>
+            </div>
+
+            <!-- Conceptual Learning Indicator Card -->
+            <div class="glass rounded-2xl p-5 shadow-xl border border-slate-800 bg-slate-900/40">
+                <div class="flex flex-col sm:flex-row gap-5 items-start sm:items-center">
+                    <div class="bg-gradient-to-br from-emerald-500/20 to-teal-500/20 p-3 rounded-xl border border-emerald-500/30 flex-shrink-0">
+                        <i class="fa-solid fa-graduation-cap text-2xl text-emerald-400"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-200 mb-1">Definition of Periodicity</h3>
+                        <p class="text-xs text-slate-400 leading-relaxed max-w-3xl">
+                            A signal is classified as <strong>periodic</strong> if and only if there exists a positive constant <span class="text-sky-300 font-mono">T > 0</span> (or integer <span class="text-amber-300 font-mono">N > 0</span>) such that copying a segment of that width and shifting it by <span class="text-purple-400 font-mono">T</span> yields a perfect match with the future waveform. 
+                            If the alignment is ever less than 100%, the signal is strictly <strong>non-periodic</strong>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-900 bg-slate-950 py-5 text-center mt-auto z-10 relative">
+        <p class="text-xs text-slate-500 font-medium">
+            Signal Theory Immersive • Continuous vs Discrete Periodicity
+        </p>
+    </footer>
+
+    <script>
+        // DOM Elements
+        const canvas = document.getElementById('periodicityCanvas');
+        const ctx = canvas.getContext('2d');
+        const shiftSlider = document.getElementById('shiftSlider');
+        const shiftVal = document.getElementById('shiftVal');
+        const shiftUnit = document.getElementById('shiftUnit');
+        const signalTypeSelect = document.getElementById('signalType');
+        const btnCont = document.getElementById('btnCont');
+        const btnDisc = document.getElementById('btnDisc');
+        const autoSlideBtn = document.getElementById('autoSlideBtn');
+        const matchCircle = document.getElementById('matchCircle');
+        const matchText = document.getElementById('matchText');
+        const metricCard = document.getElementById('metricCard');
+        const equationDisplay = document.getElementById('equationDisplay');
+        const headerStatus = document.getElementById('headerStatus');
+        
+        // HUD Elements
+        const hudPanel = document.getElementById('hudPanel');
+        const hudTime = document.getElementById('hudTime');
+        const hudBase = document.getElementById('hudBase');
+        const hudShift = document.getElementById('hudShift');
+        const hudTau = document.getElementById('hudTau');
+        const hudDiff = document.getElementById('hudDiff');
+
+        // State Variables
+        let domain = 'continuous'; // 'continuous' or 'discrete'
+        let sigType = 'sine';      // 'sine', 'square', 'damped', 'chirp'
+        let shiftT = 0.0;          // Shift amount (tau)
+        let isAutoSliding = false;
+        let autoSlideReq = null;
+
+        // Constants
+        const T0 = 1.0;            // Fundamental period base
+        const Fs = 10;             // Samples per unit time for discrete
+        const Ts = 1 / Fs;         // Sampling interval
+        const viewMinT = -0.5;
+        const viewMaxT = 4.5;
+        const marginX = 40;
+
+        // Event Listeners
+        shiftSlider.addEventListener('input', (e) => {
+            stopAutoSlide();
+            updateShiftFromSlider(parseFloat(e.target.value));
+        });
+
+        signalTypeSelect.addEventListener('change', (e) => {
+            sigType = e.target.value;
+            draw();
+        });
+
+        btnCont.addEventListener('click', () => setDomain('continuous'));
+        btnDisc.addEventListener('click', () => setDomain('discrete'));
+
+        autoSlideBtn.addEventListener('click', () => {
+            if (isAutoSliding) stopAutoSlide();
+            else startAutoSlide();
+        });
+
+        // Mouse interactions for canvas dragging and HUD
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartShift = 0;
+        let mouseX = -100;
+        let isHovering = false;
+
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            // Check if clicking near the shifted window
+            const W = canvas.width;
+            const pxPerT = (W - 2*marginX) / (viewMaxT - viewMinT);
+            const boxX = marginX + (shiftT - viewMinT) * pxPerT;
+            const boxWidth = T0 * pxPerT;
+
+            if (x >= boxX && x <= boxX + boxWidth) {
+                isDragging = true;
+                dragStartX = x;
+                dragStartShift = shiftT;
+                canvas.style.cursor = 'grabbing';
+                stopAutoSlide();
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width; // Handle CSS scaling
+            mouseX = (e.clientX - rect.left) * scaleX;
+            isHovering = true;
+
+            if (isDragging) {
+                const pxDelta = mouseX - dragStartX * scaleX;
+                const W = canvas.width;
+                const pxPerT = (W - 2*marginX) / (viewMaxT - viewMinT);
+                let newShift = dragStartShift + (pxDelta / pxPerT);
+                
+                // Clamp
+                newShift = Math.max(0, Math.min(4, newShift));
+                
+                // Snap for discrete
+                if (domain === 'discrete') {
+                    newShift = Math.round(newShift / Ts) * Ts;
+                }
+
+                updateShiftFromSlider(newShift);
+                shiftSlider.value = newShift;
+            } else {
+                // Update cursor based on hover region
+                const W = canvas.width;
+                const pxPerT = (W - 2*marginX) / (viewMaxT - viewMinT);
+                const boxX = marginX + (shiftT - viewMinT) * pxPerT;
+                const boxWidth = T0 * pxPerT;
+                
+                if (mouseX >= boxX && mouseX <= boxX + boxWidth) {
+                    canvas.style.cursor = 'grab';
+                } else {
+                    canvas.style.cursor = 'crosshair';
+                }
+            }
+            draw();
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+            canvas.style.cursor = 'crosshair';
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            isDragging = false;
+            isHovering = false;
+            hudPanel.style.opacity = '0';
+            draw();
+        });
+
+        function setDomain(newDomain) {
+            domain = newDomain;
+            if (domain === 'continuous') {
+                btnCont.classList.replace('text-slate-400', 'text-white');
+                btnCont.classList.replace('hover:text-slate-200', 'bg-slate-700');
+                btnCont.classList.add('active', 'shadow-sm');
+                
+                btnDisc.classList.replace('text-white', 'text-slate-400');
+                btnDisc.classList.replace('bg-slate-700', 'hover:text-slate-200');
+                btnDisc.classList.remove('active', 'shadow-sm');
+
+                shiftSlider.step = 0.01;
+                shiftUnit.textContent = "s";
+                equationDisplay.innerHTML = `<p class="font-mono text-sm font-bold text-sky-400">x(t) <span class="text-slate-400">=</span> x(t + T)</p>`;
+                
+            } else {
+                btnDisc.classList.replace('text-slate-400', 'text-white');
+                btnDisc.classList.replace('hover:text-slate-200', 'bg-slate-700');
+                btnDisc.classList.add('active', 'shadow-sm');
+                
+                btnCont.classList.replace('text-white', 'text-slate-400');
+                btnCont.classList.replace('bg-slate-700', 'hover:text-slate-200');
+                btnCont.classList.remove('active', 'shadow-sm');
+
+                shiftSlider.step = Ts;
+                // snap current shift
+                let snapped = Math.round(shiftT / Ts) * Ts;
+                updateShiftFromSlider(snapped);
+                shiftSlider.value = snapped;
+                
+                shiftUnit.textContent = "s (N samples)";
+                equationDisplay.innerHTML = `<p class="font-mono text-sm font-bold text-amber-400">x[n] <span class="text-slate-400">=</span> x[n + N]</p>`;
+            }
+            draw();
+        }
+
+        function updateShiftFromSlider(val) {
+            shiftT = val;
+            if(domain === 'discrete') {
+                let N = Math.round(shiftT / Ts);
+                shiftVal.textContent = shiftT.toFixed(2);
+                shiftUnit.textContent = `s (${N} samples)`;
+                hudTau.textContent = N + "N";
+            } else {
+                shiftVal.textContent = shiftT.toFixed(2);
+                shiftUnit.textContent = "s";
+                hudTau.textContent = shiftT.toFixed(2);
+            }
+            draw();
+        }
+
+        function startAutoSlide() {
+            isAutoSliding = true;
+            autoSlideBtn.innerHTML = `<i class="fa-solid fa-pause text-purple-400"></i> Pause Sweep`;
+            autoSlideBtn.classList.add('bg-slate-700', 'border-purple-500/50');
+            animateSlide();
+        }
+
+        function stopAutoSlide() {
+            isAutoSliding = false;
+            cancelAnimationFrame(autoSlideReq);
+            autoSlideBtn.innerHTML = `<i class="fa-solid fa-play text-purple-400"></i> Auto-Sweep Window`;
+            autoSlideBtn.classList.remove('bg-slate-700', 'border-purple-500/50');
+        }
+
+        let slideDir = 1;
+        function animateSlide() {
+            if (!isAutoSliding) return;
+            
+            let speed = domain === 'continuous' ? 0.015 : Ts * 0.5; // Visual speed
+            
+            let newShift = shiftT + (speed * slideDir);
+            if (newShift > 4.0) {
+                newShift = 4.0;
+                slideDir = -1;
+            } else if (newShift < 0) {
+                newShift = 0;
+                slideDir = 1;
+            }
+
+            if (domain === 'discrete') {
+                 // only update actual visual shift in steps, but keep smooth accumulator
+                 let stepVal = Math.floor(newShift / Ts) * Ts;
+                 updateShiftFromSlider(stepVal);
+                 shiftSlider.value = stepVal;
+                 shiftT = newShift; // keep fractional internally for smooth bouncing
+            } else {
+                 updateShiftFromSlider(newShift);
+                 shiftSlider.value = newShift;
+            }
+            
+            autoSlideReq = requestAnimationFrame(animateSlide);
+        }
+
+        // Signal Evaluator
+        function getSignalValue(t) {
+            // Apply slight rounding to avoid JS float math artifacts at zero crossings
+            t = Math.round(t * 10000) / 10000;
+            
+            if (sigType === 'sine') {
+                return Math.sin(2 * Math.PI * (1/T0) * t);
+            } else if (sigType === 'square') {
+                return Math.sign(Math.sin(2 * Math.PI * (1/T0) * t)) || 1; // ||1 prevents 0 at exact edges
+            } else if (sigType === 'damped') {
+                // Non-periodic
+                if (t < 0) return 0;
+                return Math.exp(-0.4 * t) * Math.sin(2 * Math.PI * (1/T0) * t);
+            } else if (sigType === 'chirp') {
+                // Non-periodic frequency sweep
+                if (t < 0) return Math.sin(2 * Math.PI * 0.8 * t);
+                return Math.sin(2 * Math.PI * (0.8 + 0.3 * t) * t);
+            }
+            return 0;
+        }
+
+        // Coordinate Mapping
+        function tToX(t, w) {
+            return marginX + ((t - viewMinT) / (viewMaxT - viewMinT)) * (w - 2 * marginX);
+        }
+        function xToT(x, w) {
+            return viewMinT + ((x - marginX) / (w - 2 * marginX)) * (viewMaxT - viewMinT);
+        }
+        function valToY(val, h) {
+            return (h / 2) - (val * (h * 0.3));
+        }
+
+        function draw() {
+            // High-DPI setup inside draw to handle resizes properly without separate listener complex logic
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            // Only resize if needed
+            if (canvas.width !== rect.width * dpr || canvas.height !== rect.height * dpr) {
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+            }
+            
+            ctx.save();
+            ctx.scale(dpr, dpr);
+            
+            const W = rect.width;
+            const H = rect.height;
+            const yCenter = H / 2;
+
+            ctx.clearRect(0, 0, W, H);
+
+            // 1. Draw Grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(marginX, yCenter);
+            ctx.lineTo(W - marginX, yCenter);
+            ctx.stroke();
+
+            // Y-axis
+            let xZero = tToX(0, W);
+            ctx.beginPath();
+            ctx.moveTo(xZero, 20);
+            ctx.lineTo(xZero, H - 20);
+            ctx.stroke();
+
+            // Tick marks
+            ctx.fillStyle = 'rgba(148, 163, 184, 0.5)';
+            ctx.font = '10px "JetBrains Mono"';
+            ctx.textAlign = 'center';
+            for (let i = 0; i <= 4; i++) {
+                let tx = tToX(i, W);
+                ctx.fillRect(tx, yCenter - 3, 1, 6);
+                ctx.fillText(i + "T", tx, yCenter + 15);
+            }
+
+            // 2. Compute Match Error
+            // We compare actual signal in [shiftT, shiftT + T0] with base signal in [0, T0]
+            let error = 0;
+            let totalEnergy = 0;
+            const evalSteps = domain === 'continuous' ? 200 : Fs; 
+            const dt = T0 / evalSteps;
+
+            for (let i = 0; i <= evalSteps; i++) {
+                let t_base = i * dt;
+                let v_base = getSignalValue(t_base);
+                let v_actual = getSignalValue(t_base + shiftT); // The signal at shifted time
+                
+                let diff = Math.abs(v_base - v_actual);
+                error += diff;
+                totalEnergy += Math.max(Math.abs(v_base), 0.1); // baseline
+            }
+            
+            let matchPercent = 100 - (error / totalEnergy) * 100;
+            matchPercent = Math.max(0, Math.min(100, matchPercent));
+
+            // Snap to 100% to handle tiny float precision issues when perfectly aligned
+            if (matchPercent > 99.5) matchPercent = 100;
+
+            // Update UI Match Metric
+            const dashOffset = 251.2 * ((100 - matchPercent) / 100);
+            matchCircle.style.strokeDashoffset = dashOffset;
+            matchText.textContent = Math.round(matchPercent) + "%";
+
+            let isPerfect = matchPercent === 100;
+            
+            // Color logic
+            let themeColor = isPerfect ? '#10b981' : (matchPercent > 50 ? '#f59e0b' : '#ef4444');
+            matchCircle.style.stroke = themeColor;
+            
+            if (isPerfect) {
+                metricCard.classList.add('border-emerald-500/50', 'bg-emerald-900/10');
+                metricCard.classList.remove('border-slate-800', 'border-rose-500/50', 'bg-rose-900/10');
+                headerStatus.innerHTML = `<i class="fa-solid fa-check text-emerald-400 mr-1.5"></i> Periodic Alignment Found`;
+                headerStatus.className = "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-900/40 text-emerald-300 border border-emerald-500/50 transition-colors duration-300";
+                
+                let eqCol = domain === 'continuous' ? 'text-sky-400' : 'text-amber-400';
+                let varS = domain === 'continuous' ? 't' : 'n';
+                let shiftS = domain === 'continuous' ? shiftT.toFixed(1)+'T' : Math.round(shiftT/Ts)+'N';
+                equationDisplay.innerHTML = `<p class="font-mono text-sm font-bold ${eqCol}">x(${varS}) <span class="text-emerald-400">=</span> x(${varS} + ${shiftS})</p>`;
+            } else {
+                metricCard.classList.remove('border-emerald-500/50', 'bg-emerald-900/10');
+                if (matchPercent < 20) {
+                    metricCard.classList.add('border-rose-500/50', 'bg-rose-900/10');
+                } else {
+                    metricCard.classList.add('border-slate-800');
+                    metricCard.classList.remove('border-rose-500/50', 'bg-rose-900/10');
+                }
+                
+                headerStatus.innerHTML = `<i class="fa-solid fa-xmark text-rose-400 mr-1.5"></i> Mismatched`;
+                headerStatus.className = "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-900/40 text-rose-300 border border-rose-500/50 transition-colors duration-300";
+
+                let eqCol = domain === 'continuous' ? 'text-sky-400' : 'text-amber-400';
+                let varS = domain === 'continuous' ? 't' : 'n';
+                let shiftS = domain === 'continuous' ? shiftT.toFixed(1)+'T' : Math.round(shiftT/Ts)+'N';
+                equationDisplay.innerHTML = `<p class="font-mono text-sm font-bold ${eqCol}">x(${varS}) <span class="text-rose-400">≠</span> x(${varS} + ${shiftS})</p>`;
+            }
+
+
+            // 3. Draw Background Entire Signal (Faded)
+            ctx.lineWidth = domain === 'continuous' ? 2 : 1.5;
+            let baseColor = domain === 'continuous' ? 'rgba(56, 189, 248, 0.3)' : 'rgba(245, 158, 11, 0.3)';
+            ctx.strokeStyle = baseColor;
+            ctx.fillStyle = baseColor;
+            
+            if (domain === 'continuous') {
+                ctx.beginPath();
+                for (let px = marginX; px <= W - marginX; px++) {
+                    let t = xToT(px, W);
+                    let py = valToY(getSignalValue(t), H);
+                    if (px === marginX) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+            } else {
+                // Discrete Stems
+                for (let t = viewMinT; t <= viewMaxT; t += Ts) {
+                    let px = tToX(t, W);
+                    if (px < marginX || px > W-marginX) continue;
+                    let val = getSignalValue(t);
+                    let py = valToY(val, H);
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(px, yCenter);
+                    ctx.lineTo(px, py);
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.arc(px, py, 3, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+            }
+
+            // 4. Draw Fundamental Block Box [0, T0]
+            let boxStartX = tToX(0, W);
+            let boxEndX = tToX(T0, W);
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.05)';
+            ctx.fillRect(boxStartX, 20, boxEndX - boxStartX, H - 40);
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+            ctx.strokeRect(boxStartX, 20, boxEndX - boxStartX, H - 40);
+            ctx.setLineDash([]);
+            
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.8)';
+            ctx.font = 'bold 10px Inter';
+            ctx.fillText("FUNDAMENTAL", boxStartX + (boxEndX-boxStartX)/2, 15);
+
+
+            // 5. Draw Sliding Selection Box [shiftT, shiftT + T0]
+            let sBoxStartX = tToX(shiftT, W);
+            let sBoxEndX = tToX(shiftT + T0, W);
+            
+            // Box background (changes color based on match)
+            ctx.fillStyle = isPerfect ? 'rgba(16, 185, 129, 0.1)' : 'rgba(168, 85, 247, 0.1)';
+            ctx.fillRect(sBoxStartX, 20, sBoxEndX - sBoxStartX, H - 40);
+            
+            ctx.strokeStyle = isPerfect ? 'rgba(16, 185, 129, 0.8)' : 'rgba(168, 85, 247, 0.8)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(sBoxStartX, 20, sBoxEndX - sBoxStartX, H - 40);
+            
+            ctx.fillStyle = isPerfect ? '#10b981' : '#a855f7';
+            ctx.fillText("SHIFTED COPY", sBoxStartX + (sBoxEndX-sBoxStartX)/2, H - 8);
+
+            // 6. Draw Actual Signal inside sliding box (Solid brightness)
+            ctx.lineWidth = 3;
+            let actualColor = domain === 'continuous' ? '#38bdf8' : '#f59e0b';
+            ctx.strokeStyle = actualColor;
+            ctx.fillStyle = actualColor;
+
+            // Define clipping region for the sliding box
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(sBoxStartX, 0, sBoxEndX - sBoxStartX, H);
+            ctx.clip();
+
+            if (domain === 'continuous') {
+                ctx.beginPath();
+                for (let px = sBoxStartX; px <= sBoxEndX; px++) {
+                    let t = xToT(px, W);
+                    let py = valToY(getSignalValue(t), H);
+                    if (px === sBoxStartX) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+            } else {
+                for (let t = shiftT; t <= shiftT + T0 + 0.001; t += Ts) {
+                    let px = tToX(t, W);
+                    let val = getSignalValue(t);
+                    let py = valToY(val, H);
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(px, yCenter);
+                    ctx.lineTo(px, py);
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.arc(px, py, 4, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+            }
+            ctx.restore(); // Remove clipping
+
+            // 7. Draw Copied Signal overlay inside sliding box (Dashed Purple/Green)
+            let copyColor = isPerfect ? '#34d399' : '#c084fc'; // emerald-400 : purple-400
+            ctx.strokeStyle = copyColor;
+            ctx.fillStyle = copyColor;
+            ctx.lineWidth = 2;
+            
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(sBoxStartX, 0, sBoxEndX - sBoxStartX, H);
+            ctx.clip();
+
+            if (domain === 'continuous') {
+                ctx.setLineDash([6, 6]);
+                ctx.beginPath();
+                for (let px = sBoxStartX; px <= sBoxEndX; px++) {
+                    let t = xToT(px, W);
+                    // Crucial: Calculate what the base signal WAS at the relative offset
+                    let relativeT = t - shiftT; 
+                    let py = valToY(getSignalValue(relativeT), H);
+                    if (px === sBoxStartX) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+            } else {
+                // Discrete copy points - draw as open circles over actual points
+                for (let t = shiftT; t <= shiftT + T0 + 0.001; t += Ts) {
+                    let px = tToX(t, W);
+                    let relativeT = t - shiftT;
+                    let val = getSignalValue(relativeT); // Value from fundamental period
+                    let py = valToY(val, H);
+                    
+                    ctx.beginPath();
+                    ctx.arc(px, py, 6, 0, 2 * Math.PI);
+                    ctx.stroke();
+                }
+            }
+            ctx.restore();
+
+            // 8. Probe / HUD Logic on Hover
+            if (isHovering && !isDragging) {
+                let hoverT = xToT(mouseX, W);
+                
+                // Snap hoverT for discrete
+                if (domain === 'discrete') {
+                    hoverT = Math.round(hoverT / Ts) * Ts;
+                }
+
+                // Only show HUD if hovering roughly over data
+                if (hoverT >= viewMinT && hoverT <= viewMaxT) {
+                    let hX = tToX(hoverT, W);
+                    
+                    // Draw vertical guide line
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([4, 4]);
+                    ctx.beginPath();
+                    ctx.moveTo(hX, 10);
+                    ctx.lineTo(hX, H - 10);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    // Calculate values
+                    let valActual = getSignalValue(hoverT); // What is actually at hoverT
+                    
+                    // If hoverT is inside the sliding box, compare with shifted
+                    let isInsideBox = (hoverT >= shiftT && hoverT <= shiftT + T0);
+                    let valCopy = getSignalValue(hoverT - shiftT); // What the overlay thinks it should be
+                    
+                    let yActual = valToY(valActual, H);
+                    let yCopy = valToY(valCopy, H);
+
+                    // Draw dots on intersection
+                    ctx.fillStyle = actualColor;
+                    ctx.beginPath();
+                    ctx.arc(hX, yActual, 5, 0, 2*Math.PI);
+                    ctx.fill();
+
+                    if (isInsideBox) {
+                        ctx.strokeStyle = copyColor;
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(hX, yCopy, 8, 0, 2*Math.PI);
+                        ctx.stroke();
+
+                        // HUD updates inside box
+                        hudBase.textContent = valActual.toFixed(3);
+                        hudShift.textContent = valCopy.toFixed(3);
+                        let diff = Math.abs(valActual - valCopy);
+                        hudDiff.textContent = diff.toFixed(3);
+                        if(diff < 0.05) hudDiff.className = "text-emerald-400 font-bold";
+                        else hudDiff.className = "text-rose-400 font-bold";
+                        
+                        hudPanel.style.opacity = '1';
+                        
+                        // Position HUD
+                        let hudLeft = mouseX + 15;
+                        if (hudLeft + 160 > W) hudLeft = mouseX - 160;
+                        hudPanel.style.left = hudLeft + 'px';
+                        hudPanel.style.top = Math.max(20, (yActual / dpr) - 50) + 'px';
+                    } else {
+                        // Just show base value in HUD if outside box
+                        hudBase.textContent = valActual.toFixed(3);
+                        hudShift.textContent = "N/A";
+                        hudDiff.textContent = "-";
+                        hudDiff.className = "text-slate-500";
+                        hudPanel.style.opacity = '1';
+                        
+                        let hudLeft = mouseX + 15;
+                        if (hudLeft + 160 > W) hudLeft = mouseX - 160;
+                        hudPanel.style.left = hudLeft + 'px';
+                        hudPanel.style.top = Math.max(20, (yActual / dpr) - 50) + 'px';
+                    }
+                    
+                    if (domain === 'discrete') {
+                        hudTime.textContent = "n = " + Math.round(hoverT / Ts);
+                    } else {
+                        hudTime.textContent = "t = " + hoverT.toFixed(2) + "s";
+                    }
+                } else {
+                    hudPanel.style.opacity = '0';
+                }
+            }
+
+            ctx.restore();
+        }
+
+        // Initial setup
+        window.onload = () => {
+            // Give a quick pulse animation to the instruction hint
+            const hint = document.getElementById('dragHint');
+            hint.classList.remove('hidden');
+            setTimeout(() => hint.style.opacity = '1', 500);
+            setTimeout(() => hint.style.opacity = '0', 4000);
+            setTimeout(() => hint.classList.add('hidden'), 5000);
+
+            draw();
+        };
+
+        window.addEventListener('resize', draw);
+
+    </script>
+</body>
+</html>

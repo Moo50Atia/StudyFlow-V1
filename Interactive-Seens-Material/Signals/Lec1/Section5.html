@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signal Energy & Power Classification</title>
+    <!-- Tailwind CSS for modern responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- KaTeX for beautiful math equations -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <!-- FontAwesome for clean icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* slate-900 */
+            color: #f8fafc; /* slate-50 */
+            overflow-x: hidden;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #60a5fa; }
+        
+        /* Overload Animations */
+        @keyframes meter-overload {
+            0% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); border-color: #ef4444; }
+            50% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.8); border-color: #f87171; }
+            100% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); border-color: #ef4444; }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            75% { transform: translateX(2px); }
+        }
+        .overload-active {
+            animation: meter-overload 1.5s infinite, shake 0.3s infinite;
+        }
+        
+        /* Glowing graph container */
+        .graph-container {
+            position: relative;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            border: 1px solid #334155;
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.5);
+        }
+
+        /* Glassmorphism utility */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-blue-500/30">
+
+    <header class="border-b border-slate-800 glass-panel sticky top-0 z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                    <i class="fa-solid fa-wave-square text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                        Energy vs Power Lab
+                    </h1>
+                    <p class="text-sm text-slate-400">Signal Classification via Accumulation $|x(t)|^2$</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-300 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-blue-400"></i>
+                    <span>Accumulation Window Integration</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Pane: Controls & Theory -->
+        <section class="lg:col-span-4 flex flex-col gap-6">
+            
+            <!-- Signal Selector -->
+            <div class="glass-panel p-5 rounded-2xl shadow-xl">
+                <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-satellite-dish text-blue-400"></i> Select Signal $x(t)$
+                </h2>
+                
+                <div class="space-y-4">
+                    <!-- Finite Duration (Energy Signals) -->
+                    <div>
+                        <div class="text-xs font-semibold text-amber-400 mb-2 uppercase tracking-wider pl-1">Finite Energy Signals</div>
+                        <div class="grid grid-cols-1 gap-2">
+                            <button class="signal-btn p-3 rounded-xl border-2 border-blue-500/40 bg-blue-500/10 text-left transition-all relative overflow-hidden group" data-signal="gaussian">
+                                <span class="block text-sm font-semibold text-white">Gaussian Pulse</span>
+                                <span class="block text-xs text-slate-400 mt-1" id="math-gaussian"></span>
+                            </button>
+                            <button class="signal-btn p-3 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-left transition-all relative overflow-hidden group" data-signal="rect">
+                                <span class="block text-sm font-semibold text-white">Rectangular Pulse</span>
+                                <span class="block text-xs text-slate-400 mt-1" id="math-rect"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Infinite Duration (Power Signals) -->
+                    <div>
+                        <div class="text-xs font-semibold text-cyan-400 mb-2 uppercase tracking-wider pl-1">Infinite Power Signals</div>
+                        <div class="grid grid-cols-1 gap-2">
+                            <button class="signal-btn p-3 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-left transition-all relative overflow-hidden group" data-signal="sine">
+                                <span class="block text-sm font-semibold text-white">Continuous Sine Wave</span>
+                                <span class="block text-xs text-slate-400 mt-1" id="math-sine"></span>
+                            </button>
+                            <button class="signal-btn p-3 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-left transition-all relative overflow-hidden group" data-signal="step">
+                                <span class="block text-sm font-semibold text-white">Constant Signal (DC)</span>
+                                <span class="block text-xs text-slate-400 mt-1" id="math-step"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Theory Block -->
+            <div class="glass-panel p-5 rounded-2xl shadow-xl flex-1 flex flex-col">
+                <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-book-open text-blue-400"></i> Mathematical Definitions
+                </h2>
+                
+                <div class="space-y-4 flex-1">
+                    <div class="p-3 bg-slate-900/80 rounded-xl border border-amber-500/20 shadow-inner">
+                        <span class="text-xs font-bold text-amber-400 block mb-1">Total Energy ($E$)</span>
+                        <div id="math-def-energy" class="text-center py-1 text-slate-200 text-sm"></div>
+                        <p class="text-[10px] text-slate-400 mt-2 leading-relaxed">Accumulates the total area under the squared magnitude curve as time extends to infinity.</p>
+                    </div>
+                    
+                    <div class="p-3 bg-slate-900/80 rounded-xl border border-cyan-500/20 shadow-inner">
+                        <span class="text-xs font-bold text-cyan-400 block mb-1">Average Power ($P$)</span>
+                        <div id="math-def-power" class="text-center py-1 text-slate-200 text-sm"></div>
+                        <p class="text-[10px] text-slate-400 mt-2 leading-relaxed">The rate of energy accumulation averaged over the evaluation window $2T$.</p>
+                    </div>
+                </div>
+
+                <div id="classification-result" class="mt-4 p-3 rounded-xl bg-slate-800 border border-slate-700 text-xs text-center text-slate-300 font-medium">
+                    Expand the integration window to classify.
+                </div>
+            </div>
+        </section>
+
+        <section class="lg:col-span-8 flex flex-col gap-6">
+            
+            <!-- Graphical Visualization -->
+            <div class="glass-panel p-5 rounded-2xl shadow-xl flex flex-col gap-4">
+                
+                <!-- Time Window Controls -->
+                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-3">
+                            <button id="play-btn" class="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-500/30 text-white flex items-center justify-center transition-all">
+                                <i class="fa-solid fa-play" id="play-icon"></i>
+                            </button>
+                            <div>
+                                <div class="text-xs font-bold text-slate-300 uppercase tracking-wider">Integration Window $[-T, T]$</div>
+                                <div class="text-[10px] text-slate-500">Expands the evaluation boundaries over time</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs text-slate-400 block">Current T</span>
+                            <span id="t-value-display" class="font-mono font-bold text-lg text-blue-400">1.00s</span>
+                        </div>
+                    </div>
+                    <div class="relative w-full py-2">
+                        <input id="time-slider" type="range" min="0.1" max="15" step="0.1" value="1.0" class="w-full accent-blue-500 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                </div>
+
+                <!-- Canvas Grid -->
+                <div class="grid grid-rows-2 gap-4 h-[400px]">
+                    <!-- Signal x(t) -->
+                    <div class="graph-container rounded-xl overflow-hidden relative">
+                        <div class="absolute top-2 left-3 z-10 text-xs font-bold text-slate-300 bg-slate-900/80 px-2 py-1 rounded border border-slate-700">Original Signal $x(t)$</div>
+                        <canvas id="canvas-x" class="w-full h-full block"></canvas>
+                    </div>
+                    
+                    <!-- Squared Signal |x(t)|^2 -->
+                    <div class="graph-container rounded-xl overflow-hidden relative">
+                        <div class="absolute top-2 left-3 z-10 flex gap-2">
+                            <div class="text-xs font-bold text-amber-400 bg-amber-900/30 px-2 py-1 rounded border border-amber-700/50">Squared $|x(t)|^2$</div>
+                            <div class="text-[10px] font-semibold text-slate-300 bg-slate-800/80 px-2 py-1 rounded border border-slate-700 flex items-center gap-1">
+                                <span class="w-2 h-2 bg-amber-500/50 border border-amber-500 block rounded-sm"></span> Area = Accumulated Energy
+                            </div>
+                        </div>
+                        <canvas id="canvas-x2" class="w-full h-full block"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <!-- Energy Meter -->
+                <div id="energy-meter-container" class="glass-panel p-5 rounded-2xl border-l-4 border-l-amber-500 shadow-xl transition-all duration-300">
+                    <div class="flex justify-between items-end mb-2">
+                        <div>
+                            <h3 class="text-sm font-bold text-amber-400 flex items-center gap-2">
+                                <i class="fa-solid fa-bolt"></i> Total Energy ($E$)
+                            </h3>
+                            <p class="text-[10px] text-slate-400">Area under $|x(t)|^2$</p>
+                        </div>
+                        <div class="text-right">
+                            <span id="energy-val" class="font-mono text-2xl font-bold text-amber-300">0.00</span>
+                            <span class="text-xs text-slate-500 ml-1">J</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Progress Bar -->
+                    <div class="h-4 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-700 relative">
+                        <div id="energy-bar" class="h-full bg-gradient-to-r from-amber-600 to-amber-400 w-0 transition-all duration-100 ease-out"></div>
+                        <!-- Overload indicator text inside bar -->
+                        <div id="energy-overload-text" class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white opacity-0 transition-opacity drop-shadow-md">
+                            <i class="fa-solid fa-triangle-exclamation mr-1"></i> EXCEEDS FINITE CAPACITY ($\infty$)
+                        </div>
+                    </div>
+                    
+                    <div id="energy-status" class="mt-3 text-xs text-slate-300 bg-slate-900/50 p-2 rounded-lg border border-slate-800">
+                        Status: Accumulating...
+                    </div>
+                </div>
+
+                <!-- Power Meter -->
+                <div id="power-meter-container" class="glass-panel p-5 rounded-2xl border-l-4 border-l-cyan-500 shadow-xl transition-all duration-300">
+                    <div class="flex justify-between items-end mb-2">
+                        <div>
+                            <h3 class="text-sm font-bold text-cyan-400 flex items-center gap-2">
+                                <i class="fa-solid fa-gauge-high"></i> Average Power ($P$)
+                            </h3>
+                            <p class="text-[10px] text-slate-400">Energy / Window Width</p>
+                        </div>
+                        <div class="text-right">
+                            <span id="power-val" class="font-mono text-2xl font-bold text-cyan-300">0.00</span>
+                            <span class="text-xs text-slate-500 ml-1">W</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Progress Bar -->
+                    <div class="h-4 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-700">
+                        <div id="power-bar" class="h-full bg-gradient-to-r from-cyan-600 to-cyan-400 w-0 transition-all duration-100 ease-out"></div>
+                    </div>
+                    
+                    <div id="power-status" class="mt-3 text-xs text-slate-300 bg-slate-900/50 p-2 rounded-lg border border-slate-800">
+                        Status: Calculating average...
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <script>
+        // Mathematical state & definitions
+        const state = {
+            activeSignal: 'gaussian',
+            T: 1.0, // Integration window parameter
+            maxT: 15.0, // Max physical slider value
+            isPlaying: false,
+            // Pre-calculated points for performance [-maxT-2, maxT+2]
+            pointsX: [],
+            pointsX2: [], 
+            dx: 0.05,
+            canvasDomain: 12.0 // What the graph visually displays [-12, 12]
+        };
+
+        const signalDefs = {
+            gaussian: {
+                type: 'energy',
+                latex: "x(t) = 1.5 e^{-0.5t^2}",
+                fn: (t) => 1.5 * Math.exp(-0.5 * t * t)
+            },
+            rect: {
+                type: 'energy',
+                latex: "x(t) = 1.2 \\cdot \\text{rect}(t/4)",
+                fn: (t) => Math.abs(t) <= 2.0 ? 1.2 : 0
+            },
+            sine: {
+                type: 'power',
+                latex: "x(t) = \\sqrt{2} \\sin(\\pi t)",
+                fn: (t) => Math.sqrt(2) * Math.sin(Math.PI * t)
+            },
+            step: {
+                type: 'power',
+                latex: "x(t) = 1.2",
+                fn: (t) => 1.2
+            }
+        };
+
+        // DOM Elements
+        const canvasX = document.getElementById('canvas-x');
+        const ctxX = canvasX.getContext('2d');
+        const canvasX2 = document.getElementById('canvas-x2');
+        const ctxX2 = canvasX2.getContext('2d');
+        
+        const sliderT = document.getElementById('time-slider');
+        const displayT = document.getElementById('t-value-display');
+        const playBtn = document.getElementById('play-btn');
+        const playIcon = document.getElementById('play-icon');
+        const signalBtns = document.querySelectorAll('.signal-btn');
+        
+        const energyValDisplay = document.getElementById('energy-val');
+        const energyBar = document.getElementById('energy-bar');
+        const energyStatus = document.getElementById('energy-status');
+        const energyMeterContainer = document.getElementById('energy-meter-container');
+        const energyOverloadText = document.getElementById('energy-overload-text');
+        
+        const powerValDisplay = document.getElementById('power-val');
+        const powerBar = document.getElementById('power-bar');
+        const powerStatus = document.getElementById('power-status');
+        const classResult = document.getElementById('classification-result');
+
+        // Render KaTeX Formulas initially
+        function initMath() {
+            katex.render(signalDefs.gaussian.latex, document.getElementById('math-gaussian'));
+            katex.render(signalDefs.rect.latex, document.getElementById('math-rect'));
+            katex.render(signalDefs.sine.latex, document.getElementById('math-sine'));
+            katex.render(signalDefs.step.latex, document.getElementById('math-step'));
+            
+            katex.render("E = \\lim_{T \\to \\infty} \\int_{-T}^{T} |x(t)|^2 dt", document.getElementById('math-def-energy'), { displayMode: true });
+            katex.render("P = \\lim_{T \\to \\infty} \\frac{1}{2T} \\int_{-T}^{T} |x(t)|^2 dt", document.getElementById('math-def-power'), { displayMode: true });
+        }
+
+        function resizeCanvas() {
+            // Match internal resolution to actual CSS display size
+            const rectX = canvasX.parentElement.getBoundingClientRect();
+            canvasX.width = rectX.width;
+            canvasX.height = rectX.height;
+            
+            const rectX2 = canvasX2.parentElement.getBoundingClientRect();
+            canvasX2.width = rectX2.width;
+            canvasX2.height = rectX2.height;
+            
+            draw();
+        }
+
+        function precalculateSignal() {
+            state.pointsX = [];
+            state.pointsX2 = [];
+            const fn = signalDefs[state.activeSignal].fn;
+            
+            // Calculate across domain wider than display
+            const computeRange = state.maxT + 2; 
+            for(let t = -computeRange; t <= computeRange; t += state.dx) {
+                const val = fn(t);
+                state.pointsX.push({t: t, val: val});
+                state.pointsX2.push({t: t, val: val * val});
+            }
+        }
+
+        // Mapping math coordinates to canvas pixels
+        function mapToCanvas(ctx, t, val, yMax = 3.0) {
+            const width = ctx.canvas.width;
+            const height = ctx.canvas.height;
+            
+            // Map t from [-canvasDomain, canvasDomain] to [0, width]
+            const cx = (t + state.canvasDomain) / (2 * state.canvasDomain) * width;
+            // Map val from [-yMax, yMax] to [height, 0] (inverted Y axis)
+            const cy = height - ((val + yMax) / (2 * yMax) * height);
+            
+            return {x: cx, y: cy};
+        }
+
+        function drawAxesAndGrid(ctx, labelY, yMax) {
+            const w = ctx.canvas.width;
+            const h = ctx.canvas.height;
+            
+            ctx.clearRect(0, 0, w, h);
+            
+            // Draw grid
+            ctx.strokeStyle = 'rgba(71, 85, 105, 0.2)'; // slate-600 low opacity
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            
+            // Vertical grid lines (time)
+            for(let t = -Math.floor(state.canvasDomain); t <= Math.floor(state.canvasDomain); t+=2) {
+                const pt = mapToCanvas(ctx, t, 0, yMax);
+                ctx.moveTo(pt.x, 0);
+                ctx.lineTo(pt.x, h);
+            }
+            
+            // Horizontal grid lines
+            for(let v = -Math.floor(yMax); v <= Math.floor(yMax); v++) {
+                const pt = mapToCanvas(ctx, 0, v, yMax);
+                ctx.moveTo(0, pt.y);
+                ctx.lineTo(w, pt.y);
+            }
+            ctx.stroke();
+
+            // Draw primary Axes
+            ctx.strokeStyle = '#64748b'; // slate-500
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            // X-axis (y=0)
+            const originPt = mapToCanvas(ctx, 0, 0, yMax);
+            ctx.moveTo(0, originPt.y);
+            ctx.lineTo(w, originPt.y);
+            
+            // Y-axis (t=0)
+            const centerPt = mapToCanvas(ctx, 0, 0, yMax);
+            ctx.moveTo(centerPt.x, 0);
+            ctx.lineTo(centerPt.x, h);
+            
+            ctx.stroke();
+        }
+
+        function drawSignal(ctx, points, colorStr, yMax) {
+            ctx.beginPath();
+            ctx.strokeStyle = colorStr;
+            ctx.lineWidth = 3;
+            
+            let isFirst = true;
+            for(const pt of points) {
+                // Only draw points inside canvas domain roughly
+                if (pt.t < -state.canvasDomain - 1 || pt.t > state.canvasDomain + 1) continue;
+                
+                const cPt = mapToCanvas(ctx, pt.t, pt.val, yMax);
+                if (isFirst) {
+                    ctx.moveTo(cPt.x, cPt.y);
+                    isFirst = false;
+                } else {
+                    ctx.lineTo(cPt.x, cPt.y);
+                }
+            }
+            ctx.stroke();
+        }
+
+        function drawIntegrationArea(ctx, points, T, yMax) {
+            // Draw the shaded area under the curve from -T to T
+            ctx.beginPath();
+            ctx.fillStyle = 'rgba(245, 158, 11, 0.4)'; // amber-500 semi-transparent
+            
+            // Start at origin (-T, 0)
+            const startPt = mapToCanvas(ctx, -T, 0, yMax);
+            ctx.moveTo(startPt.x, startPt.y);
+            
+            let activePoints = points.filter(p => p.t >= -T && p.t <= T);
+            
+            if (activePoints.length > 0) {
+                for(const pt of activePoints) {
+                    const cPt = mapToCanvas(ctx, pt.t, pt.val, yMax);
+                    ctx.lineTo(cPt.x, cPt.y);
+                }
+                // Line down to (T, 0)
+                const endPt = mapToCanvas(ctx, activePoints[activePoints.length-1].t, 0, yMax);
+                ctx.lineTo(endPt.x, startPt.y); // using startPt.y to ensure flat bottom
+            }
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw Window Boundary Lines
+            ctx.beginPath();
+            ctx.strokeStyle = '#ef4444'; // red-500
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            
+            const leftBoundary = mapToCanvas(ctx, -T, 0, yMax);
+            const rightBoundary = mapToCanvas(ctx, T, 0, yMax);
+            
+            ctx.moveTo(leftBoundary.x, 0);
+            ctx.lineTo(leftBoundary.x, ctx.canvas.height);
+            ctx.moveTo(rightBoundary.x, 0);
+            ctx.lineTo(rightBoundary.x, ctx.canvas.height);
+            
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset
+            
+            // Draw T labels
+            ctx.fillStyle = '#ef4444';
+            ctx.font = 'bold 12px Inter';
+            ctx.fillText('-T', leftBoundary.x - 20, ctx.canvas.height - 10);
+            ctx.fillText('+T', rightBoundary.x + 5, ctx.canvas.height - 10);
+        }
+
+        function calculateMetrics(T) {
+            let energy = 0;
+            // Numerical integration using rectangle rule for currently selected points within [-T, T]
+            const activePoints = state.pointsX2.filter(p => p.t >= -T && p.t <= T);
+            for(let i=0; i<activePoints.length-1; i++) {
+                energy += activePoints[i].val * state.dx;
+            }
+            
+            const power = T > 0 ? energy / (2 * T) : 0;
+            return { energy, power };
+        }
+
+        function updateMetersAndUI(T) {
+            const { energy, power } = calculateMetrics(T);
+            const sType = signalDefs[state.activeSignal].type; // 'energy' or 'power'
+
+            // Meter Max Capacities for visual scaling
+            const MAX_ENERGY_VISUAL = 10.0;
+            const MAX_POWER_VISUAL = 2.0;
+
+            // 1. Update Energy Meter
+            if (sType === 'power' && T > 5) {
+                // Emulate Energy going to infinity
+                energyValDisplay.innerText = "∞";
+                energyBar.style.width = "100%";
+                
+                // Add Overload Styling
+                energyMeterContainer.classList.add('overload-active');
+                energyBar.className = "h-full bg-gradient-to-r from-red-600 to-red-400 w-full transition-all duration-100 ease-out";
+                energyOverloadText.classList.remove('opacity-0');
+                energyStatus.innerHTML = "<span class='text-red-400 font-bold'>Diverging! Area goes to infinity.</span>";
+            } else {
+                // Normal energy accumulation
+                energyValDisplay.innerText = energy.toFixed(2);
+                let pctE = Math.min((energy / MAX_ENERGY_VISUAL) * 100, 100);
+                energyBar.style.width = `${pctE}%`;
+                
+                // Reset Styling
+                energyMeterContainer.classList.remove('overload-active');
+                energyBar.className = "h-full bg-gradient-to-r from-amber-600 to-amber-400 transition-all duration-100 ease-out";
+                energyOverloadText.classList.add('opacity-0');
+                
+                if (sType === 'energy' && T > 3) {
+                    energyStatus.innerHTML = "<span class='text-emerald-400 font-bold'>Converged to finite Energy.</span>";
+                } else {
+                    energyStatus.innerText = "Accumulating area under curve...";
+                }
+            }
+
+            // 2. Update Power Meter
+            powerValDisplay.innerText = power.toFixed(3);
+            let pctP = Math.min((power / MAX_POWER_VISUAL) * 100, 100);
+            powerBar.style.width = `${pctP}%`;
+            
+            if (sType === 'energy' && T > 3) {
+                powerStatus.innerHTML = "<span class='text-slate-500 font-bold'>Decaying to 0 as T → ∞</span>";
+                powerBar.className = "h-full bg-slate-600 transition-all duration-100 ease-out";
+            } else if (sType === 'power' && T > 3) {
+                powerStatus.innerHTML = `<span class='text-emerald-400 font-bold'>Stabilizing at finite average (${power.toFixed(2)} W).</span>`;
+                powerBar.className = "h-full bg-gradient-to-r from-cyan-600 to-cyan-400 transition-all duration-100 ease-out";
+            } else {
+                powerStatus.innerText = "Averaging energy over time window...";
+                powerBar.className = "h-full bg-gradient-to-r from-cyan-600 to-cyan-400 transition-all duration-100 ease-out";
+            }
+
+            // 3. Update Classification Conclusion
+            if (T < 4) {
+                classResult.className = "mt-4 p-3 rounded-xl bg-slate-800 border border-slate-700 text-xs text-center text-slate-300 font-medium";
+                classResult.innerHTML = "Expand the integration window $T$ to observe limits and classify.";
+            } else {
+                if (sType === 'energy') {
+                    classResult.className = "mt-4 p-3 rounded-xl bg-amber-900/30 border border-amber-500/50 text-xs text-center text-amber-300 font-bold shadow-inner shadow-amber-500/10";
+                    classResult.innerHTML = `<i class="fa-solid fa-check-circle mr-1"></i> Classified as an ENERGY SIGNAL ($0 < E < \\infty, P = 0$)`;
+                } else {
+                    classResult.className = "mt-4 p-3 rounded-xl bg-cyan-900/30 border border-cyan-500/50 text-xs text-center text-cyan-300 font-bold shadow-inner shadow-cyan-500/10";
+                    classResult.innerHTML = `<i class="fa-solid fa-check-circle mr-1"></i> Classified as a POWER SIGNAL ($E = \\infty, 0 < P < \\infty$)`;
+                }
+            }
+            
+            // Re-render KaTeX if the innerHTML was modified with raw math formulas (Optional, but safe)
+            if(T<4) {
+                katex.render("T", classResult, {throwOnError: false, displayMode:false}); // Just rendering the T variable
+                classResult.innerHTML = "Expand the integration window <span class='font-mono'>T</span> to observe limits and classify.";
+            }
+        }
+
+        function draw() {
+            // Signal X Canvas (Y ranges from -2 to 2)
+            drawAxesAndGrid(ctxX, 'x(t)', 2.0);
+            drawIntegrationArea(ctxX, state.pointsX, state.T, 2.0); // Show window on original too
+            drawSignal(ctxX, state.pointsX, '#3b82f6', 2.0); // blue-500
+            
+            // Signal X^2 Canvas (Y ranges from -0.5 to 3 for better view of squared positive values)
+            drawAxesAndGrid(ctxX2, '|x(t)|^2', 2.5);
+            // Translate context to shift bottom up since |x(t)|^2 is purely positive
+            // Actually standard bounds works fine, we just use a slightly offset yMax approach.
+            drawIntegrationArea(ctxX2, state.pointsX2, state.T, 2.5);
+            drawSignal(ctxX2, state.pointsX2, '#f59e0b', 2.5); // amber-500
+        }
+
+        function handleSliderInput(e) {
+            state.T = parseFloat(e.target.value);
+            displayT.innerText = `${state.T.toFixed(2)}s`;
+            draw();
+            updateMetersAndUI(state.T);
+        }
+
+        let animationId;
+        function animationLoop() {
+            if (state.isPlaying) {
+                state.T += 0.05; // Speed of window expansion
+                if (state.T > state.maxT) {
+                    state.T = 0.1; // Loop back
+                }
+                sliderT.value = state.T;
+                displayT.innerText = `${state.T.toFixed(2)}s`;
+                draw();
+                updateMetersAndUI(state.T);
+                
+                animationId = requestAnimationFrame(animationLoop);
+            }
+        }
+
+        function togglePlay() {
+            state.isPlaying = !state.isPlaying;
+            if (state.isPlaying) {
+                playIcon.className = "fa-solid fa-pause";
+                playBtn.classList.replace('bg-blue-600', 'bg-red-500');
+                playBtn.classList.replace('hover:bg-blue-500', 'hover:bg-red-400');
+                playBtn.classList.replace('shadow-blue-500/30', 'shadow-red-500/30');
+                animationLoop();
+            } else {
+                playIcon.className = "fa-solid fa-play";
+                playBtn.classList.replace('bg-red-500', 'bg-blue-600');
+                playBtn.classList.replace('hover:bg-red-400', 'hover:bg-blue-500');
+                playBtn.classList.replace('shadow-red-500/30', 'shadow-blue-500/30');
+                cancelAnimationFrame(animationId);
+            }
+        }
+
+        function changeSignal(e) {
+            // UI Selection Update
+            signalBtns.forEach(btn => {
+                btn.classList.remove('border-blue-500/40', 'bg-blue-500/10', 'border-2');
+                btn.classList.add('border-slate-700', 'bg-slate-800');
+            });
+            const btn = e.currentTarget;
+            btn.classList.remove('border-slate-700', 'bg-slate-800');
+            btn.classList.add('border-blue-500/40', 'bg-blue-500/10', 'border-2');
+            
+            // State Update
+            state.activeSignal = btn.getAttribute('data-signal');
+            
+            // Reset window to small value to let user see accumulation
+            state.T = 1.0;
+            sliderT.value = state.T;
+            displayT.innerText = `${state.T.toFixed(2)}s`;
+            
+            precalculateSignal();
+            draw();
+            updateMetersAndUI(state.T);
+        }
+
+        // Initialize Application
+        window.addEventListener('resize', resizeCanvas);
+        sliderT.addEventListener('input', handleSliderInput);
+        playBtn.addEventListener('click', togglePlay);
+        signalBtns.forEach(btn => btn.addEventListener('click', changeSignal));
+
+        window.onload = () => {
+            initMath();
+            precalculateSignal();
+            resizeCanvas(); // Will trigger draw()
+            updateMetersAndUI(state.T);
+        };
+    </script>
+</body>
+</html>

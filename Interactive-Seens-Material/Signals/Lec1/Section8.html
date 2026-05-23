@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signal Theory: Complex Exponentials & DT Periodicity</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for premium typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js for 3D Helix visualization -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617; /* slate-950 */
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        /* Glassmorphism Panel Styles */
+        .glass {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+        .glass-panel {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+        }
+
+        /* Thematic text glows */
+        .glow-real { text-shadow: 0 0 12px rgba(6, 182, 212, 0.6); color: #22d3ee; } /* Cyan */
+        .glow-imag { text-shadow: 0 0 12px rgba(244, 63, 94, 0.6); color: #fb7185; } /* Rose */
+        .glow-comp { text-shadow: 0 0 12px rgba(234, 179, 8, 0.6); color: #fde047; } /* Yellow */
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: #fde047; /* Yellow */
+            cursor: pointer;
+            margin-top: -7px;
+            box-shadow: 0 0 10px rgba(234, 179, 8, 0.8);
+            border: 2px solid #fff;
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:active {
+            transform: scale(1.2);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+        
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            border-radius: 1rem;
+            overflow: hidden;
+            background: #0b1120;
+        }
+
+        /* Periodic Pulse Animation */
+        @keyframes pulse-emerald {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); border-color: rgba(16, 185, 129, 0.8); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); border-color: rgba(16, 185, 129, 0.3); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); border-color: rgba(16, 185, 129, 0.8); }
+        }
+        @keyframes pulse-rose {
+            0% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.4); border-color: rgba(244, 63, 94, 0.8); }
+            70% { box-shadow: 0 0 0 10px rgba(244, 63, 94, 0); border-color: rgba(244, 63, 94, 0.3); }
+            100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); border-color: rgba(244, 63, 94, 0.8); }
+        }
+        .status-periodic { animation: pulse-emerald 2s infinite; }
+        .status-aperiodic { animation: pulse-rose 2s infinite; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <header class="border-b border-slate-800 bg-slate-900/80 sticky top-0 z-50 backdrop-blur-md shadow-lg">
+        <div class="max-w-[96rem] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-br from-yellow-400 to-amber-600 p-2 rounded-xl shadow-[0_0_15px_rgba(234,179,8,0.3)]">
+                    <i class="fa-solid fa-cube text-lg text-slate-950"></i>
+                </div>
+                <div>
+                    <h1 class="text-md sm:text-lg font-bold tracking-tight text-white">
+                        Complex Exponentials & <span class="text-yellow-400">DT Periodicity</span>
+                    </h1>
+                    <p class="text-[10px] sm:text-xs text-slate-400 font-medium tracking-wide mono">
+                        Euler's Flow: e<sup class="text-[9px]">jΩ₀n</sup> = cos(Ω₀n) + j·sin(Ω₀n)
+                    </p>
+                </div>
+            </div>
+            
+            <div id="periodicityBadge" class="hidden sm:flex items-center px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border border-slate-700 bg-slate-800 text-slate-300">
+                <i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Analyzing...
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-[96rem] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 relative">
+
+        <!-- LEFT COLUMN: Controls & Theory -->
+        <section class="lg:col-span-3 flex flex-col space-y-5">
+            
+            <!-- Core Controls -->
+            <div class="glass rounded-2xl p-5 border border-slate-800 relative overflow-hidden">
+                <h2 class="text-xs font-bold tracking-widest uppercase text-yellow-400 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders"></i> Signal Parameters
+                </h2>
+
+                <div class="space-y-6 relative z-10">
+                    <!-- Frequency Slider -->
+                    <div>
+                        <div class="flex justify-between items-end mb-2">
+                            <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                Digital Freq <span class="mono text-yellow-400">f₀ = Ω₀/2π</span>
+                            </label>
+                            <span class="text-lg mono text-yellow-400 font-bold" id="f0Display">0.125</span>
+                        </div>
+                        <input type="range" id="freqSlider" min="0.01" max="1.0" step="0.001" value="0.125">
+                    </div>
+
+                    <!-- Preset Buttons -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <button class="preset-btn bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg py-1.5 text-xs font-mono text-slate-300 transition" data-val="0.125">f₀ = 1/8</button>
+                        <button class="preset-btn bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg py-1.5 text-xs font-mono text-slate-300 transition" data-val="0.2">f₀ = 1/5</button>
+                        <button class="preset-btn bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg py-1.5 text-xs font-mono text-slate-300 transition" data-val="0.333333">f₀ = 1/3</button>
+                        <button class="preset-btn border border-rose-500/50 bg-rose-950/30 hover:bg-rose-900/50 rounded-lg py-1.5 text-xs font-mono text-rose-300 transition" data-val="0.3183098">f₀ = 1/π</button>
+                    </div>
+
+                    <!-- Playback Controls -->
+                    <div class="flex gap-2 pt-2 border-t border-slate-800">
+                        <button id="playPauseBtn" class="flex-1 bg-yellow-500 hover:bg-yellow-400 text-slate-900 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors shadow-[0_0_15px_rgba(234,179,8,0.2)]">
+                            <i class="fa-solid fa-pause mr-1"></i> Pause
+                        </button>
+                        <button id="resetBtn" class="px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 rounded-xl text-xs font-bold transition-colors border border-slate-700">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mathematical Box -->
+            <div class="glass-panel rounded-2xl p-5 border border-slate-800">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Mathematical Analysis</h3>
+                <div class="space-y-4">
+                    <!-- Euler -->
+                    <div class="bg-slate-900/80 p-3 rounded-lg border border-slate-700">
+                        <p class="text-[10px] uppercase text-slate-500 font-bold mb-1">Euler's Projection</p>
+                        <p class="font-mono text-sm">
+                            <span class="glow-comp">e<sup class="text-[10px]">jΩ₀n</sup></span> = 
+                            <span class="glow-real">cos(Ω₀n)</span> + 
+                            <span class="glow-imag">j·sin(Ω₀n)</span>
+                        </p>
+                    </div>
+                    
+                    <!-- Periodicity Condition -->
+                    <div class="bg-slate-900/80 p-3 rounded-lg border border-slate-700" id="mathConditionBox">
+                        <p class="text-[10px] uppercase text-slate-500 font-bold mb-1">DT Periodicity Condition</p>
+                        <p class="font-mono text-[11px] text-slate-300 mb-2">x[n] = x[n+N] ⇔ <span class="text-yellow-400">f₀ = k/N</span></p>
+                        
+                        <div class="mt-2 pt-2 border-t border-slate-700 flex justify-between items-center">
+                            <span class="text-xs text-slate-400 font-mono" id="fracDisplay">Current: ?</span>
+                            <span class="text-xs font-bold" id="nResultDisplay">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-[10px] text-slate-500 leading-relaxed text-justify px-2">
+                <strong>Visual Learning:</strong> Observe the 2D Complex Plane. If the frequency <span class="mono">f₀</span> is a rational fraction, the rotating vector will perfectly land on previous samples, forming a closed star/polygon. If <span class="mono">f₀</span> is irrational (e.g., 1/π), the vector will never exactly repeat its position, densely filling the circle over time.
+            </div>
+
+        </section>
+
+        <!-- CENTER COLUMN: 2D Complex Plane & 2D Oscilloscopes -->
+        <section class="lg:col-span-4 flex flex-col space-y-4">
+            
+            <!-- 2D Complex Plane -->
+            <div class="glass rounded-2xl p-1 border border-slate-700 relative flex-1 flex flex-col min-h-[300px]">
+                <div class="px-4 py-2 border-b border-slate-800 flex justify-between items-center bg-slate-900/50 rounded-t-2xl">
+                    <span class="text-xs font-bold uppercase tracking-wider text-yellow-400">
+                        <i class="fa-solid fa-circle-notch mr-1"></i> Complex Plane (z)
+                    </span>
+                    <span class="font-mono text-xs text-slate-400">Im vs Re</span>
+                </div>
+                <div class="canvas-container flex-1 rounded-b-2xl flex items-center justify-center p-2">
+                    <canvas id="complexCanvas" class="max-w-full max-h-full"></canvas>
+                </div>
+            </div>
+
+            <!-- 2D Projections (Oscilloscopes) -->
+            <div class="glass rounded-2xl p-1 border border-slate-700 relative h-64 flex flex-col">
+                <div class="px-4 py-2 border-b border-slate-800 flex justify-between items-center bg-slate-900/50 rounded-t-2xl">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        <i class="fa-solid fa-wave-square text-cyan-400 mr-1"></i> 1D Projections
+                    </span>
+                    <span class="font-mono text-xs text-slate-400">Amplitude vs n</span>
+                </div>
+                <div class="canvas-container flex-1 rounded-b-2xl">
+                    <canvas id="oscCanvas" class="w-full h-full block"></canvas>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- RIGHT COLUMN: 3D Helix -->
+        <section class="lg:col-span-5 flex flex-col h-[500px] lg:h-auto">
+            <div class="glass rounded-2xl p-1 border border-slate-700 relative flex-1 flex flex-col shadow-[0_0_30px_rgba(0,0,0,0.8)]">
+                <div class="absolute top-4 left-5 z-10 pointer-events-none">
+                    <h2 class="text-xs font-bold tracking-widest uppercase text-slate-200 drop-shadow-md">
+                        <i class="fa-solid fa-cubes text-yellow-400 mr-2"></i> 3D Time-Helix
+                    </h2>
+                    <p class="text-[10px] text-slate-400 mono mt-1">x-axis: Time (n) | yz-plane: Complex</p>
+                </div>
+                
+                <div class="absolute bottom-4 right-5 z-10 pointer-events-none text-right">
+                    <div class="flex items-center gap-2 justify-end mb-1">
+                        <span class="w-3 h-0.5 bg-cyan-400"></span>
+                        <span class="text-[9px] font-mono text-cyan-300 uppercase">Real (Cos)</span>
+                    </div>
+                    <div class="flex items-center gap-2 justify-end">
+                        <span class="w-3 h-0.5 bg-rose-400"></span>
+                        <span class="text-[9px] font-mono text-rose-300 uppercase">Imag (Sin)</span>
+                    </div>
+                </div>
+
+                <!-- Three.js Container -->
+                <div id="threeContainer" class="w-full h-full rounded-2xl overflow-hidden cursor-move"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // --- DOM Elements ---
+        const f0Display = document.getElementById('f0Display');
+        const freqSlider = document.getElementById('freqSlider');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const periodicityBadge = document.getElementById('periodicityBadge');
+        const fracDisplay = document.getElementById('fracDisplay');
+        const nResultDisplay = document.getElementById('nResultDisplay');
+        const mathConditionBox = document.getElementById('mathConditionBox');
+        const presetBtns = document.querySelectorAll('.preset-btn');
+        
+        // 2D Canvases
+        const complexCanvas = document.getElementById('complexCanvas');
+        const oscCanvas = document.getElementById('oscCanvas');
+        const ctxComp = complexCanvas.getContext('2d');
+        const ctxOsc = oscCanvas.getContext('2d');
+
+        // --- State Variables ---
+        let isPlaying = true;
+        let globalTimeContinuous = 0; // Continuous time flowing
+        let currentN = 0; // Discrete time index
+        const historyMax = 50; // How many points to show in time-series
+        let historyData = []; // Array of {n, re, im, angle}
+
+        let f0 = 0.125;
+        let omega0 = 2 * Math.PI * f0;
+        let animationId;
+        
+        // Time control
+        let lastTime = performance.now();
+        const SPEED = 2.0; // "n" increments per second of continuous time
+
+        // Colors
+        const COL_REAL = '#22d3ee'; // Cyan 400
+        const COL_IMAG = '#fb7185'; // Rose 400
+        const COL_COMP = '#fde047'; // Yellow 400
+        const COL_AXIS = 'rgba(148, 163, 184, 0.3)';
+
+        // --- Periodicity Math (Fraction Approximation) ---
+        function getRationalApproximation(val, maxDenominator = 100) {
+            let bestNumerator = 0;
+            let bestDenominator = 1;
+            let minError = Math.abs(val);
+
+            for (let d = 1; d <= maxDenominator; d++) {
+                let n = Math.round(val * d);
+                let error = Math.abs(val - (n / d));
+                if (error < minError) {
+                    minError = error;
+                    bestNumerator = n;
+                    bestDenominator = d;
+                }
+            }
+            return { k: bestNumerator, N: bestDenominator, error: minError };
+        }
+
+        function updateMathDisplays() {
+            f0Display.textContent = f0.toFixed(4);
+            omega0 = 2 * Math.PI * f0;
+            
+            const approx = getRationalApproximation(f0, 50);
+            
+            // Check if it's truly rational (within float tolerance)
+            const isRational = approx.error < 0.001;
+
+            if (isRational && approx.k > 0) {
+                fracDisplay.innerHTML = `f₀ ≈ <span class="text-white">${approx.k} / ${approx.N}</span>`;
+                nResultDisplay.innerHTML = `<span class="text-emerald-400">PERIODIC (N=${approx.N})</span>`;
+                
+                periodicityBadge.className = "hidden sm:flex items-center px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border status-periodic bg-emerald-950/40 text-emerald-300";
+                periodicityBadge.innerHTML = `<i class="fa-solid fa-check-circle mr-1.5"></i> Periodic (N=${approx.N})`;
+                mathConditionBox.className = "bg-slate-900/80 p-3 rounded-lg border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.1)]";
+            } else {
+                fracDisplay.innerHTML = `f₀ ≈ <span class="text-white">Irrational</span>`;
+                nResultDisplay.innerHTML = `<span class="text-rose-400">APERIODIC</span>`;
+                
+                periodicityBadge.className = "hidden sm:flex items-center px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border status-aperiodic bg-rose-950/40 text-rose-300";
+                periodicityBadge.innerHTML = `<i class="fa-solid fa-times-circle mr-1.5"></i> Aperiodic`;
+                mathConditionBox.className = "bg-slate-900/80 p-3 rounded-lg border border-rose-500/30 shadow-[0_0_15px_rgba(244,63,94,0.1)]";
+            }
+            
+            // Recompute history instantly so visuals snap to new frequency
+            recalculateHistory();
+        }
+
+        function recalculateHistory() {
+            historyData = [];
+            let startN = Math.max(0, currentN - historyMax + 1);
+            for(let i = startN; i <= currentN; i++) {
+                let angle = omega0 * i;
+                historyData.push({
+                    n: i,
+                    re: Math.cos(angle),
+                    im: Math.sin(angle),
+                    angle: angle
+                });
+            }
+            update3DGeometry();
+        }
+
+        function pushNewSample(n) {
+            let angle = omega0 * n;
+            historyData.push({
+                n: n,
+                re: Math.cos(angle),
+                im: Math.sin(angle),
+                angle: angle
+            });
+            if (historyData.length > historyMax) {
+                historyData.shift();
+            }
+            update3DGeometry();
+        }
+
+        // --- Controls Event Listeners ---
+        freqSlider.addEventListener('input', (e) => {
+            f0 = parseFloat(e.target.value);
+            updateMathDisplays();
+        });
+
+        presetBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                f0 = parseFloat(e.target.dataset.val);
+                freqSlider.value = f0;
+                updateMathDisplays();
+            });
+        });
+
+        playPauseBtn.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            if(isPlaying) {
+                playPauseBtn.innerHTML = `<i class="fa-solid fa-pause mr-1"></i> Pause`;
+                lastTime = performance.now();
+                animate();
+            } else {
+                playPauseBtn.innerHTML = `<i class="fa-solid fa-play mr-1"></i> Play`;
+                cancelAnimationFrame(animationId);
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            globalTimeContinuous = 0;
+            currentN = 0;
+            historyData = [];
+            pushNewSample(0);
+            update3DGeometry();
+            draw2D();
+        });
+
+        // --- Three.js Setup ---
+        const threeContainer = document.getElementById('threeContainer');
+        const scene = new THREE.Scene();
+        // Dark transparent background
+        scene.background = null; 
+
+        const camera = new THREE.PerspectiveCamera(45, threeContainer.clientWidth / threeContainer.clientHeight, 0.1, 1000);
+        camera.position.set(-15, 12, 15);
+        camera.lookAt(10, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(threeContainer.clientWidth, threeContainer.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        threeContainer.appendChild(renderer.domElement);
+
+        // 3D Objects
+        const objects3D = {
+            continuousHelix: null,
+            stemGroup: new THREE.Group(),
+            axisHelper: null
+        };
+        scene.add(objects3D.stemGroup);
+
+        // Draw Axes
+        const axesMaterial = new THREE.LineBasicMaterial({ color: 0x475569, transparent: true, opacity: 0.5 });
+        const axesPoints = [];
+        // Time Axis (X)
+        axesPoints.push(new THREE.Vector3(-5, 0, 0), new THREE.Vector3(historyMax, 0, 0));
+        // Real Axis (Y)
+        axesPoints.push(new THREE.Vector3(0, -2, 0), new THREE.Vector3(0, 2, 0));
+        // Imag Axis (Z)
+        axesPoints.push(new THREE.Vector3(0, 0, -2), new THREE.Vector3(0, 0, 2));
+        
+        const axesGeo = new THREE.BufferGeometry().setFromPoints(axesPoints);
+        objects3D.axisHelper = new THREE.LineSegments(axesGeo, axesMaterial);
+        scene.add(objects3D.axisHelper);
+
+        // Materials for stems
+        const matSphere = new THREE.MeshBasicMaterial({ color: 0xfde047 }); // Yellow
+        const matStemReal = new THREE.LineBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.6 }); // Cyan
+        const matStemImag = new THREE.LineBasicMaterial({ color: 0xfb7185, transparent: true, opacity: 0.6 }); // Rose
+        const matStemMain = new THREE.LineDashedMaterial({ color: 0xfde047, dashSize: 0.2, gapSize: 0.1, transparent: true, opacity: 0.5 });
+        
+        // Continuous Helix Material
+        const matHelix = new THREE.LineBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.3 });
+
+        function update3DGeometry() {
+            // 1. Update continuous faint helix
+            if (objects3D.continuousHelix) scene.remove(objects3D.continuousHelix);
+            
+            const helixPoints = [];
+            const startX = historyData.length > 0 ? historyData[0].n : 0;
+            const endX = startX + historyMax; // Draw a bit ahead
+            
+            for (let t = startX; t <= endX; t += 0.1) {
+                let a = omega0 * t;
+                // Mapping: X=Time, Y=Real, Z=Imag
+                helixPoints.push(new THREE.Vector3(t, Math.cos(a)*1.5, Math.sin(a)*1.5));
+            }
+            const helixGeo = new THREE.BufferGeometry().setFromPoints(helixPoints);
+            objects3D.continuousHelix = new THREE.Line(helixGeo, matHelix);
+            scene.add(objects3D.continuousHelix);
+
+            // 2. Update Stems and Spheres
+            // Clear old
+            while(objects3D.stemGroup.children.length > 0){ 
+                objects3D.stemGroup.remove(objects3D.stemGroup.children[0]); 
+            }
+
+            historyData.forEach((pt, index) => {
+                let x = pt.n;
+                let y = pt.re * 1.5;
+                let z = pt.im * 1.5;
+                
+                // Fade out older points
+                let alpha = (index + 1) / historyData.length;
+                let scl = 0.5 + 0.5 * alpha;
+
+                // Sphere
+                const geoSphere = new THREE.SphereGeometry(0.15 * scl, 8, 8);
+                const sphere = new THREE.Mesh(geoSphere, new THREE.MeshBasicMaterial({color: 0xfde047, transparent: true, opacity: alpha}));
+                sphere.position.set(x, y, z);
+                objects3D.stemGroup.add(sphere);
+
+                // Stem to axis (Yellow dashed)
+                const mainStemGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x,0,0), new THREE.Vector3(x,y,z)]);
+                const mainStem = new THREE.Line(mainStemGeo, new THREE.LineDashedMaterial({ color: 0xfde047, dashSize: 0.2, gapSize: 0.1, transparent: true, opacity: alpha*0.5 }));
+                mainStem.computeLineDistances();
+                objects3D.stemGroup.add(mainStem);
+
+                // Projection to Real (Cyan)
+                const realGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x,0,z), new THREE.Vector3(x,y,z)]);
+                objects3D.stemGroup.add(new THREE.Line(realGeo, new THREE.LineBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: alpha*0.7 })));
+
+                // Projection to Imag (Rose)
+                const imagGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x,y,0), new THREE.Vector3(x,y,z)]);
+                objects3D.stemGroup.add(new THREE.Line(imagGeo, new THREE.LineBasicMaterial({ color: 0xfb7185, transparent: true, opacity: alpha*0.7 })));
+            });
+
+            // Make camera follow the front of the wave
+            let targetX = currentN > 20 ? currentN - 10 : 10;
+            camera.position.x += ( (targetX - 15) - camera.position.x ) * 0.1;
+            camera.lookAt(targetX, 0, 0);
+        }
+
+        // Simple Mouse Interaction for 3D view (Rotate around X axis)
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        
+        threeContainer.addEventListener('mousedown', (e) => { isDragging = true; });
+        window.addEventListener('mouseup', (e) => { isDragging = false; });
+        window.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                let deltaMove = {
+                    x: e.offsetX - previousMousePosition.x,
+                    y: e.offsetY - previousMousePosition.y
+                };
+                
+                // Rotate camera around X axis manually
+                let radius = Math.sqrt(camera.position.y**2 + camera.position.z**2);
+                let theta = Math.atan2(camera.position.z, camera.position.y);
+                
+                theta -= deltaMove.y * 0.01; // Up/down moves around time axis
+                
+                camera.position.y = radius * Math.cos(theta);
+                camera.position.z = radius * Math.sin(theta);
+                camera.lookAt(camera.position.x + 15, 0, 0); // Re-look
+            }
+            previousMousePosition = { x: e.offsetX, y: e.offsetY };
+        });
+
+        function resizeCanvases() {
+            const dpr = window.devicePixelRatio || 1;
+            
+            // Complex Canvas (Square)
+            let compRect = complexCanvas.parentElement.getBoundingClientRect();
+            let size = Math.min(compRect.width, compRect.height) - 10;
+            complexCanvas.width = size * dpr;
+            complexCanvas.height = size * dpr;
+            complexCanvas.style.width = `${size}px`;
+            complexCanvas.style.height = `${size}px`;
+
+            // Osc Canvas
+            let oscRect = oscCanvas.parentElement.getBoundingClientRect();
+            oscCanvas.width = oscRect.width * dpr;
+            oscCanvas.height = oscRect.height * dpr;
+            
+            draw2D();
+        }
+
+        function drawComplexPlane() {
+            const dpr = window.devicePixelRatio || 1;
+            const W = complexCanvas.width;
+            const H = complexCanvas.height;
+            const cx = W / 2;
+            const cy = H / 2;
+            const R = Math.min(cx, cy) * 0.75; // Radius
+
+            ctxComp.clearRect(0, 0, W, H);
+            ctxComp.lineWidth = 1 * dpr;
+
+            // Draw axes
+            ctxComp.strokeStyle = COL_AXIS;
+            ctxComp.beginPath();
+            ctxComp.moveTo(0, cy); ctxComp.lineTo(W, cy);
+            ctxComp.moveTo(cx, 0); ctxComp.lineTo(cx, H);
+            ctxComp.stroke();
+
+            // Draw unit circle
+            ctxComp.beginPath();
+            ctxComp.arc(cx, cy, R, 0, 2 * Math.PI);
+            ctxComp.stroke();
+            
+            // Labels
+            ctxComp.fillStyle = COL_AXIS;
+            ctxComp.font = `${10*dpr}px "JetBrains Mono"`;
+            ctxComp.fillText("Re", W - 20*dpr, cy - 5*dpr);
+            ctxComp.fillText("Im", cx + 5*dpr, 15*dpr);
+
+            if (historyData.length === 0) return;
+
+            // Draw history dots
+            ctxComp.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            historyData.forEach((pt, index) => {
+                if (index === historyData.length - 1) return; // Skip current
+                let px = cx + pt.re * R;
+                let py = cy - pt.im * R; // -y because canvas y is down
+                ctxComp.beginPath();
+                ctxComp.arc(px, py, 2*dpr, 0, 2*Math.PI);
+                ctxComp.fill();
+            });
+
+            // Draw current phasor
+            let current = historyData[historyData.length - 1];
+            let px = cx + current.re * R;
+            let py = cy - current.im * R;
+
+            // Projection lines
+            ctxComp.setLineDash([4*dpr, 4*dpr]);
+            
+            // To Real (Cyan)
+            ctxComp.strokeStyle = COL_REAL;
+            ctxComp.beginPath();
+            ctxComp.moveTo(px, py);
+            ctxComp.lineTo(px, cy);
+            ctxComp.stroke();
+
+            // To Imag (Rose)
+            ctxComp.strokeStyle = COL_IMAG;
+            ctxComp.beginPath();
+            ctxComp.moveTo(px, py);
+            ctxComp.lineTo(cx, py);
+            ctxComp.stroke();
+            
+            ctxComp.setLineDash([]);
+
+            // Main Vector (Yellow)
+            ctxComp.strokeStyle = COL_COMP;
+            ctxComp.lineWidth = 2 * dpr;
+            ctxComp.beginPath();
+            ctxComp.moveTo(cx, cy);
+            ctxComp.lineTo(px, py);
+            ctxComp.stroke();
+
+            // Current Dot
+            ctxComp.fillStyle = COL_COMP;
+            ctxComp.shadowColor = COL_COMP;
+            ctxComp.shadowBlur = 10 * dpr;
+            ctxComp.beginPath();
+            ctxComp.arc(px, py, 4*dpr, 0, 2*Math.PI);
+            ctxComp.fill();
+            ctxComp.shadowBlur = 0; // reset
+        }
+
+        function drawOscilloscopes() {
+            const dpr = window.devicePixelRatio || 1;
+            const W = oscCanvas.width;
+            const H = oscCanvas.height;
+            
+            ctxOsc.clearRect(0, 0, W, H);
+
+            // Layout parameters
+            const marginX = 20 * dpr;
+            const marginY = 20 * dpr;
+            const plotW = W - 2 * marginX;
+            
+            const hReal = H / 2;
+            const yZeroReal = hReal / 2;
+            const yZeroImag = hReal + hReal / 2;
+            const amp = (hReal - 2 * marginY) / 2;
+
+            // Draw Axes
+            ctxOsc.strokeStyle = COL_AXIS;
+            ctxOsc.lineWidth = 1 * dpr;
+            ctxOsc.beginPath();
+            // Re axis
+            ctxOsc.moveTo(marginX, yZeroReal); ctxOsc.lineTo(W - marginX, yZeroReal);
+            // Im axis
+            ctxOsc.moveTo(marginX, yZeroImag); ctxOsc.lineTo(W - marginX, yZeroImag);
+            ctxOsc.stroke();
+
+            // Labels
+            ctxOsc.fillStyle = COL_REAL;
+            ctxOsc.font = `bold ${10*dpr}px "Inter"`;
+            ctxOsc.fillText("Real { z }", marginX, 15*dpr);
+            
+            ctxOsc.fillStyle = COL_IMAG;
+            ctxOsc.fillText("Imag { z }", marginX, hReal + 15*dpr);
+
+            if (historyData.length === 0) return;
+
+            // Calculate x scaling (sliding window view)
+            let startN = historyData[0].n;
+            let endN = startN + historyMax - 1;
+            
+            function nToX(nVal) {
+                return marginX + ((nVal - startN) / (historyMax - 1)) * plotW;
+            }
+
+            // Draw continuous faint waves
+            ctxOsc.lineWidth = 1.5 * dpr;
+            
+            // Continuous Cosine
+            ctxOsc.strokeStyle = 'rgba(34, 211, 238, 0.2)'; // Faint Cyan
+            ctxOsc.beginPath();
+            for(let nContinuous = startN; nContinuous <= endN; nContinuous += 0.1) {
+                let x = nToX(nContinuous);
+                let y = yZeroReal - Math.cos(omega0 * nContinuous) * amp;
+                if(nContinuous === startN) ctxOsc.moveTo(x, y);
+                else ctxOsc.lineTo(x, y);
+            }
+            ctxOsc.stroke();
+
+            // Continuous Sine
+            ctxOsc.strokeStyle = 'rgba(251, 113, 133, 0.2)'; // Faint Rose
+            ctxOsc.beginPath();
+            for(let nContinuous = startN; nContinuous <= endN; nContinuous += 0.1) {
+                let x = nToX(nContinuous);
+                let y = yZeroImag - Math.sin(omega0 * nContinuous) * amp;
+                if(nContinuous === startN) ctxOsc.moveTo(x, y);
+                else ctxOsc.lineTo(x, y);
+            }
+            ctxOsc.stroke();
+
+
+            // Draw Discrete Stems
+            const dotRad = 2.5 * dpr;
+            
+            historyData.forEach((pt, index) => {
+                let x = nToX(pt.n);
+                let isCurrent = index === historyData.length - 1;
+                
+                // Real Stem
+                let yRe = yZeroReal - pt.re * amp;
+                ctxOsc.strokeStyle = isCurrent ? COL_REAL : 'rgba(34, 211, 238, 0.5)';
+                ctxOsc.fillStyle = ctxOsc.strokeStyle;
+                ctxOsc.beginPath();
+                ctxOsc.moveTo(x, yZeroReal);
+                ctxOsc.lineTo(x, yRe);
+                ctxOsc.stroke();
+                ctxOsc.beginPath();
+                ctxOsc.arc(x, yRe, isCurrent ? dotRad*1.5 : dotRad, 0, Math.PI*2);
+                if(isCurrent) {
+                    ctxOsc.shadowColor = COL_REAL;
+                    ctxOsc.shadowBlur = 8*dpr;
+                }
+                ctxOsc.fill();
+                ctxOsc.shadowBlur = 0;
+
+                // Imag Stem
+                let yIm = yZeroImag - pt.im * amp;
+                ctxOsc.strokeStyle = isCurrent ? COL_IMAG : 'rgba(251, 113, 133, 0.5)';
+                ctxOsc.fillStyle = ctxOsc.strokeStyle;
+                ctxOsc.beginPath();
+                ctxOsc.moveTo(x, yZeroImag);
+                ctxOsc.lineTo(x, yIm);
+                ctxOsc.stroke();
+                ctxOsc.beginPath();
+                ctxOsc.arc(x, yIm, isCurrent ? dotRad*1.5 : dotRad, 0, Math.PI*2);
+                if(isCurrent) {
+                    ctxOsc.shadowColor = COL_IMAG;
+                    ctxOsc.shadowBlur = 8*dpr;
+                }
+                ctxOsc.fill();
+                ctxOsc.shadowBlur = 0;
+            });
+        }
+
+        function draw2D() {
+            drawComplexPlane();
+            drawOscilloscopes();
+        }
+
+        function animate(time) {
+            if (!isPlaying) return;
+            
+            let delta = (time - lastTime) / 1000; // seconds
+            lastTime = time;
+            
+            // Advance continuous time
+            if (delta > 0 && delta < 0.1) { // cap delta to avoid jumps if tab inactive
+                globalTimeContinuous += delta * SPEED;
+                
+                // Did we cross an integer index?
+                if (Math.floor(globalTimeContinuous) > currentN) {
+                    currentN = Math.floor(globalTimeContinuous);
+                    pushNewSample(currentN);
+                }
+            }
+
+            draw2D();
+            renderer.render(scene, camera);
+            
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // Init
+        window.addEventListener('resize', () => {
+            resizeCanvases();
+            camera.aspect = threeContainer.clientWidth / threeContainer.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(threeContainer.clientWidth, threeContainer.clientHeight);
+        });
+
+        // Startup sequence
+        updateMathDisplays();
+        pushNewSample(0);
+        resizeCanvases();
+        
+        // Start animation loop
+        lastTime = performance.now();
+        animate(lastTime);
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signal Theory: Uniform Sampling Process</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for premium typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for beautiful icon elements -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Glassmorphism utility */
+        .glass {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        /* Custom Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: currentColor;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-amber-500/30 selection:text-amber-200 overflow-x-hidden">
+
+    <!-- -->
+    <header class="border-b border-slate-800 bg-slate-900/80 sticky top-0 z-50 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-tr from-cyan-500 to-amber-500 p-2 rounded-xl shadow-lg shadow-amber-500/10">
+                    <i class="fa-solid fa-camera-retro text-lg text-slate-950"></i>
+                </div>
+                <div>
+                    <h1 class="text-md sm:text-lg font-bold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
+                        Uniform Sampling Visualizer
+                    </h1>
+                    <p class="text-[10px] sm:text-xs text-slate-400 font-medium tracking-wide">DERIVING <span class="text-amber-400">x[n]</span> = <span class="text-cyan-400">x(nT)</span></p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <span class="w-1.5 h-1.5 mr-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                    Strobe Sampler Active
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Controls Column (Sidebar) -->
+        <section class="lg:col-span-4 space-y-6">
+            
+            <!-- Signal Parameters Card -->
+            <div class="glass rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+                    <h2 class="text-sm font-semibold tracking-wide uppercase text-cyan-400 flex items-center gap-2">
+                        <i class="fa-solid fa-wave-square text-xs"></i> Continuous Wave $x(t)$
+                    </h2>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- Frequency Slider -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-medium text-slate-300 flex items-center gap-1">
+                                Signal Frequency ($f$)
+                            </label>
+                            <span class="text-xs mono text-cyan-400 font-bold" id="freqVal">1.0 Hz</span>
+                        </div>
+                        <input type="range" id="freqInput" min="0.1" max="3.0" step="0.1" value="1.0" 
+                               class="w-full text-cyan-400">
+                        <p class="text-[10px] text-slate-500 mt-1 text-right">Cycles per second</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Strobe Sampler Card -->
+            <div class="glass rounded-2xl p-5 shadow-xl relative overflow-hidden border border-amber-500/20">
+                <!-- Highlight background gradient -->
+                <div class="absolute -top-12 -right-12 w-32 h-32 bg-amber-500/10 blur-3xl rounded-full"></div>
+
+                <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3 relative z-10">
+                    <h2 class="text-sm font-semibold tracking-wide uppercase text-amber-400 flex items-center gap-2">
+                        <i class="fa-solid fa-bolt text-xs"></i> Strobe Sampler
+                    </h2>
+                </div>
+
+                <div class="space-y-4 relative z-10">
+                    <!-- Sampling Interval T Slider -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-medium text-slate-300 flex items-center gap-1">
+                                Sampling Interval ($T$)
+                            </label>
+                            <span class="text-xs mono text-amber-400 font-bold" id="tVal">0.10 s</span>
+                        </div>
+                        <input type="range" id="tInput" min="0.02" max="0.5" step="0.01" value="0.10" 
+                               class="w-full text-amber-500">
+                        <div class="flex justify-between items-center mt-1">
+                            <p class="text-[10px] text-slate-500">Time between flashes</p>
+                            <p class="text-[10px] text-amber-500/70 font-mono" id="fsVal">$f_s$ = 10.0 Hz</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- -->
+            <!-- Transformation Trigger Card -->
+            <div class="glass rounded-2xl p-5 shadow-xl border border-emerald-500/20 bg-gradient-to-b from-slate-900 to-slate-950">
+                <h3 class="text-xs font-bold uppercase text-slate-300 tracking-wider mb-3 flex items-center gap-1.5">
+                    <i class="fa-solid fa-wand-magic-sparkles text-emerald-400"></i> Discretization Process
+                </h3>
+                
+                <p class="text-[11px] text-slate-400 mb-4 leading-relaxed">
+                    Trigger the strobe sampler to strike the wave at exact multiples of $T$. Watch the continuous signal fade, leaving only the extracted discrete sequence $x[n]$.
+                </p>
+
+                <button id="transformBtn" class="w-full py-3 px-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all duration-200 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-play"></i> Run Sampling Transformation
+                </button>
+                <button id="resetBtn" class="w-full py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 mt-2 hidden">
+                    <i class="fa-solid fa-rotate-left"></i> Reset to Continuous
+                </button>
+            </div>
+
+            <!-- Conceptual Learning Indicator Card -->
+            <div class="glass rounded-2xl p-5 shadow-xl border border-slate-800">
+                <h3 class="text-xs font-bold uppercase text-slate-400 tracking-wider mb-2 flex items-center gap-1.5">
+                    <i class="fa-solid fa-graduation-cap"></i> Visual Learning Outcome
+                </h3>
+                <div class="bg-slate-900 rounded-lg p-3 border border-slate-800 mb-2">
+                    <p class="text-center font-mono text-sm font-bold bg-gradient-to-r from-amber-400 to-cyan-400 bg-clip-text text-transparent">
+                        x[n] = x(nT)
+                    </p>
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">
+                    The discrete sequence <span class="text-amber-400 font-semibold">x[n]</span> is formed by evaluating the continuous function <span class="text-cyan-400 font-semibold">x(t)</span> strictly at time instants <span class="text-slate-200 font-mono">t = nT</span>, where <span class="text-slate-200 font-mono">n</span> is an integer.
+                </p>
+            </div>
+
+        </section>
+
+        <!-- -->
+        <!-- Visualizer Area (Main Canvas & Interactive Charts) -->
+        <section class="lg:col-span-8 flex flex-col space-y-6">
+            
+            <!-- Plot Container Card -->
+            <div class="glass rounded-3xl p-6 shadow-2xl flex flex-col justify-between border border-slate-800/80 relative">
+                
+                <!-- Plot Header -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-4 mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                            <i class="fa-solid fa-camera-retro text-amber-400"></i> Strobe Intersection visualizer
+                        </h2>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Observe vertical strobe lines striking the wave at uniform intervals.</p>
+                    </div>
+                </div>
+
+                <!-- Dynamic High Definition Canvas with Fallback -->
+                <div class="relative w-full aspect-[16/10] bg-[#070b14] rounded-2xl border border-slate-900 overflow-hidden shadow-inner cursor-crosshair">
+                    
+                    <!-- Plot legends overlay -->
+                    <div class="absolute top-4 left-4 z-10 flex flex-col gap-2">
+                        <div id="legendCont" class="flex items-center gap-2 bg-slate-950/85 border border-cyan-500/20 px-3 py-1.5 rounded-lg backdrop-blur-md transition-opacity duration-300">
+                            <div class="w-3 h-0.5 bg-cyan-400 rounded"></div>
+                            <span class="text-[10px] sm:text-xs font-semibold text-cyan-300">Continuous $x(t)$</span>
+                        </div>
+                    </div>
+
+                    <div class="absolute bottom-4 left-4 z-10 flex flex-col gap-2">
+                        <div class="flex items-center gap-2 bg-slate-950/85 border border-amber-500/20 px-3 py-1.5 rounded-lg backdrop-blur-md">
+                            <div class="w-2.5 h-2.5 bg-amber-500 rounded-full"></div>
+                            <span class="text-[10px] sm:text-xs font-semibold text-amber-300">Samples at $t=nT$</span>
+                        </div>
+                    </div>
+
+                    <!-- HUD Probe -->
+                    <div id="hudPanel" class="absolute top-4 right-4 z-20 bg-slate-900/95 border border-slate-700 px-3 py-2 rounded-xl pointer-events-none opacity-0 transition-opacity duration-150 shadow-xl min-w-[140px]">
+                        <div class="text-[9px] uppercase text-slate-400 font-bold mb-1 border-b border-slate-700 pb-1">Intersection Data</div>
+                        <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-xs mono">
+                            <div class="text-slate-500">Index <span class="text-slate-300">n</span></div>
+                            <div id="hudN" class="text-right text-slate-200 font-bold">0</div>
+                            
+                            <div class="text-slate-500">Time <span class="text-slate-300">t</span></div>
+                            <div id="hudT" class="text-right text-slate-200 font-bold">0.00s</div>
+                            
+                            <div class="text-amber-500/80">Value <span class="text-amber-400">x[n]</span></div>
+                            <div id="hudVal" class="text-right text-amber-400 font-bold">0.000</div>
+                        </div>
+                    </div>
+
+                    <!-- The Canvas Element -->
+                    <canvas id="samplerCanvas" class="w-full h-full block" width="800" height="500"></canvas>
+                    
+                </div>
+
+                <!-- -->
+                <!-- Live Concept Check/Interactive Quiz Section -->
+                <div class="mt-6 border-t border-slate-800/80 pt-5">
+                    <div class="bg-slate-900/40 border border-slate-800/60 rounded-2xl p-4 sm:p-5">
+                        <h3 class="text-xs font-bold uppercase tracking-widest text-emerald-400 flex items-center gap-1.5 mb-2">
+                            <i class="fa-solid fa-puzzle-piece"></i> Quick Concept Check
+                        </h3>
+                        <p class="text-xs text-slate-300 mb-4 leading-relaxed">
+                            If the sampling interval is set to <code class="bg-slate-950 px-1 py-0.5 rounded text-amber-400 font-bold font-mono text-[11px]">T = 0.2s</code>, at what exact continuous time <code class="text-cyan-400 font-mono text-[11px]">t</code> does the discrete sample index <code class="text-slate-200 font-mono text-[11px]">n = 4</code> occur?
+                        </p>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <button onclick="checkQuizAnswer(1)" id="quiz-opt-1" class="quiz-option text-left px-4 py-3 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl transition-all duration-200">
+                                <div class="font-bold text-slate-200 mb-1">A) t = 4.0s</div>
+                            </button>
+                            <button onclick="checkQuizAnswer(2)" id="quiz-opt-2" class="quiz-option text-left px-4 py-3 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl transition-all duration-200">
+                                <div class="font-bold text-slate-200 mb-1">B) t = 0.8s</div>
+                            </button>
+                            <button onclick="checkQuizAnswer(3)" id="quiz-opt-3" class="quiz-option text-left px-4 py-3 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl transition-all duration-200">
+                                <div class="font-bold text-slate-200 mb-1">C) t = 0.2s</div>
+                            </button>
+                        </div>
+                        <div id="quizResponse" class="mt-3 text-xs text-slate-300 font-medium hidden flex items-start gap-2 p-3 rounded-lg">
+                            <span id="quizResponseIcon" class="mt-0.5"></span>
+                            <span id="quizResponseText" class="leading-relaxed"></span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-900 bg-slate-950 py-4 text-center mt-auto">
+        <p class="text-xs text-slate-500">
+            Signal Processing Sandbox • Derivation of Discrete-Time Sequences
+        </p>
+    </footer>
+
+    <!-- -->
+    <script>
+        // DOM Elements
+        const canvas = document.getElementById('samplerCanvas');
+        const ctx = canvas.getContext('2d');
+        const freqInput = document.getElementById('freqInput');
+        const freqVal = document.getElementById('freqVal');
+        const tInput = document.getElementById('tInput');
+        const tVal = document.getElementById('tVal');
+        const fsVal = document.getElementById('fsVal');
+        const transformBtn = document.getElementById('transformBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const legendCont = document.getElementById('legendCont');
+        
+        // HUD Elements
+        const hudPanel = document.getElementById('hudPanel');
+        const hudN = document.getElementById('hudN');
+        const hudT = document.getElementById('hudT');
+        const hudVal = document.getElementById('hudVal');
+
+        // Application State
+        let f = parseFloat(freqInput.value); // Signal frequency
+        let T = parseFloat(tInput.value);    // Sampling interval
+        let fadeProgress = 0.0;              // 0.0 = Continuous, 1.0 = Discrete only
+        let isAnimating = false;
+        let animationDir = 0;                // 1 for fading out continuous, -1 for fading in
+        let lastTime = 0;
+        
+        // Hover State
+        let mouseX = -1;
+        let isHovering = false;
+
+        // Visual Constants
+        const marginX = 40;
+        const timeSpan = 2.0; // Show from t = -1 to t = 1 seconds
+
+        // Event Listeners for UI
+        freqInput.addEventListener('input', (e) => {
+            f = parseFloat(e.target.value);
+            freqVal.textContent = f.toFixed(1) + " Hz";
+            if(fadeProgress > 0 && !isAnimating) resetToContinuous(); // Auto-reset to show wave changing
+            draw();
+        });
+
+        tInput.addEventListener('input', (e) => {
+            T = parseFloat(e.target.value);
+            tVal.textContent = T.toFixed(2) + " s";
+            fsVal.innerHTML = `$f_s$ = ${(1/T).toFixed(1)} Hz`;
+            if(fadeProgress > 0 && !isAnimating) resetToContinuous(); // Auto-reset to show strobes shifting
+            draw();
+        });
+
+        transformBtn.addEventListener('click', () => {
+            if (fadeProgress === 0.0 && !isAnimating) {
+                startTransformation(1); // 1 means go towards discrete
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            if (fadeProgress === 1.0 && !isAnimating) {
+                resetToContinuous();
+            }
+        });
+
+        function resetToContinuous() {
+            startTransformation(-1); // -1 means go towards continuous
+        }
+
+        // Animation Loop logic
+        function startTransformation(direction) {
+            isAnimating = true;
+            animationDir = direction;
+            lastTime = performance.now();
+            
+            // Toggle UI buttons instantly
+            if (direction === 1) {
+                transformBtn.classList.add('hidden');
+                resetBtn.classList.remove('hidden');
+                legendCont.style.opacity = '0.3';
+            } else {
+                transformBtn.classList.remove('hidden');
+                resetBtn.classList.add('hidden');
+                legendCont.style.opacity = '1.0';
+            }
+
+            requestAnimationFrame(animateFade);
+        }
+
+        function animateFade(currentTime) {
+            const dt = (currentTime - lastTime) / 1000; // delta time in seconds
+            lastTime = currentTime;
+            
+            // Animation duration ~1.5 seconds
+            fadeProgress += animationDir * (dt / 1.5);
+
+            // Clamp progress and check completion
+            if (fadeProgress >= 1.0) {
+                fadeProgress = 1.0;
+                isAnimating = false;
+            } else if (fadeProgress <= 0.0) {
+                fadeProgress = 0.0;
+                isAnimating = false;
+            }
+
+            draw();
+
+            if (isAnimating) {
+                requestAnimationFrame(animateFade);
+            }
+        }
+
+        //        // Canvas coordinate mapping functions
+        function getCanvasX(t, width) {
+            // Map t from [-1, 1] to [marginX, width - marginX]
+            const tMin = -timeSpan / 2;
+            return marginX + ((t - tMin) / timeSpan) * (width - 2 * marginX);
+        }
+
+        function getTimeFromX(x, width) {
+            const tMin = -timeSpan / 2;
+            return tMin + ((x - marginX) / (width - 2 * marginX)) * timeSpan;
+        }
+
+        function getCanvasY(val, height) {
+            // Signal ranges roughly [-1, 1]. Map to middle 60% of canvas
+            const yCenter = height / 2;
+            const amplitudePx = height * 0.35;
+            return yCenter - (val * amplitudePx);
+        }
+
+        function evaluateSignal(t) {
+            // x(t) = sin(2 * pi * f * t)
+            return Math.sin(2 * Math.PI * f * t);
+        }
+
+        // Main Draw Function
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const W = canvas.width;
+            const H = canvas.height;
+            const yCenter = H / 2;
+
+            // 1. Draw Grid and Axes
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(marginX, yCenter);
+            ctx.lineTo(W - marginX, yCenter);
+            ctx.stroke();
+
+            // X-axis labels
+            ctx.fillStyle = 'rgba(148, 163, 184, 0.6)';
+            ctx.font = '12px "JetBrains Mono"';
+            ctx.textAlign = 'center';
+            ctx.fillText("t = 0", getCanvasX(0, W), yCenter + 20);
+            
+            // Y-axis hints
+            ctx.textAlign = 'left';
+            ctx.fillText("x(t) / x[n]", 10, 20);
+
+            // Time range boundaries
+            const tMin = -timeSpan / 2;
+            const tMax = timeSpan / 2;
+
+            // 2. Draw Continuous Wave x(t)
+            // It fades out as fadeProgress goes from 0 to 1
+            const waveOpacity = 1.0 - (fadeProgress * 0.85); // Fades to 0.15 so it's barely visible as a guide
+            ctx.strokeStyle = `rgba(6, 182, 212, ${waveOpacity})`; // Cyan-500
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            let first = true;
+            for (let px = marginX; px <= W - marginX; px++) {
+                const t = getTimeFromX(px, W);
+                const val = evaluateSignal(t);
+                const py = getCanvasY(val, H);
+                if (first) {
+                    ctx.moveTo(px, py);
+                    first = false;
+                } else {
+                    ctx.lineTo(px, py);
+                }
+            }
+            ctx.stroke();
+
+            // 3. Find Intersections (n * T) and Draw Strobes/Stems
+            const nMin = Math.ceil(tMin / T);
+            const nMax = Math.floor(tMax / T);
+
+            let hoveredN = null;
+            let minDistPx = Infinity;
+
+            for (let n = nMin; n <= nMax; n++) {
+                const tSample = n * T;
+                const xPos = getCanvasX(tSample, W);
+                const val = evaluateSignal(tSample);
+                const yPos = getCanvasY(val, H);
+
+                // Check for hover proximity
+                if (isHovering) {
+                    const dist = Math.abs(xPos - mouseX);
+                    if (dist < 15 && dist < minDistPx) {
+                        minDistPx = dist;
+                        hoveredN = n;
+                    }
+                }
+
+                // Strobe Lines (Vertical dashed lines representing flashes)
+                // Fade out as fadeProgress -> 1
+                if (fadeProgress < 1.0) {
+                    const strobeOpacity = (1.0 - fadeProgress) * 0.4;
+                    ctx.strokeStyle = `rgba(245, 158, 11, ${strobeOpacity})`; // Amber-500
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([5, 5]);
+                    ctx.beginPath();
+                    ctx.moveTo(xPos, 20);
+                    ctx.lineTo(xPos, H - 20);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+
+                // Discrete Stems (Solid lines from axis to value)
+                // Fade in as fadeProgress -> 1
+                if (fadeProgress > 0.0) {
+                    const stemOpacity = fadeProgress * 0.6;
+                    ctx.strokeStyle = `rgba(245, 158, 11, ${stemOpacity})`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(xPos, yCenter);
+                    ctx.lineTo(xPos, yPos);
+                    ctx.stroke();
+                }
+
+                // Intersection Dots (Always visible, glowing)
+                ctx.fillStyle = '#f59e0b'; // Amber-500
+                ctx.beginPath();
+                ctx.arc(xPos, yPos, 4.5, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // Outer glow for dots
+                ctx.fillStyle = 'rgba(245, 158, 11, 0.3)';
+                ctx.beginPath();
+                ctx.arc(xPos, yPos, 8, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+
+            //            // Render HUD if hovering near a specific sample
+            if (hoveredN !== null && !isAnimating) {
+                const tSample = hoveredN * T;
+                const xPos = getCanvasX(tSample, W);
+                const val = evaluateSignal(tSample);
+                const yPos = getCanvasY(val, H);
+
+                // Highlight hovered dot
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(xPos, yPos, 6, 0, 2 * Math.PI);
+                ctx.stroke();
+
+                // Draw vertical guide line
+                ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+                ctx.setLineDash([3,3]);
+                ctx.beginPath();
+                ctx.moveTo(xPos, yCenter);
+                ctx.lineTo(xPos, yPos);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Update HUD DOM
+                hudN.textContent = hoveredN;
+                hudT.textContent = tSample.toFixed(3) + "s";
+                hudVal.textContent = val.toFixed(3);
+                
+                // Position HUD nicely
+                hudPanel.style.opacity = '1';
+                
+                // keep HUD on screen
+                let hudLeft = mouseX + 20;
+                if (hudLeft + 150 > W) hudLeft = mouseX - 160;
+                let hudTop = getCanvasY(val, H) - 40;
+                
+                // Convert canvas coords back to CSS pixels (handling DPR scale implicitly via relative absolute positioning)
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = rect.width / W;
+                const scaleY = rect.height / H;
+                
+                hudPanel.style.left = (hudLeft * scaleX) + 'px';
+                hudPanel.style.top = (hudTop * scaleY) + 'px';
+
+            } else {
+                hudPanel.style.opacity = '0';
+            }
+        }
+
+        // Mouse interactions
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            // Map CSS pixel to Canvas internal resolution coordinate
+            const scaleX = canvas.width / rect.width;
+            mouseX = (e.clientX - rect.left) * scaleX;
+            isHovering = true;
+            draw();
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            isHovering = false;
+            hudPanel.style.opacity = '0';
+            draw();
+        });
+
+
+        // Quiz Logic
+        function checkQuizAnswer(opt) {
+            const response = document.getElementById('quizResponse');
+            const icon = document.getElementById('quizResponseIcon');
+            const text = document.getElementById('quizResponseText');
+            
+            // Reset buttons
+            [1,2,3].forEach(i => {
+                document.getElementById(`quiz-opt-${i}`).className = "quiz-option text-left px-4 py-3 text-xs bg-slate-900 border border-slate-800 rounded-xl transition-all duration-200 opacity-50";
+            });
+
+            const selectedBtn = document.getElementById(`quiz-opt-${opt}`);
+            selectedBtn.classList.remove('opacity-50', 'bg-slate-900', 'border-slate-800');
+
+            if (opt === 2) {
+                // Correct: 0.8s (n=4, T=0.2 => 4*0.2 = 0.8)
+                selectedBtn.classList.add('bg-emerald-900/30', 'border-emerald-500');
+                response.className = "mt-3 text-xs font-medium flex items-start gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300";
+                icon.innerHTML = '<i class="fa-solid fa-check-circle text-emerald-400"></i>';
+                text.innerHTML = "<strong>Correct!</strong> Using the uniform sampling rule <strong>t = nT</strong>, we substitute the values: <code>t = 4 × 0.2s = 0.8s</code>. The 4th sample corresponds exactly to the continuous wave's value at 0.8 seconds.";
+            } else {
+                // Wrong
+                selectedBtn.classList.add('bg-rose-900/30', 'border-rose-500');
+                response.className = "mt-3 text-xs font-medium flex items-start gap-2 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300";
+                icon.innerHTML = '<i class="fa-solid fa-xmark-circle text-rose-400"></i>';
+                if (opt === 1) text.innerHTML = "<strong>Incorrect.</strong> You calculated <code>n / T</code> (4 / 0.2 = 20) or got the units mixed up. Remember the physical rule is multiplication: Time = Index × Interval (<strong>t = nT</strong>).";
+                if (opt === 3) text.innerHTML = "<strong>Incorrect.</strong> 0.2s is the time for a <em>single</em> interval (n=1). We need the exact time at the 4th interval (n=4). Use the formula <strong>t = nT</strong>.";
+            }
+        }
+
+        // Initialization
+        window.onload = function () {
+            // High-DPI Canvas scaling for crisp lines
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+            
+            draw();
+        };
+
+        window.addEventListener('resize', () => {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+            draw();
+        });
+    </script>
+</body>
+</html>

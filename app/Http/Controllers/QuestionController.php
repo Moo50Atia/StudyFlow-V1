@@ -38,7 +38,7 @@ class QuestionController extends Controller
         if ($request->filled('subject_id')) {
             $lectures = Lecture::where('subject_id', $request->subject_id)->orderBy('title')->get();
         }
-
+        dd($questions);
         return view('questions.index', compact('questions', 'subjects', 'lectures'));
     }
 

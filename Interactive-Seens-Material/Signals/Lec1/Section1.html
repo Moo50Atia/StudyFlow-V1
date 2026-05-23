@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signal Theory: Continuous vs. Discrete Exploration</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for premium typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for beautiful icon elements -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Glassmorphism utility */
+        .glass {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200 overflow-x-hidden">
+
+    <!-- Navigation Bar -->
+    <header class="border-b border-slate-800 bg-slate-900/80 sticky top-0 z-50 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-tr from-cyan-500 to-amber-500 p-2 rounded-xl shadow-lg shadow-cyan-500/10">
+                    <i class="fa-solid fa-wave-square text-lg text-slate-950"></i>
+                </div>
+                <div>
+                    <h1 class="text-md sm:text-lg font-bold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
+                        Signal Theory Visualizer
+                    </h1>
+                    <p class="text-[10px] sm:text-xs text-slate-400 font-medium tracking-wide">CONTINUOUS $x(t)$ vs. DISCRETE $x[n]$</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span class="w-1.5 h-1.5 mr-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Interactive Sandbox
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace Grid -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Controls Column (Sidebar) -->
+        <section class="lg:col-span-4 space-y-6">
+            
+            <!-- Signal Parameters Card -->
+            <div class="glass rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+                    <h2 class="text-sm font-semibold tracking-wide uppercase text-cyan-400 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-xs"></i> Signal Generator
+                    </h2>
+                    <span class="text-xs text-slate-400">Controls</span>
+                </div>
+
+                <!-- Signal Selector -->
+                <div class="mb-4">
+                    <label class="block text-xs font-medium text-slate-300 mb-2">Signal Type</label>
+                    <div class="grid grid-cols-2 gap-2" id="signalTypeSelector">
+                        <button onclick="setSignalType('sine')" id="btn-sine" class="px-3 py-2 text-xs font-semibold rounded-lg bg-cyan-500 text-slate-950 shadow-md transition-all duration-200 flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-water"></i> Sine Wave
+                        </button>
+                        <button onclick="setSignalType('sinc')" id="btn-sinc" class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all duration-200 flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-chart-line"></i> Sinc Function
+                        </button>
+                        <button onclick="setSignalType('multitone')" id="btn-multitone" class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all duration-200 flex items-center justify-center gap-1 col-span-2 mt-1">
+                            <i class="fa-solid fa-bezier-curve"></i> Dual-Tone Complex
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Frequency and Phase controls -->
+                <div class="space-y-4 pt-2 border-t border-slate-800/60">
+                    <!-- Frequency Slider -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-medium text-slate-300 flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span> Frequency ($f$)
+                            </label>
+                            <span class="text-xs mono text-cyan-400 font-bold" id="freqVal">0.40 Hz</span>
+                        </div>
+                        <input type="range" id="freqInput" min="0.1" max="1.5" step="0.05" value="0.40" 
+                               class="w-full accent-cyan-400 bg-slate-800 rounded-lg appearance-none h-1.5 cursor-pointer">
+                    </div>
+
+                    <!-- Amplitude Slider -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-medium text-slate-300 flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span> Amplitude ($A$)
+                            </label>
+                            <span class="text-xs mono text-purple-400 font-bold" id="ampVal">1.0</span>
+                        </div>
+                        <input type="range" id="ampInput" min="0.2" max="1.5" step="0.05" value="1.0" 
+                               class="w-full accent-purple-500 bg-slate-800 rounded-lg appearance-none h-1.5 cursor-pointer">
+                    </div>
+
+                    <!-- Phase Angle / Time Flow Animation -->
+                    <div class="pt-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-medium text-slate-300">Phase Offset</span>
+                            <div class="flex items-center gap-1 bg-slate-900/90 rounded-lg px-2 py-1 border border-slate-800">
+                                <button onclick="toggleAnimation()" id="playBtn" class="text-xs text-emerald-400 hover:text-emerald-300 focus:outline-none flex items-center gap-1 font-semibold px-1">
+                                    <i class="fa-solid fa-play"></i> <span>Animate</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Zoom Lens Controls -->
+            <div class="glass rounded-2xl p-5 shadow-xl relative overflow-hidden">
+                <!-- Highlight background gradient -->
+                <div class="absolute -top-12 -right-12 w-24 h-24 bg-amber-500/10 blur-2xl rounded-full"></div>
+
+                <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+                    <h2 class="text-sm font-semibold tracking-wide uppercase text-amber-400 flex items-center gap-2">
+                        <i class="fa-solid fa-magnifying-glass text-xs"></i> Zoom & Resolution
+                    </h2>
+                    <span class="text-xs text-amber-400 font-bold mono" id="zoomValue">1.0x</span>
+                </div>
+
+                <p class="text-xs text-slate-400 mb-4 leading-relaxed">
+                    Zooming closer expands the visual scale, separating the continuous line from individual sampled discrete dots.
+                </p>
+
+                <!-- Zoom Slider -->
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs text-slate-300 font-medium">Visual Magnification</span>
+                        <span class="text-[10px] uppercase text-slate-500 font-bold">Zoom In for Gaps</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-slate-500 mono">1x</span>
+                        <input type="range" id="zoomInput" min="1.0" max="15.0" step="0.1" value="1.0" 
+                               class="w-full accent-amber-500 bg-slate-800 rounded-lg appearance-none h-2 cursor-pointer">
+                        <span class="text-xs text-slate-500 mono">15x</span>
+                    </div>
+                </div>
+
+                <!-- Live Warning Indicator: Pops up when Zoom is high -->
+                <div id="zoomAlert" class="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl transition-all duration-300 opacity-20 scale-95 origin-center">
+                    <div class="flex gap-2">
+                        <i class="fa-solid fa-circle-exclamation text-amber-400 text-sm mt-0.5"></i>
+                        <div>
+                            <h4 class="text-xs font-bold text-amber-300">Continuous Remains Solid</h4>
+                            <p class="text-[10px] text-amber-400/80 leading-relaxed mt-0.5">
+                                Look closely at the discrete axis! You can now see gaps separating each integer. There is <span class="underline">no value defined</span> between integers.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conceptual Learning Indicator Card -->
+            <div class="glass rounded-2xl p-5 shadow-xl border border-slate-800">
+                <h3 class="text-xs font-bold uppercase text-slate-400 tracking-wider mb-2 flex items-center gap-1.5">
+                    <i class="fa-solid fa-graduation-cap"></i> Theoretical Insights
+                </h3>
+                <ul class="space-y-2 text-xs text-slate-300">
+                    <li class="flex gap-2">
+                        <span class="text-cyan-400 font-bold">•</span>
+                        <span><strong>Continuous $x(t)$:</strong> Exists for any Real number $t \in \mathbb{R}$. Zooming in reveals an infinitely dense, unbroken line.</span>
+                    </li>
+                    <li class="flex gap-2">
+                        <span class="text-amber-400 font-bold">•</span>
+                        <span><strong>Discrete $x[n]$:</strong> Only defined for integer indexes $n \in \mathbb{Z}$. It is not zero at non-integers; it is completely <strong class="text-rose-400">undefined</strong>.</span>
+                    </li>
+                </ul>
+            </div>
+
+        </section>
+
+        <!-- Visualizer Area (Main Canvas & Interactive Charts) -->
+        <section class="lg:col-span-8 flex flex-col space-y-6">
+            
+            <!-- Plot Container Card -->
+            <div class="glass rounded-3xl p-6 shadow-2xl flex flex-col justify-between border border-slate-800/80 relative">
+                
+                <!-- Plot Header -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-4 mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-line text-cyan-400"></i> Parallel Axes Visualizer
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Hover inside the coordinate spaces to inspect exact localized values.</p>
+                    </div>
+                    
+                    <!-- Dynamic Tooltip Panel (Top of the Plot for perfect sight) -->
+                    <div class="flex items-center gap-2 bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-1.5 self-start sm:self-auto">
+                        <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400">Probe Position:</span>
+                        <span id="coordProbe" class="text-xs font-bold text-slate-200 mono">t = 0.00</span>
+                    </div>
+                </div>
+
+                <!-- Dynamic High Definition Canvas with Fallback -->
+                <div class="relative w-full aspect-[16/10] bg-[#070b14] rounded-2xl border border-slate-900 overflow-hidden shadow-inner cursor-crosshair">
+                    
+                    <!-- Plot legends overlay -->
+                    <div class="absolute top-4 left-4 z-10 flex flex-col gap-2">
+                        <div class="flex items-center gap-2 bg-slate-950/85 border border-cyan-500/20 px-3 py-1.5 rounded-lg backdrop-blur-md">
+                            <div class="w-3 h-0.5 bg-cyan-400 rounded"></div>
+                            <span class="text-xs font-semibold text-cyan-300">Continuous Signal $x(t)$</span>
+                        </div>
+                    </div>
+
+                    <div class="absolute bottom-4 left-4 z-10 flex flex-col gap-2">
+                        <div class="flex items-center gap-2 bg-slate-950/85 border border-amber-500/20 px-3 py-1.5 rounded-lg backdrop-blur-md">
+                            <div class="w-2.5 h-2.5 bg-amber-500 rounded-full"></div>
+                            <span class="text-xs font-semibold text-amber-300">Discrete Sequence $x[n]$</span>
+                        </div>
+                    </div>
+
+                    <!-- The Canvas Element -->
+                    <canvas id="signalsCanvas" class="w-full h-full block" width="800" height="500"></canvas>
+                    
+                    <!-- Custom Floating Interactive HUD -->
+                    <div id="interactiveHud" class="absolute top-4 right-4 z-10 bg-slate-950/90 border border-slate-800 px-3 py-2.5 rounded-xl pointer-events-none transition-all duration-150 opacity-0 max-w-[210px]">
+                        <div class="space-y-1.5">
+                            <div class="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Localized values</div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-cyan-400 font-medium">x(t):</span>
+                                <span id="hudValCont" class="font-bold text-slate-200 mono">-</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs border-t border-slate-900 pt-1.5">
+                                <span class="text-amber-400 font-medium">x[n]:</span>
+                                <span id="hudValDisc" class="font-bold text-slate-200 mono">-</span>
+                            </div>
+                            <div id="hudVerdict" class="text-[10px] italic font-medium px-1.5 py-0.5 rounded text-center"></div>
+                        </div>
+                    </div>
+
+                    <!-- Highlight/Guide Bubble -->
+                    <div id="onboardingBanner" class="absolute bottom-16 right-4 left-4 sm:left-auto z-10 bg-gradient-to-r from-slate-900 to-slate-950 border border-cyan-500/20 p-3 rounded-xl shadow-xl max-w-sm flex items-start gap-2.5 pointer-events-auto transition-opacity duration-500">
+                        <span class="bg-cyan-500/10 text-cyan-400 p-1.5 rounded-lg text-xs mt-0.5">
+                            <i class="fa-solid fa-hand-pointer animate-bounce"></i>
+                        </span>
+                        <div>
+                            <p class="text-[11px] leading-relaxed text-slate-300">
+                                <strong>Try This:</strong> Move your cursor horizontally across the plots. Look at the <span class="text-amber-400 font-semibold">x[n]</span> value output between the dots!
+                            </p>
+                            <button onclick="dismissOnboarding()" class="text-[10px] text-cyan-400 font-semibold hover:underline mt-1">Got it, dismiss</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEMING_CHUNK:Interactive Quiz creation... -->
+                <!-- Live Concept Check/Interactive Quiz Section -->
+                <div class="mt-6 border-t border-slate-800/80 pt-5">
+                    <div class="bg-slate-900/40 border border-slate-800/60 rounded-2xl p-4 sm:p-5">
+                        <h3 class="text-xs font-bold uppercase tracking-widest text-emerald-400 flex items-center gap-1.5 mb-2">
+                            <i class="fa-solid fa-puzzle-piece"></i> Quick Concept Check
+                        </h3>
+                        <p class="text-xs text-slate-300 mb-4 leading-relaxed">
+                            What occurs if you evaluate a discrete signal at sample index <code class="bg-slate-950 px-1 py-0.5 rounded text-rose-400 font-bold font-mono">n = 2.4</code>? Select the correct scenario:
+                        </p>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <button onclick="checkQuizAnswer(1)" id="quiz-opt-1" class="quiz-option text-left px-4 py-3 text-xs bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 rounded-xl transition-all duration-200">
+                                <div class="font-bold text-slate-200 mb-1">Option A</div>
+                                <p class="text-[11px] text-slate-400">The value is linear interpolated between $x[2]$ and $x[3]$.</p>
+                            </button>
+                            <button onclick="checkQuizAnswer(2)" id="quiz-opt-2" class="quiz-option text-left px-4 py-3 text-xs bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 rounded-xl transition-all duration-200">
+                                <div class="font-bold text-slate-200 mb-1">Option B</div>
+                                <p class="text-[11px] text-slate-400">The value is exactly zero, as non-integer indices are always zero.</p>
+                            </button>
+                            <button onclick="checkQuizAnswer(3)" id="quiz-opt-3" class="quiz-option text-left px-4 py-3 text-xs bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 rounded-xl transition-all duration-200">
+                                <div class="font-bold text-slate-200 mb-1">Option C</div>
+                                <p class="text-[11px] text-slate-400">The value is <strong class="text-rose-400">undefined</strong>; the sequence does not exist at decimal inputs.</p>
+                            </button>
+                        </div>
+                        <div id="quizResponse" class="mt-3 text-xs text-slate-300 font-medium hidden flex items-center gap-2 p-2.5 rounded-lg">
+                            <span id="quizResponseIcon"></span>
+                            <span id="quizResponseText"></span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Footer of immersive web app -->
+    <footer class="border-t border-slate-900 bg-slate-950 py-4 text-center">
+        <p class="text-xs text-slate-500">
+            Interactive Signal Processing Education Lab • Built to demonstrate discrete vs. continuous time domains.
+        </p>
+    </footer>
+
+    <!-- Canvas Animation, Math formulas, Slider handlers and Interactive logic -->
+    <script>
+        // Setup State variables
+        const canvas = document.getElementById('signalsCanvas');
+        const ctx = canvas.getContext('2d');
+        const freqInput = document.getElementById('freqInput');
+        const ampInput = document.getElementById('ampInput');
+        const zoomInput = document.getElementById('zoomInput');
+        const zoomValue = document.getElementById('zoomValue');
+        const zoomAlert = document.getElementById('zoomAlert');
+        const coordProbe = document.getElementById('coordProbe');
+        const interactiveHud = document.getElementById('interactiveHud');
+        const hudValCont = document.getElementById('hudValCont');
+        const hudValDisc = document.getElementById('hudValDisc');
+        const hudVerdict = document.getElementById('hudVerdict');
+        const playBtn = document.getElementById('playBtn');
+
+        let signalType = 'sine'; // sine, sinc, multitone
+        let frequency = parseFloat(freqInput.value);
+        let amplitude = parseFloat(ampInput.value);
+        let zoom = parseFloat(zoomInput.value);
+        
+        // Phase parameter for animation
+        let phase = 0;
+        let isAnimating = false;
+        let animationFrameId = null;
+
+        // Interactive mouse state
+        let mouseX = -1;
+        let isHovering = false;
+
+        // Constants for drawing
+        const margin = 40;
+        const continuousPlotY = 140; // Center Y coordinates
+        const discretePlotY = 360;   // Center Y coordinates
+        const plotHeight = 110;      // Amplitude height scale
+
+        // Sampling configuration
+        // In this workspace, let's align continuous t with discrete sample n
+        // Meaning continuous signal is x(t), sampled signal is x[n] = x(n)
+        // Zooming in makes x-axis smaller in range, showing gaps vividly.
+        
+        // Main signal analytical formulas
+        function evaluateSignal(t, currentPhase = 0) {
+            switch (signalType) {
+                case 'sine':
+                    return amplitude * Math.sin(2 * Math.PI * frequency * t + currentPhase);
+                case 'sinc':
+                    // Analytical sinc(t) = sin(pi * f * t) / (pi * f * t)
+                    const piFt = Math.PI * frequency * t * 1.5 + currentPhase;
+                    if (Math.abs(piFt) < 0.001) {
+                        return amplitude;
+                    }
+                    return amplitude * (Math.sin(piFt) / piFt);
+                case 'multitone':
+                    // A composite rich waveform
+                    const tone1 = 0.7 * Math.sin(2 * Math.PI * frequency * t + currentPhase);
+                    const tone2 = 0.45 * Math.cos(2 * Math.PI * (frequency * 2.3) * t - currentPhase * 0.5);
+                    return amplitude * (tone1 + tone2);
+                default:
+                    return 0;
+            }
+        }
+
+        // Event Listeners for UI interaction
+        freqInput.addEventListener('input', (e) => {
+            frequency = parseFloat(e.target.value);
+            document.getElementById('freqVal').textContent = frequency.toFixed(2) + " Hz";
+            draw();
+        });
+
+        ampInput.addEventListener('input', (e) => {
+            amplitude = parseFloat(e.target.value);
+            document.getElementById('ampVal').textContent = amplitude.toFixed(1);
+            draw();
+        });
+
+        zoomInput.addEventListener('input', (e) => {
+            zoom = parseFloat(e.target.value);
+            zoomValue.textContent = zoom.toFixed(1) + "x";
+            
+            // Show alert/highlight details if zoom is significant (> 3x)
+            if (zoom >= 3.0) {
+                zoomAlert.classList.remove('opacity-20', 'scale-95');
+                zoomAlert.classList.add('opacity-100', 'scale-100', 'border-amber-500/50');
+            } else {
+                zoomAlert.classList.add('opacity-20', 'scale-95');
+                zoomAlert.classList.remove('opacity-100', 'scale-100', 'border-amber-500/50');
+            }
+            draw();
+        });
+
+        // Toggle active buttons
+        function setSignalType(type) {
+            signalType = type;
+            const buttons = ['sine', 'sinc', 'multitone'];
+            buttons.forEach(b => {
+                const btn = document.getElementById(`btn-${b}`);
+                if (b === type) {
+                    btn.classList.remove('bg-slate-800', 'text-slate-300', 'hover:bg-slate-700');
+                    btn.classList.add('bg-cyan-500', 'text-slate-950', 'shadow-md');
+                } else {
+                    btn.classList.add('bg-slate-800', 'text-slate-300', 'hover:bg-slate-700');
+                    btn.classList.remove('bg-cyan-500', 'text-slate-950', 'shadow-md');
+                }
+            });
+            draw();
+        }
+
+        // Onboarding banner dismiss helper
+        function dismissOnboarding() {
+            const banner = document.getElementById('onboardingBanner');
+            banner.classList.add('opacity-0');
+            setTimeout(() => banner.remove(), 500);
+        }
+
+        // Tracks hover positions across the dynamic coordinate system
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            // Calculate scale correct coordinates on canvas
+            const scaleX = canvas.width / rect.width;
+            mouseX = (e.clientX - rect.left) * scaleX;
+            isHovering = true;
+            
+            // Positioning interactive HUD
+            const clientX = e.clientX - rect.left;
+            const clientY = e.clientY - rect.top;
+            
+            // Keep HUD on the appropriate side of mouse pointer to prevent clipping
+            if (clientX > rect.width * 0.7) {
+                interactiveHud.style.left = (clientX - 225) + 'px';
+            } else {
+                interactiveHud.style.left = (clientX + 15) + 'px';
+            }
+            interactiveHud.style.top = (clientY - 40) + 'px';
+            interactiveHud.style.opacity = '1';
+
+            draw();
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            isHovering = false;
+            interactiveHud.style.opacity = '0';
+            draw();
+        });
+
+        // Redraws coordinate grid, continuous waveform, and discrete dots
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Canvas sizes
+            const width = canvas.width;
+            const height = canvas.height;
+
+            // Define the viewport time/index limits based on current Zoom level
+            // Max time at 1x is [-10, +10], zoom scales this linearly down.
+            const tSpan = 20 / zoom;
+            const tMin = -tSpan / 2;
+            const tMax = tSpan / 2;
+
+            // Helper function to map time value to Canvas X pixel position
+            function getCanvasX(t) {
+                return margin + ((t - tMin) / tSpan) * (width - 2 * margin);
+            }
+
+            // Helper function to map Canvas X pixel back to underlying analytical time t
+            function getTimeFromX(x) {
+                return tMin + ((x - margin) / (width - 2 * margin)) * tSpan;
+            }
+
+            // 1. Draw Gridlines & Parallel Axes lines
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            
+            // Draw grid lines spanning across vertical axes
+            const gridSpacing = zoom > 5 ? 0.5 : 1.0; // Dynamic grid spacing
+            const gridMin = Math.ceil(tMin / gridSpacing) * gridSpacing;
+            const gridMax = Math.floor(tMax / gridSpacing) * gridSpacing;
+
+            for (let g = gridMin; g <= gridMax; g += gridSpacing) {
+                const gx = getCanvasX(g);
+                ctx.beginPath();
+                ctx.moveTo(gx, 20);
+                ctx.lineTo(gx, height - 20);
+                ctx.stroke();
+
+                // Draw X-Axis Ticks label for continuous
+                ctx.fillStyle = 'rgba(148, 163, 184, 0.5)';
+                ctx.font = '10px "JetBrains Mono"';
+                ctx.textAlign = 'center';
+                
+                // Format nicely
+                const valStr = g.toFixed(1).replace('.0', '');
+                
+                // Draw labels on continuous time line
+                ctx.fillText(valStr + "s", gx, continuousPlotY + 25);
+                // Draw labels on discrete sample line
+                ctx.fillText("n=" + valStr, gx, discretePlotY + 25);
+            }
+
+            // Draw axis lines
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.lineWidth = 1.5;
+            
+            // Continuous zero-axis
+            ctx.beginPath();
+            ctx.moveTo(margin, continuousPlotY);
+            ctx.lineTo(width - margin, continuousPlotY);
+            ctx.stroke();
+
+            // Discrete zero-axis
+            ctx.beginPath();
+            ctx.moveTo(margin, discretePlotY);
+            ctx.lineTo(width - margin, discretePlotY);
+            ctx.stroke();
+
+            // Label the axis names on right side
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.font = '11px "JetBrains Mono"';
+            ctx.textAlign = 'left';
+            ctx.fillText("t (time)", width - margin + 8, continuousPlotY + 4);
+            ctx.fillText("n (index)", width - margin + 8, discretePlotY + 4);
+
+            // 2. Draw Continuous Waveform x(t) - Solid unbroken line
+            ctx.beginPath();
+            ctx.strokeStyle = '#06b6d4'; // Cyan-500
+            ctx.lineWidth = 2.5;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            // High resolution trace across pixel width to maintain smoothness
+            let firstPoint = true;
+            for (let px = margin; px <= width - margin; px++) {
+                const t = getTimeFromX(px);
+                const val = evaluateSignal(t, phase);
+                const py = continuousPlotY - val * plotHeight;
+                
+                if (firstPoint) {
+                    ctx.moveTo(px, py);
+                    firstPoint = false;
+                } else {
+                    ctx.lineTo(px, py);
+                }
+            }
+            ctx.stroke();
+
+            // 3. Draw Discrete Sequence x[n] - Defined ONLY at Integer Indices n
+            // Discrete samples must occur exactly at integer values within [tMin, tMax]
+            const startInteger = Math.ceil(tMin);
+            const endInteger = Math.floor(tMax);
+
+            for (let n = startInteger; n <= endInteger; n++) {
+                const nX = getCanvasX(n);
+                const nVal = evaluateSignal(n, phase);
+                const nY = discretePlotY - nVal * plotHeight;
+
+                // Draw vertical stem line from zero-axis to sample height
+                ctx.strokeStyle = 'rgba(249, 115, 22, 0.45)'; // Translucent orange stem
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(nX, discretePlotY);
+                ctx.lineTo(nX, nY);
+                ctx.stroke();
+
+                // Draw outer glowing ring for discrete dots
+                ctx.fillStyle = 'rgba(249, 115, 22, 0.2)';
+                ctx.beginPath();
+                ctx.arc(nX, nY, 7, 0, 2 * Math.PI);
+                ctx.fill();
+
+                // Draw actual solid orange discrete dot
+                ctx.fillStyle = '#f97316'; // Orange-500
+                ctx.beginPath();
+                ctx.arc(nX, nY, 4, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+
+            // If mouse is inside canvas, render vertical synced probe
+            if (isHovering && mouseX >= margin && mouseX <= width - margin) {
+                const tHover = getTimeFromX(mouseX);
+                
+                // Synced crosshair probe vertical line
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(mouseX, 15);
+                ctx.lineTo(mouseX, height - 15);
+                ctx.stroke();
+                ctx.setLineDash([]); // Reset to solid
+
+                // Continuous Probe evaluation
+                const contVal = evaluateSignal(tHover, phase);
+                const contY = continuousPlotY - contVal * plotHeight;
+
+                // Draw solid pointer target marker on the continuous wave
+                ctx.fillStyle = '#22d3ee'; // Bright Cyan
+                ctx.shadowColor = '#06b6d4';
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.arc(mouseX, contY, 6, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.shadowBlur = 0; // Reset shadow
+
+                // Discrete Probe evaluation
+                // Find if the hovering position is perfectly aligned on an integer sample
+                // We show actual values on integers, but show "UNDEFINED" with empty gap indicator on decimal spaces
+                const nearestInteger = Math.round(tHover);
+                const distToInteger = Math.abs(tHover - nearestInteger);
+                
+                // Threashold distance in pixels for detecting hovering directly "on" a sample
+                // We base this on zoom: higher zoom gives higher spatial separation.
+                const pxDistance = Math.abs(getCanvasX(tHover) - getCanvasX(nearestInteger));
+                const isDirectlyOnSample = pxDistance < 12; // 12px threshold
+
+                let discValText = "";
+                let verdictText = "";
+                let verdictBg = "";
+                let verdictTextCol = "";
+
+                if (isDirectlyOnSample) {
+                    // Hovering directly over an integer discrete index n
+                    const discVal = evaluateSignal(nearestInteger, phase);
+                    const discY = discretePlotY - discVal * plotHeight;
+
+                    // Draw a highlight green/orange indicator on the selected sample stem
+                    ctx.strokeStyle = '#22c55e'; // Green-500 highlight
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    ctx.arc(getCanvasX(nearestInteger), discY, 9, 0, 2 * Math.PI);
+                    ctx.stroke();
+
+                    // Fill HUD information
+                    coordProbe.textContent = `t = ${tHover.toFixed(2)} | n = ${nearestInteger}`;
+                    hudValCont.textContent = contVal.toFixed(3);
+                    hudValDisc.textContent = discVal.toFixed(3);
+                    
+                    verdictText = `Index n=${nearestInteger} (Defined)`;
+                    verdictBg = "bg-emerald-500/10";
+                    verdictTextCol = "text-emerald-400";
+                } else {
+                    // Hovering in the empty interval / empty gap between samples
+                    // This explicitly proves that x[n] doesn't exist at non-integers!
+                    
+                    // Draw red error "no-go" boundary circle directly on the discrete axis line
+                    ctx.strokeStyle = '#f43f5e'; // Rose-500
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    // Draw diagonal cancel cross line at empty space
+                    ctx.arc(mouseX, discretePlotY, 5, 0, 2 * Math.PI);
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.moveTo(mouseX - 3, discretePlotY - 3);
+                    ctx.lineTo(mouseX + 3, discretePlotY + 3);
+                    ctx.stroke();
+
+                    // Fill HUD information indicating Undefined state
+                    coordProbe.textContent = `t = ${tHover.toFixed(2)} | Non-Integer Index`;
+                    hudValCont.textContent = contVal.toFixed(3);
+                    hudValDisc.innerHTML = `<span class="text-rose-400 font-bold uppercase">Undefined (Ø)</span>`;
+
+                    verdictText = "Undefined: No sample exists here";
+                    verdictBg = "bg-rose-500/10";
+                    verdictTextCol = "text-rose-400";
+                }
+
+                // Update physical HUD banner
+                hudVerdict.className = `text-[10px] italic font-medium px-1.5 py-0.5 rounded text-center mt-2 ${verdictBg} ${verdictTextCol}`;
+                hudVerdict.textContent = verdictText;
+            }
+        }
+
+        // Performs real-time rendering loop when Phase flow is active
+        function animate() {
+            if (!isAnimating) return;
+            phase += 0.03; // increment Phase angle
+            draw();
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        function toggleAnimation() {
+            isAnimating = !isAnimating;
+            if (isAnimating) {
+                playBtn.innerHTML = '<i class="fa-solid fa-pause"></i> <span>Pause</span>';
+                playBtn.classList.remove('text-emerald-400');
+                playBtn.classList.add('text-amber-400');
+                animate();
+            } else {
+                playBtn.innerHTML = '<i class="fa-solid fa-play"></i> <span>Animate</span>';
+                playBtn.classList.remove('text-amber-400');
+                playBtn.classList.add('text-emerald-400');
+                cancelAnimationFrame(animationFrameId);
+            }
+        }
+
+        // Handles multiple choice quiz logic instantly with user explanations
+        function checkQuizAnswer(selectedOption) {
+            const responseDiv = document.getElementById('quizResponse');
+            const iconSpan = document.getElementById('quizResponseIcon');
+            const textSpan = document.getElementById('quizResponseText');
+            
+            // Clean up old classes
+            responseDiv.classList.remove('hidden', 'bg-emerald-500/10', 'border-emerald-500/20', 'text-emerald-400', 'bg-rose-500/10', 'border-rose-500/20', 'text-rose-400', 'border');
+            
+            // Reset borders of all option buttons
+            const options = [1, 2, 3];
+            options.forEach(opt => {
+                const btn = document.getElementById(`quiz-opt-${opt}`);
+                btn.className = "quiz-option text-left px-4 py-3 text-xs bg-slate-900 border border-slate-800 rounded-xl transition-all duration-200";
+            });
+
+            // Set active feedback styles
+            const selectedBtn = document.getElementById(`quiz-opt-${selectedOption}`);
+
+            if (selectedOption === 3) {
+                // Correct Choice
+                selectedBtn.className = "quiz-option text-left px-4 py-3 text-xs bg-emerald-950/40 border-2 border-emerald-500 rounded-xl transition-all duration-200";
+                responseDiv.classList.add('bg-emerald-500/10', 'border', 'border-emerald-500/25', 'text-emerald-300');
+                iconSpan.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>';
+                textSpan.innerHTML = '<strong>Correct! Perfect Signal Mastery.</strong> In discrete signal processing, sequences are mathematical mappings $x: \mathbb{Z} \rightarrow \mathbb{R}$. They do not contain "zero" between samples — they are completely non-existent (undefined) outside integers.';
+            } else {
+                // Wrong Choice
+                selectedBtn.className = "quiz-option text-left px-4 py-3 text-xs bg-rose-950/40 border-2 border-rose-500 rounded-xl transition-all duration-200";
+                responseDiv.classList.add('bg-rose-500/10', 'border', 'border-rose-500/25', 'text-rose-300');
+                iconSpan.innerHTML = '<i class="fa-solid fa-circle-xmark text-rose-400 text-sm"></i>';
+                
+                if (selectedOption === 1) {
+                    textSpan.innerHTML = '<strong>Not quite.</strong> Interpolation creates standard new coordinates, but the discrete-time sequence *itself* remains strictly defined only on integer $n$. No value exists prior to interpolation.';
+                } else {
+                    textSpan.innerHTML = '<strong>Incorrect.</strong> A zero value is a specific quantitative signal level (like a quiet audio point). Non-integer values are NOT zero; they are fundamentally <em>undefined</em> and non-existent.';
+                }
+            }
+            responseDiv.classList.remove('hidden');
+        }
+
+        // Initialize canvas sizing on window load
+        window.onload = function () {
+            // High-DPI screen adjustments
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+            
+            // Initial render
+            draw();
+        };
+
+        // Handle dynamically resizing window
+        window.addEventListener('resize', () => {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * (window.devicePixelRatio || 1);
+            canvas.height = rect.height * (window.devicePixelRatio || 1);
+            ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+            draw();
+        });
+    </script>
+</body>
+</html>

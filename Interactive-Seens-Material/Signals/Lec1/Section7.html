@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unit Step Synthesis via Impulse Accumulation</title>
+    
+    <!-- Tailwind CSS for modern responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- KaTeX for beautiful math equations -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    
+    <!-- FontAwesome for clean icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617; /* slate-950 */
+            color: #f8fafc; /* slate-50 */
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(16, 185, 129, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.08) 0%, transparent 50%);
+        }
+        
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #60a5fa; }
+        
+        /* Glassmorphism & Panel Utilities */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Graph container grid styling */
+        .graph-container {
+            position: relative;
+            background-color: #0f172a;
+            border: 1px solid #1e293b;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.8);
+        }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #10b981;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 2px;
+        }
+
+        /* Pulse animation for the summation block */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(6, 182, 212, 0); }
+            100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(6, 182, 212, 0); }
+        }
+        .summation-node {
+            animation: pulse-ring 2s infinite;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col justify-between selection:bg-emerald-500/30">
+
+    <!-- Header -->
+    <header class="border-b border-slate-800 glass-panel sticky top-0 z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-600 to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                    <i class="fa-solid fa-layer-group text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                        Impulse Accumulation Lab
+                    </h1>
+                    <p class="text-sm text-slate-400">Synthesizing the Unit Step Sequence $u[n]$</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700 text-xs font-semibold text-slate-300 flex items-center gap-2">
+                    <i class="fa-solid fa-microchip text-emerald-400"></i>
+                    <span>Discrete-Time LTI Systems</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 relative">
+        
+        <section class="lg:col-span-4 flex flex-col gap-6">
+            
+            <!-- Theory & Equations -->
+            <div class="glass-panel p-6 rounded-2xl flex-1 flex flex-col shadow-xl border-t-4 border-t-cyan-500">
+                <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-book-open text-cyan-400"></i> Mathematical Foundation
+                </h2>
+                
+                <div class="space-y-5 flex-1">
+                    <p class="text-sm text-slate-300 leading-relaxed">
+                        The unit step sequence <span class="font-mono text-emerald-400">u[n]</span> can be synthesized by accumulating shifted unit impulses <span class="font-mono text-cyan-400">δ[n-k]</span>. 
+                        This demonstrates that any sequence is a sum of scaled and shifted impulses.
+                    </p>
+
+                    <div class="p-4 bg-slate-900/80 rounded-xl border border-slate-700 shadow-inner">
+                        <span class="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-wider">Accumulation Formula</span>
+                        <div id="math-def-1" class="text-center py-2 text-slate-100 text-base"></div>
+                    </div>
+                    
+                    <div class="p-4 bg-slate-900/80 rounded-xl border border-slate-700 shadow-inner">
+                        <span class="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-wider">Current Summation State</span>
+                        <div id="math-def-2" class="text-center py-2 text-slate-100 text-base"></div>
+                        <p class="text-[11px] text-slate-400 mt-3 leading-relaxed text-center">
+                            We are adding impulses from <span class="font-mono">k = 0</span> up to the current accumulation limit <span class="font-mono text-amber-400">K</span>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Controls -->
+            <div class="glass-panel p-6 rounded-2xl shadow-xl border-t-4 border-t-emerald-500">
+                <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider mb-5 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-emerald-400"></i> Accumulation Controls
+                </h2>
+                
+                <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700/50">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-4">
+                            <!-- Play/Pause Button -->
+                            <button id="play-btn" class="w-12 h-12 rounded-full bg-emerald-600 hover:bg-emerald-500 shadow-lg shadow-emerald-500/30 text-white flex items-center justify-center transition-all text-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-900">
+                                <i class="fa-solid fa-play ml-1" id="play-icon"></i>
+                            </button>
+                            <!-- Reset Button -->
+                            <button id="reset-btn" class="w-10 h-10 rounded-full bg-slate-700 hover:bg-slate-600 shadow-lg text-slate-300 flex items-center justify-center transition-all text-sm focus:outline-none focus:ring-2 focus:ring-slate-400">
+                                <i class="fa-solid fa-rotate-left"></i>
+                            </button>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs text-slate-400 block uppercase tracking-wider font-bold">Accumulation Limit</span>
+                            <div class="font-mono text-2xl font-bold text-amber-400 flex items-center justify-end gap-2">
+                                <span>K =</span><span id="k-value-display" class="w-8 text-right">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="relative w-full py-3 mt-2">
+                        <input id="k-slider" type="range" min="0" max="15" step="1" value="0" class="w-full">
+                        <div class="flex justify-between text-[10px] text-slate-500 mt-2 font-mono font-bold px-1">
+                            <span>0</span>
+                            <span>5</span>
+                            <span>10</span>
+                            <span>15</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="lg:col-span-8 flex flex-col gap-0 items-center justify-center relative">
+            
+            <!-- Top Canvas: Current shifted impulse to add -->
+            <div class="w-full relative z-10">
+                <div class="glass-panel rounded-2xl overflow-hidden p-1 shadow-2xl border border-slate-700/50">
+                    <div class="graph-container rounded-xl overflow-hidden w-full h-[260px] relative">
+                        <div class="absolute top-3 left-4 z-20 flex flex-col gap-1">
+                            <div class="text-xs font-bold text-slate-200 bg-slate-900/90 px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-2 shadow-lg backdrop-blur-md">
+                                <span class="w-3 h-3 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]"></span>
+                                Current Component
+                            </div>
+                            <div id="math-current-component" class="text-sm bg-slate-900/80 px-3 py-1 rounded-lg border border-cyan-900/50 text-cyan-300 font-mono inline-block w-max"></div>
+                        </div>
+                        <canvas id="canvas-top" class="w-full h-full block"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DSP Summation Node UI (Connecting the two canvases) -->
+            <div class="relative z-20 flex flex-col items-center justify-center h-16 w-full -my-2 pointer-events-none">
+                <div class="w-0.5 h-6 bg-gradient-to-b from-cyan-500 to-emerald-500 opacity-50"></div>
+                <div class="summation-node w-12 h-12 rounded-full bg-slate-800 border-2 border-slate-600 flex items-center justify-center text-slate-200 shadow-[0_0_15px_rgba(0,0,0,0.5)] z-30">
+                    <i class="fa-solid fa-plus text-xl text-emerald-400"></i>
+                </div>
+                <div class="w-0.5 h-6 bg-gradient-to-b from-emerald-500 to-emerald-600 opacity-50"></div>
+                
+                <!-- Floating labels next to summation block -->
+                <div class="absolute right-1/2 translate-x-[90px] top-1/2 -translate-y-1/2 bg-slate-800/90 px-3 py-1 rounded border border-slate-700 text-[11px] font-bold text-slate-300 uppercase tracking-wider backdrop-blur-sm">
+                    Accumulator Block
+                </div>
+            </div>
+
+            <!-- Bottom Canvas: The accumulated sum (Unit Step) -->
+            <div class="w-full relative z-10">
+                <div class="glass-panel rounded-2xl overflow-hidden p-1 shadow-2xl border border-slate-700/50">
+                    <div class="graph-container rounded-xl overflow-hidden w-full h-[320px] relative">
+                        <div class="absolute top-3 left-4 z-20 flex flex-col gap-1">
+                            <div class="text-xs font-bold text-slate-200 bg-slate-900/90 px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-2 shadow-lg backdrop-blur-md">
+                                <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+                                Accumulated Sequence
+                            </div>
+                            <div id="math-accumulated" class="text-sm bg-slate-900/80 px-3 py-1 rounded-lg border border-emerald-900/50 text-emerald-300 font-mono inline-block w-max"></div>
+                        </div>
+                        
+                        <!-- Target Reference Line Indicator -->
+                        <div class="absolute top-3 right-4 z-20">
+                            <div class="text-[10px] font-bold text-slate-400 bg-slate-900/80 px-2 py-1 rounded border border-slate-800 flex items-center gap-2">
+                                <div class="w-4 h-0 border-t-2 border-dashed border-slate-500"></div> Target u[n] Outline
+                            </div>
+                        </div>
+
+                        <canvas id="canvas-bottom" class="w-full h-full block"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <script>
+        // System State
+        const state = {
+            K: 0,             // Current summation limit (0 to maxK)
+            maxK: 15,         // Maximum impulses to sum
+            isPlaying: false, // Auto-play status
+            domainMin: -5,    // Canvas discrete x-axis start
+            domainMax: 16,    // Canvas discrete x-axis end
+            yMin: -0.5,       // Canvas y-axis bottom
+            yMax: 1.8,        // Canvas y-axis top (gives headroom for amplitude 1)
+            playInterval: null // Interval timer ID
+        };
+
+        // DOM Elements
+        const canvasTop = document.getElementById('canvas-top');
+        const ctxTop = canvasTop.getContext('2d');
+        const canvasBottom = document.getElementById('canvas-bottom');
+        const ctxBottom = canvasBottom.getContext('2d');
+        
+        const sliderK = document.getElementById('k-slider');
+        const displayK = document.getElementById('k-value-display');
+        const playBtn = document.getElementById('play-btn');
+        const playIcon = document.getElementById('play-icon');
+        const resetBtn = document.getElementById('reset-btn');
+
+        // Initialize KaTeX formulas
+        function initMath() {
+            // Static mathematical definitions
+            katex.render("u[n] = \\sum_{k=0}^{\\infty} \\delta[n-k]", document.getElementById('math-def-1'), { displayMode: true });
+            
+            // Dynamic formulas (will be updated dynamically, but set initial state)
+            updateDynamicMath();
+        }
+
+        function updateDynamicMath() {
+            // Update theory block dynamic state
+            katex.render(`y[n] = \\sum_{k=0}^{${state.K}} \\delta[n-k]`, document.getElementById('math-def-2'), { displayMode: true });
+            
+            // Update canvas corner labels
+            katex.render(`\\delta[n - ${state.K}]`, document.getElementById('math-current-component'), { throwOnError: false });
+            
+            if (state.K === 0) {
+                katex.render(`y[n] = \\delta[n]`, document.getElementById('math-accumulated'), { throwOnError: false });
+            } else {
+                katex.render(`y[n] = \\sum_{k=0}^{${state.K}} \\delta[n-k]`, document.getElementById('math-accumulated'), { throwOnError: false });
+            }
+        }
+
+        function resizeCanvas(canvas, ctx) {
+            // Get CSS size
+            const rect = canvas.parentElement.getBoundingClientRect();
+            
+            // Handle high-DPI displays for crisp rendering
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            
+            // Scale context to match physical pixel ratio
+            ctx.scale(dpr, dpr);
+            
+            // Return CSS dimensions for internal layout calculations
+            return { width: rect.width, height: rect.height };
+        }
+
+        // Coordinate mapping: Math (n, y) -> Canvas (px, py)
+        function mapToCanvas(n, y, cssWidth, cssHeight) {
+            const domainWidth = state.domainMax - state.domainMin;
+            const rangeHeight = state.yMax - state.yMin;
+            
+            // Add padding so boundary points aren't cut off
+            const padX = cssWidth * 0.05; 
+            const usableWidth = cssWidth - 2 * padX;
+            
+            const px = padX + ((n - state.domainMin) / domainWidth) * usableWidth;
+            // Invert Y axis for canvas drawing
+            const py = cssHeight - (((y - state.yMin) / rangeHeight) * cssHeight);
+            
+            return { x: px, y: py };
+        }
+
+        function drawAxes(ctx, cssWidth, cssHeight) {
+            ctx.clearRect(0, 0, cssWidth, cssHeight);
+            
+            // Draw background discrete grid markers
+            ctx.fillStyle = 'rgba(148, 163, 184, 0.1)'; // slate-400 very faint
+            for (let i = state.domainMin; i <= state.domainMax; i++) {
+                const ptZero = mapToCanvas(i, 0, cssWidth, cssHeight);
+                // Vertical grid lines aligned with integer n
+                ctx.fillRect(ptZero.x - 0.5, 0, 1, cssHeight);
+                
+                // N-axis labels
+                if (i % 2 === 0) {
+                    ctx.fillStyle = 'rgba(148, 163, 184, 0.6)'; // slate-400
+                    ctx.font = '10px JetBrains Mono';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(i, ptZero.x, ptZero.y + 16);
+                    ctx.fillStyle = 'rgba(148, 163, 184, 0.1)'; // revert
+                }
+            }
+
+            // Draw primary X and Y axes
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)'; // slate-400
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            
+            // X-axis (y = 0)
+            const leftEnd = mapToCanvas(state.domainMin, 0, cssWidth, cssHeight);
+            const rightEnd = mapToCanvas(state.domainMax, 0, cssWidth, cssHeight);
+            ctx.moveTo(leftEnd.x, leftEnd.y);
+            ctx.lineTo(rightEnd.x, rightEnd.y);
+            
+            // Y-axis (n = 0)
+            const topEnd = mapToCanvas(0, state.yMax, cssWidth, cssHeight);
+            const bottomEnd = mapToCanvas(0, state.yMin, cssWidth, cssHeight);
+            ctx.moveTo(topEnd.x, topEnd.y);
+            ctx.lineTo(bottomEnd.x, bottomEnd.y);
+            
+            ctx.stroke();
+
+            // Y-axis ticks (0 and 1)
+            ctx.fillStyle = 'rgba(148, 163, 184, 0.8)';
+            ctx.font = '10px JetBrains Mono';
+            ctx.textAlign = 'right';
+            const pt1 = mapToCanvas(0, 1, cssWidth, cssHeight);
+            ctx.fillText('1', pt1.x - 6, pt1.y + 4);
+            // Tick mark
+            ctx.beginPath();
+            ctx.moveTo(pt1.x - 4, pt1.y);
+            ctx.lineTo(pt1.x + 4, pt1.y);
+            ctx.stroke();
+        }
+
+        // Draw the target u[n] outline for reference in the bottom graph
+        function drawTargetOutline(ctx, cssWidth, cssHeight) {
+            ctx.strokeStyle = 'rgba(100, 116, 139, 0.4)'; // slate-500
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 4]); // Dashed line
+            ctx.beginPath();
+            
+            // Draw horizontal dashed line at y=1 for n >= 0
+            const ptStart = mapToCanvas(0, 1, cssWidth, cssHeight);
+            const ptEnd = mapToCanvas(state.domainMax, 1, cssWidth, cssHeight);
+            
+            ctx.moveTo(ptStart.x, ptStart.y);
+            ctx.lineTo(ptEnd.x, ptEnd.y);
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset to solid
+        }
+
+        function drawStem(ctx, n, val, colorHex, cssWidth, cssHeight, glow = true) {
+            if (val === 0) return; // Don't draw stems for zero values for cleaner look
+
+            const ptZero = mapToCanvas(n, 0, cssWidth, cssHeight);
+            const ptVal = mapToCanvas(n, val, cssWidth, cssHeight);
+            
+            // Setup Glow
+            if (glow) {
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = colorHex;
+            } else {
+                ctx.shadowBlur = 0;
+            }
+
+            // Draw stem line
+            ctx.strokeStyle = colorHex;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(ptZero.x, ptZero.y);
+            ctx.lineTo(ptVal.x, ptVal.y);
+            ctx.stroke();
+
+            // Draw circular bulb at the top
+            ctx.fillStyle = '#0f172a'; // Match background
+            ctx.beginPath();
+            ctx.arc(ptVal.x, ptVal.y, 5, 0, 2 * Math.PI);
+            ctx.fill(); // Fill inner
+            ctx.stroke(); // Stroke outer boundary
+            
+            // Solid inner dot
+            ctx.fillStyle = colorHex;
+            ctx.beginPath();
+            ctx.arc(ptVal.x, ptVal.y, 2.5, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // Reset shadow to avoid affecting other elements
+            ctx.shadowBlur = 0;
+        }
+
+        function render() {
+            // Update dynamic math texts
+            updateDynamicMath();
+
+            // Render Top Canvas (Current Component: δ[n - K])
+            const dimTop = resizeCanvas(canvasTop, ctxTop);
+            drawAxes(ctxTop, dimTop.width, dimTop.height);
+            // Draw only the single impulse at n = K
+            drawStem(ctxTop, state.K, 1, '#22d3ee', dimTop.width, dimTop.height); // cyan-400
+
+            // Render Bottom Canvas (Accumulated Sum: y[n] = Σ δ[n - k] for k=0 to K)
+            const dimBot = resizeCanvas(canvasBottom, ctxBottom);
+            drawAxes(ctxBottom, dimBot.width, dimBot.height);
+            drawTargetOutline(ctxBottom, dimBot.width, dimBot.height);
+            
+            // Draw all accumulated impulses up to K
+            for (let n = state.domainMin; n <= state.domainMax; n++) {
+                // The accumulator logic: y[n] = sum_{k=0}^{K} delta[n-k]
+                // This means y[n] is 1 if 0 <= n <= K, otherwise 0.
+                let val = 0;
+                if (n >= 0 && n <= state.K) {
+                    val = 1;
+                }
+                
+                if (val !== 0) {
+                    // Highlight the most recently added impulse slightly differently
+                    const isNewest = (n === state.K);
+                    const stemColor = isNewest ? '#34d399' : '#10b981'; // lighter emerald for newest
+                    drawStem(ctxBottom, n, val, stemColor, dimBot.width, dimBot.height, isNewest);
+                } else if (n > state.K && n >= 0) {
+                    // Draw faint "future" placeholders on the axis to guide the eye
+                    const ptZero = mapToCanvas(n, 0, dimBot.width, dimBot.height);
+                    ctxBottom.fillStyle = 'rgba(16, 185, 129, 0.2)';
+                    ctxBottom.beginPath();
+                    ctxBottom.arc(ptZero.x, ptZero.y, 2, 0, 2 * Math.PI);
+                    ctxBottom.fill();
+                }
+            }
+        }
+
+        function setK(newK) {
+            state.K = Math.max(0, Math.min(newK, state.maxK));
+            sliderK.value = state.K;
+            displayK.innerText = state.K;
+            render();
+            
+            // Auto-pause if we hit the end during playback
+            if (state.isPlaying && state.K === state.maxK) {
+                togglePlay();
+            }
+        }
+
+        function togglePlay() {
+            state.isPlaying = !state.isPlaying;
+            
+            if (state.isPlaying) {
+                // If already at max, reset to 0 before playing
+                if (state.K === state.maxK) {
+                    setK(0);
+                }
+                
+                playIcon.className = "fa-solid fa-pause ml-0"; // adjust margin for pause icon
+                playBtn.classList.replace('bg-emerald-600', 'bg-amber-500');
+                playBtn.classList.replace('hover:bg-emerald-500', 'hover:bg-amber-400');
+                playBtn.classList.replace('shadow-emerald-500/30', 'shadow-amber-500/30');
+                playBtn.classList.replace('focus:ring-emerald-400', 'focus:ring-amber-400');
+                
+                // Tick interval to step K automatically
+                state.playInterval = setInterval(() => {
+                    setK(state.K + 1);
+                }, 600); // 600ms per step feels instructional
+                
+            } else {
+                playIcon.className = "fa-solid fa-play ml-1";
+                playBtn.classList.replace('bg-amber-500', 'bg-emerald-600');
+                playBtn.classList.replace('hover:bg-amber-400', 'hover:bg-emerald-500');
+                playBtn.classList.replace('shadow-amber-500/30', 'shadow-emerald-500/30');
+                playBtn.classList.replace('focus:ring-amber-400', 'focus:ring-emerald-400');
+                
+                clearInterval(state.playInterval);
+            }
+        }
+
+        // Event Listeners
+        window.addEventListener('resize', render);
+        
+        sliderK.addEventListener('input', (e) => {
+            // Manual user input pauses auto-play
+            if (state.isPlaying) togglePlay();
+            setK(parseInt(e.target.value));
+        });
+
+        playBtn.addEventListener('click', togglePlay);
+        
+        resetBtn.addEventListener('click', () => {
+            if (state.isPlaying) togglePlay();
+            setK(0);
+        });
+
+        // Initial Setup on Load
+        window.onload = () => {
+            initMath();
+            // Start at K=0
+            setK(0);
+        };
+    </script>
+</body>
+</html>

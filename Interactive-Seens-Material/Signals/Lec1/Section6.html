@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signal Theory: The Impulse Function Visualizer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for premium typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for beautiful icon elements -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617; /* slate-950 */
+            overflow-x: hidden;
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Glassmorphism utility */
+        .glass {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-panel {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        /* Custom Epsilon Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #f43f5e; /* rose-500 */
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 0 15px rgba(244, 63, 94, 0.6);
+            border: 2px solid #fff;
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:active {
+            transform: scale(1.2);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: linear-gradient(to right, #0f172a, #334155, #0f172a);
+            border-radius: 2px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Animations */
+        .glow-text-rose { text-shadow: 0 0 12px rgba(244, 63, 94, 0.6); }
+        .glow-text-sky { text-shadow: 0 0 12px rgba(56, 189, 248, 0.6); }
+        
+        .pulse-border {
+            animation: borderPulse 2s infinite;
+        }
+        @keyframes borderPulse {
+            0% { border-color: rgba(244, 63, 94, 0.2); }
+            50% { border-color: rgba(244, 63, 94, 0.8); box-shadow: 0 0 15px rgba(244, 63, 94, 0.2); }
+            100% { border-color: rgba(244, 63, 94, 0.2); }
+        }
+
+        .derivative-arrow {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col selection:bg-rose-500/30 selection:text-rose-200">
+
+    <!-- Header -->
+    <header class="border-b border-slate-800 bg-slate-900/80 sticky top-0 z-50 backdrop-blur-md shadow-lg shadow-black/20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-br from-rose-500 to-orange-500 p-2 rounded-xl shadow-lg shadow-rose-500/20">
+                    <i class="fa-solid fa-bolt text-lg text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-md sm:text-lg font-bold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
+                        The Impulse Function Visualizer
+                    </h1>
+                    <p class="text-[10px] sm:text-xs text-slate-400 font-medium tracking-wide">
+                        LIMIT PROCESS: <span class="text-rose-400 font-mono">ε → 0</span> • DERIVATIVE OF <span class="text-sky-400 font-mono">u(t)</span>
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 hidden sm:flex">
+                <span id="limitStatusBadge" class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-800 text-slate-300 border border-slate-700 transition-colors duration-300">
+                    <i class="fa-solid fa-compress mr-1.5"></i> Shrink width to view limit
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 relative">
+
+        <!-- Controls Column (Sidebar) -->
+        <section class="lg:col-span-4 flex flex-col space-y-6">
+            
+            <!-- Limit Transformation Card -->
+            <div class="glass rounded-2xl p-5 shadow-xl border border-slate-800/80 bg-gradient-to-b from-slate-900/80 to-slate-950/80 relative overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-32 h-32 bg-rose-500/10 blur-3xl rounded-full pointer-events-none"></div>
+
+                <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3 relative z-10">
+                    <h2 class="text-xs font-bold tracking-widest uppercase text-rose-400 flex items-center gap-2">
+                        <i class="fa-solid fa-compress-arrows-alt"></i> Pulse Limit Transformation
+                    </h2>
+                </div>
+
+                <div class="space-y-5 relative z-10">
+                    <p class="text-[11px] text-slate-400 leading-relaxed">
+                        Decrease the pulse width <span class="text-rose-400 font-mono font-bold">ε</span> towards zero. Watch how the amplitude tends to infinity while preserving a constant area.
+                    </p>
+
+                    <!-- Epsilon Slider -->
+                    <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800/80">
+                        <div class="flex justify-between items-end mb-3">
+                            <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                Pulse Width <span class="font-mono text-rose-400 ml-1">ε</span>
+                            </label>
+                            <div class="text-right">
+                                <span class="text-2xl mono text-rose-400 font-bold glow-text-rose" id="epsValDisplay">2.00</span>
+                            </div>
+                        </div>
+                        
+                        <!-- The Slider: Ranges from 2.0 down to 0.0 -->
+                        <input type="range" id="epsSlider" min="0" max="2" step="0.01" value="2" class="w-full relative z-20">
+                        
+                        <div class="flex justify-between mt-2 px-1">
+                            <span class="text-[9px] font-bold text-rose-500 bg-rose-500/10 px-1.5 py-0.5 rounded uppercase tracking-wider">Ideal δ(t)</span>
+                            <span class="text-[9px] text-slate-500 font-mono">2.0</span>
+                        </div>
+                    </div>
+                    
+                    <button id="autoAnimateBtn" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold uppercase tracking-widest rounded-xl border border-slate-700 hover:border-rose-500/50 transition-all flex items-center justify-center gap-2 shadow-lg">
+                        <i class="fa-solid fa-play text-rose-400"></i> Auto-Approach Limit
+                    </button>
+                </div>
+            </div>
+
+            <!-- Unit Area Meter Card -->
+            <div class="glass rounded-2xl p-5 shadow-xl border border-slate-800 flex flex-col relative overflow-hidden transition-colors duration-300" id="areaCard">
+                <h3 class="text-[10px] font-bold uppercase text-slate-500 tracking-wider mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-emerald-400"></i> Area Preservation Meter
+                </h3>
+                
+                <div class="flex items-center justify-between mb-4">
+                    <!-- Base -->
+                    <div class="text-center w-1/3">
+                        <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Base (ε)</div>
+                        <div class="text-lg font-mono text-rose-400" id="meterBase">2.00</div>
+                    </div>
+                    <div class="text-slate-600 text-sm font-bold">×</div>
+                    <!-- Height -->
+                    <div class="text-center w-1/3">
+                        <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Height (1/ε)</div>
+                        <div class="text-lg font-mono text-amber-400" id="meterHeight">0.50</div>
+                    </div>
+                    <div class="text-slate-600 text-sm font-bold">=</div>
+                    <!-- Area -->
+                    <div class="text-center w-1/3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg py-1.5">
+                        <div class="text-[10px] text-emerald-500 uppercase font-bold mb-0.5">Total Area</div>
+                        <div class="text-xl font-mono text-emerald-400 font-bold glow-text-emerald" id="meterArea">1.00</div>
+                    </div>
+                </div>
+
+                <!-- Visual Balance Bar -->
+                <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden flex shadow-inner">
+                    <div id="barBase" class="h-full bg-rose-500 transition-all duration-100" style="width: 50%;"></div>
+                    <div id="barHeight" class="h-full bg-amber-400 transition-all duration-100" style="width: 50%;"></div>
+                </div>
+                <div class="flex justify-between mt-1 text-[8px] text-slate-500 uppercase">
+                    <span>Width Dominant</span>
+                    <span>Height Dominant</span>
+                </div>
+            </div>
+            
+            <!-- Mathematical Definition Card -->
+            <div class="glass-panel rounded-2xl p-5 shadow-xl border border-slate-800">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-200 mb-3 border-b border-slate-700/50 pb-2">Mathematical Definitions</h3>
+                <div class="space-y-4">
+                    <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-700/50">
+                        <p class="text-[10px] uppercase text-slate-500 font-bold mb-1">Dirac Delta Limit</p>
+                        <p class="font-mono text-sm text-center text-rose-300">δ(t) = <span class="text-slate-400">lim</span><sub class="text-[10px] ml-1">ε→0</sub> p<sub class="text-[10px]">ε</sub>(t)</p>
+                    </div>
+                    <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-700/50">
+                        <p class="text-[10px] uppercase text-slate-500 font-bold mb-1">Derivative Relationship</p>
+                        <p class="font-mono text-sm text-center text-sky-300">δ(t) = <span class="text-slate-400">d/dt</span> u(t)</p>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Visualizer Area (Main Canvases) -->
+        <section class="lg:col-span-8 flex flex-col space-y-4 relative">
+            
+            <!-- TOP CANVAS: Unit Step Function u(t) -->
+            <div class="glass rounded-3xl p-1 shadow-2xl border border-sky-500/20 bg-[#0b1120] relative z-10">
+                <div class="flex items-center justify-between px-5 py-2.5 border-b border-slate-800/80 bg-slate-900/50 rounded-t-3xl">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2.5 h-2.5 rounded-sm bg-sky-500 shadow-[0_0_8px_rgba(56,189,248,0.8)]"></div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Pre-Limit Step Function</span>
+                        <span class="font-mono text-sky-400 text-xs ml-1">u<sub class="text-[9px]">ε</sub>(t)</span>
+                    </div>
+                </div>
+                <div class="relative w-full aspect-[21/7] rounded-b-3xl overflow-hidden">
+                    <canvas id="stepCanvas" class="w-full h-full block"></canvas>
+                </div>
+            </div>
+
+            <!-- DERIVATIVE CONNECTION UI BLOCK -->
+            <div class="derivative-arrow flex flex-col items-center justify-center pointer-events-none" style="top: 31%;">
+                <div class="bg-slate-800 border border-slate-600 px-3 py-1.5 rounded-full shadow-lg shadow-black/50 flex items-center gap-2 mb-[-10px] z-20">
+                    <i class="fa-solid fa-arrow-down text-sky-400"></i>
+                    <span class="font-mono text-xs font-bold text-slate-200">d/dt</span>
+                </div>
+                <div class="h-8 w-px bg-gradient-to-b from-sky-400 to-rose-500 border-dashed border-l border-sky-400/50"></div>
+            </div>
+
+            <!-- BOTTOM CANVAS: Rectangular Pulse p(t) -->
+            <div class="glass rounded-3xl p-1 shadow-2xl border border-rose-500/20 bg-[#0b1120] relative mt-4 z-10" id="pulseContainer">
+                <div class="flex items-center justify-between px-5 py-2.5 border-b border-slate-800/80 bg-slate-900/50 rounded-t-3xl">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2.5 h-2.5 rounded-sm bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]"></div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Rectangular Pulse</span>
+                        <span class="font-mono text-rose-400 text-xs ml-1">p<sub class="text-[9px]">ε</sub>(t)</span>
+                    </div>
+                </div>
+                <div class="relative w-full aspect-[21/9] rounded-b-3xl overflow-hidden">
+                    
+                    <!-- Arrow limit overlay (shown only at limit) -->
+                    <div id="diracOverlay" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-0 transition-opacity duration-300 z-20 bg-slate-950/40 backdrop-blur-sm">
+                        <div class="text-rose-500 text-6xl drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] animate-bounce relative top-4">
+                            <i class="fa-solid fa-arrow-up-long"></i>
+                        </div>
+                        <div class="bg-rose-950/80 border border-rose-500/50 px-4 py-2 rounded-xl backdrop-blur-md mt-6 flex items-center gap-3">
+                            <span class="font-mono text-2xl text-white font-bold glow-text-rose">δ(t)</span>
+                            <div class="h-6 w-px bg-rose-500/50"></div>
+                            <div class="flex flex-col">
+                                <span class="text-[10px] text-rose-300 uppercase tracking-widest">Area = 1</span>
+                                <span class="text-[10px] text-rose-300 uppercase tracking-widest">Height = ∞</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <canvas id="pulseCanvas" class="w-full h-full block"></canvas>
+                </div>
+            </div>
+
+            <!-- Contextual Learning Text -->
+            <div class="glass-panel rounded-2xl p-4 shadow-xl border border-slate-800 mt-2">
+                <p class="text-xs text-slate-400 leading-relaxed text-center">
+                    The <strong>Dirac Delta</strong> is not a standard function, but a generalized distribution. It is defined strictly by its integral properties. Geometrically, the derivative of a jump discontinuity (like the unit step at <span class="font-mono text-sky-300">t=0</span>) produces an infinitely tall, infinitely narrow spike whose total area exactly matches the height of the jump.
+                </p>
+            </div>
+
+        </section>
+    </main>
+
+    <script>
+        // DOM Elements
+        const stepCanvas = document.getElementById('stepCanvas');
+        const pulseCanvas = document.getElementById('pulseCanvas');
+        const ctxStep = stepCanvas.getContext('2d');
+        const ctxPulse = pulseCanvas.getContext('2d');
+        
+        const epsSlider = document.getElementById('epsSlider');
+        const epsValDisplay = document.getElementById('epsValDisplay');
+        const autoAnimateBtn = document.getElementById('autoAnimateBtn');
+        const diracOverlay = document.getElementById('diracOverlay');
+        const pulseContainer = document.getElementById('pulseContainer');
+        const limitStatusBadge = document.getElementById('limitStatusBadge');
+        
+        // Meter Elements
+        const meterBase = document.getElementById('meterBase');
+        const meterHeight = document.getElementById('meterHeight');
+        const barBase = document.getElementById('barBase');
+        const barHeight = document.getElementById('barHeight');
+
+        // State Variables
+        let epsilon = 2.0; // Current width parameter. Range: 0 to 2.0
+        let isAnimating = false;
+        let animationReq = null;
+        const MIN_EPSILON = 0.001; // Avoid divide by zero
+
+        // Coordinate System Constants
+        const tMin = -1.5;
+        const tMax = 1.5;
+        
+        // Step Canvas Y bounds
+        const stepYMin = -0.3;
+        const stepYMax = 1.3;
+        
+        // Pulse Canvas Y bounds (Fixed visual range to show height growing out of bounds)
+        const pulseYMin = -0.5;
+        const pulseYMax = 8.0; 
+
+        // Canvas Margins
+        const marginX = 40;
+        const marginY = 30;
+
+        epsSlider.addEventListener('input', (e) => {
+            stopAnimation();
+            updateEpsilon(parseFloat(e.target.value));
+        });
+
+        autoAnimateBtn.addEventListener('click', () => {
+            if (isAnimating) stopAnimation();
+            else startAnimation();
+        });
+
+        function updateEpsilon(val) {
+            epsilon = val;
+            
+            // Format for display
+            let displayEps = epsilon.toFixed(2);
+            if (epsilon <= 0.05) displayEps = "0.00"; // Snap to visual zero
+            
+            epsValDisplay.textContent = displayEps;
+            
+            // Calculate Math values
+            let mathEps = Math.max(epsilon, MIN_EPSILON);
+            let height = 1 / mathEps;
+
+            // Update Meters
+            if (epsilon <= 0.05) {
+                meterBase.textContent = "0.00";
+                meterHeight.innerHTML = "∞";
+                barBase.style.width = "0%";
+                barHeight.style.width = "100%";
+            } else {
+                meterBase.textContent = mathEps.toFixed(2);
+                meterHeight.textContent = height.toFixed(2);
+                
+                // Visual bar balancing based on linear map
+                // at eps=2, base is 2, height is 0.5. Base wins.
+                // at eps=1, base is 1, height is 1. Tie 50/50.
+                let baseRatio = (mathEps / (mathEps + height)) * 100;
+                barBase.style.width = `${baseRatio}%`;
+                barHeight.style.width = `${100 - baseRatio}%`;
+            }
+
+            // Limit state check
+            if (epsilon <= 0.05) {
+                // Ideal state reached
+                diracOverlay.style.opacity = '1';
+                pulseContainer.classList.add('pulse-border');
+                
+                limitStatusBadge.innerHTML = `<i class="fa-solid fa-check text-emerald-400 mr-1.5"></i> Limit Reached: Dirac Delta`;
+                limitStatusBadge.className = "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-900/40 text-emerald-300 border border-emerald-500/50 transition-colors duration-300";
+                epsValDisplay.className = "text-2xl mono text-white font-bold glow-text-rose";
+            } else {
+                // Pre-limit state
+                diracOverlay.style.opacity = '0';
+                pulseContainer.classList.remove('pulse-border');
+                
+                limitStatusBadge.innerHTML = `<i class="fa-solid fa-compress mr-1.5"></i> Shrink width to view limit`;
+                limitStatusBadge.className = "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-800 text-slate-300 border border-slate-700 transition-colors duration-300";
+                epsValDisplay.className = "text-2xl mono text-rose-400 font-bold glow-text-rose";
+            }
+
+            drawAll();
+        }
+
+        function startAnimation() {
+            isAnimating = true;
+            autoAnimateBtn.innerHTML = `<i class="fa-solid fa-pause text-white"></i> Pause`;
+            autoAnimateBtn.classList.add('bg-rose-600', 'text-white', 'border-rose-500');
+            autoAnimateBtn.classList.remove('bg-slate-800', 'text-slate-300', 'border-slate-700');
+            animateLoop();
+        }
+
+        function stopAnimation() {
+            isAnimating = false;
+            cancelAnimationFrame(animationReq);
+            autoAnimateBtn.innerHTML = `<i class="fa-solid fa-play text-rose-400"></i> Auto-Approach Limit`;
+            autoAnimateBtn.classList.remove('bg-rose-600', 'text-white', 'border-rose-500');
+            autoAnimateBtn.classList.add('bg-slate-800', 'text-slate-300', 'border-slate-700');
+        }
+
+        function animateLoop() {
+            if (!isAnimating) return;
+            
+            // Non-linear decrease for better visual feel (slows down as it gets closer to 0)
+            let step = Math.max(0.005, epsilon * 0.015); 
+            let newEps = epsilon - step;
+            
+            if (newEps <= 0) {
+                newEps = 0;
+                epsSlider.value = 0;
+                updateEpsilon(0);
+                stopAnimation();
+                // Auto reset after 3 seconds
+                setTimeout(() => {
+                    if(!isAnimating && epsilon === 0) {
+                        smoothReset();
+                    }
+                }, 3500);
+                return;
+            }
+
+            epsSlider.value = newEps;
+            updateEpsilon(newEps);
+            animationReq = requestAnimationFrame(animateLoop);
+        }
+
+        function smoothReset() {
+            let resetReq;
+            function resetLoop() {
+                if(isAnimating) return; // User interrupted
+                let newEps = epsilon + 0.05;
+                if(newEps >= 2.0) {
+                    newEps = 2.0;
+                    epsSlider.value = 2.0;
+                    updateEpsilon(2.0);
+                    return;
+                }
+                epsSlider.value = newEps;
+                updateEpsilon(newEps);
+                resetReq = requestAnimationFrame(resetLoop);
+            }
+            resetLoop();
+        }
+
+        function resizeCanvases() {
+            const dpr = window.devicePixelRatio || 1;
+            
+            // Step Canvas
+            const rectStep = stepCanvas.getBoundingClientRect();
+            if (stepCanvas.width !== rectStep.width * dpr || stepCanvas.height !== rectStep.height * dpr) {
+                stepCanvas.width = rectStep.width * dpr;
+                stepCanvas.height = rectStep.height * dpr;
+            }
+            
+            // Pulse Canvas
+            const rectPulse = pulseCanvas.getBoundingClientRect();
+            if (pulseCanvas.width !== rectPulse.width * dpr || pulseCanvas.height !== rectPulse.height * dpr) {
+                pulseCanvas.width = rectPulse.width * dpr;
+                pulseCanvas.height = rectPulse.height * dpr;
+            }
+            
+            drawAll();
+        }
+
+        function tToX(t, w) {
+            return marginX + ((t - tMin) / (tMax - tMin)) * (w - 2 * marginX);
+        }
+
+        function drawStepCanvas(dpr) {
+            const W = stepCanvas.width / dpr;
+            const H = stepCanvas.height / dpr;
+            
+            ctxStep.save();
+            ctxStep.scale(dpr, dpr);
+            ctxStep.clearRect(0, 0, W, H);
+
+            function valToY(val) {
+                return H - marginY - ((val - stepYMin) / (stepYMax - stepYMin)) * (H - 2 * marginY);
+            }
+
+            // Draw Axes
+            ctxStep.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctxStep.lineWidth = 1;
+            
+            // X-axis (y=0)
+            let yZero = valToY(0);
+            ctxStep.beginPath();
+            ctxStep.moveTo(marginX, yZero);
+            ctxStep.lineTo(W - marginX, yZero);
+            ctxStep.stroke();
+
+            // Y-axis (t=0)
+            let xZero = tToX(0, W);
+            ctxStep.beginPath();
+            ctxStep.moveTo(xZero, marginY/2);
+            ctxStep.lineTo(xZero, H - marginY/2);
+            ctxStep.stroke();
+
+            // Labels
+            ctxStep.fillStyle = 'rgba(148, 163, 184, 0.7)';
+            ctxStep.font = '10px "JetBrains Mono"';
+            ctxStep.textAlign = 'right';
+            ctxStep.fillText("1.0", xZero - 8, valToY(1) + 3);
+            ctxStep.fillText("0.0", xZero - 8, yZero + 12);
+            
+            ctxStep.textAlign = 'center';
+            ctxStep.fillText("t", W - marginX + 10, yZero + 15);
+
+            // Draw Step Function u_eps(t)
+            ctxStep.strokeStyle = '#38bdf8'; // sky-400
+            ctxStep.lineWidth = 3;
+            ctxStep.lineJoin = 'round';
+            ctxStep.beginPath();
+
+            // Is it the limit? (eps <= 0.05)
+            if (epsilon <= 0.05) {
+                // Ideal step
+                ctxStep.moveTo(tToX(tMin, W), valToY(0));
+                ctxStep.lineTo(xZero, valToY(0));
+                ctxStep.lineTo(xZero, valToY(1));
+                ctxStep.lineTo(tToX(tMax, W), valToY(1));
+            } else {
+                // Ramped step (symmetric around 0, width epsilon)
+                let tStart = -epsilon / 2;
+                let tEnd = epsilon / 2;
+                
+                ctxStep.moveTo(tToX(tMin, W), valToY(0));
+                ctxStep.lineTo(tToX(tStart, W), valToY(0));
+                ctxStep.lineTo(tToX(tEnd, W), valToY(1));
+                ctxStep.lineTo(tToX(tMax, W), valToY(1));
+                
+                // Draw derivative projection lines (dashed, down to pulse)
+                ctxStep.strokeStyle = 'rgba(244, 63, 94, 0.3)'; // rose-500 faded
+                ctxStep.setLineDash([4, 4]);
+                ctxStep.lineWidth = 1;
+                
+                ctxStep.beginPath();
+                ctxStep.moveTo(tToX(tStart, W), valToY(0));
+                ctxStep.lineTo(tToX(tStart, W), H);
+                ctxStep.stroke();
+                
+                ctxStep.beginPath();
+                ctxStep.moveTo(tToX(tEnd, W), valToY(1));
+                ctxStep.lineTo(tToX(tEnd, W), H);
+                ctxStep.stroke();
+                ctxStep.setLineDash([]);
+            }
+
+            // Glow effect
+            ctxStep.shadowColor = 'rgba(56, 189, 248, 0.5)';
+            ctxStep.shadowBlur = 10;
+            ctxStep.stroke();
+            ctxStep.shadowBlur = 0; // reset
+
+            ctxStep.restore();
+        }
+
+        function drawPulseCanvas(dpr) {
+            const W = pulseCanvas.width / dpr;
+            const H = pulseCanvas.height / dpr;
+            
+            ctxPulse.save();
+            ctxPulse.scale(dpr, dpr);
+            ctxPulse.clearRect(0, 0, W, H);
+
+            function valToY(val) {
+                return H - marginY - ((val - pulseYMin) / (pulseYMax - pulseYMin)) * (H - 2 * marginY);
+            }
+
+            // Draw Axes
+            ctxPulse.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctxPulse.lineWidth = 1;
+            
+            // X-axis (y=0)
+            let yZero = valToY(0);
+            ctxPulse.beginPath();
+            ctxPulse.moveTo(marginX, yZero);
+            ctxPulse.lineTo(W - marginX, yZero);
+            ctxPulse.stroke();
+
+            // Y-axis (t=0)
+            let xZero = tToX(0, W);
+            ctxPulse.beginPath();
+            ctxPulse.moveTo(xZero, marginY/2);
+            ctxPulse.lineTo(xZero, H - marginY/2);
+            ctxPulse.stroke();
+
+            // Limits Logic
+            if (epsilon <= 0.05) {
+                // At limit: Visuals handled by HTML overlay, but draw flat line for zero everywhere else
+                ctxPulse.strokeStyle = '#f43f5e'; // rose-500
+                ctxPulse.lineWidth = 3;
+                ctxPulse.beginPath();
+                ctxPulse.moveTo(tToX(tMin, W), yZero);
+                ctxPulse.lineTo(tToX(tMax, W), yZero);
+                ctxPulse.stroke();
+            } else {
+                // Draw pre-limit rectangular pulse
+                let mathEps = Math.max(epsilon, MIN_EPSILON);
+                let pulseHeight = 1 / mathEps;
+                
+                let tStart = -mathEps / 2;
+                let tEnd = mathEps / 2;
+                
+                let xStart = tToX(tStart, W);
+                let xEnd = tToX(tEnd, W);
+                let yTop = valToY(pulseHeight);
+                
+                // If yTop is above the canvas view, clamp it for drawing lines but let fill show cut-off
+                let visualYTop = Math.max(marginY/2, yTop); 
+                let isClipped = yTop < marginY/2;
+
+                // Fill Area
+                ctxPulse.fillStyle = 'rgba(244, 63, 94, 0.15)';
+                ctxPulse.fillRect(xStart, visualYTop, xEnd - xStart, yZero - visualYTop);
+
+                // Outline
+                ctxPulse.strokeStyle = '#f43f5e'; // rose-500
+                ctxPulse.lineWidth = 3;
+                ctxPulse.lineJoin = 'miter';
+                ctxPulse.beginPath();
+                
+                // Left zero line
+                ctxPulse.moveTo(tToX(tMin, W), yZero);
+                ctxPulse.lineTo(xStart, yZero);
+                
+                // Left vertical
+                ctxPulse.lineTo(xStart, visualYTop);
+                
+                // Top horizontal (only if not clipped into infinity visually)
+                if (!isClipped) {
+                    ctxPulse.lineTo(xEnd, visualYTop);
+                } else {
+                    // Draw a gradient fade at top if shooting to infinity
+                    ctxPulse.moveTo(xEnd, visualYTop);
+                }
+                
+                // Right vertical
+                ctxPulse.lineTo(xEnd, yZero);
+                
+                // Right zero line
+                ctxPulse.lineTo(tToX(tMax, W), yZero);
+                
+                ctxPulse.shadowColor = 'rgba(244, 63, 94, 0.5)';
+                ctxPulse.shadowBlur = 8;
+                ctxPulse.stroke();
+                ctxPulse.shadowBlur = 0; // reset
+
+                // Area Text Annotation (stays perfectly centered in the box)
+                if (!isClipped && xEnd - xStart > 40) {
+                    ctxPulse.fillStyle = '#fda4af'; // rose-300
+                    ctxPulse.font = 'bold 12px "Inter"';
+                    ctxPulse.textAlign = 'center';
+                    // Position vertically in the middle of the pulse
+                    let textY = yZero - (yZero - visualYTop) / 2 + 4; 
+                    ctxPulse.fillText("Area = 1", xZero, textY);
+                }
+                
+                // Dimension lines (Width)
+                ctxPulse.strokeStyle = 'rgba(148, 163, 184, 0.5)';
+                ctxPulse.lineWidth = 1;
+                let dimY = yZero + 15;
+                
+                ctxPulse.beginPath();
+                ctxPulse.moveTo(xStart, yZero + 5);
+                ctxPulse.lineTo(xStart, dimY + 5);
+                ctxPulse.moveTo(xEnd, yZero + 5);
+                ctxPulse.lineTo(xEnd, dimY + 5);
+                
+                // Arrow line
+                ctxPulse.moveTo(xStart, dimY);
+                ctxPulse.lineTo(xEnd, dimY);
+                ctxPulse.stroke();
+                
+                ctxPulse.fillStyle = 'rgba(148, 163, 184, 0.9)';
+                ctxPulse.font = '10px "JetBrains Mono"';
+                ctxPulse.textAlign = 'center';
+                ctxPulse.fillText("ε", xZero, dimY + 12);
+
+                // Y-axis label logic
+                ctxPulse.textAlign = 'right';
+                ctxPulse.fillStyle = 'rgba(244, 63, 94, 0.8)';
+                if (!isClipped) {
+                    ctxPulse.fillText(pulseHeight.toFixed(1), xZero - 8, visualYTop + 4);
+                } else {
+                    ctxPulse.fillText("↑ ∞", xZero - 8, marginY + 10);
+                }
+            }
+
+            ctxPulse.restore();
+        }
+
+        function drawAll() {
+            const dpr = window.devicePixelRatio || 1;
+            drawStepCanvas(dpr);
+            drawPulseCanvas(dpr);
+        }
+
+        // Init
+        window.onload = () => {
+            updateEpsilon(2.0); // Start at wide state
+            window.addEventListener('resize', resizeCanvases);
+            resizeCanvases(); // Initial scale & draw
+        };
+
+    </script>
+</body>
+</html>

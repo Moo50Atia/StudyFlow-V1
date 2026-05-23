@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signal Symmetry & Time-Reversal Interactive Lab</title>
+    <!-- Tailwind CSS for modern responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- KaTeX for beautiful math equations -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <!-- FontAwesome for clean icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #030712;
+            color: #f3f4f6;
+            overflow-x: hidden;
+        }
+        /* Custom glassmorphism scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.3);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(147, 51, 234, 0.4);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(147, 51, 234, 0.6);
+        }
+        /* Custom animation pulses */
+        @keyframes glow-pulse {
+            0%, 100% { box-shadow: 0 0 15px rgba(168, 85, 247, 0.4); }
+            50% { box-shadow: 0 0 25px rgba(168, 85, 247, 0.7); }
+        }
+        .glowing-panel {
+            animation: glow-pulse 4s infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+
+    <!-- Header Navigation -->
+    <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-purple-500/30">
+                    <i class="fa-solid fa-chart-line text-lg animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                        Signal Symmetry Lab <span class="text-xs px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">v2.0</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Time-Reversal $x(-t)$, Folding & Origin Rotation</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <button id="guide-btn" class="px-3.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 hover:bg-slate-800 text-xs font-semibold text-slate-300 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-graduation-cap text-purple-400"></i> Mini Guide
+                </button>
+                <div class="flex items-center gap-2 text-xs text-slate-400">
+                    <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                    <span>Interactive 3D Engine Ready</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+
+    <!-- Main Workspace Grid -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        
+        <!-- Left Pane: Controls & Educational Theory -->
+        <section class="lg:col-span-5 flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-140px)] pr-1">
+            
+            <!-- Signal Selector & Settings -->
+            <div class="p-5 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md">
+                <h2 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-purple-400"></i> Signal Configuration
+                </h2>
+                
+                <!-- Continuous / Discrete Switch -->
+                <div class="mb-4">
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Signal Representation</label>
+                    <div class="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                        <button id="mode-continuous" class="py-2 px-3 rounded-lg text-xs font-medium transition-all bg-purple-600 text-white shadow-sm">
+                            <i class="fa-solid fa-bezier-curve mr-1.5"></i> Continuous $x(t)$
+                        </button>
+                        <button id="mode-discrete" class="py-2 px-3 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-900/50 transition-all">
+                            <i class="fa-solid fa-ellipsis-h mr-1.5"></i> Discrete $x[n]$
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Signal Selection Cards -->
+                <div class="mb-4">
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Select Waveform</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <!-- Cosine Pulse (Even) -->
+                        <button id="wave-cosine" class="wave-btn p-3 rounded-xl border-2 border-purple-500/30 bg-purple-500/5 hover:bg-purple-500/10 text-left transition-all relative overflow-hidden group">
+                            <div class="absolute right-2 top-2 bg-purple-500/20 text-purple-300 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase">Even</div>
+                            <span class="block text-sm font-semibold text-white">Cosine Pulse</span>
+                            <span class="block text-xs text-slate-400 mt-1" id="math-wave-cosine"></span>
+                        </button>
+                        <!-- Symmetric Triangle (Even) -->
+                        <button id="wave-triangle" class="wave-btn p-3 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-900 text-left transition-all relative overflow-hidden group">
+                            <div class="absolute right-2 top-2 bg-purple-500/20 text-purple-300 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase">Even</div>
+                            <span class="block text-sm font-semibold text-white">Triangle Pulse</span>
+                            <span class="block text-xs text-slate-400 mt-1" id="math-wave-triangle"></span>
+                        </button>
+                        <!-- Sine Wave (Odd) -->
+                        <button id="wave-sine" class="wave-btn p-3 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-900 text-left transition-all relative overflow-hidden group">
+                            <div class="absolute right-2 top-2 bg-indigo-500/20 text-indigo-300 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase">Odd</div>
+                            <span class="block text-sm font-semibold text-white">Sine Pulse</span>
+                            <span class="block text-xs text-slate-400 mt-1" id="math-wave-sine"></span>
+                        </button>
+                        <!-- Sawtooth Ramp (Odd) -->
+                        <button id="wave-sawtooth" class="wave-btn p-3 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-900 text-left transition-all relative overflow-hidden group">
+                            <div class="absolute right-2 top-2 bg-indigo-500/20 text-indigo-300 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase">Odd</div>
+                            <span class="block text-sm font-semibold text-white">Damped Ramp</span>
+                            <span class="block text-xs text-slate-400 mt-1" id="math-wave-sawtooth"></span>
+                        </button>
+                    </div>
+                    <!-- Asymmetric Waveform option -->
+                    <button id="wave-asymmetric" class="wave-btn w-full mt-2 p-3 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-900 text-left transition-all relative overflow-hidden group flex justify-between items-center">
+                        <div>
+                            <span class="block text-sm font-semibold text-white">Asymmetric Exponential</span>
+                            <span class="block text-xs text-slate-400 mt-0.5" id="math-wave-asymmetric"></span>
+                        </div>
+                        <div class="bg-amber-500/20 text-amber-300 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase">Asymmetric</div>
+                    </button>
+                </div>
+
+                <!-- Dynamic Asymmetry Slider -->
+                <div class="pt-2 border-t border-slate-800">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Introduce Asymmetry</label>
+                        <span id="asym-val" class="text-xs font-bold text-amber-400">0.0 (Pure Symmetry)</span>
+                    </div>
+                    <input id="asymmetry-slider" type="range" min="0" max="1" step="0.05" value="0" class="w-full accent-purple-500 h-1 bg-slate-950 rounded-lg appearance-none cursor-pointer">
+                    <p class="text-[11px] text-slate-500 mt-1">Mixes in an anti-symmetric component to demonstrate how real signals violate the perfect overlap condition.</p>
+                </div>
+            </div>
+
+
+            <!-- Lab Action Panel -->
+            <div class="p-5 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md">
+                <h2 class="text-base font-bold text-white mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-compass text-purple-400"></i> Interactive Demonstrations
+                </h2>
+                
+                <!-- Operation Modes -->
+                <div class="space-y-2 mb-4">
+                    <!-- Time Reversal -->
+                    <button id="op-reversal" class="op-btn w-full p-3 rounded-xl bg-purple-500/10 border border-purple-500 text-left transition-all flex items-start gap-3">
+                        <div class="mt-0.5 text-purple-400"><i class="fa-solid fa-right-left"></i></div>
+                        <div>
+                            <span class="block text-sm font-semibold text-white">Time Reversal Mirroring</span>
+                            <span class="block text-xs text-slate-400 mt-0.5">Flipped graph $x(-t)$ vs. $x(t)$ across vertical line $t=0$.</span>
+                        </div>
+                    </button>
+
+                    <!-- Fold Action (Even Check) -->
+                    <button id="op-fold" class="op-btn w-full p-3 rounded-xl bg-slate-950 border border-slate-800 hover:bg-slate-900 text-left transition-all flex items-start gap-3">
+                        <div class="mt-0.5 text-slate-400"><i class="fa-solid fa-book-open"></i></div>
+                        <div>
+                            <span class="block text-sm font-semibold text-white">Fold Check (Even Symmetry)</span>
+                            <span class="block text-xs text-slate-400 mt-0.5">3D physical swing around vertical mirror plane ($t=0$).</span>
+                        </div>
+                    </button>
+
+                    <!-- Origin Rotation (Odd Check) -->
+                    <button id="op-rotate" class="op-btn w-full p-3 rounded-xl bg-slate-950 border border-slate-800 hover:bg-slate-900 text-left transition-all flex items-start gap-3">
+                        <div class="mt-0.5 text-slate-400"><i class="fa-solid fa-arrows-spin"></i></div>
+                        <div>
+                            <span class="block text-sm font-semibold text-white">180° Origin Rotation (Odd Symmetry)</span>
+                            <span class="block text-xs text-slate-400 mt-0.5">Spin signal around coordinate center $(0,0,0)$.</span>
+                        </div>
+                    </button>
+
+                    <!-- Amplitude Inversion (Odd Symmetry verification) -->
+                    <button id="op-amp-inv" class="op-btn w-full p-3 rounded-xl bg-slate-950 border border-slate-800 hover:bg-slate-900 text-left transition-all flex items-start gap-3">
+                        <div class="mt-0.5 text-slate-400"><i class="fa-solid fa-up-down"></i></div>
+                        <div>
+                            <span class="block text-sm font-semibold text-white">Amplitude Reflection $-x(-t)$</span>
+                            <span class="block text-xs text-slate-400 mt-0.5">Reflect $x(-t)$ vertically to identify odd symmetry.</span>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Animation Loop Controls -->
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <button id="play-btn" class="w-8 h-8 rounded-lg bg-purple-600 hover:bg-purple-500 text-white flex items-center justify-center transition-all">
+                                <i class="fa-solid fa-play text-xs" id="play-icon"></i>
+                            </button>
+                            <span class="text-xs font-semibold text-slate-300">Transformation Progress</span>
+                        </div>
+                        <span id="progress-percentage" class="text-xs font-mono font-bold text-purple-400">0%</span>
+                    </div>
+                    <input id="progress-slider" type="range" min="0" max="100" value="0" class="w-full accent-purple-500 h-1 bg-slate-900 rounded-lg appearance-none cursor-pointer mb-2">
+                    <div class="flex justify-between text-[10px] text-slate-500">
+                        <span>Original $x(t)$</span>
+                        <span>Midway State</span>
+                        <span>Fully Transformed</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mathematical Insight Card -->
+            <div class="p-5 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md flex-1">
+                <h2 class="text-base font-bold text-white mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-book-bookmark text-purple-400"></i> Mathematical Analysis
+                </h2>
+                
+                <div class="space-y-3 text-xs leading-relaxed text-slate-300">
+                    <div class="p-3 bg-slate-950 rounded-xl border border-slate-850">
+                        <span class="text-[10px] font-bold text-purple-400 uppercase tracking-wider block mb-1">Active Symmetry Equation</span>
+                        <div id="symmetry-math-formula" class="text-center py-2 text-base text-white"></div>
+                    </div>
+                    
+                    <div id="symmetry-explanation" class="p-3 bg-slate-950/40 rounded-xl border border-slate-850/50">
+                        <!-- Filled in dynamically -->
+                    </div>
+
+                    <!-- Composition Theorem box -->
+                    <div class="p-3 rounded-xl bg-gradient-to-r from-purple-950/20 to-indigo-950/20 border border-purple-900/30 text-[11px] text-slate-400">
+                        <span class="font-bold text-white flex items-center gap-1.5 mb-1">
+                            <i class="fa-solid fa-circle-info text-purple-400"></i> Mathematical Fact
+                        </span>
+                        Every signal can be decomposed into symmetric components:
+                        <div id="decomposition-math" class="text-center py-1.5 text-slate-200 text-xs"></div>
+                        Vary the <strong class="text-amber-400">Asymmetry Slider</strong> above to see how adding the odd/even component breaks single-mode symmetry!
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- Right Pane: Interactive 3D/2D Viewport -->
+        <section class="lg:col-span-7 flex flex-col gap-4 min-h-[500px] lg:min-h-[auto]">
+            
+            <div class="flex-1 rounded-2xl border border-slate-800 bg-slate-900/40 backdrop-blur-md relative overflow-hidden flex flex-col glowing-panel">
+                
+                <!-- Canvas Control Overlays -->
+                <div class="absolute top-4 left-4 right-4 z-10 flex flex-wrap justify-between items-center gap-2 pointer-events-none">
+                    
+                    <!-- Real-time Overlap Status -->
+                    <div class="px-3 py-1.5 rounded-xl bg-slate-950/90 border border-slate-800/80 backdrop-blur-md flex items-center gap-2 pointer-events-auto">
+                        <span class="w-2.5 h-2.5 rounded-full" id="overlap-indicator"></span>
+                        <span class="text-xs font-semibold text-slate-300" id="overlap-text">Symmetry Status: Evaluated</span>
+                    </div>
+
+                    <!-- View Control Actions -->
+                    <div class="flex items-center gap-2 pointer-events-auto">
+                        <button id="reset-cam-btn" class="p-2 rounded-xl bg-slate-950/90 border border-slate-800 hover:border-slate-700 hover:bg-slate-900 text-xs font-semibold text-slate-300 transition-all flex items-center gap-1.5" title="Reset Viewport Perspective">
+                            <i class="fa-solid fa-arrows-to-eye"></i> Reset View
+                        </button>
+                        <button id="toggle-grid-btn" class="p-2 rounded-xl bg-slate-950/90 border border-slate-800 hover:border-slate-700 hover:bg-slate-900 text-xs font-semibold text-slate-300 transition-all flex items-center gap-1.5" title="Toggle Grid Helpers">
+                            <i class="fa-solid fa-border-all"></i> Grid: On
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Live Signal Specs Overlay (Bottom Left) -->
+                <div class="absolute bottom-4 left-4 z-10 p-3.5 rounded-xl bg-slate-950/90 border border-slate-800/80 backdrop-blur-md pointer-events-none text-xs flex flex-col gap-1">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-1 bg-cyan-400 rounded-full inline-block"></span>
+                        <span class="font-semibold text-slate-200">Original $x(t)$</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-1 bg-pink-500 rounded-full inline-block"></span>
+                        <span class="font-semibold text-slate-200" id="transformed-legend">Flipped $x(-t)$</span>
+                    </div>
+                    <div class="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
+                        <i class="fa-solid fa-mouse text-purple-400"></i> Left-click + Drag to rotate 3D view
+                    </div>
+                </div>
+
+                <!-- Axis Marker HUD (Top Right) -->
+                <div class="absolute top-16 right-4 z-10 p-2.5 rounded-xl bg-slate-950/95 border border-slate-850 backdrop-blur-md pointer-events-none text-[10px] flex flex-col gap-1.5">
+                    <div class="font-bold uppercase text-slate-400 border-b border-slate-800 pb-1 mb-1 tracking-wider">Coordinates Guide</div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded bg-emerald-500 inline-block"></span>
+                        <span class="text-slate-300">Y-Axis: Mirror Plane ($t=0$)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded bg-blue-500 inline-block"></span>
+                        <span class="text-slate-300">X-Axis: Time Variable ($t$ or $n$)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded bg-indigo-500 inline-block"></span>
+                        <span class="text-slate-300">Z-Axis: 3D Fold Path Depth</span>
+                    </div>
+                </div>
+
+                <!-- 3D Viewport Target -->
+                <div id="canvas-container" class="flex-1 w-full h-full min-h-[400px]"></div>
+            </div>
+
+            <!-- Mathematical Definition Footer Card inside Viewport Layout -->
+            <div class="p-4 rounded-xl border border-slate-800 bg-slate-950 text-xs text-slate-400 flex flex-col sm:flex-row justify-between gap-3 items-center">
+                <div class="flex items-center gap-3">
+                    <span class="text-emerald-400 font-semibold uppercase tracking-wider text-[10px] bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">Learning Outcome</span>
+                    <span>Recognize symmetric matches where folding matches curves perfectly or rotating overlaps elements.</span>
+                </div>
+                <div class="text-[11px] font-mono text-slate-500">
+                    Symmetric Overlap: <span id="overlap-pct-hud" class="text-purple-400 font-bold">100.0%</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Detailed Guide Modal -->
+    <div id="guide-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 text-slate-300 shadow-2xl relative">
+            <button id="close-modal-btn" class="absolute right-4 top-4 text-slate-400 hover:text-white transition-colors">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <h3 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-graduation-cap text-purple-400"></i> Signal Symmetry Lab Guide
+            </h3>
+            <div class="space-y-3 text-xs leading-relaxed">
+                <p>Welcome to the Interactive Symmetry Lab! Signal processing uses mathematics to understand physical waves. This simulator visualizes these equations perfectly in 3D.</p>
+                
+                <h4 class="font-bold text-slate-200 mt-2">What you will learn:</h4>
+                <ul class="list-disc pl-4 space-y-1.5 text-slate-400">
+                    <li><strong class="text-purple-400">Time-Reversal $x(-t)$</strong>: Flipping a signal horizontally makes time run backwards. Any point $(t, y)$ maps to $(-t, y)$.</li>
+                    <li><strong class="text-purple-400">Even Signals $x(-t) = x(t)$</strong>: These signals are perfectly symmetrical about the Y-axis. Folding the graph in half over the vertical mirror plane results in identical overlap.</li>
+                    <li><strong class="text-purple-400">Odd Signals $x(-t) = -x(t)$</strong>: These signals have rotational symmetry. Rotating the graph $180^\circ$ around the origin matches itself, or reflecting across time *and* amplitude matches itself.</li>
+                </ul>
+
+                <h4 class="font-bold text-slate-200 mt-2">Interact and Play:</h4>
+                <p class="text-slate-400">Toggle between <strong class="text-white">Continuous</strong> and <strong class="text-white">Discrete</strong> modes. Use your mouse on the 3D viewport on the right to tilt the workspace to observe the spatial transformation pathway!</p>
+            </div>
+            <button id="close-modal-bottom-btn" class="mt-5 w-full py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold transition-all">
+                Got it, let's explore!
+            </button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-900 bg-slate-950 py-3 text-center text-xs text-slate-600">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <span>Created for DSP & Signal Systems Classroom Visualization</span>
+            <span>Powered by Three.js & Tailwind CSS</span>
+        </div>
+    </footer>
+
+
+    <!-- Three.js Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <!-- Main Simulator Engine Javascript Code -->
+    <script>
+        
+        // App State
+        const state = {
+            mode: 'continuous', // 'continuous' or 'discrete'
+            waveform: 'cosine', // 'cosine', 'triangle', 'sine', 'sawtooth', 'asymmetric'
+            operation: 'reversal', // 'reversal', 'fold', 'rotate', 'amp-inv'
+            asymmetryFactor: 0.0,
+            progress: 0, // 0 to 100
+            isPlaying: false,
+            gridVisible: true,
+            // Predefined equations for display in KaTeX
+            equations: {
+                cosine: "x(t) = \\cos(1.5t) \\cdot e^{-0.05t^2}",
+                triangle: "x(t) = \\max(0, 2.5(1 - |t|/2.5))",
+                sine: "x(t) = \\sin(1.5t) \\cdot e^{-0.05t^2}",
+                sawtooth: "x(t) = 0.8t \\cdot e^{-0.08t^2}",
+                asymmetric: "x(t) = 2.5 \\cdot e^{-0.5t} \\cdot \\cos(1.5t) \\cdot u(t)",
+                cosine_n: "x[n] = \\cos(0.5n) \\cdot e^{-0.02n^2}",
+                triangle_n: "x[n] = \\max(0, 2.5(1 - |n|/8))",
+                sine_n: "x[n] = \\sin(0.5n) \\cdot e^{-0.02n^2}",
+                sawtooth_n: "x[n] = 0.15n \\cdot e^{-0.01n^2}",
+                asymmetric_n: "x[n] = 2.5 \\cdot e^{-0.15n} \\cdot \\cos(0.5n) \\cdot u[n]"
+            }
+        };
+
+        // DOM elements
+        const modeContBtn = document.getElementById('mode-continuous');
+        const modeDiscBtn = document.getElementById('mode-discrete');
+        const waveBtns = document.querySelectorAll('.wave-btn');
+        const opBtns = document.querySelectorAll('.op-btn');
+        const asymmetrySlider = document.getElementById('asymmetry-slider');
+        const asymmetryValDisplay = document.getElementById('asym-val');
+        const progressSlider = document.getElementById('progress-slider');
+        const progressPctDisplay = document.getElementById('progress-percentage');
+        const playBtn = document.getElementById('play-btn');
+        const playIcon = document.getElementById('play-icon');
+        const guideBtn = document.getElementById('guide-btn');
+        const guideModal = document.getElementById('guide-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const closeModalBottomBtn = document.getElementById('close-modal-bottom-btn');
+        const canvasContainer = document.getElementById('canvas-container');
+        const resetCamBtn = document.getElementById('reset-cam-btn');
+        const toggleGridBtn = document.getElementById('toggle-grid-btn');
+        const overlapIndicator = document.getElementById('overlap-indicator');
+        const overlapText = document.getElementById('overlap-text');
+        const overlapPctHud = document.getElementById('overlap-pct-hud');
+        const transLegend = document.getElementById('transformed-legend');
+
+        function updateMathLayout() {
+            // Render Math inside selector buttons
+            katex.render(state.mode === 'continuous' ? state.equations.cosine : state.equations.cosine_n, document.getElementById('math-wave-cosine'), { displayMode: false, throwOnError: false });
+            katex.render(state.mode === 'continuous' ? state.equations.triangle : state.equations.triangle_n, document.getElementById('math-wave-triangle'), { displayMode: false, throwOnError: false });
+            katex.render(state.mode === 'continuous' ? state.equations.sine : state.equations.sine_n, document.getElementById('math-wave-sine'), { displayMode: false, throwOnError: false });
+            katex.render(state.mode === 'continuous' ? state.equations.sawtooth : state.equations.sawtooth_n, document.getElementById('math-wave-sawtooth'), { displayMode: false, throwOnError: false });
+            katex.render(state.mode === 'continuous' ? state.equations.asymmetric : state.equations.asymmetric_n, document.getElementById('math-wave-asymmetric'), { displayMode: false, throwOnError: false });
+
+            // Decomposition theorem KaTeX
+            const decompFormula = state.mode === 'continuous' 
+                ? "x(t) = x_e(t) + x_o(t) \\quad \\text{where} \\quad x_e(t) = \\frac{x(t)+x(-t)}{2}"
+                : "x[n] = x_e[n] + x_o[n] \\quad \\text{where} \\quad x_e[n] = \\frac{x[n]+x[-n]}{2}";
+            katex.render(decompFormula, document.getElementById('decomposition-math'), { displayMode: true, throwOnError: false });
+
+            // Set main mathematical explanation and equation based on active operation and active signal type
+            let equationTeX = "";
+            let explanationHTML = "";
+            const isContinuous = state.mode === 'continuous';
+            const tVar = isContinuous ? 't' : 'n';
+
+            // Check wave classification
+            const waveType = getWaveSymmetryType();
+
+            if (state.operation === 'reversal') {
+                equationTeX = `x(-${tVar}) \\implies \\text{Reflect } x(${tVar}) \\text{ over vertical } ${tVar}=0 \\text{ plane}`;
+                explanationHTML = `
+                    <span class="font-bold text-white block mb-1">Time Reversal Operational Definition</span>
+                    Flipping the horizontal time axis mathematically replaces $x(${tVar})$ with $x(-${tVar})$. 
+                    The pink wave shows the mirrored graph. Notice how it behaves under the mirror plane.
+                `;
+                transLegend.innerHTML = isContinuous ? `Time-reversed $x(-t)$` : `Time-reversed $x[-n]$`;
+            } else if (state.operation === 'fold') {
+                equationTeX = `x(-${tVar}) = x(${tVar}) \\quad [\\text{Even Signal Rule}]`;
+                
+                if (waveType === 'even') {
+                    explanationHTML = `
+                        <span class="font-bold text-emerald-400 block mb-1">Even Symmetry Detected!</span>
+                        Folding the left side over the vertical axis ($180^\\circ$ 3D swing) achieves 
+                        <strong class="text-white">100% perfect overlap</strong> on the right side. 
+                        This proves mathematically that $x(-${tVar}) = x(${tVar})$.
+                    `;
+                } else if (waveType === 'odd') {
+                    explanationHTML = `
+                        <span class="font-bold text-rose-400 block mb-1">Even Symmetry Fails!</span>
+                        Folding the time-reversed wave results in an <strong class="text-white">anti-phase mismatch</strong>. 
+                        The signals have identical magnitudes but opposite amplitudes, so $x(-${tVar}) = -x(${tVar})$.
+                    `;
+                } else {
+                    explanationHTML = `
+                        <span class="font-bold text-amber-400 block mb-1">Asymmetric Signal</span>
+                        No alignment found on folding. The signal does not possess even properties. 
+                        $x(-${tVar}) \\neq x(${tVar})$.
+                    `;
+                }
+                transLegend.innerHTML = isContinuous ? `Folding path $x(-t \\cdot \\cos\\phi)$` : `Folding path $x[-n \\cdot \\cos\\phi]$`;
+            } else if (state.operation === 'rotate') {
+                equationTeX = `x(-${tVar}) = -x(${tVar}) \\implies \\text{180}^\\circ \\text{ Rotation Over Origin}`;
+                
+                if (waveType === 'odd') {
+                    explanationHTML = `
+                        <span class="font-bold text-emerald-400 block mb-1">Odd Symmetry Detected!</span>
+                        Rotating the signal $180^\\circ$ through the 3D origin point (Z-axis rotation) results in 
+                        <strong class="text-white">perfect identical overlap</strong>. This visually proves $x(-${tVar}) = -x(${tVar})$.
+                    `;
+                } else if (waveType === 'even') {
+                    explanationHTML = `
+                        <span class="font-bold text-rose-400 block mb-1">Odd Symmetry Fails!</span>
+                        Symmetric signals fail 180° rotation match because their amplitudes do not invert across the origin. 
+                        $x(-${tVar}) \\neq -x(${tVar})$.
+                    `;
+                } else {
+                    explanationHTML = `
+                        <span class="font-bold text-amber-400 block mb-1">Asymmetric Signal</span>
+                        No rotation alignment found. The signal possesses no origin odd-symmetry. 
+                        $x(-${tVar}) \\neq -x(${tVar})$.
+                    `;
+                }
+                transLegend.innerHTML = isContinuous ? `Rotated Original $x_{\\theta}(t)$` : `Rotated Original $x_{\\theta}[n]$`;
+            } else if (state.operation === 'amp-inv') {
+                equationTeX = `-x(-${tVar}) = x(${tVar}) \\quad [\\text{Odd Symmetry Test}]`;
+                
+                if (waveType === 'odd') {
+                    explanationHTML = `
+                        <span class="font-bold text-emerald-400 block mb-1">Perfect Odd Identity Match!</span>
+                        First, mirror the signal ($t \\to -t$). Second, invert the amplitude ($x \\to -x$). 
+                        The resulting wave is $-x(-${tVar})$. It perfectly overlaps the original $x(${tVar})$!
+                    `;
+                } else if (waveType === 'even') {
+                    explanationHTML = `
+                        <span class="font-bold text-rose-400 block mb-1">Amplitude Reflection Mismatch!</span>
+                        Because the signal is even, vertical reflection throws the time-reversed image completely upside down, 
+                        producing an exact negative phase difference relative to the original.
+                    `;
+                } else {
+                    explanationHTML = `
+                        <span class="font-bold text-amber-400 block mb-1">Asymmetric Signal</span>
+                        Amplitude reversal plus horizontal reversal fails to match the original signal. 
+                        No symmetry detected.
+                    `;
+                }
+                transLegend.innerHTML = isContinuous ? `Amplitude-inverted $-x(-t)$` : `Amplitude-inverted $-x[-n]$`;
+            }
+
+            katex.render(equationTeX, document.getElementById('symmetry-math-formula'), { displayMode: true, throwOnError: false });
+            document.getElementById('symmetry-explanation').innerHTML = explanationHTML;
+        }
+
+        function getWaveSymmetryType() {
+            if (state.asymmetryFactor > 0.02) return 'asymmetric';
+            if (state.waveform === 'cosine' || state.waveform === 'triangle') return 'even';
+            if (state.waveform === 'sine' || state.waveform === 'sawtooth') return 'odd';
+            return 'asymmetric';
+        }
+
+        
+        let scene, camera, renderer, controls;
+        let originalSignalGroup, transformedSignalGroup;
+        let mirrorPlaneMesh, originAxisHelper, spatialAxisGrid;
+        const widthRange = 5.0; // Math coordinates span x: [-5, 5]
+
+        function initThreeScene() {
+            // Create scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x030712); // match bg-slate-950
+
+            // Create Camera
+            const aspect = canvasContainer.clientWidth / canvasContainer.clientHeight;
+            camera = new THREE.PerspectiveCamera(40, aspect, 0.1, 100);
+            camera.position.set(0, 4, 11); // Elevated default perspective facing XY plane
+
+            // Create Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(canvasContainer.clientWidth, canvasContainer.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            canvasContainer.appendChild(renderer.domElement);
+
+            // Orbit Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2 + 0.1; // Don't go completely under floor
+            controls.minDistance = 3;
+            controls.maxDistance = 25;
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 12, 10);
+            scene.add(dirLight);
+
+            const pointLight = new THREE.PointLight(0x8b5cf6, 1.2, 15);
+            pointLight.position.set(0, 2, 2);
+            scene.add(pointLight);
+
+            // Core Groups
+            originalSignalGroup = new THREE.Group();
+            transformedSignalGroup = new THREE.Group();
+            scene.add(originalSignalGroup);
+            scene.add(transformedSignalGroup);
+
+            // Build Axis system
+            buildCoordinateHUD();
+            
+            // Generate Initial Meshes
+            rebuildSignals();
+
+            // Set up resize listener
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function onWindowResize() {
+            const width = canvasContainer.clientWidth;
+            const height = canvasContainer.clientHeight;
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        }
+
+        
+        function buildCoordinateHUD() {
+            const axisMaterial = new THREE.LineBasicMaterial({ color: 0x475569, transparent: true, opacity: 0.6 });
+            
+            // X-Axis (Time t or Sample n)
+            const xGeo = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(-6, 0, 0),
+                new THREE.Vector3(6, 0, 0)
+            ]);
+            const xAxis = new THREE.Line(xGeo, axisMaterial);
+            scene.add(xAxis);
+
+            // Y-Axis (Amplitude)
+            const yGeo = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, -4, 0),
+                new THREE.Vector3(0, 4, 0)
+            ]);
+            const yAxis = new THREE.Line(yGeo, axisMaterial);
+            scene.add(yAxis);
+
+            // Grid floor helper
+            spatialAxisGrid = new THREE.GridHelper(12, 24, 0x475569, 0x1e293b);
+            spatialAxisGrid.position.y = -3.5;
+            scene.add(spatialAxisGrid);
+
+            // Mirror Plane at t=0 (Y-Z plane)
+            // Beautiful glassmorphism vertical mirror plane
+            const planeGeo = new THREE.PlaneGeometry(0.01, 7);
+            const planeMat = new THREE.MeshPhysicalMaterial({
+                color: 0x10b981, // Emerald Green
+                transparent: true,
+                opacity: 0.25,
+                roughness: 0.1,
+                metalness: 0.1,
+                transmission: 0.6,
+                side: THREE.DoubleSide
+            });
+            mirrorPlaneMesh = new THREE.Mesh(planeGeo, planeMat);
+            mirrorPlaneMesh.scale.set(1, 1, 6); // Stretch along Z axis to make a deep sheet
+            mirrorPlaneMesh.position.set(0, 0, 0);
+            scene.add(mirrorPlaneMesh);
+
+            // Origin Pivot Point Marker (glowing sphere)
+            const pivotGeo = new THREE.SphereGeometry(0.12, 32, 32);
+            const pivotMat = new THREE.MeshBasicMaterial({ color: 0x10b981 });
+            const pivotPoint = new THREE.Mesh(pivotGeo, pivotMat);
+            scene.add(pivotPoint);
+
+            // 180-degree rotation axis indicator (Z-Axis running through origin)
+            const rotAxisGeo = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, -3),
+                new THREE.Vector3(0, 0, 3)
+            ]);
+            const rotAxisMat = new THREE.LineDashedMaterial({
+                color: 0x10b981,
+                dashSize: 0.15,
+                gapSize: 0.15
+            });
+            const rotAxisLine = new THREE.Line(rotAxisGeo, rotAxisMat);
+            rotAxisLine.computeLineDistances();
+            scene.add(rotAxisLine);
+        }
+
+        
+        // Signal mathematical functions
+        function evalSignal(t) {
+            let val = 0;
+            const factor = state.asymmetryFactor;
+
+            if (state.waveform === 'cosine') {
+                // Primary Even component: Gaussian windowed Cosine
+                const evenComponent = 2.5 * Math.cos(1.5 * t) * Math.exp(-0.05 * t * t);
+                // Secondary anti-phase component introduced by asymmetry slider
+                const oddComponent = factor * 2.0 * Math.sin(2.5 * t) * Math.exp(-0.05 * t * t);
+                val = evenComponent + oddComponent;
+            } 
+            else if (state.waveform === 'triangle') {
+                // Primary Even component: Symmetric Triangle Pulse
+                const evenComponent = Math.max(0, 2.5 * (1 - Math.abs(t) / 2.5));
+                // Secondary component
+                const oddComponent = factor * 1.5 * Math.sin(2.0 * t) * Math.exp(-0.1 * t * t);
+                val = evenComponent + oddComponent;
+            } 
+            else if (state.waveform === 'sine') {
+                // Primary Odd component: Gaussian windowed Sine
+                const oddComponent = 2.5 * Math.sin(1.5 * t) * Math.exp(-0.05 * t * t);
+                // Secondary Even component introduced by asymmetry slider
+                const evenComponent = factor * 2.0 * Math.cos(2.5 * t) * Math.exp(-0.05 * t * t);
+                val = oddComponent + evenComponent;
+            } 
+            else if (state.waveform === 'sawtooth') {
+                // Primary Odd component: Damped Linear ramp
+                const oddComponent = 0.8 * t * Math.exp(-0.08 * t * t);
+                // Secondary component
+                const evenComponent = factor * 1.5 * Math.max(0, 1 - Math.abs(t)/2.0);
+                val = oddComponent + evenComponent;
+            } 
+            else if (state.waveform === 'asymmetric') {
+                // Highly asymmetric decaying exponential starting at t=0
+                // For a continuous signal, u(t) represents Heaviside step function
+                if (t >= 0) {
+                    val = 2.5 * Math.exp(-0.5 * t) * Math.cos(1.5 * t);
+                } else {
+                    val = 0.0;
+                }
+                // Asymmetry factor can modify the decay amplitude or introduce anti-decay
+                val += factor * 1.0 * Math.sin(1.0 * t) * Math.exp(-0.1 * t * t);
+            }
+
+            return val;
+        }
+
+
+        // Helper function to draw continuous curves using tubes
+        function createContinuousTube(pointsList, colorValue) {
+            if (pointsList.length < 2) return new THREE.Group();
+
+            const curve = new THREE.CatmullRomCurve3(pointsList);
+            const tubeGeo = new THREE.TubeGeometry(curve, 120, 0.07, 8, false);
+            const tubeMat = new THREE.MeshPhysicalMaterial({
+                color: colorValue,
+                emissive: colorValue,
+                emissiveIntensity: 0.4,
+                roughness: 0.2,
+                metalness: 0.1,
+                clearcoat: 1.0
+            });
+            return new THREE.Mesh(tubeGeo, tubeMat);
+        }
+
+        // Helper function to create discrete stem mesh (stem cylinder + bulb sphere)
+        function createDiscreteStems(samples, colorValue) {
+            const group = new THREE.Group();
+            const stemMat = new THREE.MeshPhysicalMaterial({
+                color: colorValue,
+                emissive: colorValue,
+                emissiveIntensity: 0.3,
+                roughness: 0.4
+            });
+            const bulbGeo = new THREE.SphereGeometry(0.12, 16, 16);
+
+            samples.forEach(sample => {
+                const h = sample.y;
+                if (Math.abs(h) < 0.01) {
+                    // Small marker for zero amplitude sample
+                    const zeroMesh = new THREE.Mesh(bulbGeo, stemMat);
+                    zeroMesh.position.set(sample.x, 0, 0);
+                    group.add(zeroMesh);
+                    return;
+                }
+
+                // Stem cylinder
+                const height = Math.abs(h);
+                const stemGeo = new THREE.CylinderGeometry(0.03, 0.03, height, 8);
+                const stemMesh = new THREE.Mesh(stemGeo, stemMat);
+                // Position cylinder so its base is on the horizontal plane
+                stemMesh.position.set(sample.x, h / 2, 0);
+                group.add(stemMesh);
+
+                // Bulb top
+                const bulbMesh = new THREE.Mesh(bulbGeo, stemMat);
+                bulbMesh.position.set(sample.x, h, 0);
+                group.add(bulbMesh);
+            });
+
+            return group;
+        }
+
+        // Rebuild/Regenerate signal graphics based on active state parameters
+        function rebuildSignals() {
+            // Clear prior meshes
+            while(originalSignalGroup.children.length > 0) { 
+                originalSignalGroup.remove(originalSignalGroup.children[0]); 
+            }
+            while(transformedSignalGroup.children.length > 0) { 
+                transformedSignalGroup.remove(transformedSignalGroup.children[0]); 
+            }
+
+            const cyanColor = 0x22d3ee; // Cyan-400
+            const pinkColor = 0xec4899; // Pink-500
+
+            if (state.mode === 'continuous') {
+                // CONTINUOUS MODE REPRESENTATION
+                const samplesCount = 120;
+                const origPoints = [];
+                const reversedPoints = [];
+
+                for (let i = 0; i <= samplesCount; i++) {
+                    const pct = i / samplesCount;
+                    const t = -widthRange + pct * (widthRange * 2);
+                    const y = evalSignal(t);
+                    
+                    origPoints.push(new THREE.Vector3(t, y, 0));
+                    // Time-Reversal x(-t) points simply negate time parameter in the calculation
+                    reversedPoints.push(new THREE.Vector3(t, evalSignal(-t), 0));
+                }
+
+                // Create and add continuous tube meshes
+                const originalMesh = createContinuousTube(origPoints, cyanColor);
+                originalSignalGroup.add(originalMesh);
+
+                const transMesh = createContinuousTube(reversedPoints, pinkColor);
+                transformedSignalGroup.add(transMesh);
+
+            } else {
+                // DISCRETE MODE REPRESENTATION
+                // Range n = [-12, 12] mapped onto 3D coordinates
+                const maxN = 10;
+                const origSamples = [];
+                const reversedSamples = [];
+
+                for (let n = -maxN; n <= maxN; n++) {
+                    // Map sample index n to 3D workspace coordinate range
+                    const xCoord = (n / maxN) * widthRange;
+                    const yVal = evalSignal(xCoord); // evaluate the corresponding signal height
+                    origSamples.push({ x: xCoord, y: yVal });
+
+                    // Time-Reversal evaluation at x[-n]
+                    const yValReversed = evalSignal(-xCoord);
+                    reversedSamples.push({ x: xCoord, y: yValReversed });
+                }
+
+                const originalStems = createDiscreteStems(origSamples, cyanColor);
+                originalSignalGroup.add(originalStems);
+
+                const transStems = createDiscreteStems(reversedSamples, pinkColor);
+                transformedSignalGroup.add(transStems);
+            }
+
+            // Apply transformations based on active demonstration choice and animation slider progress
+            applyAnimationState();
+        }
+
+
+        // Compute and apply spatial transformations based on operation and progress
+        function applyAnimationState() {
+            const alpha = state.progress / 100;
+
+            // Reset default base parameters for both curves/stems
+            transformedSignalGroup.rotation.set(0, 0, 0);
+            transformedSignalGroup.scale.set(1, 1, 1);
+            transformedSignalGroup.position.set(0, 0, 0);
+
+            originalSignalGroup.rotation.set(0, 0, 0);
+            originalSignalGroup.scale.set(1, 1, 1);
+            originalSignalGroup.position.set(0, 0, 0);
+
+            // Re-evaluate glowing highlights of vertical plane
+            if (mirrorPlaneMesh) {
+                mirrorPlaneMesh.material.opacity = 0.2 + (alpha * 0.15);
+            }
+
+            if (state.operation === 'reversal') {
+                // Time Reversal Animation:
+                // Morph original signal into its horizontal reflection.
+                // We show this by scaling the transformed group horizontally from 1.0 down to -1.0.
+                // Note: The transformed group contains x(-t) already computed, but to show mirroring animation:
+                // Let's take the original signal representation as starting point, and compress it along X axis.
+                // Actually, let's interpolate the horizontal scale of transformedGroup.
+                // When progress = 0, we mirror the transformed group back (so it acts like the original).
+                // When progress = 100, scale X is 1.0 (it matches the computed reversed signal).
+                // Let's make it look like a mirror pull.
+                
+                // Scale X goes from -1 (fully mirrored from the reversed coordinate, making it look original) to +1 (normal reversed).
+                const targetScaleX = -1.0 + (alpha * 2.0);
+                transformedSignalGroup.scale.x = targetScaleX;
+                
+                // Add minor Z offset during migration to prevent overlaps
+                transformedSignalGroup.position.z = Math.sin(alpha * Math.PI) * 0.2;
+
+            } else if (state.operation === 'fold') {
+                // Fold Animation:
+                // Animate physical folding around vertical axis.
+                // We rotate the transformed group (which is time-reversed x(-t)) in 3D around the Y-axis.
+                // Rotation angle: 0 (lies on left, representing x(-t)) to 180 degrees (swings over to right to compare with x(t)).
+                // 180 degrees = PI radians.
+                const rotY = alpha * Math.PI;
+                transformedSignalGroup.rotation.y = rotY;
+                
+                // Curve lifts in space to form 3D swing pathway!
+                // To achieve rotation around the Y-axis pivot of the 3D plane, we simply apply rotation.y.
+                // Since our curve is in Z=0, rotation.y moves it through Z.
+                // When rotY = PI, points $(-t, y, 0)$ are rotated to $(t, y, 0)$, which overlaps $(t, y, 0)$ if Even!
+
+            } else if (state.operation === 'rotate') {
+                // 180-Degree Rotation:
+                // Spin the original signal group 180 degrees around the Z-axis (origin center).
+                // Angle: 0 to 180 degrees (PI radians).
+                const rotZ = alpha * Math.PI;
+                originalSignalGroup.rotation.z = rotZ;
+                
+                // Slightly pull forward in Z to keep it visible over helper lines during spin
+                originalSignalGroup.position.z = Math.sin(alpha * Math.PI) * 0.1;
+
+            } else if (state.operation === 'amp-inv') {
+                // Amplitude Reflection:
+                // Step 1: Horizontal reflection (already inside transformed group).
+                // Step 2: Vertical reflection (amplitude inversion).
+                // Scale Y goes from 1.0 to -1.0.
+                const targetScaleY = 1.0 - (alpha * 2.0);
+                transformedSignalGroup.scale.y = targetScaleY;
+
+                // Push forward slightly
+                transformedSignalGroup.position.z = 0.05;
+            }
+
+            // Real-time Symmetry Metric evaluator
+            calculateSymmetryOverlap();
+        }
+
+        // Mathematical symmetry score check
+        function calculateSymmetryOverlap() {
+            // Check current overlap percentage between original and transformed state
+            let totalDiff = 0;
+            let totalPower = 0;
+            const waveType = getWaveSymmetryType();
+
+            // Check if user is testing the correct symmetry mode
+            let isSymmetric = false;
+            if (state.operation === 'fold' && waveType === 'even') isSymmetric = true;
+            if (state.operation === 'rotate' && waveType === 'odd') isSymmetric = true;
+            if (state.operation === 'amp-inv' && waveType === 'odd') isSymmetric = true;
+
+            let score = 0;
+            const alpha = state.progress / 100;
+
+            if (state.asymmetryFactor === 0) {
+                if (isSymmetric) {
+                    score = alpha * 100; // Perfect match at max progress
+                } else {
+                    // It fails or is reversed
+                    if (state.operation === 'fold' && waveType === 'odd') {
+                        // Anti-phase, score goes towards 0
+                        score = (1 - alpha) * 50;
+                    } else {
+                        score = (1 - alpha) * 100;
+                    }
+                }
+            } else {
+                // Asymmetric signal
+                const maxMatch = (1 - state.asymmetryFactor) * 100;
+                if (isSymmetric) {
+                    score = alpha * maxMatch;
+                } else {
+                    score = (1 - alpha) * maxMatch;
+                }
+            }
+
+            score = Math.max(0, Math.min(100, Math.round(score)));
+
+            // Update UI components
+            overlapPctHud.innerText = `${score.toFixed(1)}%`;
+            
+            if (score > 90) {
+                overlapIndicator.style.backgroundColor = '#10b981'; // Emerald Green
+                overlapText.innerText = "Symmetry Match: Perfect Overlap!";
+            } else if (score > 40) {
+                overlapIndicator.style.backgroundColor = '#eab308'; // Amber Yellow
+                overlapText.innerText = "Symmetry Match: Partial/Morphing";
+            } else {
+                overlapIndicator.style.backgroundColor = '#ef4444'; // Red Phase
+                overlapText.innerText = "Symmetry Match: Mismatch Phase";
+            }
+        }
+
+
+        // Setup event handlers and triggers
+        function setupEventListeners() {
+            
+            // Continuous / Discrete Mode Switches
+            modeContBtn.addEventListener('click', () => {
+                state.mode = 'continuous';
+                modeContBtn.className = "py-2 px-3 rounded-lg text-xs font-medium transition-all bg-purple-600 text-white shadow-sm";
+                modeDiscBtn.className = "py-2 px-3 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-900/50 transition-all";
+                updateMathLayout();
+                rebuildSignals();
+            });
+
+            modeDiscBtn.addEventListener('click', () => {
+                state.mode = 'discrete';
+                modeDiscBtn.className = "py-2 px-3 rounded-lg text-xs font-medium transition-all bg-purple-600 text-white shadow-sm";
+                modeContBtn.className = "py-2 px-3 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-900/50 transition-all";
+                updateMathLayout();
+                rebuildSignals();
+            });
+
+            // Waveform Selector Cards
+            waveBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    // Deselect prior
+                    waveBtns.forEach(b => {
+                        b.classList.remove('border-purple-500/30', 'bg-purple-500/5', 'bg-purple-500/10', 'border-2');
+                        b.classList.add('border-slate-800', 'bg-slate-950');
+                    });
+                    
+                    // Activate clicked card
+                    const targetBtn = e.currentTarget;
+                    targetBtn.classList.remove('border-slate-800', 'bg-slate-950');
+                    targetBtn.classList.add('border-purple-500/30', 'bg-purple-500/5', 'border-2');
+
+                    // Set state wave
+                    const id = targetBtn.id;
+                    state.waveform = id.replace('wave-', '');
+
+                    updateMathLayout();
+                    rebuildSignals();
+                });
+            });
+
+            // Action Selection Cards
+            opBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    opBtns.forEach(b => {
+                        b.classList.remove('bg-purple-500/10', 'border-purple-500');
+                        b.classList.add('bg-slate-950', 'border-slate-800');
+                    });
+
+                    const targetBtn = e.currentTarget;
+                    targetBtn.classList.remove('bg-slate-950', 'border-slate-800');
+                    targetBtn.classList.add('bg-purple-500/10', 'border-purple-500');
+
+                    const id = targetBtn.id;
+                    state.operation = id.replace('op-', '');
+
+                    // Reset playback on changing mode to observe fold naturally
+                    state.progress = 0;
+                    progressSlider.value = 0;
+                    progressPctDisplay.innerText = "0%";
+                    
+                    updateMathLayout();
+                    rebuildSignals();
+                });
+            });
+
+            // Asymmetry Control
+            asymmetrySlider.addEventListener('input', (e) => {
+                state.asymmetryFactor = parseFloat(e.target.value);
+                asymmetryValDisplay.innerText = state.asymmetryFactor === 0 
+                    ? "0.0 (Pure Symmetry)" 
+                    : `${state.asymmetryFactor.toFixed(2)} (Mixed Asymmetry)`;
+                
+                updateMathLayout();
+                rebuildSignals();
+            });
+
+            // Progress Slider
+            progressSlider.addEventListener('input', (e) => {
+                state.progress = parseInt(e.target.value);
+                progressPctDisplay.innerText = `${state.progress}%`;
+                
+                applyAnimationState();
+            });
+
+            // Playback animation controller
+            let animationFrameId = null;
+            let playDirection = 1; // 1 for forward, -1 for reverse loop
+
+            function animateProgress() {
+                if (!state.isPlaying) return;
+
+                state.progress += playDirection * 1.2;
+
+                if (state.progress >= 100) {
+                    state.progress = 100;
+                    playDirection = -1; // bounce back
+                } else if (state.progress <= 0) {
+                    state.progress = 0;
+                    playDirection = 1; // bounce forward
+                }
+
+                progressSlider.value = Math.round(state.progress);
+                progressPctDisplay.innerText = `${Math.round(state.progress)}%`;
+                applyAnimationState();
+
+                animationFrameId = requestAnimationFrame(animateProgress);
+            }
+
+            playBtn.addEventListener('click', () => {
+                state.isPlaying = !state.isPlaying;
+                if (state.isPlaying) {
+                    playIcon.className = "fa-solid fa-pause text-xs";
+                    animateProgress();
+                } else {
+                    playIcon.className = "fa-solid fa-play text-xs";
+                    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+                }
+            });
+
+            // View Control Helpers
+            resetCamBtn.addEventListener('click', () => {
+                camera.position.set(0, 4, 11);
+                controls.target.set(0, 0, 0);
+                controls.update();
+            });
+
+            toggleGridBtn.addEventListener('click', () => {
+                state.gridVisible = !state.gridVisible;
+                spatialAxisGrid.visible = state.gridVisible;
+                toggleGridBtn.innerHTML = state.gridVisible 
+                    ? `<i class="fa-solid fa-border-all"></i> Grid: On` 
+                    : `<i class="fa-solid fa-border-none"></i> Grid: Off`;
+            });
+
+            // Guide Modal triggers
+            guideBtn.addEventListener('click', () => {
+                guideModal.classList.remove('hidden');
+            });
+
+            const closeModal = () => guideModal.classList.add('hidden');
+            closeModalBtn.addEventListener('click', closeModal);
+            closeModalBottomBtn.addEventListener('click', closeModal);
+        }
+
+
+        // Main animation render frame
+        function animateLoop() {
+            requestAnimationFrame(animateLoop);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Initialize Workspace on Page Load
+        window.onload = function() {
+            initThreeScene();
+            setupEventListeners();
+            updateMathLayout();
+            animateLoop();
+        };
+
+    </script>
+</body>
+</html>
