@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive LTI Systems Explorer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for beautiful icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .code-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom scrollbar for control panels */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        /* Flowchart animation */
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -40;
+            }
+        }
+        .flow-line-active {
+            stroke-dasharray: 8, 4;
+            animation: dash 1.5s linear infinite;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col overflow-x-hidden">
+
+    <!-- Navigation / Header -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 px-4 py-3 sm:px-6">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <i class="fa-solid fa-wave-square text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">LTI System Properties Explorer</h1>
+                    <p class="text-xs text-slate-400">Interactive Visual Laboratory for Linearity & Time Invariance</p>
+                </div>
+            </div>
+            
+            <!-- Global Controls inside header -->
+            <div class="flex items-center flex-wrap gap-2">
+                <span class="text-xs text-slate-400 font-medium mr-1">SYSTEM TYPE (T):</span>
+                <select id="system-selector" class="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold cursor-pointer">
+                    <option value="lti" selected>LTI System (Linear & Time-Invariant)</option>
+                    <option value="nonlinear">Non-Linear System (Time-Invariant, Non-Linear)</option>
+                    <option value="timevarying">Time-Varying System (Linear, Time-Varying)</option>
+                </select>
+                
+                <button id="play-pause-btn" class="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all shadow-md shadow-indigo-600/15">
+                    <i class="fa-solid fa-pause" id="play-pause-icon"></i>
+                    <span id="play-pause-text">Pause Scroll</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col gap-6">
+        
+        <!-- Tab Selectors & Summary -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <!-- Tabs Menu -->
+            <div class="lg:col-span-8 flex bg-slate-900 p-1 rounded-xl border border-slate-800 w-full">
+                <button onclick="switchTab('linearity')" id="tab-btn-linearity" class="flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 bg-slate-800 text-white shadow-sm">
+                    <i class="fa-solid fa-square-plus text-indigo-400"></i>
+                    <span>1. Linearity Test</span>
+                </button>
+                <button onclick="switchTab('time-invariance')" id="tab-btn-time-invariance" class="flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-clock-rotate-left text-teal-400"></i>
+                    <span>2. Time Invariance Test</span>
+                </button>
+                <button onclick="switchTab('sandbox')" id="tab-btn-sandbox" class="flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-flask-vial text-purple-400"></i>
+                    <span>3. Combined Sandbox</span>
+                </button>
+            </div>
+            
+            <!-- Live Property Badges -->
+            <div class="lg:col-span-4 flex justify-end gap-2 w-full">
+                <div class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-400">Linearity:</span>
+                    <span id="badge-linearity" class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <i class="fa-solid fa-circle-check"></i> Satisfied
+                    </span>
+                </div>
+                <div class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-400">Time-Invariant:</span>
+                    <span id="badge-time-invariant" class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <i class="fa-solid fa-circle-check"></i> Satisfied
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Cards -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            
+            <!-- Left Panel: Parameters / Controllers -->
+            <div class="lg:col-span-1 flex flex-col gap-6 bg-slate-900 p-5 rounded-2xl border border-slate-800 h-fit">
+                <div>
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-indigo-400"></i>
+                        <span>Signal Settings</span>
+                    </h3>
+                    
+                    <!-- Waveform Pickers -->
+                    <div class="flex flex-col gap-3">
+                        <div>
+                            <label class="text-xs font-medium text-slate-400 flex justify-between mb-1.5">
+                                <span>Input Signal 1 (<span class="text-indigo-400">x₁[n]</span>)</span>
+                            </label>
+                            <select id="wave1-type" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                <option value="sine">Sine Wave (Continuous)</option>
+                                <option value="pulse" selected>Rectangular Pulse</option>
+                                <option value="gaussian">Gaussian Pulse</option>
+                                <option value="sawtooth">Sawtooth Wave</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="text-xs font-medium text-slate-400 flex justify-between mb-1.5">
+                                <span>Input Signal 2 (<span class="text-emerald-400">x₂[n]</span>)</span>
+                            </label>
+                            <select id="wave2-type" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                <option value="sine" selected>Sine Wave (Double Freq)</option>
+                                <option value="pulse">Rectangular Pulse</option>
+                                <option value="gaussian">Gaussian Pulse</option>
+                                <option value="sawtooth">Sawtooth Wave</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Parameters Sliders -->
+                <div class="border-t border-slate-800 pt-4 flex flex-col gap-4">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-nodes text-indigo-400"></i>
+                        <span>Variables</span>
+                    </h3>
+
+                    <!-- Amplitude 1 -->
+                    <div>
+                        <div class="flex justify-between text-xs font-medium mb-1">
+                            <span class="text-slate-400">Scaling <span class="text-indigo-400">a₁</span></span>
+                            <span class="text-indigo-400 font-bold" id="val-a1">1.0</span>
+                        </div>
+                        <input id="slider-a1" type="range" min="0.1" max="2.0" step="0.1" value="1.0" class="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                    </div>
+
+                    <!-- Amplitude 2 -->
+                    <div>
+                        <div class="flex justify-between text-xs font-medium mb-1">
+                            <span class="text-slate-400">Scaling <span class="text-emerald-400">a₂</span></span>
+                            <span class="text-emerald-400 font-bold" id="val-a2">0.8</span>
+                        </div>
+                        <input id="slider-a2" type="range" min="0.1" max="2.0" step="0.1" value="0.8" class="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                    </div>
+
+                    <!-- Time Delay k -->
+                    <div>
+                        <div class="flex justify-between text-xs font-medium mb-1">
+                            <span class="text-slate-400">Time Shift <span class="text-teal-400">k</span></span>
+                            <span class="text-teal-400 font-bold" id="val-k">2.0</span>
+                        </div>
+                        <input id="slider-k" type="range" min="0.0" max="5.0" step="0.2" value="2.0" class="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-teal-500">
+                    </div>
+                </div>
+
+                <!-- System Equation Helper Box -->
+                <div class="border-t border-slate-800 pt-4 mt-auto">
+                    <div class="bg-slate-950 p-3 rounded-lg border border-slate-800/80">
+                        <span class="text-[10px] font-bold tracking-wider text-indigo-400 uppercase">Current Operator T</span>
+                        <div class="text-xs code-font mt-1 font-semibold text-slate-300" id="equation-t">
+                            y[n] = 1.2 x[n] - 0.7 x[n-1.5]
+                        </div>
+                        <p class="text-[11px] text-slate-400 mt-1.5 leading-relaxed" id="system-description">
+                            Linear echo combination. Perfect addition and perfect shifts verified across all operations.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Visualizer Workspace -->
+            <div class="lg:col-span-3 flex flex-col gap-6">
+                
+                <!-- TAB 1: LINEARITY PATHS FLOW -->
+                <div id="tab-linearity-content" class="flex flex-col gap-6">
+                    <!-- Flowchart visualization mapping math to structure -->
+                    <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col gap-4 relative overflow-hidden">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="h-6 w-6 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs flex items-center justify-center font-bold">1</span>
+                                <h2 class="text-base font-bold text-slate-100">Superposition Verification Scheme</h2>
+                            </div>
+                            <span class="text-xs text-slate-400 font-medium hidden sm:inline">Upper Path adds first vs Lower Path transforms first</span>
+                        </div>
+                        
+                        <!-- Interactive Diagram Container -->
+                        <div class="relative min-h-[360px] w-full border border-slate-800/60 bg-slate-950/80 rounded-xl p-4 overflow-x-auto">
+                            <!-- SVG Path Connections inside Block Diagram -->
+                            <svg class="absolute inset-0 pointer-events-none w-full h-full" id="flowchart-svg" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <linearGradient id="grad-indigo" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#6366f1" />
+                                        <stop offset="100%" stop-color="#4f46e5" />
+                                    </linearGradient>
+                                    <linearGradient id="grad-emerald" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#10b981" />
+                                        <stop offset="100%" stop-color="#059669" />
+                                    </linearGradient>
+                                </defs>
+                                <!-- Connections are drawn via script to adjust to dynamic dimensions of DOM elements -->
+                            </svg>
+
+                            <!-- Flow Elements Layout Grid -->
+                            <div class="grid grid-cols-12 gap-y-12 gap-x-4 min-w-[700px] h-full py-2 relative z-10">
+                                
+                                <!-- Input Nodes (Left) -->
+                                <div class="col-span-2 flex flex-col justify-around h-full min-h-[300px]">
+                                    <!-- Input x1 -->
+                                    <div id="node-x1" class="bg-slate-900 border border-slate-700 p-2 rounded-lg flex flex-col items-center justify-center text-center shadow-md">
+                                        <span class="text-xs font-bold text-indigo-400">x₁(t)</span>
+                                        <canvas id="canvas-x1" width="80" height="40" class="mt-1 bg-slate-950 border border-slate-800 rounded"></canvas>
+                                    </div>
+                                    
+                                    <!-- Input x2 -->
+                                    <div id="node-x2" class="bg-slate-900 border border-slate-700 p-2 rounded-lg flex flex-col items-center justify-center text-center shadow-md">
+                                        <span class="text-xs font-bold text-emerald-400">x₂(t)</span>
+                                        <canvas id="canvas-x2" width="80" height="40" class="mt-1 bg-slate-950 border border-slate-800 rounded"></canvas>
+                                    </div>
+                                </div>
+
+                                <!-- Middle Step: Adders vs Separators -->
+                                <div class="col-span-3 flex flex-col justify-around h-full">
+                                    
+                                    <!-- Upper Adder (x1 + x2) -->
+                                    <div id="node-upper-adder" class="bg-slate-900 border border-slate-700 p-2 rounded-lg flex flex-col items-center self-center text-center shadow-md">
+                                        <span class="text-[10px] font-bold text-slate-400 uppercase">ADD FIRST</span>
+                                        <div class="flex items-center gap-1.5 mt-1">
+                                            <span class="h-6 w-6 rounded-full bg-slate-800 flex items-center justify-center border border-slate-600 font-bold text-xs">+</span>
+                                            <span class="text-[11px] font-semibold text-indigo-300">x₁ + x₂</span>
+                                        </div>
+                                        <canvas id="canvas-sum-in" width="90" height="40" class="mt-1 bg-slate-950 border border-slate-800 rounded"></canvas>
+                                    </div>
+
+                                    <!-- Lower Split-Wires (Just keeping spacing neat) -->
+                                    <div class="flex flex-col gap-6 justify-center items-center h-24 self-center">
+                                        <span class="text-[10px] font-bold text-slate-500 uppercase">Separate Signals</span>
+                                        <i class="fa-solid fa-arrows-split-up-and-left text-slate-600 text-lg rotate-180"></i>
+                                    </div>
+                                </div>
+
+                                <!-- System T Blocks -->
+                                <div class="col-span-3 flex flex-col justify-around h-full">
+                                    <!-- Upper System T -->
+                                    <div id="node-sys-upper" class="bg-slate-900 border-2 border-indigo-500 p-2.5 rounded-xl flex flex-col items-center text-center shadow-lg shadow-indigo-500/10">
+                                        <div class="h-5 w-5 rounded bg-indigo-500/10 flex items-center justify-center text-xs font-bold text-indigo-400 mb-1">T</div>
+                                        <span class="text-[10px] font-bold text-slate-300 uppercase">System T</span>
+                                        <span class="text-[10px] text-slate-400 font-medium">Processes Sum</span>
+                                    </div>
+
+                                    <!-- Lower Systems T1 & T2 -->
+                                    <div class="flex flex-col gap-6 justify-center">
+                                        <div id="node-sys-lower-1" class="bg-slate-900 border border-slate-700 p-2 rounded-lg flex flex-col items-center text-center shadow-md">
+                                            <div class="h-4 w-4 rounded bg-slate-800 flex items-center justify-center text-[10px] font-bold text-indigo-400">T</div>
+                                            <span class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">Process x₁</span>
+                                        </div>
+                                        <div id="node-sys-lower-2" class="bg-slate-900 border border-slate-700 p-2 rounded-lg flex flex-col items-center text-center shadow-md">
+                                            <div class="h-4 w-4 rounded bg-slate-800 flex items-center justify-center text-[10px] font-bold text-emerald-400">T</div>
+                                            <span class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">Process x₂</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Outputs & Lower Adder -->
+                                <div class="col-span-2 flex flex-col justify-around h-full">
+                                    <!-- Upper Path Output -->
+                                    <div id="node-out-upper" class="bg-slate-900 border border-slate-700 p-2 rounded-lg flex flex-col items-center justify-center text-center shadow-md">
+                                        <span class="text-xs font-bold text-purple-400">T{x₁ + x₂}</span>
+                                        <canvas id="canvas-out-upper" width="80" height="40" class="mt-1 bg-slate-950 border border-slate-800 rounded"></canvas>
+                                    </div>
+
+                                    <!-- Lower Path Adder -->
+                                    <div id="node-lower-adder" class="bg-slate-900 border border-slate-700 p-2 rounded-lg flex flex-col items-center justify-center text-center shadow-md">
+                                        <span class="text-[9px] font-bold text-slate-400 uppercase">ADD OUTPUTS</span>
+                                        <div class="flex items-center gap-1 my-1">
+                                            <span class="h-5 w-5 rounded-full bg-slate-800 flex items-center justify-center border border-slate-600 font-bold text-[10px]">+</span>
+                                            <span class="text-[10px] font-semibold text-teal-300">y₁ + y₂</span>
+                                        </div>
+                                        <canvas id="canvas-out-lower" width="80" height="40" class="mt-1 bg-slate-950 border border-slate-800 rounded"></canvas>
+                                    </div>
+                                </div>
+
+                                <!-- Final Superposition Overlay Target (Rightmost) -->
+                                <div class="col-span-2 flex flex-col justify-center h-full">
+                                    <div id="node-comparator" class="bg-slate-900 border-2 border-indigo-500/40 p-3 rounded-xl flex flex-col items-center justify-center text-center shadow-lg relative">
+                                        <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-indigo-600 rounded text-[9px] font-bold uppercase tracking-wider">
+                                            Verify
+                                        </div>
+                                        <span class="text-xs font-bold text-slate-300 mt-1">Superposition Overlay</span>
+                                        
+                                        <!-- Overlay Canvas -->
+                                        <canvas id="canvas-comparison" width="100" height="70" class="mt-2 bg-slate-950 border border-slate-800 rounded"></canvas>
+                                        
+                                        <!-- Overlay Match Status LED -->
+                                        <div class="mt-2.5 flex items-center gap-1.5">
+                                            <span id="light-linearity" class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                            <span id="txt-linearity-match" class="text-[10px] font-bold text-emerald-400 uppercase tracking-wide">MATCHED</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Comparison Screen & Explanatory Banner -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Left explanation of Linearity -->
+                        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-200 mb-2 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-circle-info text-indigo-400"></i>
+                                    Understanding Linearity
+                                </h3>
+                                <p class="text-xs text-slate-400 leading-relaxed">
+                                    For a system <span class="text-indigo-400">T</span> to be **linear**, it must satisfy the principle of superposition:
+                                </p>
+                                <div class="my-3 py-2 px-3 bg-slate-950 border border-slate-800/80 rounded-lg text-xs font-semibold code-font text-center text-indigo-300">
+                                    T{a₁ x₁[n] + a₂ x₂[n]} = a₁ T{x₁[n]} + a₂ T{x₂[n]}
+                                </div>
+                                <ul class="text-xs text-slate-400 space-y-1.5 list-disc pl-4 mt-2">
+                                    <li><strong>Upper Pathway:</strong> Sums signals first, then filters them.</li>
+                                    <li><strong>Lower Pathway:</strong> Filters each signal individually, then sums their results.</li>
+                                    <li>If the resulting waveforms perfectly match, the system is **Linear**.</li>
+                                </ul>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center">
+                                <span class="text-xs text-slate-400 font-medium">Verify by changing system to:</span>
+                                <span class="text-xs font-bold text-amber-500 underline decoration-dotted cursor-pointer" onclick="document.getElementById('system-selector').value = 'nonlinear'; handleSystemChange();">Non-Linear System</span>
+                            </div>
+                        </div>
+
+                        <!-- Main scope view of Linearity comparison -->
+                        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col gap-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-300">Detailed Scope Overlays</span>
+                                <div class="flex items-center gap-3">
+                                    <span class="flex items-center gap-1 text-[10px] font-semibold text-indigo-400">
+                                        <span class="h-2 w-2 rounded-full bg-indigo-400"></span> Upper Path
+                                    </span>
+                                    <span class="flex items-center gap-1 text-[10px] font-semibold text-amber-400">
+                                        <span class="h-2 w-2 rounded-full bg-amber-400"></span> Lower Path
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="relative flex-1 min-h-[160px] bg-slate-950 rounded-xl border border-slate-800/80 overflow-hidden">
+                                <canvas id="canvas-lin-scope" class="absolute inset-0 w-full h-full"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: TIME INVARIANCE FLOW -->
+                <div id="tab-time-invariance-content" class="hidden flex flex-col gap-6">
+                    <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col gap-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="h-6 w-6 rounded-md bg-teal-500/10 border border-teal-500/20 text-teal-400 text-xs flex items-center justify-center font-bold">2</span>
+                                <h2 class="text-base font-bold text-slate-100">Time-Invariance (Shift-Invariance) Test</h2>
+                            </div>
+                            <span class="text-xs text-slate-400 font-medium hidden sm:inline">Delaying input vs Delaying output</span>
+                        </div>
+
+                        <!-- Time Invariance Flow diagram -->
+                        <div class="relative min-h-[300px] w-full border border-slate-800/60 bg-slate-950/80 rounded-xl p-4 overflow-x-auto">
+                            <svg class="absolute inset-0 pointer-events-none w-full h-full" id="ti-flowchart-svg" xmlns="http://www.w3.org/2000/svg">
+                                <!-- Drawn via script -->
+                            </svg>
+
+                            <div class="grid grid-cols-12 gap-y-12 gap-x-4 min-w-[700px] h-full py-2 relative z-10">
+                                
+                                <!-- Source Wave (Left) -->
+                                <div class="col-span-2 flex flex-col justify-center h-full min-h-[240px]">
+                                    <div id="ti-node-src" class="bg-slate-900 border border-slate-700 p-2 rounded-lg flex flex-col items-center justify-center text-center shadow-md">
+                                        <span class="text-xs font-bold text-indigo-400">Source x(t)</span>
+                                        <canvas id="canvas-ti-src" width="80" height="40" class="mt-1 bg-slate-950 border border-slate-800 rounded"></canvas>
+                                    </div>
+                                </div>
+
+                                <!-- Path Operators -->
+                                <div class="col-span-4 flex flex-col justify-around h-full">
+                                    <!-- Upper Path TI (Delay input first) -->
+                                    <div class="flex items-center gap-2 bg-slate-900/40 p-2 rounded-xl border border-slate-800/50">
+                                        <div id="ti-node-delay-up" class="bg-slate-900 border border-slate-700 p-2 rounded-lg flex flex-col items-center text-center shadow-md flex-1">
+                                            <span class="text-[9px] font-bold text-teal-400 uppercase">Delay [k]</span>
+                                            <span class="text-[10px] text-slate-400 mt-0.5 font-semibold">x(t - k)</span>
+                                        </div>
+                                        <i class="fa-solid fa-arrow-right text-slate-600"></i>
+                                        <div id="ti-node-sys-up" class="bg-indigo-950/40 border border-indigo-500/40 p-2 rounded-lg flex flex-col items-center text-center shadow-md flex-1">
+                                            <span class="text-[9px] font-bold text-indigo-400 uppercase">System T</span>
+                                            <span class="text-[9px] text-slate-400 mt-0.5">T{x(t - k)}</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Lower Path TI (System T first) -->
+                                    <div class="flex items-center gap-2 bg-slate-900/40 p-2 rounded-xl border border-slate-800/50">
+                                        <div id="ti-node-sys-down" class="bg-indigo-950/40 border border-indigo-500/40 p-2 rounded-lg flex flex-col items-center text-center shadow-md flex-1">
+                                            <span class="text-[9px] font-bold text-indigo-400 uppercase">System T</span>
+                                            <span class="text-[10px] text-slate-400 mt-0.5 font-semibold">y(t)</span>
+                                        </div>
+                                        <i class="fa-solid fa-arrow-right text-slate-600"></i>
+                                        <div id="ti-node-delay-down" class="bg-slate-900 border border-slate-700 p-2 rounded-lg flex flex-col items-center text-center shadow-md flex-1">
+                                            <span class="text-[9px] font-bold text-teal-400 uppercase">Delay [k]</span>
+                                            <span class="text-[9px] text-slate-400 mt-0.5">y(t - k)</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Outputs -->
+                                <div class="col-span-3 flex flex-col justify-around h-full">
+                                    <!-- Upper Path Final Output -->
+                                    <div id="ti-node-out-up" class="bg-slate-900 border border-slate-700 p-2 rounded-lg flex flex-col items-center justify-center text-center shadow-md">
+                                        <span class="text-xs font-bold text-indigo-400">y_di(t)</span>
+                                        <canvas id="canvas-ti-out-up" width="100" height="40" class="mt-1 bg-slate-950 border border-slate-800 rounded"></canvas>
+                                    </div>
+
+                                    <!-- Lower Path Final Output -->
+                                    <div id="ti-node-out-down" class="bg-slate-900 border border-slate-700 p-2 rounded-lg flex flex-col items-center justify-center text-center shadow-md">
+                                        <span class="text-xs font-bold text-teal-400">y_do(t)</span>
+                                        <canvas id="canvas-ti-out-down" width="100" height="40" class="mt-1 bg-slate-950 border border-slate-800 rounded"></canvas>
+                                    </div>
+                                </div>
+
+                                <!-- TI Match Target -->
+                                <div class="col-span-3 flex flex-col justify-center h-full">
+                                    <div id="ti-node-comparator" class="bg-slate-900 border-2 border-teal-500/40 p-3 rounded-xl flex flex-col items-center justify-center text-center shadow-lg relative">
+                                        <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-teal-600 rounded text-[9px] font-bold uppercase tracking-wider">
+                                            Verify Time Invariance
+                                        </div>
+                                        <span class="text-xs font-bold text-slate-300 mt-1">Overlay Comparison</span>
+                                        
+                                        <!-- Overlay Canvas -->
+                                        <canvas id="canvas-ti-comparison" width="120" height="70" class="mt-2 bg-slate-950 border border-slate-800 rounded"></canvas>
+                                        
+                                        <!-- Overlay Match Status LED -->
+                                        <div class="mt-2.5 flex items-center gap-1.5">
+                                            <span id="light-ti" class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                            <span id="txt-ti-match" class="text-[10px] font-bold text-emerald-400 uppercase tracking-wide">MATCHED</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Comparison Screen & Explanatory Banner -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Left explanation of Time Invariance -->
+                        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-200 mb-2 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-circle-info text-teal-400"></i>
+                                    Understanding Time Invariance
+                                </h3>
+                                <p class="text-xs text-slate-400 leading-relaxed">
+                                    A system is **time-invariant** if a time delay on the input <span class="text-indigo-400">x(t - k)</span> produces an identical time delay on the output <span class="text-emerald-400">y(t - k)</span> without altering shape:
+                                </p>
+                                <div class="my-3 py-2 px-3 bg-slate-950 border border-slate-800/80 rounded-lg text-xs font-semibold code-font text-center text-teal-300">
+                                    T{x(t - k)} = y(t - k)
+                                </div>
+                                <ul class="text-xs text-slate-400 space-y-1.5 list-disc pl-4 mt-2">
+                                    <li><strong>Upper Path (Delayed Input):</strong> Slide slider delay $k$ to shift input first, then pass through system.</li>
+                                    <li><strong>Lower Path (Delayed Output):</strong> Pass input through system first, then shift output by $k$.</li>
+                                    <li>If the outputs remain identical, the system shape is invariant to shifts!</li>
+                                </ul>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center">
+                                <span class="text-xs text-slate-400 font-medium">Verify by changing system to:</span>
+                                <span class="text-xs font-bold text-teal-400 underline decoration-dotted cursor-pointer" onclick="document.getElementById('system-selector').value = 'timevarying'; handleSystemChange();">Time-Varying System</span>
+                            </div>
+                        </div>
+
+                        <!-- Main scope view of TI comparison -->
+                        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col gap-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-300">Shift Invariance Scope View</span>
+                                <div class="flex items-center gap-3">
+                                    <span class="flex items-center gap-1 text-[10px] font-semibold text-teal-400">
+                                        <span class="h-2 w-2 rounded-full bg-teal-400"></span> Delayed Input Output
+                                    </span>
+                                    <span class="flex items-center gap-1 text-[10px] font-semibold text-rose-400">
+                                        <span class="h-2 w-2 rounded-full bg-rose-400"></span> Delayed Output
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="relative flex-1 min-h-[160px] bg-slate-950 rounded-xl border border-slate-800/80 overflow-hidden">
+                                <canvas id="canvas-ti-scope" class="absolute inset-0 w-full h-full"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: COMBINED LTI SANDBOX / GENERALIZED CASE -->
+                <div id="tab-sandbox-content" class="hidden flex flex-col gap-6">
+                    <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col gap-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="h-6 w-6 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs flex items-center justify-center font-bold">3</span>
+                                <h2 class="text-base font-bold text-slate-100">Superposition & Shift Synthesis Sandbox</h2>
+                            </div>
+                            <span class="text-xs text-slate-400 font-medium">LTI general state synthesis</span>
+                        </div>
+
+                        <!-- Combined Oscilloscope UI -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <!-- Input Mix -->
+                            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col gap-2">
+                                <span class="text-xs font-bold text-slate-300">Composite Delayed Input x_mix[n-k]</span>
+                                <div class="h-44 relative bg-slate-950 border border-slate-800 rounded-lg overflow-hidden">
+                                    <canvas id="canvas-sandbox-input" class="absolute inset-0 w-full h-full"></canvas>
+                                </div>
+                                <span class="text-[10px] text-slate-500 font-medium">x_mix = a₁ x₁[n-k] + a₂ x₂[n-k]</span>
+                            </div>
+
+                            <!-- System Transformations -->
+                            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col gap-2">
+                                <span class="text-xs font-bold text-slate-300">Transformed Output of Mix T{x_mix}</span>
+                                <div class="h-44 relative bg-slate-950 border border-slate-800 rounded-lg overflow-hidden">
+                                    <canvas id="canvas-sandbox-system" class="absolute inset-0 w-full h-full"></canvas>
+                                </div>
+                                <span class="text-[10px] text-indigo-400 font-medium font-semibold">T{a₁ x₁[n-k] + a₂ x₂[n-k]}</span>
+                            </div>
+
+                            <!-- Combined Math Addition -->
+                            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col gap-2">
+                                <span class="text-xs font-bold text-slate-300">Direct Synthesis Mixture</span>
+                                <div class="h-44 relative bg-slate-950 border border-slate-800 rounded-lg overflow-hidden">
+                                    <canvas id="canvas-sandbox-synthesis" class="absolute inset-0 w-full h-full"></canvas>
+                                </div>
+                                <span class="text-[10px] text-teal-400 font-medium font-semibold">a₁ y₁[n-k] + a₂ y₂[n-k]</span>
+                            </div>
+                        </div>
+
+                        <!-- Big Synthesis comparison overlays -->
+                        <div class="border border-slate-800/80 bg-slate-950 p-5 rounded-xl flex flex-col gap-4">
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                                <div>
+                                    <h3 class="text-sm font-bold text-white">Full LTI Verification Overlay</h3>
+                                    <p class="text-xs text-slate-400">Comparing complete transformation of scaled, delayed inputs vs scaled, delayed outputs</p>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <div class="flex items-center gap-1.5 text-xs font-medium">
+                                        <span class="h-2 w-2 rounded-full bg-purple-400"></span>
+                                        <span>T{a₁ x₁[n-k] + a₂ x₂[n-k]}</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5 text-xs font-medium">
+                                        <span class="h-2 w-2 rounded-full bg-amber-400"></span>
+                                        <span>a₁ y₁[n-k] + a₂ y₂[n-k]</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="relative min-h-[220px] w-full bg-slate-950 border border-slate-800 rounded-lg overflow-hidden">
+                                <canvas id="canvas-sandbox-scope" class="absolute inset-0 w-full h-full"></canvas>
+                            </div>
+
+                            <div class="flex items-center justify-between border-t border-slate-800/80 pt-3">
+                                <div class="flex items-center gap-2">
+                                    <span id="light-sandbox" class="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                    <span id="txt-sandbox-status" class="text-xs font-bold text-emerald-400 uppercase tracking-wide">LTI PROPERTY INTEGRITY PERFECTLY MAINTAINED</span>
+                                </div>
+                                <span class="text-xs text-slate-500 font-semibold italic">T{a₁ x₁[n-k] + a₂ x₂[n-k]} == a₁ y₁[n-k] + a₂ y₂[n-k]</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer with formulas -->
+    <footer class="border-t border-slate-800 bg-slate-900/60 py-4 mt-auto text-center px-4">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+            <div>
+                Built for DSP & System Theory Learning. Interactive Canvas Visualizations.
+            </div>
+            <div class="flex gap-4">
+                <a href="#" class="hover:text-white transition-colors">Documentation</a>
+                <span class="text-slate-700">|</span>
+                <span class="text-slate-500">Continuous Time Sampling rate ~ 200 pts</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Core Application Code Logic -->
+    <script>
+        // Global State & Configuration
+        let activeTab = 'linearity'; // 'linearity' | 'time-invariance' | 'sandbox'
+        let systemType = 'lti'; // 'lti' | 'nonlinear' | 'timevarying'
+        let isPlaying = true;
+        let timeOffset = 0; // Incrementing timer value for signal movement
+
+        // Sliders and Selectors
+        let valA1 = 1.0;
+        let valA2 = 0.8;
+        let valK = 2.0;
+
+        let wave1Type = 'pulse';
+        let wave2Type = 'sine';
+
+        // Signal array specs
+        const pointsCount = 200;
+        const tMin = 0;
+        const tMax = 10;
+        const dt = (tMax - tMin) / pointsCount;
+        let tArray = [];
+        for (let i = 0; i < pointsCount; i++) {
+            tArray.push(tMin + i * dt);
+        }
+
+        // DOM elements cache
+        const systemSelector = document.getElementById('system-selector');
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        const playPauseIcon = document.getElementById('play-pause-icon');
+        const playPauseText = document.getElementById('play-pause-text');
+
+        const valA1Text = document.getElementById('val-a1');
+        const valA2Text = document.getElementById('val-a2');
+        const valKText = document.getElementById('val-k');
+
+        const sliderA1 = document.getElementById('slider-a1');
+        const sliderA2 = document.getElementById('slider-a2');
+        const sliderK = document.getElementById('slider-k');
+
+        const selectWave1 = document.getElementById('wave1-type');
+        const selectWave2 = document.getElementById('wave2-type');
+
+        const equationText = document.getElementById('equation-t');
+        const systemDesc = document.getElementById('system-description');
+
+        const badgeLinearity = document.getElementById('badge-linearity');
+        const badgeTimeInvariant = document.getElementById('badge-time-invariant');
+
+        const lightLinearity = document.getElementById('light-linearity');
+        const textLinearityMatch = document.getElementById('txt-linearity-match');
+        const lightTi = document.getElementById('light-ti');
+        const textTiMatch = document.getElementById('txt-ti-match');
+        const lightSandbox = document.getElementById('light-sandbox');
+        const textSandboxStatus = document.getElementById('txt-sandbox-status');
+
+        // Waveform Generators
+        function getWaveformValue(type, t) {
+            // Standardize signals inside a 0-10 window
+            switch (type) {
+                case 'sine':
+                    return Math.sin(2.0 * t);
+                case 'pulse':
+                    // Smooth-edged pulse to look nicer on canvas
+                    if (t >= 3.0 && t <= 5.0) {
+                        return 1.0;
+                    }
+                    return 0.0;
+                case 'gaussian':
+                    return Math.exp(-Math.pow(t - 4.0, 2) / 0.8);
+                case 'sawtooth':
+                    return ((t % 3.0) / 3.0) * 2.0 - 1.0;
+                default:
+                    return 0.0;
+            }
+        }
+
+        // Interpolation helper to delay signals at t - delay
+        function sampleSignalAt(sig, targetT) {
+            let floatIdx = (targetT - tMin) / dt;
+            if (floatIdx < 0 || floatIdx >= sig.length - 1) {
+                return 0; // Return zero boundary for out of bounds
+            }
+            let idx = Math.floor(floatIdx);
+            let frac = floatIdx - idx;
+            return sig[idx] * (1 - frac) + sig[idx + 1] * frac;
+        }
+
+        // Apply System Transformation T on a signal array
+        function applySystemT(inputSig, currentSysType) {
+            let outputSig = new Array(pointsCount).fill(0);
+            
+            for (let i = 0; i < pointsCount; i++) {
+                let t = tArray[i];
+                let val0 = inputSig[i];
+                
+                // We model a delay difference equation for our base LTI operator
+                // LTI System: y(t) = 1.2 x(t) - 0.7 x(t - 1.5)
+                let val1 = sampleSignalAt(inputSig, t - 1.5);
+                
+                if (currentSysType === 'lti') {
+                    outputSig[i] = 1.2 * val0 - 0.7 * val1;
+                } 
+                else if (currentSysType === 'nonlinear') {
+                    // Non-Linear System: y(t) = 1.2 * x(t)^2 * sign(x(t)) - 0.7 * x(t-1.5)^2 * sign(x(t-1.5))
+                    // (Retaining difference echo but squaring signal inputs to break Linearity)
+                    outputSig[i] = 1.2 * val0 * Math.abs(val0) - 0.7 * val1 * Math.abs(val1);
+                } 
+                else if (currentSysType === 'timevarying') {
+                    // Time-Varying System: y(t) = (1.2 + 0.8 * sin(t)) * x(t) - 0.7 * x(t-1.5)
+                    // The modifier scale changes depending on the absolute coordinate time t.
+                    let timeMod = 1.2 + 0.8 * Math.sin(0.7 * (t + timeOffset));
+                    outputSig[i] = timeMod * val0 - 0.7 * val1;
+                }
+            }
+            return outputSig;
+        }
+
+        // Setup event listener updates
+        function updateSystemUI() {
+            if (systemType === 'lti') {
+                equationText.innerHTML = `y[n] = 1.2 x[n] - 0.7 x[n-1.5]`;
+                systemDesc.innerHTML = `Pure LTI. Verifies perfectly on both superposition & time-shifts. Both verification badges will be emerald green.`;
+                
+                badgeLinearity.className = "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                badgeLinearity.innerHTML = `<i class="fa-solid fa-circle-check"></i> Satisfied`;
+                
+                badgeTimeInvariant.className = "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                badgeTimeInvariant.innerHTML = `<i class="fa-solid fa-circle-check"></i> Satisfied`;
+                
+                lightLinearity.className = "h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse";
+                textLinearityMatch.className = "text-[10px] font-bold text-emerald-400 uppercase tracking-wide";
+                textLinearityMatch.innerText = "MATCHED (Linear)";
+
+                lightTi.className = "h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse";
+                textTiMatch.className = "text-[10px] font-bold text-emerald-400 uppercase tracking-wide";
+                textTiMatch.innerText = "MATCHED (Time-Invariant)";
+
+                lightSandbox.className = "h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse";
+                textSandboxStatus.className = "text-xs font-bold text-emerald-400 uppercase tracking-wide";
+                textSandboxStatus.innerText = "LTI PROPERTY INTEGRITY PERFECTLY MAINTAINED";
+            } 
+            else if (systemType === 'nonlinear') {
+                equationText.innerHTML = `y[n] = 1.2 x[n]|x[n]| - 0.7 x[n-1.5]|x[n-1.5]|`;
+                systemDesc.innerHTML = `Non-linear scaling behavior. Doubling inputs quadruples outputs, breaking Linearity. Observe output differences.`;
+                
+                badgeLinearity.className = "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20";
+                badgeLinearity.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Broken`;
+                
+                badgeTimeInvariant.className = "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                badgeTimeInvariant.innerHTML = `<i class="fa-solid fa-circle-check"></i> Satisfied`;
+                
+                lightLinearity.className = "h-2.5 w-2.5 rounded-full bg-rose-500 animate-ping";
+                textLinearityMatch.className = "text-[10px] font-bold text-rose-400 uppercase tracking-wide";
+                textLinearityMatch.innerText = "MISMATCH (Non-Linear)";
+
+                lightTi.className = "h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse";
+                textTiMatch.className = "text-[10px] font-bold text-emerald-400 uppercase tracking-wide";
+                textTiMatch.innerText = "MATCHED (Time-Invariant)";
+
+                lightSandbox.className = "h-2.5 w-2.5 rounded-full bg-rose-500 animate-pulse";
+                textSandboxStatus.className = "text-xs font-bold text-rose-400 uppercase tracking-wide";
+                textSandboxStatus.innerText = "LTI INTEGRITY FAILED (SYSTEM IS NON-LINEAR)";
+            } 
+            else if (systemType === 'timevarying') {
+                equationText.innerHTML = `y[n] = (1.2 + 0.8 sin(0.7 t)) x[n] - 0.7 x[n-1.5]`;
+                systemDesc.innerHTML = `Linear combination of inputs works, but shifting the input changes output shapes as modulating parameter moves with clock time.`;
+                
+                badgeLinearity.className = "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                badgeLinearity.innerHTML = `<i class="fa-solid fa-circle-check"></i> Satisfied`;
+                
+                badgeTimeInvariant.className = "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20";
+                badgeTimeInvariant.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Broken`;
+                
+                lightLinearity.className = "h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse";
+                textLinearityMatch.className = "text-[10px] font-bold text-emerald-400 uppercase tracking-wide";
+                textLinearityMatch.innerText = "MATCHED (Linear)";
+
+                lightTi.className = "h-2.5 w-2.5 rounded-full bg-rose-500 animate-ping";
+                textTiMatch.className = "text-[10px] font-bold text-rose-400 uppercase tracking-wide";
+                textTiMatch.innerText = "MISMATCH (Time-Varying)";
+
+                lightSandbox.className = "h-2.5 w-2.5 rounded-full bg-rose-500 animate-pulse";
+                textSandboxStatus.className = "text-xs font-bold text-rose-400 uppercase tracking-wide";
+                textSandboxStatus.innerText = "LTI INTEGRITY FAILED (SYSTEM IS TIME-VARYING)";
+            }
+        }
+
+        // Tab switching
+        function switchTab(tabId) {
+            activeTab = tabId;
+            
+            // Toggle active classes on buttons
+            document.getElementById('tab-btn-linearity').className = tabId === 'linearity' ? 
+                "flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 bg-slate-800 text-white shadow-sm" : 
+                "flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 text-slate-400 hover:text-white";
+                
+            document.getElementById('tab-btn-time-invariance').className = tabId === 'time-invariance' ? 
+                "flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 bg-slate-800 text-white shadow-sm" : 
+                "flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 text-slate-400 hover:text-white";
+                
+            document.getElementById('tab-btn-sandbox').className = tabId === 'sandbox' ? 
+                "flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 bg-slate-800 text-white shadow-sm" : 
+                "flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 text-slate-400 hover:text-white";
+
+            // Toggle Tab Visibility
+            document.getElementById('tab-linearity-content').style.display = tabId === 'linearity' ? 'flex' : 'none';
+            document.getElementById('tab-time-invariance-content').style.display = tabId === 'time-invariance' ? 'flex' : 'none';
+            document.getElementById('tab-sandbox-content').style.display = tabId === 'sandbox' ? 'flex' : 'none';
+
+            // Redraw SVG Flow paths
+            setTimeout(drawFlowlines, 50);
+        }
+
+        function handleSystemChange() {
+            systemType = systemSelector.value;
+            updateSystemUI();
+        }
+
+        systemSelector.addEventListener('change', handleSystemChange);
+
+        playPauseBtn.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            if (isPlaying) {
+                playPauseIcon.className = "fa-solid fa-pause";
+                playPauseText.innerText = "Pause Scroll";
+            } else {
+                playPauseIcon.className = "fa-solid fa-play";
+                playPauseText.innerText = "Resume Scroll";
+            }
+        });
+
+        // Set inputs
+        sliderA1.addEventListener('input', (e) => {
+            valA1 = parseFloat(e.target.value);
+            valA1Text.innerText = valA1.toFixed(1);
+        });
+        sliderA2.addEventListener('input', (e) => {
+            valA2 = parseFloat(e.target.value);
+            valA2Text.innerText = valA2.toFixed(1);
+        });
+        sliderK.addEventListener('input', (e) => {
+            valK = parseFloat(e.target.value);
+            valKText.innerText = valK.toFixed(1);
+        });
+
+        selectWave1.addEventListener('change', (e) => { wave1Type = e.target.value; });
+        selectWave2.addEventListener('change', (e) => { wave2Type = e.target.value; });
+
+        // Utility to draw simple mini oscilloscopes
+        function drawMiniScope(canvasId, values, strokeColor, fillColor = 'transparent') {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Draw Background grid
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 0.5;
+            for (let x = 0; x < w; x += 15) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, h);
+                ctx.stroke();
+            }
+            ctx.beginPath();
+            ctx.moveTo(0, h/2);
+            ctx.lineTo(w, h/2);
+            ctx.stroke();
+
+            // Find scale boundings
+            ctx.beginPath();
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = strokeColor;
+
+            for (let i = 0; i < pointsCount; i++) {
+                let xCoord = (i / pointsCount) * w;
+                // Scale value to fit standard heights nicely (-2 to 2)
+                let val = values[i];
+                let yCoord = (h/2) - (val * (h / 4.5));
+                
+                if (i === 0) {
+                    ctx.moveTo(xCoord, yCoord);
+                } else {
+                    ctx.lineTo(xCoord, yCoord);
+                }
+            }
+            ctx.stroke();
+
+            if (fillColor !== 'transparent') {
+                ctx.lineTo(w, h);
+                ctx.lineTo(0, h);
+                ctx.fillStyle = fillColor;
+                ctx.fill();
+            }
+        }
+
+        // Draw big overlays
+        function drawDetailedOverlay(canvasId, signalA, signalB, colorA, colorB, labelA, labelB) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // Make sure resolution is high-def responsive
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+            const sw = rect.width;
+            const sh = rect.height;
+
+            ctx.clearRect(0, 0, sw, sh);
+
+            // Background grid
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 0.8;
+            for (let x = 0; x < sw; x += 30) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, sh);
+                ctx.stroke();
+            }
+            for (let y = 0; y < sh; y += 30) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(sw, y);
+                ctx.stroke();
+            }
+
+            // Zero baseline
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, sh/2);
+            ctx.lineTo(sw, sh/2);
+            ctx.stroke();
+
+            // Function to draw curve
+            const drawCurve = (sig, color, isDashed = false) => {
+                ctx.beginPath();
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2.5;
+                if (isDashed) {
+                    ctx.setLineDash([5, 4]);
+                } else {
+                    ctx.setLineDash([]);
+                }
+
+                for (let i = 0; i < pointsCount; i++) {
+                    let xCoord = (i / pointsCount) * sw;
+                    let val = sig[i];
+                    let yCoord = (sh/2) - (val * (sh / 5)); // Scaled amplitude
+                    
+                    if (i === 0) {
+                        ctx.moveTo(xCoord, yCoord);
+                    } else {
+                        ctx.lineTo(xCoord, yCoord);
+                    }
+                }
+                ctx.stroke();
+            };
+
+            // Draw both signals
+            drawCurve(signalA, colorA, false);
+            drawCurve(signalB, colorB, true);
+            ctx.setLineDash([]); // Reset
+        }
+
+        // Auto draw dynamic connections on flowcharts depending on DOM sizes
+        function drawFlowlines() {
+            if (activeTab === 'linearity') {
+                const svg = document.getElementById('flowchart-svg');
+                if (!svg) return;
+                svg.innerHTML = ``; // Clear
+
+                // Draw helper connecting lines
+                const getCenterCoords = (id) => {
+                    const el = document.getElementById(id);
+                    const svgRect = svg.getBoundingClientRect();
+                    if (!el) return { x: 0, y: 0 };
+                    const r = el.getBoundingClientRect();
+                    return {
+                        x: r.left - svgRect.left + r.width / 2,
+                        y: r.top - svgRect.top + r.height / 2,
+                        right: r.right - svgRect.left,
+                        left: r.left - svgRect.left,
+                        top: r.top - svgRect.top + r.height / 2
+                    };
+                };
+
+                const x1 = getCenterCoords('node-x1');
+                const x2 = getCenterCoords('node-x2');
+                const adderUp = getCenterCoords('node-upper-adder');
+                const sysUp = getCenterCoords('node-sys-upper');
+                const outUp = getCenterCoords('node-out-upper');
+                const sysDown1 = getCenterCoords('node-sys-lower-1');
+                const sysDown2 = getCenterCoords('node-sys-lower-2');
+                const adderDown = getCenterCoords('node-lower-adder');
+                const comp = getCenterCoords('node-comparator');
+
+                const drawArrow = (fromX, fromY, toX, toY, color = '#64748b', isActive = true) => {
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    const dx = toX - fromX;
+                    const dy = toY - fromY;
+                    let d = `M ${fromX} ${fromY} C ${fromX + dx/2} ${fromY}, ${toX - dx/2} ${toY}, ${toX} ${toY}`;
+                    
+                    path.setAttribute("d", d);
+                    path.setAttribute("fill", "transparent");
+                    path.setAttribute("stroke", color);
+                    path.setAttribute("stroke-width", isActive ? "2.5" : "1.5");
+                    if (isActive) {
+                        path.setAttribute("class", "flow-line-active");
+                    }
+                    svg.appendChild(path);
+                };
+
+                // Upper Path Flow Lines
+                drawArrow(x1.right, x1.y, adderUp.left, adderUp.y - 10, '#6366f1', isPlaying);
+                drawArrow(x2.right, x2.y, adderUp.left, adderUp.y + 10, '#10b981', isPlaying);
+                drawArrow(adderUp.right, adderUp.y, sysUp.left, sysUp.y, '#818cf8', isPlaying);
+                drawArrow(sysUp.right, sysUp.y, outUp.left, outUp.y, '#a78bfa', isPlaying);
+                drawArrow(outUp.right, outUp.y, comp.left, comp.y - 15, '#c084fc', isPlaying);
+
+                // Lower Path Flow Lines
+                drawArrow(x1.right, x1.y, sysDown1.left, sysDown1.y, '#6366f1', isPlaying);
+                drawArrow(x2.right, x2.y, sysDown2.left, sysDown2.y, '#10b981', isPlaying);
+                drawArrow(sysDown1.right, sysDown1.y, adderDown.left, adderDown.y - 10, '#818cf8', isPlaying);
+                drawArrow(sysDown2.right, sysDown2.y, adderDown.left, adderDown.y + 10, '#34d399', isPlaying);
+                drawArrow(adderDown.right, adderDown.y, comp.left, comp.y + 15, '#2dd4bf', isPlaying);
+            } 
+            else if (activeTab === 'time-invariance') {
+                const svg = document.getElementById('ti-flowchart-svg');
+                if (!svg) return;
+                svg.innerHTML = ``; // Clear
+
+                const getCenterCoords = (id) => {
+                    const el = document.getElementById(id);
+                    const svgRect = svg.getBoundingClientRect();
+                    if (!el) return { x: 0, y: 0 };
+                    const r = el.getBoundingClientRect();
+                    return {
+                        x: r.left - svgRect.left + r.width / 2,
+                        y: r.top - svgRect.top + r.height / 2,
+                        right: r.right - svgRect.left,
+                        left: r.left - svgRect.left
+                    };
+                };
+
+                const src = getCenterCoords('ti-node-src');
+                const delUp = getCenterCoords('ti-node-delay-up');
+                const sysUp = getCenterCoords('ti-node-sys-up');
+                const sysDown = getCenterCoords('ti-node-sys-down');
+                const delDown = getCenterCoords('ti-node-delay-down');
+                const outUp = getCenterCoords('ti-node-out-up');
+                const outDown = getCenterCoords('ti-node-out-down');
+                const comp = getCenterCoords('ti-node-comparator');
+
+                const drawArrow = (fromX, fromY, toX, toY, color = '#14b8a6', isActive = true) => {
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    const dx = toX - fromX;
+                    let d = `M ${fromX} ${fromY} C ${fromX + dx/2} ${fromY}, ${toX - dx/2} ${toY}, ${toX} ${toY}`;
+                    path.setAttribute("d", d);
+                    path.setAttribute("fill", "transparent");
+                    path.setAttribute("stroke", color);
+                    path.setAttribute("stroke-width", "2.5");
+                    if (isActive) {
+                        path.setAttribute("class", "flow-line-active");
+                    }
+                    svg.appendChild(path);
+                };
+
+                // Flow path curves
+                drawArrow(src.right, src.y, delUp.left, delUp.y, '#6366f1', isPlaying);
+                drawArrow(src.right, src.y, sysDown.left, sysDown.y, '#14b8a6', isPlaying);
+                
+                // Lines across systems inside the container grids are complemented by flowchart cards
+                drawArrow(sysUp.right, sysUp.y, outUp.left, outUp.y, '#6366f1', isPlaying);
+                drawArrow(delDown.right, delDown.y, outDown.left, outDown.y, '#14b8a6', isPlaying);
+
+                drawArrow(outUp.right, outUp.y, comp.left, comp.y - 12, '#818cf8', isPlaying);
+                drawArrow(outDown.right, outDown.y, comp.left, comp.y + 12, '#2dd4bf', isPlaying);
+            }
+        }
+
+        window.addEventListener('resize', drawFlowlines);
+
+        // Main Loop Calculation and Draw Calls
+        function processAndRender() {
+            if (isPlaying) {
+                // Keep rolling continuous scrolling offset
+                timeOffset += 0.05;
+                if (timeOffset > 2 * Math.PI * 10) timeOffset = 0;
+            }
+
+            // 1. Build Base Signal Arrays with scaling coefficients
+            let x1 = [];
+            let x2 = [];
+            
+            for (let i = 0; i < pointsCount; i++) {
+                let t = tArray[i];
+                // Apply dynamic time roll for continuous motion feel
+                let dynamicT = isPlaying ? (t + timeOffset) % tMax : t;
+                
+                x1.push(valA1 * getWaveformValue(wave1Type, dynamicT));
+                x2.push(valA2 * getWaveformValue(wave2Type, dynamicT));
+            }
+
+            // 2. Perform Linearity Transformations
+            // Upper path: Add first -> x_sum = a1*x1 + a2*x2 -> then apply T
+            let x_sum = x1.map((val, idx) => val + x2[idx]);
+            let y_upper_linearity = applySystemT(x_sum, systemType);
+
+            // Lower path: Apply T separately -> y1=T{x1}, y2=T{x2} -> then add y1+y2
+            let y1_lin = applySystemT(x1, systemType);
+            let y2_lin = applySystemT(x2, systemType);
+            let y_lower_linearity = y1_lin.map((val, idx) => val + y2_lin[idx]);
+
+            // Draw Linearity Mini scopes
+            drawMiniScope('canvas-x1', x1, '#6366f1');
+            drawMiniScope('canvas-x2', x2, '#10b981');
+            drawMiniScope('canvas-sum-in', x_sum, '#818cf8');
+            drawMiniScope('canvas-out-upper', y_upper_linearity, '#a78bfa');
+            drawMiniScope('canvas-out-lower', y_lower_linearity, '#2dd4bf');
+            drawMiniScope('canvas-comparison', y_upper_linearity, '#818cf8');
+
+            // Draw Linearity Full Scope
+            drawDetailedOverlay(
+                'canvas-lin-scope', 
+                y_upper_linearity, 
+                y_lower_linearity, 
+                '#6366f1', 
+                '#f59e0b', 
+                'T{x1 + x2}', 
+                'y1 + y2'
+            );
+
+            // Confirm Linearity state
+            let linError = 0;
+            for (let i = 0; i < pointsCount; i++) {
+                linError += Math.pow(y_upper_linearity[i] - y_lower_linearity[i], 2);
+            }
+            linError /= pointsCount;
+
+            const linearityPassed = linError < 1e-4;
+            if (linearityPassed) {
+                lightLinearity.className = "h-2 w-2 rounded-full bg-emerald-400 animate-pulse";
+                textLinearityMatch.className = "text-[10px] font-bold text-emerald-400 uppercase tracking-wide";
+                textLinearityMatch.innerText = "MATCHED (Linear)";
+            } else {
+                lightLinearity.className = "h-2 w-2 rounded-full bg-rose-500 animate-ping";
+                textLinearityMatch.className = "text-[10px] font-bold text-rose-400 uppercase tracking-wide";
+                textLinearityMatch.innerText = "MISMATCH (Non-Linear)";
+            }
+
+
+            // 3. Perform Time Invariance Transformations
+            // We use x1 as the source signal for this check
+            let ti_src = [...x1];
+            
+            // Upper path: Delay Input by k -> x_delayed(t) = x(t-k) -> then apply T
+            let ti_delayed_input = [];
+            for (let i = 0; i < pointsCount; i++) {
+                let t = tArray[i];
+                let val = sampleSignalAt(ti_src, t - valK);
+                ti_delayed_input.push(val);
+            }
+            let y_delayed_input = applySystemT(ti_delayed_input, systemType);
+
+            // Lower path: Apply T first -> y(t) -> then delay output by k -> y(t-k)
+            let y_pure = applySystemT(ti_src, systemType);
+            let y_delayed_output = [];
+            for (let i = 0; i < pointsCount; i++) {
+                let t = tArray[i];
+                let val = sampleSignalAt(y_pure, t - valK);
+                y_delayed_output.push(val);
+            }
+
+            // Draw Time Invariance Mini scopes
+            drawMiniScope('canvas-ti-src', ti_src, '#6366f1');
+            drawMiniScope('canvas-ti-out-up', y_delayed_input, '#818cf8');
+            drawMiniScope('canvas-ti-out-down', y_delayed_output, '#14b8a6');
+            drawMiniScope('canvas-ti-comparison', y_delayed_input, '#2dd4bf');
+
+            // Draw TI Full Scope
+            drawDetailedOverlay(
+                'canvas-ti-scope', 
+                y_delayed_input, 
+                y_delayed_output, 
+                '#2dd4bf', 
+                '#f43f5e', 
+                'T{x(t-k)}', 
+                'y(t-k)'
+            );
+
+            // Confirm TI state
+            let tiError = 0;
+            for (let i = 0; i < pointsCount; i++) {
+                tiError += Math.pow(y_delayed_input[i] - y_delayed_output[i], 2);
+            }
+            tiError /= pointsCount;
+
+            const tiPassed = tiError < 1e-4;
+            if (tiPassed) {
+                lightTi.className = "h-2 w-2 rounded-full bg-emerald-400 animate-pulse";
+                textTiMatch.className = "text-[10px] font-bold text-emerald-400 uppercase tracking-wide";
+                textTiMatch.innerText = "MATCHED (Time-Invariant)";
+            } else {
+                lightTi.className = "h-2 w-2 rounded-full bg-rose-500 animate-ping";
+                textTiMatch.className = "text-[10px] font-bold text-rose-400 uppercase tracking-wide";
+                textTiMatch.innerText = "MISMATCH (Time-Varying)";
+            }
+
+
+            // 4. Combined Sandbox Synthesis
+            // T{a1*x1[n-k] + a2*x2[n-k]}   vs   a1*y1[n-k] + a2*y2[n-k]
+            let x1_delayed = [];
+            let x2_delayed = [];
+            for (let i = 0; i < pointsCount; i++) {
+                let t = tArray[i];
+                x1_delayed.push(sampleSignalAt(x1, t - valK));
+                x2_delayed.push(sampleSignalAt(x2, t - valK));
+            }
+
+            // Input composite mixture
+            let x_mix_delayed = x1_delayed.map((val, idx) => val + x2_delayed[idx]);
+            // Transform of mix output
+            let y_mix_transformed = applySystemT(x_mix_delayed, systemType);
+
+            // Output synthesis
+            let y1_delayed = [];
+            let y2_delayed = [];
+            for (let i = 0; i < pointsCount; i++) {
+                let t = tArray[i];
+                y1_delayed.push(sampleSignalAt(y1_lin, t - valK));
+                y2_delayed.push(sampleSignalAt(y2_lin, t - valK));
+            }
+            let y_mix_synthesis = y1_delayed.map((val, idx) => val + y2_delayed[idx]);
+
+            // Draw sandbox scopes
+            drawMiniScope('canvas-sandbox-input', x_mix_delayed, '#a855f7');
+            drawMiniScope('canvas-sandbox-system', y_mix_transformed, '#818cf8');
+            drawMiniScope('canvas-sandbox-synthesis', y_mix_synthesis, '#2dd4bf');
+
+            // Overlay scope
+            drawDetailedOverlay(
+                'canvas-sandbox-scope', 
+                y_mix_transformed, 
+                y_mix_synthesis, 
+                '#c084fc', 
+                '#fbbf24', 
+                'T{a1 x1[n-k] + a2 x2[n-k]}', 
+                'a1 y1[n-k] + a2 y2[n-k]'
+            );
+
+            // Combined Sandbox checks
+            const sandboxPassed = linearityPassed && tiPassed;
+            if (sandboxPassed) {
+                lightSandbox.className = "h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse";
+                textSandboxStatus.className = "text-xs font-bold text-emerald-400 uppercase tracking-wide";
+                textSandboxStatus.innerText = "LTI PROPERTY INTEGRITY PERFECTLY MAINTAINED";
+            } else {
+                lightSandbox.className = "h-2.5 w-2.5 rounded-full bg-rose-500 animate-pulse";
+                textSandboxStatus.className = "text-xs font-bold text-rose-500 uppercase tracking-wide";
+                textSandboxStatus.innerText = `LTI PROPERTY FAILED (${!linearityPassed ? 'NON-LINEAR' : ''}${!linearityPassed && !tiPassed ? ' & ' : ''}${!tiPassed ? 'TIME-VARYING' : ''})`;
+            }
+
+            // Request next animation loop
+            requestAnimationFrame(processAndRender);
+        }
+
+        // Initialize variables and triggers
+        window.onload = function() {
+            updateSystemUI();
+            drawFlowlines();
+            processAndRender();
+        }
+    </script>
+</body>
+</html>

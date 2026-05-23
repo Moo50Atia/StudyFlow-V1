@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Systems Explorer: Causality & BIBO Stability</title>
+    <!-- Tailwind CSS for rich dashboard styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #030712;
+        }
+        .fira-code {
+            font-family: 'Fira Code', monospace;
+        }
+        /* Glassmorphism utility */
+        .glass-card {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.3);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.5);
+        }
+        /* Shimmer animation for active status badge */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.5; }
+            100% { transform: scale(0.95); opacity: 1; }
+        }
+        .pulse-dot {
+            animation: pulse-ring 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-indigo-500/30 selection:text-indigo-200">
+
+    <!-- Header -->
+    <header class="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-xl shadow-lg shadow-indigo-500/20">
+                    <i class="fa-solid fa-wave-square text-xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                        Systems Explorer <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Causality & Stability</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Interactive walkthrough of memory properties, temporal barriers, and BIBO limits</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3 bg-slate-900/60 p-1.5 rounded-xl border border-slate-800">
+                <button id="btnPausePlay" class="px-4 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-500/10">
+                    <i id="btnPlayIcon" class="fa-solid fa-pause"></i> <span id="btnPlayText">Pause</span>
+                </button>
+                <button id="btnReset" class="px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all bg-slate-800 hover:bg-slate-700 text-slate-300">
+                    <i class="fa-solid fa-rotate-left"></i> Reset
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow">
+        
+        <!-- Left Column: Interactive Simulation Visualization (Canvas) -->
+        <div class="lg:col-span-8 flex flex-col gap-6">
+            
+            <!-- Core Interactive Visualization Viewport -->
+            <div class="glass-card rounded-2xl overflow-hidden p-6 flex flex-col gap-4 shadow-2xl relative">
+                
+                <!-- Floating Info Badge -->
+                <div class="absolute top-4 left-4 z-10 flex gap-2">
+                    <span id="badgeCausality" class="text-xs font-medium px-2.5 py-1 rounded-md flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot"></span> CAUSAL
+                    </span>
+                    <span id="badgeMemory" class="text-xs font-medium px-2.5 py-1 rounded-md flex items-center gap-1.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                        WITH MEMORY
+                    </span>
+                </div>
+
+                <!-- Simulation Waveform Canvases -->
+                <div class="flex flex-col gap-2 mt-4">
+                    <!-- Input Signal Canvas x(t) -->
+                    <div class="relative">
+                        <div class="absolute right-3 top-2 text-[10px] uppercase tracking-wider text-indigo-400 font-bold bg-indigo-950/40 px-2 py-0.5 rounded border border-indigo-900/30">
+                            Input Signal $x(t)$
+                        </div>
+                        <canvas id="inputCanvas" class="w-full bg-slate-950/80 rounded-xl border border-slate-900/80 shadow-inner h-[130px] block"></canvas>
+                    </div>
+
+                    <!-- Flow and Systems Path Interconnection Canvas -->
+                    <div class="relative h-[80px]">
+                        <div class="absolute inset-y-0 left-1/2 -translate-x-1/2 flex flex-col justify-center items-center z-10 pointer-events-none">
+                            <div class="glass-card px-4 py-1.5 rounded-lg border border-slate-700 shadow-md text-center">
+                                <span class="text-xs font-bold tracking-wider text-slate-200">SYSTEM <span class="fira-code text-indigo-400">H</span></span>
+                            </div>
+                        </div>
+                        <canvas id="systemCanvas" class="w-full h-full block"></canvas>
+                    </div>
+
+                    <!-- Output Signal Canvas y(t) -->
+                    <div class="relative">
+                        <div class="absolute right-3 top-2 text-[10px] uppercase tracking-wider text-cyan-400 font-bold bg-cyan-950/40 px-2 py-0.5 rounded border border-cyan-900/30">
+                            Output Signal $y(t)$
+                        </div>
+                        <canvas id="outputCanvas" class="w-full bg-slate-950/80 rounded-xl border border-slate-900/80 shadow-inner h-[130px] block"></canvas>
+                    </div>
+                </div>
+
+                <!-- Dynamic Conceptual Explainer underneath viewports -->
+                <div class="bg-slate-950/50 p-3.5 rounded-xl border border-slate-900 text-xs text-slate-300 flex items-start gap-3">
+                    <i class="fa-solid fa-circle-info text-indigo-400 text-base mt-0.5"></i>
+                    <div>
+                        <span class="font-semibold text-slate-100">Live Flow Analysis:</span>
+                        <span id="interactiveExplanation">The signal streams leftwards toward the barrier at $t_0$. Shaded past-buffer elements are collected by System H to compute output $y(t_0)$.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls Drawer -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <!-- System Property Configuration -->
+                <div class="glass-card rounded-2xl p-5 flex flex-col gap-4">
+                    <div class="flex items-center gap-2 border-b border-slate-800/60 pb-3">
+                        <i class="fa-solid fa-sliders text-indigo-400 text-sm"></i>
+                        <h3 class="font-semibold text-sm text-slate-100 uppercase tracking-wider">System Properties</h3>
+                    </div>
+
+                    <!-- Memory Toggle -->
+                    <div class="flex flex-col gap-1.5">
+                        <div class="flex justify-between items-center">
+                            <label class="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                                Memory State
+                                <span class="group relative cursor-pointer">
+                                    <i class="fa-solid fa-circle-question text-slate-500 text-[10px] hover:text-slate-300"></i>
+                                    <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900 text-[10px] text-slate-300 rounded shadow-xl hidden group-hover:block z-20 border border-slate-800">
+                                        Memoryless systems depend only on current input $x(t_0)$. Systems with memory depend on past values.
+                                    </span>
+                                </span>
+                            </label>
+                            <span id="lblMemoryState" class="text-[11px] font-semibold text-indigo-400">With Memory</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800/60">
+                            <button id="btnMemoryOn" class="py-1.5 text-xs font-medium rounded-lg transition-all bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shadow-sm">With Memory</button>
+                            <button id="btnMemoryOff" class="py-1.5 text-xs font-medium rounded-lg transition-all text-slate-400 hover:text-slate-200">Memoryless</button>
+                        </div>
+                    </div>
+
+                    <!-- Causality Setting -->
+                    <div class="flex flex-col gap-1.5">
+                        <div class="flex justify-between items-center">
+                            <label class="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                                Causality Type
+                            </label>
+                            <span id="lblCausalityState" class="text-[11px] font-semibold text-emerald-400">Causal</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800/60">
+                            <button id="btnCausalOn" class="py-1.5 text-xs font-medium rounded-lg transition-all bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm">Causal</button>
+                            <button id="btnCausalOff" class="py-1.5 text-xs font-medium rounded-lg transition-all text-slate-400 hover:text-slate-200">Non-Causal</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Signal Feed & Real-time Limit Configs -->
+                <div class="glass-card rounded-2xl p-5 flex flex-col gap-4">
+                    <div class="flex items-center gap-2 border-b border-slate-800/60 pb-3">
+                        <i class="fa-solid fa-wave-square text-cyan-400 text-sm"></i>
+                        <h3 class="font-semibold text-sm text-slate-100 uppercase tracking-wider">Input Signal & Limits</h3>
+                    </div>
+
+                    <!-- Signal Source Picker -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-medium text-slate-400">Select Input Signal $x(t)$</label>
+                        <select id="selectSignal" class="bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3 py-2 outline-none focus:border-indigo-500 transition-colors">
+                            <option value="sine">Bounded Sinusoid (Stable)</option>
+                            <option value="step">Bounded Unit Step (Stable)</option>
+                            <option value="noise">Bounded Bandlimited Noise (Stable)</option>
+                            <option value="growing">Unbounded Exponential Ramp (Unstable Input)</option>
+                        </select>
+                    </div>
+
+                    <!-- Bounds Setup: k1 and k2 sliders -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="flex flex-col gap-1">
+                            <div class="flex justify-between items-center">
+                                <span class="text-[11px] text-slate-400">Input Bound $k_1$</span>
+                                <span id="valK1" class="text-xs font-semibold fira-code text-indigo-400">2.0</span>
+                            </div>
+                            <input id="sliderK1" type="range" min="1.0" max="3.0" step="0.1" value="2.0" class="accent-indigo-500 h-1 bg-slate-950 rounded-lg cursor-pointer">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <div class="flex justify-between items-center">
+                                <span class="text-[11px] text-slate-400">Output Bound $k_2$</span>
+                                <span id="valK2" class="text-xs font-semibold fira-code text-cyan-400">4.0</span>
+                            </div>
+                            <input id="sliderK2" type="range" min="2.0" max="6.0" step="0.1" value="4.0" class="accent-cyan-500 h-1 bg-slate-950 rounded-lg cursor-pointer">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Right Column: Stability Telemetry Dashboard & Meters -->
+        <div class="lg:col-span-4 flex flex-col gap-6">
+            
+            <!-- Real-time Signal Telemetry Gauges -->
+            <div class="glass-card rounded-2xl p-6 flex flex-col gap-6 shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl pointer-events-none rounded-full"></div>
+                
+                <div class="flex items-center gap-2 border-b border-slate-800 pb-3">
+                    <i class="fa-solid fa-gauge-high text-indigo-400 text-base"></i>
+                    <h3 class="font-bold text-sm tracking-wide text-slate-100">BIBO STABILITY MONITOR</h3>
+                </div>
+
+                <!-- Circular Needles Gauges Group -->
+                <div class="grid grid-cols-2 gap-4">
+                    
+                    <!-- Input Meter (x(t) Magnitude) -->
+                    <div class="flex flex-col items-center gap-2">
+                        <span class="text-xs font-semibold text-slate-400">Input Amplitude $|x(t)|$</span>
+                        <div class="relative w-32 h-24">
+                            <!-- SVG Gauge -->
+                            <svg class="w-full h-full" viewBox="0 0 100 70">
+                                <!-- Track Background -->
+                                <path d="M 15 60 A 40 40 0 0 1 85 60" fill="none" stroke="#1e293b" stroke-width="8" stroke-linecap="round"/>
+                                <!-- Safe Green Zone -->
+                                <path id="inputSafeArc" d="M 15 60 A 40 40 0 0 1 70 20" fill="none" stroke="#10b981" stroke-width="8" stroke-opacity="0.2"/>
+                                <!-- Critical Red Threshold Zone -->
+                                <path id="inputDangerArc" d="M 70 20 A 40 40 0 0 1 85 60" fill="none" stroke="#ef4444" stroke-width="8" stroke-opacity="0.2"/>
+                                
+                                <!-- Bound k1 Marker Line -->
+                                <line id="gaugeK1Line" x1="50" y1="50" x2="50" y2="10" stroke="#f43f5e" stroke-width="2" stroke-dasharray="2,2"/>
+                                
+                                <!-- Meter Needle -->
+                                <g id="inputNeedleGroup" transform="rotate(0, 50, 55)">
+                                    <polygon points="48,55 52,55 50,15" fill="#6366f1"/>
+                                    <circle cx="50" cy="55" r="4" fill="#6366f1"/>
+                                </g>
+                            </svg>
+                            <!-- Live text absolute overlaid -->
+                            <div class="absolute bottom-1 inset-x-0 text-center">
+                                <span id="lblInputAmp" class="text-sm font-bold fira-code text-indigo-400">0.00</span>
+                                <span class="text-[10px] text-slate-500"> / <span id="lblK1Limit">2.0</span></span>
+                            </div>
+                        </div>
+                        <div class="text-[10px] text-slate-400 px-2 py-0.5 rounded bg-indigo-950/20 border border-indigo-900/20 flex items-center gap-1">
+                            <i class="fa-solid fa-arrows-left-right text-indigo-400"></i> Bounded if $\le k_1$
+                        </div>
+                    </div>
+
+                    <!-- Output Meter (y(t) Magnitude) -->
+                    <div class="flex flex-col items-center gap-2">
+                        <span class="text-xs font-semibold text-slate-400">Output Amplitude $|y(t)|$</span>
+                        <div class="relative w-32 h-24">
+                            <!-- SVG Gauge -->
+                            <svg class="w-full h-full" viewBox="0 0 100 70">
+                                <!-- Track Background -->
+                                <path d="M 15 60 A 40 40 0 0 1 85 60" fill="none" stroke="#1e293b" stroke-width="8" stroke-linecap="round"/>
+                                <!-- Safe Green Zone -->
+                                <path id="outputSafeArc" d="M 15 60 A 40 40 0 0 1 70 20" fill="none" stroke="#10b981" stroke-width="8" stroke-opacity="0.2"/>
+                                <!-- Critical Red Threshold Zone -->
+                                <path id="outputDangerArc" d="M 70 20 A 40 40 0 0 1 85 60" fill="none" stroke="#ef4444" stroke-width="8" stroke-opacity="0.2"/>
+                                
+                                <!-- Bound k2 Marker Line -->
+                                <line id="gaugeK2Line" x1="50" y1="50" x2="50" y2="10" stroke="#f43f5e" stroke-width="2" stroke-dasharray="2,2"/>
+                                
+                                <!-- Meter Needle -->
+                                <g id="outputNeedleGroup" transform="rotate(0, 50, 55)">
+                                    <polygon points="48,55 52,55 50,15" fill="#22d3ee"/>
+                                    <circle cx="50" cy="55" r="4" fill="#22d3ee"/>
+                                </g>
+                            </svg>
+                            <!-- Live text absolute overlaid -->
+                            <div class="absolute bottom-1 inset-x-0 text-center">
+                                <span id="lblOutputAmp" class="text-sm font-bold fira-code text-cyan-400">0.00</span>
+                                <span class="text-[10px] text-slate-500"> / <span id="lblK2Limit">4.0</span></span>
+                            </div>
+                        </div>
+                        <div class="text-[10px] text-slate-400 px-2 py-0.5 rounded bg-cyan-950/20 border border-cyan-900/20 flex items-center gap-1">
+                            <i class="fa-solid fa-arrows-left-right text-cyan-400"></i> Bounded if $\le k_2$
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- BIBO Verdict Panel -->
+                <div id="verdictPanel" class="p-4 rounded-xl border flex items-center justify-between gap-3 bg-emerald-500/10 border-emerald-500/20 text-emerald-400">
+                    <div class="flex flex-col">
+                        <span class="text-[10px] font-bold uppercase tracking-wider opacity-80">Stability Diagnostics</span>
+                        <span id="verdictText" class="text-xs font-semibold">System is BIBO STABLE!</span>
+                        <p id="verdictDesc" class="text-[10px] opacity-90 mt-0.5 text-slate-300">Bounded inputs lead to bounded outputs within $k_2$ threshold limits.</p>
+                    </div>
+                    <div id="verdictIconContainer" class="w-10 h-10 rounded-full flex items-center justify-center bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 flex-shrink-0">
+                        <i id="verdictIcon" class="fa-solid fa-circle-check text-lg"></i>
+                    </div>
+                </div>
+
+                <!-- Stable System Config toggle -->
+                <div class="flex flex-col gap-2">
+                    <span class="text-xs font-semibold text-slate-400">Choose Filter Response Type:</span>
+                    <div class="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                        <button id="btnStableFilter" class="py-1.5 text-[11px] font-semibold rounded-lg transition-all bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm">Stable Lowpass</button>
+                        <button id="btnUnstableFilter" class="py-1.5 text-[11px] font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200">Unstable Accumulator</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Mathematical Definition Card -->
+            <div class="glass-card rounded-2xl p-5 flex flex-col gap-4 shadow-xl">
+                <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
+                    <i class="fa-solid fa-book text-slate-400 text-xs"></i>
+                    <h4 class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Concept Guide</h4>
+                </div>
+                <div class="flex flex-col gap-3 text-xs text-slate-300 leading-relaxed">
+                    <div>
+                        <span class="text-indigo-400 font-semibold block mb-0.5">Causality Formula</span>
+                        <p class="fira-code text-[11px] bg-slate-950/80 p-2 rounded border border-slate-900 text-indigo-300">
+                            y(t₀) = H{x(τ); τ ≤ t₀}
+                        </p>
+                        <p class="mt-1 text-[11px] text-slate-400">Outputs do not depend on the future values $x(\tau)$ where $\tau > t_0$.</p>
+                    </div>
+                    <div>
+                        <span class="text-cyan-400 font-semibold block mb-0.5">BIBO Criterion</span>
+                        <p class="fira-code text-[11px] bg-slate-950/80 p-2 rounded border border-slate-900 text-cyan-300">
+                            |x(t)| ≤ k₁ ⇒ |y(t)| ≤ k₂ &lt; ∞
+                        </p>
+                        <p class="mt-1 text-[11px] text-slate-400">Every bounded input must produce a bounded output to ensure the system doesn't blow up.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-900 bg-slate-950/50 text-slate-500 text-xs text-center py-4 px-6">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+            <span>Systems Engineering Laboratory Simulation 2026</span>
+            <span class="flex items-center gap-1 text-slate-400">
+                <i class="fa-solid fa-circle text-emerald-500 text-[8px] animate-pulse"></i> Interactive Real-Time Simulator
+            </span>
+        </div>
+    </footer>
+
+    <script>
+        // Setup State variables
+        const state = {
+            isPlaying: true,
+            systemMode: 'memory', // 'memory' | 'memoryless'
+            causality: 'causal',  // 'causal' | 'noncausal'
+            signalType: 'sine',   // 'sine' | 'step' | 'noise' | 'growing'
+            systemStability: 'stable', // 'stable' | 'unstable'
+            k1: 2.0,
+            k2: 4.0,
+            time: 0,
+            samplesCount: 400,
+            t0Index: 250, // The temporal barrier current index
+            // Predefined buffers for smooth rendering
+            inputSignal: [],
+            outputSignal: [],
+            // Pulse wave animation properties
+            probePulsePhase: 0
+        };
+
+        // Initialize wave buffers
+        for (let i = 0; i < state.samplesCount; i++) {
+            state.inputSignal.push(0);
+            state.outputSignal.push(0);
+        }
+
+        // DOM elements
+        const inputCanvas = document.getElementById('inputCanvas');
+        const systemCanvas = document.getElementById('systemCanvas');
+        const outputCanvas = document.getElementById('outputCanvas');
+
+        const ctxIn = inputCanvas.getContext('2d');
+        const ctxSys = systemCanvas.getContext('2d');
+        const ctxOut = outputCanvas.getContext('2d');
+
+        // Buttons
+        const btnPausePlay = document.getElementById('btnPausePlay');
+        const btnPlayIcon = document.getElementById('btnPlayIcon');
+        const btnPlayText = document.getElementById('btnPlayText');
+        const btnReset = document.getElementById('btnReset');
+        const btnMemoryOn = document.getElementById('btnMemoryOn');
+        const btnMemoryOff = document.getElementById('btnMemoryOff');
+        const btnCausalOn = document.getElementById('btnCausalOn');
+        const btnCausalOff = document.getElementById('btnCausalOff');
+        const btnStableFilter = document.getElementById('btnStableFilter');
+        const btnUnstableFilter = document.getElementById('btnUnstableFilter');
+        
+        // Select & Sliders
+        const selectSignal = document.getElementById('selectSignal');
+        const sliderK1 = document.getElementById('sliderK1');
+        const sliderK2 = document.getElementById('sliderK2');
+        const valK1 = document.getElementById('valK1');
+        const valK2 = document.getElementById('valK2');
+        const lblK1Limit = document.getElementById('lblK1Limit');
+        const lblK2Limit = document.getElementById('lblK2Limit');
+
+        // Labels & Indicators
+        const lblMemoryState = document.getElementById('lblMemoryState');
+        const lblCausalityState = document.getElementById('lblCausalityState');
+        const badgeMemory = document.getElementById('badgeMemory');
+        const badgeCausality = document.getElementById('badgeCausality');
+        const interactiveExplanation = document.getElementById('interactiveExplanation');
+        const lblInputAmp = document.getElementById('lblInputAmp');
+        const lblOutputAmp = document.getElementById('lblOutputAmp');
+
+        // Verdict DOM
+        const verdictPanel = document.getElementById('verdictPanel');
+        const verdictText = document.getElementById('verdictText');
+        const verdictDesc = document.getElementById('verdictDesc');
+        const verdictIconContainer = document.getElementById('verdictIconContainer');
+        const verdictIcon = document.getElementById('verdictIcon');
+
+        // Gauge indicators
+        const inputNeedleGroup = document.getElementById('inputNeedleGroup');
+        const outputNeedleGroup = document.getElementById('outputNeedleGroup');
+
+        // Calculate raw input sample based on time index and signal configuration
+        function generateInputSample(t, forceType = null) {
+            const type = forceType || state.signalType;
+            let val = 0;
+            switch (type) {
+                case 'sine':
+                    // A bounded sine wave with varying harmonics
+                    val = 1.3 * Math.sin(t * 0.05) + 0.4 * Math.cos(t * 0.12);
+                    break;
+                case 'step':
+                    // Smooth rising bounded step
+                    if (t % 150 < 75) {
+                        val = 1.5;
+                    } else {
+                        val = -0.5;
+                    }
+                    break;
+                case 'noise':
+                    // Bandlimited pseudorandom bounded noise
+                    val = 0.9 * Math.sin(t * 0.07) + 0.4 * Math.sin(t * 0.23) + 0.3 * Math.sin(t * 0.5);
+                    break;
+                case 'growing':
+                    // Unbounded input: Exponential growth, wraps smoothly to create cyclical tests
+                    const modT = (t % 200);
+                    val = 0.2 * Math.exp(modT * 0.018) - 1.0;
+                    break;
+            }
+            return val;
+        }
+
+        // Process the buffer to compute outputs using system modes
+        function updateSystem() {
+            if (!state.isPlaying) return;
+
+            state.time++;
+
+            // Shift input signal to left (simulating flow towards past)
+            state.inputSignal.shift();
+            // Generate future incoming signal at end of line (index 399 is far-future)
+            const nextSample = generateInputSample(state.time);
+            state.inputSignal.push(nextSample);
+
+            // Calculate output signal elements
+            // We need to build the continuous historical/current output signal so that the graph flows nicely.
+            // In a real online system, we compute output at current time t0 using past inputs.
+            // Let's compute y(t) for every visible index from 0 to t0Index to show the historical trace.
+            
+            // Temporary output array to rebuild smoothly
+            const outTemp = [];
+            for (let i = 0; i < state.samplesCount; i++) {
+                outTemp.push(0);
+            }
+
+            // Calculate values for all points on output canvas
+            for (let i = 0; i <= state.t0Index; i++) {
+                outTemp[i] = computeOutputSampleAt(i);
+            }
+
+            // For visual continuation past the barrier (future output visualization for Non-Causal or forecast modes):
+            for (let i = state.t0Index + 1; i < state.samplesCount; i++) {
+                // If Causal, future output is drawn as 0 or undefined, or standard causal projection
+                if (state.causality === 'noncausal') {
+                    outTemp[i] = computeOutputSampleAt(i);
+                } else {
+                    // Future is unknown or zero-padded for visual balance
+                    outTemp[i] = 0;
+                }
+            }
+
+            state.outputSignal = outTemp;
+            state.probePulsePhase = (state.probePulsePhase + 0.05) % 1;
+        }
+
+        // Core system definition y(t) = H{x(t)}
+        function computeOutputSampleAt(idx) {
+            // Memoryless System
+            if (state.systemMode === 'memoryless') {
+                const x0 = state.inputSignal[idx];
+                if (state.systemStability === 'stable') {
+                    // Stable Memoryless: Non-linear bounded scaler
+                    return 1.6 * x0; 
+                } else {
+                    // Unstable Memoryless: High gain cubic multiplier that can blow past limits
+                    return 0.9 * Math.pow(x0, 3);
+                }
+            }
+
+            // System with Memory:
+            // Stable Causal: A moving average low-pass filter
+            if (state.systemStability === 'stable') {
+                if (state.causality === 'causal') {
+                    // Only past samples (to the left of idx)
+                    let sum = 0;
+                    const N = 12; // Averaging filter length
+                    let count = 0;
+                    for (let d = 0; d < N; d++) {
+                        const targetIdx = idx - d;
+                        if (targetIdx >= 0) {
+                            sum += state.inputSignal[targetIdx];
+                            count++;
+                        }
+                    }
+                    return count > 0 ? (sum / count) * 1.8 : 0;
+                } else {
+                    // Non-Causal: accesses elements in the future (to the right of idx)
+                    let sum = 0;
+                    const N = 16;
+                    let count = 0;
+                    for (let d = -8; d < 8; d++) {
+                        const targetIdx = idx - d;
+                        if (targetIdx >= 0 && targetIdx < state.samplesCount) {
+                            sum += state.inputSignal[targetIdx];
+                            count++;
+                        }
+                    }
+                    return count > 0 ? (sum / count) * 1.8 : 0;
+                }
+            } else {
+                // Unstable Filter with Memory: Accumulator/Integrator with feedback loop
+                // If input is step or non-zero, this ramps up indefinitely
+                if (state.causality === 'causal') {
+                    // Accumulate from start up to idx
+                    let sum = 0;
+                    // To prevent immediate game-breaking overflow, let's accumulate local history with positive feedback
+                    const integratorDepth = 30;
+                    for (let d = 0; d < integratorDepth; d++) {
+                        const targetIdx = idx - d;
+                        if (targetIdx >= 0) {
+                            // Weighting past inputs higher to represent a pole outside the unit circle
+                            sum += state.inputSignal[targetIdx] * (1.0 + d * 0.05);
+                        }
+                    }
+                    return sum * 0.2;
+                } else {
+                    // Non-Causal Unstable
+                    let sum = 0;
+                    const depth = 20;
+                    for (let d = -10; d < depth; d++) {
+                        const targetIdx = idx - d;
+                        if (targetIdx >= 0 && targetIdx < state.samplesCount) {
+                            sum += state.inputSignal[targetIdx] * 1.2;
+                        }
+                    }
+                    return sum * 0.2;
+                }
+            }
+        }
+
+        // Utility to resize canvas components responsively
+        function resizeCanvases() {
+            const containerWidth = inputCanvas.parentElement.clientWidth;
+            
+            inputCanvas.width = containerWidth;
+            inputCanvas.height = 130;
+            
+            systemCanvas.width = containerWidth;
+            systemCanvas.height = 80;
+            
+            outputCanvas.width = containerWidth;
+            outputCanvas.height = 130;
+        }
+
+        window.addEventListener('resize', resizeCanvases);
+        resizeCanvases();
+
+        // Draw everything on our synchronized displays
+        function drawVisualizations() {
+            const w = inputCanvas.width;
+            const hIn = inputCanvas.height;
+            const hSys = systemCanvas.height;
+            const hOut = outputCanvas.height;
+
+            const t0X = (state.t0Index / state.samplesCount) * w;
+
+            // 1. Draw Input Canvas x(t)
+            ctxIn.fillStyle = '#020617';
+            ctxIn.fillRect(0, 0, w, hIn);
+
+            // Draw grid lines
+            ctxIn.strokeStyle = '#0f172a';
+            ctxIn.lineWidth = 1;
+            for (let i = 0; i < w; i += 40) {
+                ctxIn.beginPath();
+                ctxIn.moveTo(i, 0);
+                ctxIn.lineTo(i, hIn);
+                ctxIn.stroke();
+            }
+
+            // Draw limits k1 shaded bounds and lines
+            const yK1Upper = hIn / 2 - (state.k1 * (hIn / 6));
+            const yK1Lower = hIn / 2 + (state.k1 * (hIn / 6));
+            
+            ctxIn.fillStyle = 'rgba(99, 102, 241, 0.03)';
+            ctxIn.fillRect(0, yK1Upper, w, yK1Lower - yK1Upper);
+            
+            ctxIn.strokeStyle = 'rgba(244, 63, 94, 0.4)';
+            ctxIn.setLineDash([5, 5]);
+            ctxIn.beginPath();
+            ctxIn.moveTo(0, yK1Upper); ctxIn.lineTo(w, yK1Upper);
+            ctxIn.moveTo(0, yK1Lower); ctxIn.lineTo(w, yK1Lower);
+            ctxIn.stroke();
+            ctxIn.setLineDash([]);
+            
+            ctxIn.fillStyle = 'rgba(244, 63, 94, 0.8)';
+            ctxIn.font = '10px "Fira Code", monospace';
+            ctxIn.fillText(`+k₁ (${state.k1.toFixed(1)})`, 8, yK1Upper - 4);
+            ctxIn.fillText(`-k₁ (-${state.k1.toFixed(1)})`, 8, yK1Lower + 12);
+
+            // Draw past buffer highlighting if we are in memory mode
+            if (state.systemMode === 'memory') {
+                ctxIn.fillStyle = 'rgba(99, 102, 241, 0.06)';
+                ctxIn.fillRect(0, 0, t0X, hIn);
+                
+                ctxIn.fillStyle = 'rgba(99, 102, 241, 0.4)';
+                ctxIn.font = '9px "Inter"';
+                ctxIn.fillText('ACTIVE HISTORICAL PAST-BUFFER', 10, hIn - 10);
+            }
+
+            // Draw input waveform x(t)
+            ctxIn.beginPath();
+            ctxIn.lineWidth = 2.5;
+            ctxIn.strokeStyle = '#818cf8'; // Violet
+            for (let i = 0; i < state.samplesCount; i++) {
+                const xVal = (i / state.samplesCount) * w;
+                const signalVal = state.inputSignal[i];
+                const yVal = hIn / 2 - (signalVal * (hIn / 6));
+                if (i === 0) ctxIn.moveTo(xVal, yVal);
+                else ctxIn.lineTo(xVal, yVal);
+            }
+            ctxIn.stroke();
+
+            // 2. Draw Temporal Barrier t0 across both input and output canvases
+            drawTemporalBarrier(ctxIn, t0X, hIn, 'Input Current Time t₀');
+            drawTemporalBarrier(ctxOut, t0X, hOut, 'Output Current Time t₀');
+
+            // 3. Draw System Canvas & Processing Probe Path Flow
+            ctxSys.fillStyle = '#020617';
+            ctxSys.fillRect(0, 0, w, hSys);
+
+            // Draw system background axis guide lines
+            ctxSys.strokeStyle = '#0f172a';
+            ctxSys.lineWidth = 1;
+            ctxSys.beginPath();
+            ctxSys.moveTo(t0X, 0); ctxSys.lineTo(t0X, hSys);
+            ctxSys.stroke();
+
+            // Draw probe cables connecting signal indexes to system block in center
+            const sysBoxCenterX = w / 2;
+            const sysBoxY = hSys / 2;
+
+            ctxSys.lineWidth = 1.5;
+            
+            // Check memory conditions to spawn connectors
+            const sampleOffsets = [];
+            if (state.systemMode === 'memory') {
+                if (state.causality === 'causal') {
+                    // Probe past points on the left
+                    sampleOffsets.push(0, -6, -12, -24, -36);
+                } else {
+                    // Probe both future and past
+                    sampleOffsets.push(12, 6, 0, -6, -12, -24);
+                }
+            } else {
+                // Memoryless: only index 0 offset (at current time t0)
+                sampleOffsets.push(0);
+            }
+
+            sampleOffsets.forEach((offset) => {
+                const signalIdx = state.t0Index + offset;
+                if (signalIdx < 0 || signalIdx >= state.samplesCount) return;
+
+                const sigX = (signalIdx / state.samplesCount) * w;
+                
+                // Set color: Red if accessing future (violating causality), indigo/violet if past
+                let probeColor = 'rgba(99, 102, 241, 0.4)'; // Safe indigo
+                if (offset > 0) {
+                    probeColor = 'rgba(244, 63, 94, 0.8)'; // Future alert coral
+                }
+
+                ctxSys.strokeStyle = probeColor;
+                
+                // Draw curve connection from top input point down to system block
+                ctxSys.beginPath();
+                ctxSys.moveTo(sigX, 0);
+                ctxSys.bezierCurveTo(
+                    sigX, hSys * 0.4,
+                    sysBoxCenterX, hSys * 0.2,
+                    sysBoxCenterX, sysBoxY
+                );
+                ctxSys.stroke();
+
+                // Draw moving packets along the active path
+                if (state.isPlaying) {
+                    const pulseDist = (state.probePulsePhase + (Math.abs(offset) / 50)) % 1;
+                    const pY = pulseDist * sysBoxY;
+                    const pX = sigX + (sysBoxCenterX - sigX) * (pulseDist * pulseDist); // Quadratic interpolation curves
+                    ctxSys.fillStyle = offset > 0 ? '#f43f5e' : '#a5b4fc';
+                    ctxSys.beginPath();
+                    ctxSys.circle = ctxSys.arc(pX, pY, 3, 0, Math.PI * 2);
+                    ctxSys.fill();
+                }
+            });
+
+            // Outgoing line from system block to output t0 center
+            ctxSys.strokeStyle = '#22d3ee'; // Cyan output line
+            ctxSys.beginPath();
+            ctxSys.moveTo(sysBoxCenterX, sysBoxY);
+            ctxSys.bezierCurveTo(
+                sysBoxCenterX, hSys * 0.8,
+                t0X, hSys * 0.7,
+                t0X, hSys
+            );
+            ctxSys.stroke();
+
+            // 4. Draw Output Canvas y(t)
+            ctxOut.fillStyle = '#020617';
+            ctxOut.fillRect(0, 0, w, hOut);
+
+            // Draw grid lines
+            ctxOut.strokeStyle = '#0f172a';
+            ctxOut.lineWidth = 1;
+            for (let i = 0; i < w; i += 40) {
+                ctxOut.beginPath();
+                ctxOut.moveTo(i, 0);
+                ctxOut.lineTo(i, hOut);
+                ctxOut.stroke();
+            }
+
+            // Draw limit k2 shaded bounds and lines
+            const yK2Upper = hOut / 2 - (state.k2 * (hOut / 12));
+            const yK2Lower = hOut / 2 + (state.k2 * (hOut / 12));
+
+            ctxOut.fillStyle = 'rgba(34, 211, 238, 0.02)';
+            ctxOut.fillRect(0, yK2Upper, w, yK2Lower - yK2Upper);
+
+            ctxOut.strokeStyle = 'rgba(244, 63, 94, 0.4)';
+            ctxOut.setLineDash([5, 5]);
+            ctxOut.beginPath();
+            ctxOut.moveTo(0, yK2Upper); ctxOut.lineTo(w, yK2Upper);
+            ctxOut.moveTo(0, yK2Lower); ctxOut.lineTo(w, yK2Lower);
+            ctxOut.stroke();
+            ctxOut.setLineDash([]);
+
+            ctxOut.fillStyle = 'rgba(244, 63, 94, 0.8)';
+            ctxOut.font = '10px "Fira Code", monospace';
+            ctxOut.fillText(`+k₂ (${state.k2.toFixed(1)})`, 8, yK2Upper - 4);
+            ctxOut.fillText(`-k₂ (-${state.k2.toFixed(1)})`, 8, yK2Lower + 12);
+
+            // Draw Output waveform y(t)
+            ctxOut.beginPath();
+            ctxOut.lineWidth = 2.5;
+            ctxOut.strokeStyle = '#22d3ee'; // Cyan
+            
+            // Draw past output up to t0 (or full waveform if non-causal is allowed to compute the future)
+            const renderLimit = state.causality === 'noncausal' ? state.samplesCount : state.t0Index;
+
+            for (let i = 0; i < renderLimit; i++) {
+                const xVal = (i / state.samplesCount) * w;
+                const signalVal = state.outputSignal[i];
+                const yVal = hOut / 2 - (signalVal * (hOut / 12));
+                if (i === 0) ctxOut.moveTo(xVal, yVal);
+                else ctxOut.lineTo(xVal, yVal);
+            }
+            ctxOut.stroke();
+
+            // Highlight output sample point precisely at current t0 with a pulse circle
+            const t0OutVal = state.outputSignal[state.t0Index];
+            const t0OutY = hOut / 2 - (t0OutVal * (hOut / 12));
+            ctxOut.fillStyle = '#22d3ee';
+            ctxOut.beginPath();
+            ctxOut.arc(t0X, t0OutY, 5, 0, Math.PI * 2);
+            ctxOut.fill();
+            
+            // Pulsing rings around current computed output
+            ctxOut.strokeStyle = 'rgba(34, 211, 238, 0.5)';
+            ctxOut.lineWidth = 1.5;
+            ctxOut.beginPath();
+            ctxOut.arc(t0X, t0OutY, 5 + (state.probePulsePhase * 10), 0, Math.PI * 2);
+            ctxOut.stroke();
+        }
+
+        // Shared helper for vertical temporal barrier rendering
+        function drawTemporalBarrier(ctx, x, h, label) {
+            // Barrier Line
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = state.causality === 'noncausal' ? 'rgba(244, 63, 94, 0.8)' : 'rgba(244, 63, 94, 0.6)'; // Amber warning color
+            ctx.setLineDash([2, 4]);
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, h);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Barrier Text Label
+            ctx.fillStyle = 'rgba(244, 63, 94, 0.9)';
+            ctx.font = '10px "Inter"';
+            ctx.fillText(label, x + 6, 16);
+            
+            // Shaded "Future Zone" overlay to block/shade accessibility
+            if (state.causality === 'causal') {
+                ctx.fillStyle = 'rgba(3, 7, 18, 0.65)';
+                ctx.fillRect(x, 0, ctx.canvas.width - x, h);
+                
+                ctx.fillStyle = 'rgba(148, 163, 184, 0.3)';
+                ctx.font = '11px "Inter"';
+                ctx.fillText('FUTURE (UNREALIZED)', x + 20, h - 10);
+            }
+        }
+
+        // Updates the SVG dials, bounds warnings, and stability checkmarks
+        function updateTelemetryAndMeters() {
+            // Get absolute current values at t0
+            const inAmp = Math.abs(state.inputSignal[state.t0Index]);
+            const outAmp = Math.abs(state.outputSignal[state.t0Index]);
+
+            lblInputAmp.innerText = inAmp.toFixed(2);
+            lblOutputAmp.innerText = outAmp.toFixed(2);
+
+            lblK1Limit.innerText = state.k1.toFixed(1);
+            lblK2Limit.innerText = state.k2.toFixed(1);
+
+            // Update gauges needles angle (range is roughly -90 deg to 90 deg for 0 to maximum bound value)
+            // Clamp input needle to gauge max = 3.0
+            const inputPct = Math.min(inAmp / 3.0, 1.0);
+            const inputAngle = -90 + (inputPct * 180);
+            inputNeedleGroup.setAttribute('transform', `rotate(${inputAngle}, 50, 55)`);
+
+            // Clamp output needle to gauge max = 6.0
+            const outputPct = Math.min(outAmp / 6.0, 1.0);
+            const outputAngle = -90 + (outputPct * 180);
+            outputNeedleGroup.setAttribute('transform', `rotate(${outputAngle}, 50, 55)`);
+
+            // Adjust needle colors based on bounding constraints
+            const inputNeedleShape = inputNeedleGroup.querySelector('polygon');
+            const inputNeedleDot = inputNeedleGroup.querySelector('circle');
+            if (inAmp > state.k1) {
+                inputNeedleShape.setAttribute('fill', '#ef4444');
+                inputNeedleDot.setAttribute('fill', '#ef4444');
+            } else {
+                inputNeedleShape.setAttribute('fill', '#6366f1');
+                inputNeedleDot.setAttribute('fill', '#6366f1');
+            }
+
+            const outputNeedleShape = outputNeedleGroup.querySelector('polygon');
+            const outputNeedleDot = outputNeedleGroup.querySelector('circle');
+            if (outAmp > state.k2) {
+                outputNeedleShape.setAttribute('fill', '#ef4444');
+                outputNeedleDot.setAttribute('fill', '#ef4444');
+            } else {
+                outputNeedleShape.setAttribute('fill', '#22d3ee');
+                outputNeedleDot.setAttribute('fill', '#22d3ee');
+            }
+
+            // Real-time BIBO Verdict Logic checking bounds
+            const isInputBounded = inAmp <= state.k1;
+            const isOutputBounded = outAmp <= state.k2;
+
+            if (state.signalType === 'growing') {
+                // If input itself isn't bounded, stability check is mathematically inconclusive but visual warning is helpful
+                verdictPanel.className = 'p-4 rounded-xl border flex items-center justify-between gap-3 bg-amber-500/10 border-amber-500/20 text-amber-400';
+                verdictText.innerText = 'Input Is Unbounded!';
+                verdictDesc.innerText = 'The testing input wave |x(t)| exceeds limit k₁. BIBO test requires bounded inputs to verify.';
+                verdictIconContainer.className = 'w-10 h-10 rounded-full flex items-center justify-center bg-amber-500/20 border border-amber-500/30 text-amber-300 flex-shrink-0';
+                verdictIcon.className = 'fa-solid fa-triangle-exclamation text-lg';
+            } else if (!isOutputBounded) {
+                // Instability state triggered
+                verdictPanel.className = 'p-4 rounded-xl border flex items-center justify-between gap-3 bg-rose-500/10 border-rose-500/20 text-rose-400';
+                verdictText.innerText = 'BIBO Violations Detected!';
+                verdictDesc.innerText = 'Output amplitude |y(t)| blew past limit k₂ while input stayed bounded. System is unstable!';
+                verdictIconContainer.className = 'w-10 h-10 rounded-full flex items-center justify-center bg-rose-500/20 border border-rose-500/30 text-rose-300 flex-shrink-0';
+                verdictIcon.className = 'fa-solid fa-circle-xmark text-lg';
+            } else {
+                // Happy state: Stable
+                verdictPanel.className = 'p-4 rounded-xl border flex items-center justify-between gap-3 bg-emerald-500/10 border-emerald-500/20 text-emerald-400';
+                verdictText.innerText = 'BIBO STABLE [Checked]';
+                verdictDesc.innerText = 'The output |y(t)| remains strictly bounded within green zone k₂ for the selected input stream.';
+                verdictIconContainer.className = 'w-10 h-10 rounded-full flex items-center justify-center bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 flex-shrink-0';
+                verdictIcon.className = 'fa-solid fa-circle-check text-lg';
+            }
+        }
+
+        // Updates explanations based on configurations chosen
+        function updateExplainerText() {
+            let desc = '';
+            
+            // 1. Causality explanation
+            if (state.causality === 'noncausal') {
+                desc += '<span class="text-rose-400 font-bold">Non-Causal Mode Enabled:</span> Notice the system probes reaching to the RIGHT of current time t₀. This represents accessing future indices—conceptually violating reality and time-progression rules. ';
+            } else {
+                desc += 'The input wave streams leftwards across the <span class="text-rose-400 font-semibold">Temporal Barrier at t₀</span>. ';
+                if (state.systemMode === 'memory') {
+                    desc += 'System block accesses a shaded past-buffer history ($x(t)$ where $t \\le t_0$) to calculate output $y(t_0)$, proving <span class="text-emerald-400 font-semibold">Causality</span>. ';
+                } else {
+                    desc += 'In <span class="text-indigo-400 font-semibold">Memoryless Mode</span>, the past buffer is removed. The output $y(t_0)$ depends instantly and exclusively on the current value $x(t_0)$ at the barrier point. ';
+                }
+            }
+
+            // 2. Stability explanation
+            if (state.systemStability === 'unstable') {
+                desc += 'The <span class="text-rose-400 font-bold">Unstable Accumulator</span> sums inputs over time with high feedback. If fed with a step signal, output climbs continuously into the red zone, breaking BIBO restrictions.';
+            } else {
+                desc += 'Under <span class="text-emerald-400 font-semibold">Stable Filtering</span>, output spikes are smoothed out and bounded below the finite $k_2$ threshold zone.';
+            }
+
+            interactiveExplanation.innerHTML = desc;
+        }
+
+        // Event Listeners for UI state adjustments
+        btnPausePlay.addEventListener('click', () => {
+            state.isPlaying = !state.isPlaying;
+            if (state.isPlaying) {
+                btnPlayIcon.className = 'fa-solid fa-pause';
+                btnPlayText.innerText = 'Pause';
+            } else {
+                btnPlayIcon.className = 'fa-solid fa-play';
+                btnPlayText.innerText = 'Play';
+            }
+        });
+
+        btnReset.addEventListener('click', () => {
+            state.time = 0;
+            for (let i = 0; i < state.samplesCount; i++) {
+                state.inputSignal[i] = 0;
+                state.outputSignal[i] = 0;
+            }
+            if (!state.isPlaying) {
+                state.isPlaying = true;
+                btnPlayIcon.className = 'fa-solid fa-pause';
+                btnPlayText.innerText = 'Pause';
+            }
+        });
+
+        // Memory State Toggles
+        btnMemoryOn.addEventListener('click', () => {
+            state.systemMode = 'memory';
+            btnMemoryOn.className = 'py-1.5 text-xs font-medium rounded-lg transition-all bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shadow-sm';
+            btnMemoryOff.className = 'py-1.5 text-xs font-medium rounded-lg transition-all text-slate-400 hover:text-slate-200';
+            lblMemoryState.innerText = 'With Memory';
+            badgeMemory.innerText = 'WITH MEMORY';
+            badgeMemory.className = 'text-xs font-medium px-2.5 py-1 rounded-md flex items-center gap-1.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20';
+            updateExplainerText();
+        });
+
+        btnMemoryOff.addEventListener('click', () => {
+            state.systemMode = 'memoryless';
+            btnMemoryOff.className = 'py-1.5 text-xs font-medium rounded-lg transition-all bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shadow-sm';
+            btnMemoryOn.className = 'py-1.5 text-xs font-medium rounded-lg transition-all text-slate-400 hover:text-slate-200';
+            lblMemoryState.innerText = 'Memoryless';
+            badgeMemory.innerText = 'MEMORYLESS';
+            badgeMemory.className = 'text-xs font-medium px-2.5 py-1 rounded-md flex items-center gap-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/20';
+            updateExplainerText();
+        });
+
+        // Causality Toggles
+        btnCausalOn.addEventListener('click', () => {
+            state.causality = 'causal';
+            btnCausalOn.className = 'py-1.5 text-xs font-medium rounded-lg transition-all bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm';
+            btnCausalOff.className = 'py-1.5 text-xs font-medium rounded-lg transition-all text-slate-400 hover:text-slate-200';
+            lblCausalityState.innerText = 'Causal';
+            lblCausalityState.className = 'text-[11px] font-semibold text-emerald-400';
+            badgeCausality.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot"></span> CAUSAL';
+            badgeCausality.className = 'text-xs font-medium px-2.5 py-1 rounded-md flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+            updateExplainerText();
+        });
+
+        btnCausalOff.addEventListener('click', () => {
+            state.causality = 'noncausal';
+            btnCausalOff.className = 'py-1.5 text-xs font-medium rounded-lg transition-all bg-rose-500/10 text-rose-400 border border-rose-500/20 shadow-sm';
+            btnCausalOn.className = 'py-1.5 text-xs font-medium rounded-lg transition-all text-slate-400 hover:text-slate-200';
+            lblCausalityState.innerText = 'Non-Causal';
+            lblCausalityState.className = 'text-[11px] font-semibold text-rose-400';
+            badgeCausality.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-rose-400 pulse-dot"></span> NON-CAUSAL';
+            badgeCausality.className = 'text-xs font-medium px-2.5 py-1 rounded-md flex items-center gap-1.5 bg-rose-500/10 text-rose-400 border border-rose-500/20';
+            updateExplainerText();
+        });
+
+        // Filter Type Stability Selection
+        btnStableFilter.addEventListener('click', () => {
+            state.systemStability = 'stable';
+            btnStableFilter.className = 'py-1.5 text-[11px] font-semibold rounded-lg transition-all bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm';
+            btnUnstableFilter.className = 'py-1.5 text-[11px] font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200';
+            updateExplainerText();
+        });
+
+        btnUnstableFilter.addEventListener('click', () => {
+            state.systemStability = 'unstable';
+            btnUnstableFilter.className = 'py-1.5 text-[11px] font-semibold rounded-lg transition-all bg-rose-500/10 text-rose-400 border border-rose-500/20 shadow-sm';
+            btnStableFilter.className = 'py-1.5 text-[11px] font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200';
+            updateExplainerText();
+        });
+
+        // Signal Configuration
+        selectSignal.addEventListener('change', (e) => {
+            state.signalType = e.target.value;
+            updateExplainerText();
+        });
+
+        // Slider Changes and Dial Limits updating
+        sliderK1.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            state.k1 = val;
+            valK1.innerText = val.toFixed(1);
+            
+            // Re-render threshold lines on gauge dynamically
+            // Rotate the marker line on input gauge accordingly
+            const maxVal = 3.0;
+            const deg = -90 + (val / maxVal * 180);
+            document.getElementById('gaugeK1Line').setAttribute('transform', `rotate(${deg}, 50, 55)`);
+        });
+
+        sliderK2.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            state.k2 = val;
+            valK2.innerText = val.toFixed(1);
+
+            const maxVal = 6.0;
+            const deg = -90 + (val / maxVal * 180);
+            document.getElementById('gaugeK2Line').setAttribute('transform', `rotate(${deg}, 50, 55)`);
+        });
+
+        // Set initial gauge threshold positions
+        function initGaugeLimits() {
+            // k1 rotation
+            const degK1 = -90 + (state.k1 / 3.0 * 180);
+            document.getElementById('gaugeK1Line').setAttribute('transform', `rotate(${degK1}, 50, 55)`);
+            // k2 rotation
+            const degK2 = -90 + (state.k2 / 6.0 * 180);
+            document.getElementById('gaugeK2Line').setAttribute('transform', `rotate(${degK2}, 50, 55)`);
+        }
+
+        // Animation Loop executed on screen refresh
+        function animate() {
+            updateSystem();
+            drawVisualizations();
+            updateTelemetryAndMeters();
+            requestAnimationFrame(animate);
+        }
+
+        window.onload = function() {
+            initGaugeLimits();
+            updateExplainerText();
+            // Start the interactive simulation loops
+            animate();
+        };
+    </script>
+</body>
+</html>

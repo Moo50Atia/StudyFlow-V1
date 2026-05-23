@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Systems & Signals: The Transformative Block</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            dark: '#0B0F19',
+                            card: '#161D30',
+                            accent: '#3B82F6',
+                            input: '#10B981',
+                            output: '#EC4899',
+                            system: '#8B5CF6'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0B0F19;
+            color: #E2E8F0;
+            overflow-x: hidden;
+        }
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+        /* Custom Glowing and Glass effects */
+        .glass-panel {
+            background: rgba(22, 29, 48, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .system-glow {
+            box-shadow: 0 0 25px rgba(139, 92, 246, 0.25);
+            border: 1px solid rgba(139, 92, 246, 0.4);
+        }
+        .input-glow {
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+        }
+        .output-glow {
+            box-shadow: 0 0 15px rgba(236, 72, 153, 0.15);
+        }
+        /* Sliders styling */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: #1F2937;
+            height: 6px;
+            border-radius: 9999px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #3B82F6;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col justify-between">
+
+    <!-- Top Navigation Header -->
+    <header class="border-b border-gray-800 bg-brand-dark px-6 py-4 flex flex-wrap justify-between items-center gap-4 z-10">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-tr from-brand-accent to-brand-system p-2 rounded-xl text-white shadow-lg">
+                <i class="fa-solid fa-wave-square text-xl animate-pulse"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
+                    Signal Transformation Lab
+                </h1>
+                <p class="text-xs text-gray-400 font-medium">Visualizing $y(t) = T\{x(t)\}$ Mathematical Mapping</p>
+            </div>
+        </div>
+        
+        <!-- Top Toolbar -->
+        <div class="flex items-center space-x-3">
+            <!-- Audio Toggle Button -->
+            <button id="audioToggleBtn" class="flex items-center space-x-2 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white px-4 py-2 rounded-lg text-sm transition-all duration-200 border border-gray-700 active:scale-95" title="Synthesize signal audio using your browser's Web Audio API">
+                <i id="audioIcon" class="fa-solid fa-volume-xmark text-red-400"></i>
+                <span id="audioText" class="font-semibold">Muted</span>
+            </button>
+            
+            <!-- Quick Preset Dropdown -->
+            <div class="relative">
+                <select id="presetSelector" class="bg-gray-800 border border-gray-700 text-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2 pr-8 cursor-pointer appearance-none hover:bg-gray-700 transition">
+                    <option value="" disabled selected>Select Preset Scenario</option>
+                    <option value="perfect-rectifier">The Perfect Rectifier (Absolute Value)</option>
+                    <option value="wave-clipper">Hard Wave Clipper (Signum / Limiter)</option>
+                    <option value="frequency-doubler">Frequency Doubler (Squaring)</option>
+                    <option value="speed-demon">Speed Demon (Time Scaling)</option>
+                    <option value="echo-chamber">Time Delay Echo</option>
+                    <option value="harmonic-generator">Derivative Filter (High Pass)</option>
+                    <option value="noisy-static">Noisy Channel</option>
+                </select>
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
+                    <i class="fa-solid fa-chevron-down text-xs"></i>
+                </div>
+            </div>
+
+            <!-- Help Button -->
+            <button onclick="toggleModal('helpModal')" class="bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white p-2 rounded-lg transition" title="Show Documentation">
+                <i class="fa-solid fa-question-circle text-lg"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <main class="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+        
+        <!-- Live Mathematical Flow Diagram Block -->
+        <div class="w-full bg-brand-dark/50 p-6 rounded-2xl border border-gray-800 shadow-2xl relative">
+            <div class="absolute top-3 left-4 text-xs font-bold text-gray-500 tracking-wider uppercase">Live Signal Mapping Flow</div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center pt-4">
+                
+                <!-- 1. Input Wave x(t) Container -->
+                <div class="lg:col-span-4 flex flex-col space-y-2">
+                    <div class="flex justify-between items-center px-1">
+                        <span class="text-sm font-semibold text-brand-input flex items-center gap-1.5">
+                            <span class="h-2 w-2 rounded-full bg-brand-input animate-ping"></span>
+                            Input Signal $x(t)$
+                        </span>
+                        <span id="inputWaveDetails" class="text-xs text-gray-400 code-font">Sine, 2.0Hz</span>
+                    </div>
+                    <div class="relative h-44 bg-brand-card/80 border border-gray-800 rounded-xl overflow-hidden input-glow">
+                        <canvas id="inputCanvas" class="w-full h-full block"></canvas>
+                        <!-- Overlay Legend -->
+                        <div class="absolute bottom-2 left-3 bg-brand-dark/80 px-2 py-0.5 rounded text-[10px] code-font text-gray-400 border border-gray-800">
+                            Domain: Time (t)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Central System T Block -->
+                <div class="lg:col-span-4 flex flex-col items-center justify-center">
+                    <!-- Connector arrow (entering) -->
+                    <div class="w-full flex items-center justify-center relative py-4">
+                        
+                        <!-- Floating system card -->
+                        <div class="w-full max-w-sm glass-panel system-glow rounded-2xl p-5 text-center relative overflow-hidden transition-all duration-300 hover:scale-[1.02]">
+                            <!-- Glow Particle Emitter (visual effect) -->
+                            <div class="absolute -inset-10 bg-gradient-to-r from-transparent via-purple-500/10 to-transparent -translate-x-full animate-[shimmer_3s_infinite] pointer-events-none"></div>
+                            
+                            <!-- Label -->
+                            <span class="px-3 py-1 bg-brand-system/20 text-brand-system text-xs font-bold rounded-full uppercase tracking-widest border border-brand-system/30">
+                                System Operator $T$
+                            </span>
+                            
+                            <!-- Large Operator Formula Display -->
+                            <div class="my-4">
+                                <h2 id="operatorFormula" class="text-3xl font-extrabold text-white tracking-wide code-font">
+                                    y(t) = x²(t)
+                                </h2>
+                                <p id="operatorName" class="text-xs text-purple-300 mt-1 font-medium">Nonlinear Squaring Operator</p>
+                            </div>
+
+                            <!-- Animated Flow Indicator Bar inside the System -->
+                            <div class="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden relative">
+                                <div id="systemProcessingBar" class="h-full bg-gradient-to-r from-brand-input via-brand-system to-brand-output w-1/2 rounded-full absolute left-0"></div>
+                            </div>
+                            
+                            <div class="mt-3 text-[11px] text-gray-400 flex justify-between items-center">
+                                <span>Input State: Active</span>
+                                <span class="animate-pulse text-brand-system font-semibold flex items-center gap-1">
+                                    <i class="fa-solid fa-gear animate-spin duration-1000"></i> Processing
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Output Wave y(t) Container -->
+                <div class="lg:col-span-4 flex flex-col space-y-2">
+                    <div class="flex justify-between items-center px-1">
+                        <span class="text-sm font-semibold text-brand-output flex items-center gap-1.5">
+                            <span class="h-2 w-2 rounded-full bg-brand-output animate-ping"></span>
+                            Output Signal $y(t) = T\{x(t)\}$
+                        </span>
+                        <span id="outputWaveDetails" class="text-xs text-gray-400 code-font">Squaring</span>
+                    </div>
+                    <div class="relative h-44 bg-brand-card/80 border border-gray-800 rounded-xl overflow-hidden output-glow">
+                        <canvas id="outputCanvas" class="w-full h-full block"></canvas>
+                        <div class="absolute bottom-2 left-3 bg-brand-dark/80 px-2 py-0.5 rounded text-[10px] code-font text-gray-400 border border-gray-800">
+                            Domain: Time (t)
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            
+            <!-- Continuous Stream Flow Indicator line overlays -->
+            <div class="hidden lg:block absolute left-[31%] top-1/2 w-[6%] h-[2px] bg-gradient-to-r from-brand-input to-brand-system z-0 pointer-events-none overflow-hidden">
+                <div class="h-full w-full bg-white opacity-80 animate-[flowRight_1.5s_infinite]"></div>
+            </div>
+            <div class="hidden lg:block absolute right-[31%] top-1/2 w-[6%] h-[2px] bg-gradient-to-r from-brand-system to-brand-output z-0 pointer-events-none overflow-hidden">
+                <div class="h-full w-full bg-white opacity-80 animate-[flowRight_1.5s_infinite_reverse]"></div>
+            </div>
+        </div>
+
+        <!-- Interactive Controls and Advanced Mathematics Analysis Panels -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Left Side Controls Panel (5 columns) -->
+            <div class="lg:col-span-5 flex flex-col space-y-6">
+                
+                <!-- Input Signal Configuration Card -->
+                <div class="bg-brand-card rounded-2xl p-5 border border-gray-800 space-y-4">
+                    <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+                        <h3 class="font-bold text-md text-white flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-brand-input"></i>
+                            Input Signal Controls
+                        </h3>
+                        <span class="text-xs px-2 py-0.5 bg-brand-input/10 text-brand-input rounded border border-brand-input/20 uppercase font-semibold">Source x(t)</span>
+                    </div>
+
+                    <!-- Signal Type Selector -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Waveform Type</label>
+                        <div class="grid grid-cols-4 gap-2">
+                            <button onclick="setInputWaveType('sine')" id="btnWaveSine" class="py-2.5 rounded-lg text-sm font-semibold transition bg-blue-600/20 text-blue-400 border border-blue-500/30 flex flex-col items-center justify-center gap-1">
+                                <svg class="w-6 h-6 stroke-current fill-none" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12c3-8 5-8 8 0s5 8 8 0" />
+                                </svg>
+                                <span>Sine</span>
+                            </button>
+                            <button onclick="setInputWaveType('square')" id="btnWaveSquare" class="py-2.5 rounded-lg text-sm font-semibold transition bg-gray-800 text-gray-400 border border-gray-700 flex flex-col items-center justify-center gap-1 hover:bg-gray-700">
+                                <svg class="w-6 h-6 stroke-current fill-none" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12h3V6h6v12h6v-6h3" />
+                                </svg>
+                                <span>Square</span>
+                            </button>
+                            <button onclick="setInputWaveType('triangle')" id="btnWaveTriangle" class="py-2.5 rounded-lg text-sm font-semibold transition bg-gray-800 text-gray-400 border border-gray-700 flex flex-col items-center justify-center gap-1 hover:bg-gray-700">
+                                <svg class="w-6 h-6 stroke-current fill-none" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l4-6l6 12l4-6" />
+                                </svg>
+                                <span>Triangle</span>
+                            </button>
+                            <button onclick="setInputWaveType('sawtooth')" id="btnWaveSawtooth" class="py-2.5 rounded-lg text-sm font-semibold transition bg-gray-800 text-gray-400 border border-gray-700 flex flex-col items-center justify-center gap-1 hover:bg-gray-700">
+                                <svg class="w-6 h-6 stroke-current fill-none" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 18l12-12v12h6" />
+                                </svg>
+                                <span>Saw</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Frequency Slider -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Frequency (f)</label>
+                            <span id="freqLabel" class="text-xs code-font text-brand-input bg-brand-input/10 px-2 py-0.5 rounded">2.00 Hz</span>
+                        </div>
+                        <input type="range" id="freqSlider" min="0.5" max="8" step="0.1" value="2" class="w-full">
+                    </div>
+
+                    <!-- Amplitude Slider -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Amplitude (A)</label>
+                            <span id="ampLabel" class="text-xs code-font text-brand-input bg-brand-input/10 px-2 py-0.5 rounded">0.80 V</span>
+                        </div>
+                        <input type="range" id="ampSlider" min="0.1" max="1.0" step="0.05" value="0.8" class="w-full">
+                    </div>
+
+                    <!-- Phase Offset Slider -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Phase Offset (θ)</label>
+                            <span id="phaseLabel" class="text-xs code-font text-brand-input bg-brand-input/10 px-2 py-0.5 rounded">0.00 rad</span>
+                        </div>
+                        <input type="range" id="phaseSlider" min="-3.14" max="3.14" step="0.1" value="0.0" class="w-full">
+                    </div>
+                </div>
+
+                <!-- Operator Toggle Block Configuration Card -->
+                <div class="bg-brand-card rounded-2xl p-5 border border-gray-800 space-y-4">
+                    <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+                        <h3 class="font-bold text-md text-white flex items-center gap-2">
+                            <i class="fa-solid fa-code-branch text-brand-system"></i>
+                            Transformation Operator ($T$) Rules
+                        </h3>
+                        <span class="text-xs px-2 py-0.5 bg-brand-system/10 text-brand-system rounded border border-brand-system/20 uppercase font-semibold">Active Operator</span>
+                    </div>
+
+                    <!-- List of Operations -->
+                    <div id="operatorList" class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                        <!-- Items rendered dynamically via Javascript to keep it robust, but let's pre-code placeholders -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Side Advanced Mathematics & Mapping Analysis (7 columns) -->
+            <div class="lg:col-span-7 flex flex-col space-y-6">
+                
+                <!-- Math Mapping and XY Plot -->
+                <div class="bg-brand-card rounded-2xl p-5 border border-gray-800 flex flex-col">
+                    <div class="flex items-center justify-between border-b border-gray-800 pb-3 mb-4">
+                        <h3 class="font-bold text-md text-white flex items-center gap-2">
+                            <i class="fa-solid fa-chart-line text-brand-output"></i>
+                            Abstract Mapping Diagram: $y$ vs $x$ (Lissajous-style)
+                        </h3>
+                        <span class="text-xs px-2 py-0.5 bg-brand-output/10 text-brand-output rounded border border-brand-output/20 uppercase font-semibold">Transfer Curve</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                        <!-- Transfer function mapping plot -->
+                        <div class="md:col-span-6 flex flex-col items-center">
+                            <div class="relative w-56 h-56 bg-brand-dark/90 border border-gray-800 rounded-xl overflow-hidden shadow-inner">
+                                <canvas id="xyPlotCanvas" class="w-full h-full block" width="224" height="224"></canvas>
+                                <!-- Floating axes tags -->
+                                <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-brand-input code-font">x(t)</span>
+                                <span class="absolute top-2 left-1/2 -translate-x-1/2 text-[10px] font-bold text-brand-output code-font">y(t)</span>
+                            </div>
+                            <span class="text-[11px] text-gray-500 mt-2 text-center">Plot shows dynamic mapping path of input and output amplitudes in state-space.</span>
+                        </div>
+
+                        <!-- System Mathematical Classifications details -->
+                        <div class="md:col-span-6 space-y-3">
+                            <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Mathematical Classification:</h4>
+                            
+                            <div class="space-y-2.5">
+                                <!-- Linearity check -->
+                                <div class="flex items-start space-x-2">
+                                    <div id="linearIndicator" class="mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase code-font bg-red-500/10 text-red-400 border border-red-500/20">Non-Linear</div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-gray-200">Linearity</p>
+                                        <p id="linearityDesc" class="text-[11px] text-gray-400">Additive and homogeneous rules fail.</p>
+                                    </div>
+                                </div>
+
+                                <!-- Time Invariance check -->
+                                <div class="flex items-start space-x-2">
+                                    <div id="tiIndicator" class="mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase code-font bg-green-500/10 text-green-400 border border-green-500/20">Time-Invariant</div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-gray-200">Time-Invariance</p>
+                                        <p id="tiDesc" class="text-[11px] text-gray-400">A time shift in the input causes an identical shift in the output.</p>
+                                    </div>
+                                </div>
+
+                                <!-- Memory check -->
+                                <div class="flex items-start space-x-2">
+                                    <div id="memoryIndicator" class="mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase code-font bg-blue-500/10 text-blue-400 border border-blue-500/20">Memoryless</div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-gray-200">System Memory</p>
+                                        <p id="memoryDesc" class="text-[11px] text-gray-400">Output depends purely on the input value at the same instant $t$.</p>
+                                    </div>
+                                </div>
+
+                                <!-- Causality check -->
+                                <div class="flex items-start space-x-2">
+                                    <div id="causalityIndicator" class="mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase code-font bg-green-500/10 text-green-400 border border-green-500/20">Causal</div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-gray-200">Causality</p>
+                                        <p id="causalityDesc" class="text-[11px] text-gray-400">The system does not predict or look ahead into the future.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Proof / Deep Dive Math Box -->
+                <div class="bg-brand-card rounded-2xl p-5 border border-gray-800 space-y-3 flex-1">
+                    <div class="flex items-center justify-between border-b border-gray-800 pb-2">
+                        <h4 class="font-bold text-sm text-white flex items-center gap-2">
+                            <i class="fa-solid fa-graduation-cap text-brand-system"></i>
+                            Transformation Rigor: $y(t) = T\{x(t)\}$ Mathematical Map
+                        </h4>
+                        <span class="text-xs text-gray-400 italic">Core Signal proof</span>
+                    </div>
+                    
+                    <div class="bg-brand-dark/50 p-4 rounded-xl border border-gray-800 space-y-2">
+                        <div class="flex justify-between items-center text-xs text-gray-400 font-semibold uppercase tracking-wider">
+                            <span>Proof Formulation</span>
+                            <span class="text-brand-accent code-font text-[11px]" id="proofConceptHeader">T{x(t)} = x²(t)</span>
+                        </div>
+                        <p id="proofEquationExplanation" class="text-xs text-gray-300 leading-relaxed font-light">
+                            <!-- Injected dynamically -->
+                            Let $x_1(t)$ and $x_2(t)$ be inputs. The output to an arbitrary linear combination is:
+                            <br><span class="block text-center my-2 text-brand-system font-mono font-medium">$T\{a \cdot x_1(t) + b \cdot x_2(t)\} = [a \cdot x_1(t) + b \cdot x_2(t)]^2$</span>
+                            But scaling the individual outputs yields:
+                            <br><span class="block text-center my-2 text-brand-system font-mono font-medium">$a \cdot T\{x_1(t)\} + b \cdot T\{x_2(t)\} = a \cdot x_1^2(t) + b \cdot x_2^2(t)$</span>
+                            Since they are unequal for general signals, the system is strictly <strong>Non-linear</strong>.
+                        </p>
+                    </div>
+
+                    <div class="text-xs text-gray-400 flex items-center gap-1 bg-yellow-950/20 text-yellow-400/80 p-2.5 rounded-lg border border-yellow-900/40">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <span><strong>Interactive Tip:</strong> Click different operators in the left column. You will see how the transformation graph ($y(t)$ vs $x(t)$) adapts instantly.</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Documentation & Interactive Help Modal -->
+    <div id="helpModal" class="fixed inset-0 bg-brand-dark/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-brand-card border border-gray-700 max-w-2xl w-full rounded-2xl shadow-2xl p-6 relative">
+            <button onclick="toggleModal('helpModal')" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="space-y-4">
+                <h3 class="text-xl font-extrabold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-book text-brand-accent"></i>
+                    Signal Processing Systems Explorer
+                </h3>
+                <p class="text-sm text-gray-300 leading-relaxed">
+                    This interactive scene models the flow of a continuous-time signal $x(t)$ through a central mathematical operator block $T$ to yield output $y(t)$.
+                </p>
+                
+                <h4 class="text-sm font-bold text-gray-200 uppercase tracking-wide">Key Features & Instructions:</h4>
+                <ul class="text-xs text-gray-300 space-y-2 list-disc pl-5">
+                    <li><strong>Continuous Waveforms:</strong> Adjust the Waveform Type (Sine, Square, Triangle, Sawtooth), Frequency, Phase, and Amplitude sliders to sculpt the input signal $x(t)$ dynamically.</li>
+                    <li><strong>Dynamic Mathematical Operators:</strong> Toggle transformation rules to see squashing, squaring, rectifying, delaying, scaling, and differentiating calculations happen instantly in real-time.</li>
+                    <li><strong>Real-time Transfer Curve:</strong> Look at the state-space Lissajous plot tracking $(x(t), y(t))$ instantly showing the mapping rules.</li>
+                    <li><strong>Aural Synthesis:</strong> Enable "Muted" inside the top navigation. The dynamic math engine translates waves to live audio synthesis, demonstrating mathematical frequency expansion!</li>
+                </ul>
+
+                <h4 class="text-sm font-bold text-gray-200 uppercase tracking-wide">Classifications Cheat Sheet:</h4>
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <div class="bg-brand-dark/60 p-2.5 rounded-lg border border-gray-800">
+                        <strong class="text-blue-400 block mb-0.5">Linearity</strong>
+                        Satisfies Superposition Principle: $T\{a \cdot x_1 + b \cdot x_2\} = a \cdot T\{x_1\} + b \cdot T\{x_2\}$.
+                    </div>
+                    <div class="bg-brand-dark/60 p-2.5 rounded-lg border border-gray-800">
+                        <strong class="text-green-400 block mb-0.5">Time Invariance</strong>
+                        An input delay produces output delay only: $y(t - \tau) = T\{x(t - \tau)\}$.
+                    </div>
+                    <div class="bg-brand-dark/60 p-2.5 rounded-lg border border-gray-800">
+                        <strong class="text-purple-400 block mb-0.5">Memory vs Memoryless</strong>
+                        Output depends purely on input at current instant, with no reliance on past/future inputs.
+                    </div>
+                    <div class="bg-brand-dark/60 p-2.5 rounded-lg border border-gray-800">
+                        <strong class="text-red-400 block mb-0.5">Causality</strong>
+                        Does not rely on future outputs or inputs ($t_{future}$). Always causal in realistic physical boards.
+                    </div>
+                </div>
+
+                <div class="pt-4 flex justify-end">
+                    <button onclick="toggleModal('helpModal')" class="bg-brand-accent text-white px-5 py-2 rounded-xl hover:bg-blue-600 font-semibold transition text-xs">
+                        Start Exploration
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Status -->
+    <footer class="border-t border-gray-800 bg-brand-dark/80 px-6 py-3 flex flex-wrap justify-between items-center text-xs text-gray-400">
+        <div class="flex items-center space-x-2">
+            <span class="flex h-2 w-2 rounded-full bg-emerald-500"></span>
+            <span>Math Engine: active (WebGL/Canvas2D acceleration)</span>
+        </div>
+        <div>
+            <span>Developed for Academic Systems & Signals Visualization</span>
+        </div>
+    </footer>
+
+    <!-- Javascript Implementation of Mathematical Operations, Graphs and Audio Node Generation -->
+    <script>
+        // Configuration & States
+        let inputWaveType = 'sine'; // sine, square, triangle, sawtooth
+        let activeOperator = 'square'; // square, abs, sign, timescale, delay, derivative, noise, identity
+        let frequency = 2.0;
+        let amplitude = 0.8;
+        let phaseOffset = 0.0;
+        let phaseShiftTimer = 0; // Animating continuous phase shift for scrolling wave flow
+
+        // Audio Context configuration
+        let audioCtx = null;
+        let mainOscillator = null;
+        let processorNode = null;
+        let audioGain = null;
+        let isAudioMuted = true;
+
+        // Operator Configuration Dictionary containing Properties, Descriptors, Rules, Proof Formulas and Math Classifications
+        const operators = [
+            {
+                id: 'identity',
+                name: 'Identity (Null Transformation)',
+                formula: 'y(t) = x(t)',
+                shortName: 'Identity',
+                desc: 'Straightforward bypass. No signal mapping alteration occurs.',
+                linear: true,
+                ti: true,
+                memoryless: true,
+                causal: true,
+                proof: `The Identity mapping is the simplest linear system:
+                <br><span class="block text-center my-2 text-brand-system font-mono font-medium">$T\\{a \\cdot x_1(t) + b \\cdot x_2(t)\\} = a \\cdot x_1(t) + b \\cdot x_2(t)$</span>
+                Comparing this directly with scaling the separate outputs yields perfect equivalence:
+                <br><span class="block text-center my-2 text-brand-system font-mono font-medium">$a \\cdot T\\{x_1(t)\\} + b \\cdot T\\{x_2(t)\\} = a \\cdot x_1(t) + b \\cdot x_2(t)$</span>
+                It fully preserves scaling, additivity, linearity, time invariance, and has zero memory requirement.`,
+                transform: (x, t, dt, prevX) => x
+            },
+            {
+                id: 'square',
+                name: 'Squaring Operator (Non-linear)',
+                formula: 'y(t) = x²(t)',
+                shortName: 'Squaring',
+                desc: 'Doubles the signal frequency components and creates positive bias (DC offset).',
+                linear: false,
+                ti: true,
+                memoryless: true,
+                causal: true,
+                proof: `Let $x_1(t)$ and $x_2(t)$ be inputs. The output to an arbitrary linear combination is:
+                <br><span class="block text-center my-2 text-brand-system font-mono font-medium">$T\\{a \\cdot x_1(t) + b \\cdot x_2(t)\\} = [a \\cdot x_1(t) + b \\cdot x_2(t)]^2$</span>
+                Scaling the individual outputs yields:
+                <br><span class="block text-center my-2 text-brand-system font-mono font-medium">$a \\cdot T\\{x_1(t)\\} + b \\cdot T\\{x_2(t)\\} = a \\cdot x_1^2(t) + b \\cdot x_2^2(t)$</span>
+                Since they are unequal for general signals, the system is strictly <strong>Non-linear</strong>.`,
+                transform: (x, t, dt, prevX) => x * x
+            },
+            {
+                id: 'abs',
+                name: 'Absolute Value (Full Rectifier)',
+                formula: 'y(t) = |x(t)|',
+                shortName: 'Absolute Value',
+                desc: 'Folds negative portions of waveform to positive space, generating high-frequency harmonics.',
+                linear: false,
+                ti: true,
+                memoryless: true,
+                causal: true,
+                proof: `To test additivity, apply a negative scaling factor $a = -1$:
+                <br><span class="block text-center my-2 text-brand-system font-mono font-medium">$T\\{-x(t)\\} = |-x(t)| = |x(t)|$</span>
+                However, scaling the output directly gives:
+                <br><span class="block text-center my-2 text-brand-system font-mono font-medium">$-T\\{x(t)\\} = -|x(t)|$</span>
+                Since $|x(t)| \\neq -|x(t)|$ for non-zero inputs, homogeneity is violated, making this <strong>Non-linear</strong>.`,
+                transform: (x, t, dt, prevX) => Math.abs(x)
+            },
+            {
+                id: 'sign',
+                name: 'Hard Limiter (Signum)',
+                formula: 'y(t) = sgn(x(t))',
+                shortName: 'Signum',
+                desc: 'Acts as an infinite amplifier clip. Converts any input wave to binary states (+1, -1).',
+                linear: false,
+                ti: true,
+                memoryless: true,
+                causal: true,
+                proof: `Consider a scaling factor $a = 2$.
+                <br><span class="block text-center my-2 text-brand-system font-mono font-medium">$T\\{2 \\cdot x(t)\\} = \\text{sgn}(2 \\cdot x(t)) = \\text{sgn}(x(t))$</span>
+                However:
+                <br><span class="block text-center my-2 text-brand-system font-mono font-medium">$2 \\cdot T\\{x(t)\\} = 2 \\cdot \\text{sgn}(x(t))$</span>
+                Clearly, the system outputs are unequal. Hence, scaling fails, which proves this operator is highly <strong>Non-linear</strong>.`,
+                transform: (x, t, dt, prevX) => x >= 0 ? 0.7 : -0.7
+            },
+            {
+                id: 'timescale',
+                name: 'Time Scaling (Compression)',
+                formula: 'y(t) = x(2t)',
+                shortName: 'Time Scale (2x)',
+                desc: 'Compresses the signal in time domain. Speeds up frequencies by double.',
+                linear: true,
+                ti: false,
+                memoryless: false,
+                causal: false,
+                proof: `Testing Time-Invariance: Let $w(t) = x(t - t_0)$ be a shifted input.
+                <br><span class="block text-center my-2 text-brand-system font-mono font-medium">$T\\{w(t)\\} = w(2t) = x(2t - t_0)$</span>
+                However, shifting the normal output of the system $y(t - t_0)$ gives:
+                <br><span class="block text-center my-2 text-brand-system font-mono font-medium">$y(t - t_0) = x(2(t - t_0)) = x(2t - 2t_0)$</span>
+                Since $x(2t - t_0) \\neq x(2t - 2t_0)$, this system is strictly <strong>Time-Variant</strong>. Furthermore, calculating output at $t=1$ requires $x(2)$, meaning it is <strong>Non-causal</strong> and relies on memory!`,
+                transform: (x, t, dt, prevX) => {
+                    // This function is evaluated locally. In the stream rendering loop we'll sample the input signal wave at twice the phase frequency.
+                    return x; // handled during graph mapping sampling!
+                }
+            },
+            {
+                id: 'delay',
+                name: 'Time Delay (Time Shift)',
+                formula: 'y(t) = x(t - t_d)',
+                shortName: 'Time Delay',
+                desc: 'Delays the signal flow in the time axis by a phase-offset constant (shift to the right).',
+                linear: true,
+                ti: true,
+                memoryless: false,
+                causal: true,
+                proof: `Let $w(t) = x(t - \tau)$. The delayed output matches:
+                <br><span class="block text-center my-2 text-brand-system font-mono font-medium">$T\\{w(t)\\} = w(t - t_d) = x(t - t_d - \tau)$</span>
+                This perfectly matches $y(t - \tau)$. Hence, the system is <strong>Time-Invariant</strong>.
+                Because the system stores past signal values to generate current ones, it has <strong>Memory</strong>.`,
+                transform: (x, t, dt, prevX) => x // handled by delaying time sample parameter!
+            },
+            {
+                id: 'derivative',
+                name: 'Derivative (Rate of Change)',
+                formula: 'y(t) = dx/dt',
+                shortName: 'Derivative',
+                desc: 'High-pass filters signals, highlighting fast transitions and edges. Shifts phase by 90°.',
+                linear: true,
+                ti: true,
+                memoryless: false,
+                causal: true,
+                proof: `The derivative operator is inherently linear:
+                <br><span class="block text-center my-2 text-brand-system font-mono font-medium">$\\frac{d}{dt}[a \\cdot x_1(t) + b \\cdot x_2(t)] = a \\cdot \\frac{dx_1}{dt} + b \\cdot \\frac{dx_2}{dt}$</span>
+                Thus, superposition holds. However, estimating the slope at current time requires past context:
+                <br><span class="block text-center my-2 text-brand-system font-mono font-medium">$\\lim_{dt \\to 0} \\frac{x(t) - x(t-dt)}{dt}$</span>
+                This relies on previous states, which makes it a <strong>Memory-rich</strong> physical system.`,
+                transform: (x, t, dt, prevX) => {
+                    // handled recursively inside rendering wave generator!
+                    return (x - prevX) / dt;
+                }
+            },
+            {
+                id: 'noise',
+                name: 'Noisy Communication Channel',
+                formula: 'y(t) = x(t) + n(t)',
+                shortName: 'Noisy Channel',
+                desc: 'Corrupts clean signals by adding a random, uniformly distributed static noise source.',
+                linear: false, // additive noise destroys ideal superposition scalability constraints if noise is independent
+                ti: true,
+                memoryless: true,
+                causal: true,
+                proof: `To test linearity, scale input by $a$:
+                <br><span class="block text-center my-2 text-brand-system font-mono font-medium">$T\\{a \\cdot x(t)\\} = a \\cdot x(t) + n(t)$</span>
+                However, scaling the output itself results in:
+                <br><span class="block text-center my-2 text-brand-system font-mono font-medium">$a \\cdot T\\{x(t)\\} = a \\cdot x(t) + a \\cdot n(t)$</span>
+                Because $n(t) \\neq a \\cdot n(t)$, superposition scaling fails. The system behaves as an <strong>Incremental Linear</strong> system, categorized as mathematically <strong>Non-linear</strong>.`,
+                transform: (x, t, dt, prevX) => x + (Math.random() - 0.5) * 0.3
+            }
+        ];
+
+        // Canvas setups
+        const inputCanvas = document.getElementById('inputCanvas');
+        const outputCanvas = document.getElementById('outputCanvas');
+        const xyPlotCanvas = document.getElementById('xyPlotCanvas');
+        
+        const inputCtx = inputCanvas.getContext('2d');
+        const outputCtx = outputCanvas.getContext('2d');
+        const xyCtx = xyPlotCanvas.getContext('2d');
+
+        // Resize function to support responsiveness
+        function resizeCanvases() {
+            // Give layout sizes
+            const inputContainer = inputCanvas.parentElement;
+            inputCanvas.width = inputContainer.clientWidth * window.devicePixelRatio;
+            inputCanvas.height = inputContainer.clientHeight * window.devicePixelRatio;
+            inputCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+            const outputContainer = outputCanvas.parentElement;
+            outputCanvas.width = outputContainer.clientWidth * window.devicePixelRatio;
+            outputCanvas.height = outputContainer.clientHeight * window.devicePixelRatio;
+            outputCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            
+            // XY plot remains square
+            xyPlotCanvas.width = 224 * window.devicePixelRatio;
+            xyPlotCanvas.height = 224 * window.devicePixelRatio;
+            xyCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+
+        // Calculate Signal Amplitude at a specific time index
+        function computeSignal(t, type, amp, freq, phase) {
+            const omega = 2 * Math.PI * freq;
+            const arg = omega * t + phase;
+            
+            switch (type) {
+                case 'sine':
+                    return amp * Math.sin(arg);
+                case 'square':
+                    return amp * Math.sign(Math.sin(arg));
+                case 'triangle':
+                    // Arcsin of sin is a perfect triangle wave shape
+                    return amp * (2 / Math.PI) * Math.asin(Math.sin(arg));
+                case 'sawtooth':
+                    // Custom linear modulo saw generator
+                    return amp * (2 * (t * freq + phase / (2 * Math.PI) - Math.floor(0.5 + t * freq + phase / (2 * Math.PI))));
+                default:
+                    return 0;
+            }
+        }
+
+        // Apply operator transformations
+        function processSystemTransform(xVal, t, dt, prevX, activeOpId) {
+            const operator = operators.find(op => op.id === activeOpId);
+            if (!operator) return xVal;
+
+            if (activeOpId === 'timescale') {
+                // Time compression: evaluate source signal at twice the rate
+                return computeSignal(2 * t, inputWaveType, amplitude, frequency, phaseOffset);
+            }
+            if (activeOpId === 'delay') {
+                // Time delay offset of 0.25 seconds
+                const delayT = t - 0.25;
+                return computeSignal(delayT, inputWaveType, amplitude, frequency, phaseOffset);
+            }
+            if (activeOpId === 'derivative') {
+                // Analytical derivative formulas to render smooth derivative waveforms
+                const omega = 2 * Math.PI * frequency;
+                const arg = omega * t + phaseOffset;
+                // Scale output so that higher frequencies fit cleanly on the screen
+                const scaleFactor = 0.15 / frequency; 
+                
+                switch (inputWaveType) {
+                    case 'sine':
+                        return amplitude * omega * Math.cos(arg) * scaleFactor;
+                    case 'triangle':
+                        // Derivative of triangle wave is a square wave
+                        return amplitude * (4 * frequency) * Math.sign(Math.cos(arg)) * scaleFactor;
+                    case 'square':
+                        // Delta impulses modeled as sharp spike exponentials
+                        const mod = Math.sin(arg);
+                        if (Math.abs(mod) < 0.1) {
+                            return Math.sign(mod) * amplitude * 2;
+                        }
+                        return (Math.random() - 0.5) * 0.05; // background line noise
+                    case 'sawtooth':
+                        // Constant rate change with massive negative spikes at boundaries
+                        const sawtoothCycle = (t * frequency) % 1.0;
+                        if (sawtoothCycle > 0.98) {
+                            return -amplitude * 3;
+                        }
+                        return amplitude * frequency * 0.6;
+                    default:
+                        return 0;
+                }
+            }
+
+            return operator.transform(xVal, t, dt, prevX);
+        }
+
+        // Drawing Grid Lines on Canvases
+        function drawGrid(ctx, width, height, glowColor) {
+            ctx.strokeStyle = '#1F2937';
+            ctx.lineWidth = 1;
+            
+            // Vertical grids
+            for (let x = 0; x < width; x += 40) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            
+            // Horizontal grids
+            for (let y = 0; y < height; y += 40) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+
+            // Central Center-Axes Lines
+            ctx.strokeStyle = '#374151';
+            ctx.lineWidth = 1.5;
+            
+            // X Center Line
+            ctx.beginPath();
+            ctx.moveTo(0, height / 2);
+            ctx.lineTo(width, height / 2);
+            ctx.stroke();
+
+            // Y Center Line
+            ctx.beginPath();
+            ctx.moveTo(width / 2, 0);
+            ctx.lineTo(width / 2, height);
+            ctx.stroke();
+        }
+
+        // Real-time animation loop
+        function drawScene() {
+            phaseShiftTimer += 0.015; // Drives the wave scrolling animation
+            
+            const inW = inputCanvas.width / window.devicePixelRatio;
+            const inH = inputCanvas.height / window.devicePixelRatio;
+            const outW = outputCanvas.width / window.devicePixelRatio;
+            const outH = outputCanvas.height / window.devicePixelRatio;
+            
+            // Clear screens
+            inputCtx.clearRect(0, 0, inW, inH);
+            outputCtx.clearRect(0, 0, outW, outH);
+            
+            // 1. Draw Background Grid System
+            drawGrid(inputCtx, inW, inH, '#10B981');
+            drawGrid(outputCtx, outW, outH, '#EC4899');
+
+            // 2. Generate arrays & draw the Input wave x(t)
+            inputCtx.strokeStyle = '#10B981';
+            inputCtx.lineWidth = 3;
+            inputCtx.shadowBlur = 10;
+            inputCtx.shadowColor = 'rgba(16, 185, 129, 0.4)';
+            inputCtx.beginPath();
+
+            const samples = 120;
+            const pointsInput = [];
+            const pointsOutput = [];
+            
+            let previousVal = 0;
+            
+            for (let idx = 0; idx <= samples; idx++) {
+                const ratio = idx / samples;
+                const canvasX = ratio * inW;
+                
+                // Map screen index to continuous simulated time scale
+                const timeFactor = ratio * 3.0 - phaseShiftTimer; 
+                const xVal = computeSignal(timeFactor, inputWaveType, amplitude, frequency, phaseOffset);
+                
+                // Scale and offset signal to vertical canvas center
+                const canvasY = (inH / 2) - (xVal * (inH * 0.4));
+                
+                pointsInput.push({ x: canvasX, y: canvasY, value: xVal, t: timeFactor });
+
+                if (idx === 0) {
+                    inputCtx.moveTo(canvasX, canvasY);
+                } else {
+                    inputCtx.lineTo(canvasX, canvasY);
+                }
+            }
+            inputCtx.stroke();
+            inputCtx.shadowBlur = 0; // reset glow
+
+            // 3. Generate arrays & draw the Output transformed wave y(t)
+            outputCtx.strokeStyle = '#EC4899';
+            outputCtx.lineWidth = 3;
+            outputCtx.shadowBlur = 10;
+            outputCtx.shadowColor = 'rgba(236, 72, 153, 0.4)';
+            outputCtx.beginPath();
+
+            // Store current point to draw live coordinate marker in XY Plot later
+            let liveX = 0;
+            let liveY = 0;
+
+            for (let idx = 0; idx <= samples; idx++) {
+                const pt = pointsInput[idx];
+                const dt = 0.01;
+                
+                // Calculate output transformation
+                const yVal = processSystemTransform(pt.value, pt.t, dt, previousVal, activeOperator);
+                previousVal = pt.value;
+
+                const canvasY = (outH / 2) - (yVal * (outH * 0.4));
+                pointsOutput.push({ x: pt.x, y: canvasY, value: yVal });
+
+                if (idx === 0) {
+                    outputCtx.moveTo(pt.x, canvasY);
+                } else {
+                    outputCtx.lineTo(pt.x, canvasY);
+                }
+
+                // Capture middle wave index value for live indicator point tracking
+                if (idx === Math.floor(samples / 2)) {
+                    liveX = pt.value;
+                    liveY = yVal;
+                }
+            }
+            outputCtx.stroke();
+            outputCtx.shadowBlur = 0; // reset glow
+
+            // Draw center evaluation target point (Flow marker visual helper)
+            inputCtx.fillStyle = '#FFFFFF';
+            inputCtx.beginPath();
+            inputCtx.arc(inW / 2, (inH / 2) - (liveX * (inH * 0.4)), 6, 0, Math.PI * 2);
+            inputCtx.fill();
+            inputCtx.strokeStyle = '#10B981';
+            inputCtx.lineWidth = 2;
+            inputCtx.stroke();
+
+            outputCtx.fillStyle = '#FFFFFF';
+            outputCtx.beginPath();
+            outputCtx.arc(outW / 2, (outH / 2) - (liveY * (outH * 0.4)), 6, 0, Math.PI * 2);
+            outputCtx.fill();
+            outputCtx.strokeStyle = '#EC4899';
+            outputCtx.lineWidth = 2;
+            outputCtx.stroke();
+
+            // 4. Render the Abstract XY Plot (Transfer Characteristics Curve)
+            drawXYPlot(liveX, liveY);
+
+            // Animate internal System progress bar
+            const sysBar = document.getElementById('systemProcessingBar');
+            const percentOffset = (Math.sin(phaseShiftTimer * 5) + 1) * 50;
+            sysBar.style.left = `${percentOffset * 0.5}%`;
+
+            requestAnimationFrame(drawScene);
+        }
+
+        // Draw Abstract Mapping Diagram: y vs x
+        function drawXYPlot(liveX, liveY) {
+            const size = 224;
+            xyCtx.clearRect(0, 0, size, size);
+            
+            // Draw axes
+            xyCtx.strokeStyle = '#1F2937';
+            xyCtx.lineWidth = 1;
+            xyCtx.beginPath();
+            xyCtx.moveTo(size / 2, 0);
+            xyCtx.lineTo(size / 2, size);
+            xyCtx.moveTo(0, size / 2);
+            xyCtx.lineTo(size, size / 2);
+            xyCtx.stroke();
+
+            // Draw the complete Transfer characteristic path (for domain x inside range [-1.2, 1.2])
+            xyCtx.strokeStyle = '#8B5CF6';
+            xyCtx.lineWidth = 2;
+            xyCtx.beginPath();
+            
+            const steps = 100;
+            let prevXValue = -1.2;
+            
+            for (let i = 0; i <= steps; i++) {
+                const xVal = -1.2 + (i / steps) * 2.4;
+                // Evaluate operator directly
+                let yVal = 0;
+                
+                const dummyT = 1.0; // static evaluation coordinate
+                const dt = 0.01;
+                
+                yVal = processSystemTransform(xVal, dummyT, dt, prevXValue, activeOperator);
+                prevXValue = xVal;
+
+                // Scale values to screen
+                const cx = (size / 2) + (xVal * (size / 2.6));
+                const cy = (size / 2) - (yVal * (size / 2.6));
+
+                if (i === 0) {
+                    xyCtx.moveTo(cx, cy);
+                } else {
+                    xyCtx.lineTo(cx, cy);
+                }
+            }
+            xyCtx.stroke();
+
+            // Draw current active mapping coordinate marker (live tracking)
+            const liveCX = (size / 2) + (liveX * (size / 2.6));
+            const liveCY = (size / 2) - (liveY * (size / 2.6));
+
+            xyCtx.fillStyle = '#FFFFFF';
+            xyCtx.beginPath();
+            xyCtx.arc(liveCX, liveCY, 7, 0, Math.PI * 2);
+            xyCtx.fill();
+            xyCtx.strokeStyle = '#3B82F6';
+            xyCtx.lineWidth = 2.5;
+            xyCtx.stroke();
+
+            // Pulse ring around active coordinate
+            xyCtx.strokeStyle = 'rgba(59, 130, 246, 0.4)';
+            xyCtx.lineWidth = 1.5;
+            xyCtx.beginPath();
+            xyCtx.arc(liveCX, liveCY, 11 + Math.sin(phaseShiftTimer * 8) * 3, 0, Math.PI * 2);
+            xyCtx.stroke();
+        }
+
+        // Initialize Audio context and setup routing node chain
+        function initAudio() {
+            try {
+                // Create browser context
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+                
+                // Create custom sound generator
+                mainOscillator = audioCtx.createOscillator();
+                audioGain = audioCtx.createGain();
+                
+                // ScriptProcessor to implement live math transformations on synthetic waves!
+                // 1024 sample buffer, 1 input channel, 1 output channel
+                processorNode = audioCtx.createScriptProcessor(1024, 1, 1);
+                
+                // Hook up mathematical transformer algorithm directly to real audio samples stream
+                processorNode.onaudioprocess = function(audioProcessingEvent) {
+                    const inputBuffer = audioProcessingEvent.inputBuffer;
+                    const outputBuffer = audioProcessingEvent.outputBuffer;
+                    
+                    const inputData = inputBuffer.getChannelData(0);
+                    const outputData = outputBuffer.getChannelData(0);
+                    
+                    let prevVal = 0;
+                    for (let sample = 0; sample < inputBuffer.length; sample++) {
+                        const xVal = inputData[sample];
+                        // Apply mathematical operators to listener ears in real-time
+                        outputData[sample] = processSystemTransform(xVal, audioCtx.currentTime, 0.001, prevVal, activeOperator);
+                        prevVal = xVal;
+                    }
+                };
+
+                // Link synthesizer node routing pathway
+                mainOscillator.connect(processorNode);
+                processorNode.connect(audioGain);
+                audioGain.connect(audioCtx.destination);
+                
+                // Configure base synthesizer properties
+                mainOscillator.frequency.value = 180; // set low clean frequency (F3 note) to prevent ear strain
+                mainOscillator.type = 'sine'; // start with clean fundamental sine to be warped
+                
+                // Set custom volume
+                audioGain.gain.setValueAtTime(0.0, audioCtx.currentTime); // start silent
+                mainOscillator.start();
+                
+            } catch (err) {
+                console.warn("Web Audio API blocked or not supported on device.", err);
+            }
+        }
+
+        // Set system volume based on toggle state
+        function setGainVolume(mute) {
+            if (!audioGain) return;
+            const currentVolume = mute ? 0.0 : 0.15; // standard secure volume limit
+            audioGain.gain.setTargetAtTime(currentVolume, audioCtx.currentTime, 0.05);
+        }
+
+        // Toggle Web Audio Synth Mute state
+        document.getElementById('audioToggleBtn').addEventListener('click', function() {
+            if (!audioCtx) {
+                initAudio();
+            }
+            // Resume if state was suspended by browser security
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            isAudioMuted = !isAudioMuted;
+            
+            const audioIcon = document.getElementById('audioIcon');
+            const audioText = document.getElementById('audioText');
+            const toggleBtn = document.getElementById('audioToggleBtn');
+
+            if (isAudioMuted) {
+                setGainVolume(true);
+                audioIcon.className = "fa-solid fa-volume-xmark text-red-400";
+                audioText.innerText = "Muted";
+                toggleBtn.classList.remove('border-emerald-500/50', 'bg-emerald-950/20');
+                toggleBtn.classList.add('border-gray-700', 'bg-gray-800');
+            } else {
+                setGainVolume(false);
+                audioIcon.className = "fa-solid fa-volume-high text-emerald-400 animate-bounce";
+                audioText.innerText = "Listening";
+                toggleBtn.classList.remove('border-gray-700', 'bg-gray-800');
+                toggleBtn.classList.add('border-emerald-500/50', 'bg-emerald-950/20');
+            }
+        });
+
+        // Handles switching different mathematical operations
+        function setOperator(opId) {
+            activeOperator = opId;
+            const op = operators.find(o => o.id === opId);
+            if (!op) return;
+
+            // Render operator formula in central system block
+            document.getElementById('operatorFormula').innerText = op.formula;
+            document.getElementById('operatorName').innerText = op.name;
+            document.getElementById('outputWaveDetails').innerText = op.shortName;
+
+            // Trigger dynamic LaTeX styled equation formatting logic
+            document.getElementById('proofConceptHeader').innerText = `T{x(t)} = ${op.formula.split('=')[1]}`;
+            document.getElementById('proofEquationExplanation').innerHTML = op.proof;
+
+            // Render classification indicators
+            updateClassificationBadge('linearIndicator', op.linear, 'Linear', 'Non-Linear');
+            updateClassificationBadge('tiIndicator', op.ti, 'Time-Invariant', 'Time-Variant');
+            updateClassificationBadge('memoryIndicator', op.memoryless, 'Memoryless', 'With Memory');
+            updateClassificationBadge('causalityIndicator', op.causal, 'Causal', 'Non-Causal');
+
+            // Descriptions update
+            document.getElementById('linearityDesc').innerText = op.linear ? 'Satisfies Homogeneity and Superposition properties.' : 'Homogeneity fails. Squashes, warps, or clips amplitude scales.';
+            document.getElementById('tiDesc').innerText = op.ti ? 'A shift in input time t creates equivalent shifted system output.' : 'System changes properties dynamically based on continuous time coordinate.';
+            document.getElementById('memoryDesc').innerText = op.memoryless ? 'Output depends strictly on input current values with zero delay.' : 'System contains delay registers or integrator components.';
+            document.getElementById('causalityDesc').innerText = op.causal ? 'Does not compute values depending on future inputs.' : 'Future system values are sampled directly.';
+
+            // Highlight selected operation item in UI list
+            document.querySelectorAll('.operator-card').forEach(card => {
+                card.classList.remove('border-brand-system', 'bg-brand-system/10');
+                card.classList.add('border-gray-800', 'bg-brand-dark/40');
+            });
+            const activeCard = document.getElementById(`op-card-${opId}`);
+            if (activeCard) {
+                activeCard.classList.remove('border-gray-800', 'bg-brand-dark/40');
+                activeCard.classList.add('border-brand-system', 'bg-brand-system/10');
+            }
+
+            // Sync audio wave generator sound harmonic mapping profile
+            if (mainOscillator && !isAudioMuted) {
+                // Dynamically modify synthesizer base shapes to correspond roughly with transformation types
+                if (opId === 'sign') {
+                    mainOscillator.type = 'square';
+                } else if (opId === 'derivative') {
+                    mainOscillator.type = 'sawtooth';
+                } else {
+                    mainOscillator.type = 'sine';
+                }
+            }
+        }
+
+        // Render mathematical classifications details
+        function updateClassificationBadge(elementId, status, trueText, falseText) {
+            const badge = document.getElementById(elementId);
+            if (status) {
+                badge.innerText = trueText;
+                badge.className = "mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase code-font bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+            } else {
+                badge.innerText = falseText;
+                badge.className = "mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase code-font bg-rose-500/10 text-rose-400 border border-rose-500/20";
+            }
+        }
+
+        // Build list of operators inside the sidebar view dynamically
+        function buildOperatorsList() {
+            const listContainer = document.getElementById('operatorList');
+            listContainer.innerHTML = '';
+            
+            operators.forEach(op => {
+                const card = document.createElement('div');
+                card.id = `op-card-${op.id}`;
+                card.className = "operator-card p-3 rounded-xl border border-gray-800 bg-brand-dark/40 hover:bg-brand-card/90 cursor-pointer transition-all duration-150 flex justify-between items-center";
+                card.onclick = () => setOperator(op.id);
+
+                card.innerHTML = `
+                    <div class="space-y-0.5 pr-2">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-bold text-white">${op.name}</span>
+                        </div>
+                        <p class="text-[10px] text-gray-400 leading-normal">${op.desc}</p>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                        <span class="px-2 py-1 bg-brand-dark/90 rounded text-[10px] font-semibold code-font text-brand-system border border-purple-900/40">${op.formula}</span>
+                    </div>
+                `;
+                listContainer.appendChild(card);
+            });
+        }
+
+        // Controls input waveforms
+        function setInputWaveType(type) {
+            inputWaveType = type;
+            // Update selected buttons active styles
+            const buttons = {
+                'sine': 'btnWaveSine',
+                'square': 'btnWaveSquare',
+                'triangle': 'btnWaveTriangle',
+                'sawtooth': 'btnWaveSawtooth'
+            };
+            
+            Object.keys(buttons).forEach(key => {
+                const btn = document.getElementById(buttons[key]);
+                if (key === type) {
+                    btn.className = "py-2.5 rounded-lg text-sm font-semibold transition bg-blue-600/20 text-blue-400 border border-blue-500/30 flex flex-col items-center justify-center gap-1 active:scale-95";
+                } else {
+                    btn.className = "py-2.5 rounded-lg text-sm font-semibold transition bg-gray-800 text-gray-400 border border-gray-700 flex flex-col items-center justify-center gap-1 hover:bg-gray-700 active:scale-95";
+                }
+            });
+
+            // Set input detail label
+            document.getElementById('inputWaveDetails').innerText = `${type.toUpperCase()}, ${frequency.toFixed(1)}Hz`;
+        }
+
+        // Setup event handlers on parameter sliders
+        document.getElementById('freqSlider').addEventListener('input', function(e) {
+            frequency = parseFloat(e.target.value);
+            document.getElementById('freqLabel').innerText = `${frequency.toFixed(2)} Hz`;
+            document.getElementById('inputWaveDetails').innerText = `${inputWaveType.toUpperCase()}, ${frequency.toFixed(1)}Hz`;
+            
+            if (mainOscillator && !isAudioMuted) {
+                // translate frequency scale safely to synth audio space
+                mainOscillator.frequency.setTargetAtTime(100 + frequency * 40, audioCtx.currentTime, 0.05);
+            }
+        });
+
+        document.getElementById('ampSlider').addEventListener('input', function(e) {
+            amplitude = parseFloat(e.target.value);
+            document.getElementById('ampLabel').innerText = `${amplitude.toFixed(2)} V`;
+        });
+
+        document.getElementById('phaseSlider').addEventListener('input', function(e) {
+            phaseOffset = parseFloat(e.target.value);
+            document.getElementById('phaseLabel').innerText = `${phaseOffset.toFixed(2)} rad`;
+        });
+
+        // Set Scenario Presets configurations
+        document.getElementById('presetSelector').addEventListener('change', function(e) {
+            const preset = e.target.value;
+            
+            if (preset === 'perfect-rectifier') {
+                setInputWaveType('sine');
+                setOperator('abs');
+                amplitude = 0.85;
+                frequency = 1.5;
+                phaseOffset = 0.0;
+            } else if (preset === 'wave-clipper') {
+                setInputWaveType('sine');
+                setOperator('sign');
+                amplitude = 0.9;
+                frequency = 2.0;
+                phaseOffset = 0.0;
+            } else if (preset === 'frequency-doubler') {
+                setInputWaveType('sine');
+                setOperator('square');
+                amplitude = 0.8;
+                frequency = 2.0;
+                phaseOffset = 0.0;
+            } else if (preset === 'speed-demon') {
+                setInputWaveType('triangle');
+                setOperator('timescale');
+                amplitude = 0.75;
+                frequency = 1.8;
+                phaseOffset = 0.0;
+            } else if (preset === 'echo-chamber') {
+                setInputWaveType('sawtooth');
+                setOperator('delay');
+                amplitude = 0.7;
+                frequency = 2.5;
+                phaseOffset = 0.0;
+            } else if (preset === 'harmonic-generator') {
+                setInputWaveType('triangle');
+                setOperator('derivative');
+                amplitude = 0.8;
+                frequency = 1.5;
+                phaseOffset = 0.0;
+            } else if (preset === 'noisy-static') {
+                setInputWaveType('sine');
+                setOperator('noise');
+                amplitude = 0.75;
+                frequency = 1.8;
+                phaseOffset = 0.0;
+            }
+
+            // Sync slide indicators to match values
+            document.getElementById('freqSlider').value = frequency;
+            document.getElementById('freqLabel').innerText = `${frequency.toFixed(2)} Hz`;
+            document.getElementById('ampSlider').value = amplitude;
+            document.getElementById('ampLabel').innerText = `${amplitude.toFixed(2)} V`;
+            document.getElementById('phaseSlider').value = phaseOffset;
+            document.getElementById('phaseLabel').innerText = `${phaseOffset.toFixed(2)} rad`;
+        });
+
+        // Helper modal visibility toggler
+        function toggleModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.toggle('hidden');
+        }
+
+        // Kickoff initialization logic
+        window.onload = function() {
+            buildOperatorsList();
+            setOperator('square'); // start with Squaring operator (matches initial process rule)
+            resizeCanvases();
+            window.addEventListener('resize', resizeCanvases);
+            
+            // Begin continuous rendering loop
+            drawScene();
+        };
+    </script>
+</body>
+</html>

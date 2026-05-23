@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discrete-Time Sine Wave Periodicity & Unit Circle</title>
+    <!-- Tailwind CSS for modern dashboard styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+        /* Custom scrollbar for control panels */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500/30 selection:text-indigo-200">
+
+    <!-- Header -->
+    <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50 px-4 py-4 sm:px-6">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <div class="flex items-center gap-3">
+                    <span class="px-2.5 py-1 text-xs font-semibold tracking-wider text-indigo-400 bg-indigo-500/10 rounded-full border border-indigo-500/20 uppercase">DSP Visualization</span>
+                    <div class="flex items-center gap-1.5">
+                        <span id="period-led" class="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_#10b981]"></span>
+                        <span id="period-status-text" class="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Periodic State</span>
+                    </div>
+                </div>
+                <h1 class="text-xl sm:text-2xl font-extrabold text-white mt-1 tracking-tight">
+                    Discrete-Time Sinusoid Periodicity
+                </h1>
+                <p class="text-xs sm:text-sm text-slate-400 mt-0.5">
+                    Compare the unit circle rotation with its corresponding discrete waveform mapping.
+                </p>
+            </div>
+
+            <!-- Global Live Numerical Diagnostics Dashboard -->
+            <div class="flex flex-wrap items-center gap-3 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+                <div class="text-left px-3 border-r border-slate-800">
+                    <span class="block text-[10px] font-bold tracking-wider text-slate-500 uppercase">Frequency ratio (f₀)</span>
+                    <span id="dash-freq-ratio" class="text-sm font-semibold code-font text-sky-400">0.1250</span>
+                </div>
+                <div class="text-left px-3 border-r border-slate-800">
+                    <span class="block text-[10px] font-bold tracking-wider text-slate-500 uppercase">Normalized Ω₀</span>
+                    <span id="dash-omega" class="text-sm font-semibold code-font text-indigo-400">0.2500π</span>
+                </div>
+                <div class="text-left px-3 border-r border-slate-800">
+                    <span class="block text-[10px] font-bold tracking-wider text-slate-500 uppercase">Current Step (n)</span>
+                    <span id="dash-step" class="text-sm font-semibold code-font text-amber-400">0</span>
+                </div>
+                <div class="text-left px-3">
+                    <span class="block text-[10px] font-bold tracking-wider text-slate-500 uppercase">Unique Angles Visited</span>
+                    <span id="dash-unique" class="text-sm font-semibold code-font text-pink-400">1</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col gap-6">
+        
+        <!-- Two Column Visualization Panel (Unit Circle + Stem Plot) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+            
+            <!-- Left Side: Unit Circle Visualizer (5 Cols) -->
+            <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between shadow-xl relative overflow-hidden group">
+                <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-cyan-500 to-blue-500"></div>
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.003 9.003 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>
+                        Unit Circle Representation
+                    </h2>
+                    <span class="text-xs bg-slate-800/60 text-slate-400 px-2 py-0.5 rounded border border-slate-700/50 code-font">e^{jΩ₀n}</span>
+                </div>
+
+                <!-- Canvas Wrapper -->
+                <div class="relative flex-grow flex items-center justify-center my-2 min-h-[300px] bg-slate-950/40 rounded-xl border border-slate-900">
+                    <canvas id="canvasCircle" class="block rounded-lg max-w-full"></canvas>
+                    <!-- Floating Projection Y Guide HUD -->
+                    <div class="absolute left-3 top-3 bg-slate-900/90 text-[10px] px-2 py-1 rounded border border-slate-800 backdrop-blur-sm pointer-events-none code-font text-slate-400">
+                        x[n] = sin(Ω₀n) = <span id="hud-sin-val" class="text-amber-400 font-bold">0.000</span>
+                    </div>
+                </div>
+
+                <p class="text-[11px] text-slate-400 mt-2 text-center italic">
+                    Blue lines represent discrete angle steps of Δθ = Ω₀. Yellow vector is current sample $n$.
+                </p>
+            </div>
+
+            <!-- Right Side: Discrete Stem Waveform Plot (7 Cols) -->
+            <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between shadow-xl relative overflow-hidden group">
+                <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                        Discrete-Time Sine Graph
+                    </h2>
+                    <span class="text-xs bg-slate-800/60 text-slate-400 px-2 py-0.5 rounded border border-slate-700/50 code-font">x[n] = sin(Ω₀n)</span>
+                </div>
+
+                <!-- Canvas Wrapper -->
+                <div class="relative flex-grow flex items-center justify-center my-2 min-h-[300px] bg-slate-950/40 rounded-xl border border-slate-900">
+                    <canvas id="canvasPlot" class="block rounded-lg max-w-full"></canvas>
+                    
+                    <!-- Plot-specific Legend Overlay -->
+                    <div class="absolute right-3 top-3 flex flex-col gap-1 text-[10px] px-2 py-1.5 rounded bg-slate-900/90 border border-slate-800 backdrop-blur-sm pointer-events-none text-slate-400">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                            <span>Current Playhead (n)</span>
+                        </div>
+                        <div id="legend-periodic-match" class="flex items-center gap-1.5 transition-opacity duration-300">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                            <span>Period Matches (n ± k·N)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="text-[11px] text-slate-400 mt-2 text-center italic">
+                    Alternating colored columns represent visual period blocks of length N when periodic.
+                </p>
+            </div>
+        </div>
+
+        <!-- Interactive Controls Console -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <!-- Col 1: Playback & System Controls -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
+                <div>
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4 flex items-center gap-2">
+                        <svg class="w-4.5 h-4.5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Playback Engine
+                    </h3>
+                    
+                    <!-- Control buttons -->
+                    <div class="grid grid-cols-3 gap-2 mb-4">
+                        <button id="btn-play" class="flex flex-col items-center justify-center p-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs transition-all active:scale-95 shadow-md shadow-indigo-600/10 gap-1">
+                            <svg id="play-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
+                            <svg id="pause-icon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span id="btn-play-text" class="font-bold">Play</span>
+                        </button>
+                        
+                        <button id="btn-step" class="flex flex-col items-center justify-center p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs transition-all active:scale-95 border border-slate-700/50 gap-1">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
+                            <span class="font-bold">Step (+1)</span>
+                        </button>
+                        
+                        <button id="btn-reset" class="flex flex-col items-center justify-center p-3 rounded-xl bg-slate-800 hover:bg-red-950 hover:text-red-200 hover:border-red-900/50 text-slate-300 font-medium text-xs transition-all active:scale-95 border border-slate-700/50 gap-1">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18"></path></svg>
+                            <span class="font-bold">Reset</span>
+                        </button>
+                    </div>
+
+                    <!-- Speed Control -->
+                    <div class="space-y-1 mb-4">
+                        <div class="flex justify-between text-xs text-slate-400">
+                            <span>Simulation Speed</span>
+                            <span id="label-speed" class="code-font text-indigo-400 font-semibold">10 steps/sec</span>
+                        </div>
+                        <input id="slider-speed" type="range" min="1" max="60" value="10" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                    </div>
+
+                    <!-- History Display mode slider -->
+                    <div class="space-y-2">
+                        <label class="block text-xs text-slate-400">History Persistence Mode</label>
+                        <div class="grid grid-cols-2 gap-1.5 p-1 bg-slate-950 rounded-lg border border-slate-800 text-[11px] font-medium">
+                            <button id="btn-hist-fade" class="py-1.5 px-2 rounded-md bg-indigo-600 text-white transition-all font-bold">
+                                Fading Trail
+                            </button>
+                            <button id="btn-hist-cumul" class="py-1.5 px-2 rounded-md text-slate-400 hover:text-slate-200 transition-all">
+                                Cumulative
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Col 2: Frequency Mode Selection -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between md:col-span-2">
+                <div>
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4 flex items-center gap-2">
+                        <svg class="w-4.5 h-4.5 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                        Frequency Parameter Configuration (f₀ = Ω₀ / 2π)
+                    </h3>
+
+                    <!-- Segmented Mode Tabs -->
+                    <div class="flex gap-2 p-1 bg-slate-950 rounded-xl border border-slate-800/80 mb-5">
+                        <button id="tab-rational" class="flex-1 py-2 text-xs font-semibold rounded-lg transition-all bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                            Rational Presets
+                        </button>
+                        <button id="tab-irrational" class="flex-1 py-2 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200">
+                            Irrational Presets
+                        </button>
+                        <button id="tab-manual" class="flex-1 py-2 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200">
+                            Manual Explorer
+                        </button>
+                    </div>
+
+                    <!-- Panel CONTENT: Rational Presets -->
+                    <div id="panel-rational" class="space-y-4">
+                        <p class="text-xs text-slate-400">
+                            Select a simplified ratio $m/N$. The discrete sine wave is <strong>guaranteed</strong> to be periodic with a fundamental period of $N$ samples.
+                        </p>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <button class="btn-preset-rat border border-slate-800 hover:border-sky-500/50 hover:bg-sky-500/5 bg-slate-950/40 p-2.5 rounded-xl transition-all" data-m="1" data-n="8">
+                                <span class="block text-xs font-bold text-slate-300">f₀ = 1/8</span>
+                                <span class="block text-[10px] text-sky-400 code-font mt-0.5">Period N=8</span>
+                            </button>
+                            <button class="btn-preset-rat border border-slate-800 hover:border-sky-500/50 hover:bg-sky-500/5 bg-slate-950/40 p-2.5 rounded-xl transition-all" data-m="3" data-n="10">
+                                <span class="block text-xs font-bold text-slate-300">f₀ = 3/10</span>
+                                <span class="block text-[10px] text-sky-400 code-font mt-0.5">Period N=10</span>
+                            </button>
+                            <button class="btn-preset-rat border border-slate-800 hover:border-sky-500/50 hover:bg-sky-500/5 bg-slate-950/40 p-2.5 rounded-xl transition-all" data-m="5" data-n="12">
+                                <span class="block text-xs font-bold text-slate-300">f₀ = 5/12</span>
+                                <span class="block text-[10px] text-sky-400 code-font mt-0.5">Period N=12</span>
+                            </button>
+                            <button class="btn-preset-rat border border-slate-800 hover:border-sky-500/50 hover:bg-sky-500/5 bg-slate-950/40 p-2.5 rounded-xl transition-all" data-m="1" data-n="17">
+                                <span class="block text-xs font-bold text-slate-300">f₀ = 1/17</span>
+                                <span class="block text-[10px] text-sky-400 code-font mt-0.5">Period N=17</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Panel CONTENT: Irrational Presets -->
+                    <div id="panel-irrational" class="space-y-4 hidden">
+                        <p class="text-xs text-slate-400">
+                            Select an irrational ratio. The vector will cycle indefinitely, and samples <strong>never perfectly overlap</strong>. The system will be mathematically non-periodic.
+                        </p>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <button class="btn-preset-irrat border border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-500/5 bg-slate-950/40 p-2.5 rounded-xl transition-all" data-value="0.3183098" data-label="1 / π">
+                                <span class="block text-xs font-bold text-slate-300">f₀ = 1 / π</span>
+                                <span class="block text-[10px] text-emerald-400 code-font mt-0.5">~0.3183</span>
+                            </button>
+                            <button class="btn-preset-irrat border border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-500/5 bg-slate-950/40 p-2.5 rounded-xl transition-all" data-value="0.3535533" data-label="√2 / 4">
+                                <span class="block text-xs font-bold text-slate-300">f₀ = √2 / 4</span>
+                                <span class="block text-[10px] text-emerald-400 code-font mt-0.5">~0.3536</span>
+                            </button>
+                            <button class="btn-preset-irrat border border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-500/5 bg-slate-950/40 p-2.5 rounded-xl transition-all" data-value="0.3678794" data-label="1 / e">
+                                <span class="block text-xs font-bold text-slate-300">f₀ = 1 / e</span>
+                                <span class="block text-[10px] text-emerald-400 code-font mt-0.5">~0.3679</span>
+                            </button>
+                            <button class="btn-preset-irrat border border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-500/5 bg-slate-950/40 p-2.5 rounded-xl transition-all" data-value="0.3090169" data-label="(√5 - 1) / 4">
+                                <span class="block text-xs font-bold text-slate-300">f₀ = Golden Ratio</span>
+                                <span class="block text-[10px] text-emerald-400 code-font mt-0.5">~0.3090</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Panel CONTENT: Manual Explorer -->
+                    <div id="panel-manual" class="space-y-4 hidden">
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="text-xs text-slate-400">Manual Continuous Slider (f₀)</label>
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="check-snap" checked class="w-3.5 h-3.5 rounded border-slate-700 bg-slate-800 text-indigo-500 focus:ring-0">
+                                <label for="check-snap" class="text-[10px] font-bold text-slate-500 uppercase tracking-wider cursor-pointer select-none">Snap to Low Denominators</label>
+                            </div>
+                        </div>
+
+                        <!-- Continuous Slider -->
+                        <div class="flex items-center gap-4 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
+                            <input id="slider-f0" type="range" min="0.0100" max="0.5000" step="0.0001" value="0.1250" class="flex-grow h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500">
+                            <span id="label-f0-val" class="code-font text-sm font-bold text-sky-400 w-16 text-right">0.1250</span>
+                        </div>
+
+                        <!-- Manual Fraction Constructor -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-slate-400">Rational Ratio Constructor: f₀ = m / N</span>
+                                <span id="custom-ratio-preview" class="text-xs font-bold text-indigo-400 code-font">1 / 8</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-slate-950/40 border border-slate-850 p-2.5 rounded-xl">
+                                    <div class="flex justify-between text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">
+                                        <span>Numerator (m)</span>
+                                        <span id="label-num" class="text-indigo-400">1</span>
+                                    </div>
+                                    <input id="slider-num" type="range" min="1" max="32" value="1" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                                </div>
+                                <div class="bg-slate-950/40 border border-slate-850 p-2.5 rounded-xl">
+                                    <div class="flex justify-between text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">
+                                        <span>Denominator (N)</span>
+                                        <span id="label-den" class="text-indigo-400">8</span>
+                                    </div>
+                                    <input id="slider-den" type="range" min="2" max="64" value="8" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Educational Insights Panel -->
+        <footer class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300 mb-3 flex items-center gap-2">
+                <svg class="w-4.5 h-4.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                Theoretical Insight
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="text-xs text-slate-400 leading-relaxed space-y-2">
+                    <p>
+                        A continuous-time sinusoid <span class="code-font text-slate-200">sin(ω₀t)</span> is always periodic with period <span class="code-font text-slate-200">T = 2π/ω₀</span>. 
+                        However, sampling it generates discrete sequences where the index <span class="code-font text-slate-200">n</span> must be an integer.
+                    </p>
+                    <p>
+                        For <span class="code-font text-slate-200">x[n] = sin(Ω₀n)</span> to be periodic, there must exist an integer <span class="code-font text-slate-200">N > 0</span> such that:
+                        <span class="block py-1.5 my-1.5 text-center bg-slate-950 rounded border border-slate-800 text-slate-200 font-semibold code-font text-[13px]">
+                            sin(Ω₀(n + N)) = sin(Ω₀n) &rArr; Ω₀N = 2πm &rArr; f₀ = Ω₀/2π = m/N
+                        </span>
+                        Since <span class="code-font text-slate-200">m</span> and <span class="code-font text-slate-200">N</span> must be integers, the frequency ratio <span class="code-font text-sky-400">f₀</span> must be a <strong class="text-sky-300">rational fraction</strong>!
+                    </p>
+                </div>
+                
+                <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-850 flex flex-col justify-center">
+                    <h4 class="text-xs font-bold text-slate-300 mb-2 uppercase tracking-wide">Live Diagnostics Log</h4>
+                    <div id="text-verdict" class="text-xs text-slate-300 leading-relaxed space-y-1.5 code-font">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </main>
+
+    <!-- Scripts section containing interactive engine -->
+    <script>
+        // DOM Elements selection
+        const canvasCircle = document.getElementById('canvasCircle');
+        const canvasPlot = document.getElementById('canvasPlot');
+        
+        // Buttons
+        const btnPlay = document.getElementById('btn-play');
+        const btnStep = document.getElementById('btn-step');
+        const btnReset = document.getElementById('btn-reset');
+        const playIcon = document.getElementById('play-icon');
+        const pauseIcon = document.getElementById('pause-icon');
+        const btnPlayText = document.getElementById('btn-play-text');
+        
+        // Speed & Trails
+        const sliderSpeed = document.getElementById('slider-speed');
+        const labelSpeed = document.getElementById('label-speed');
+        const btnHistFade = document.getElementById('btn-hist-fade');
+        const btnHistCumul = document.getElementById('btn-hist-cumul');
+
+        // Tabs
+        const tabRational = document.getElementById('tab-rational');
+        const tabIrrational = document.getElementById('tab-irrational');
+        const tabManual = document.getElementById('tab-manual');
+
+        const panelRational = document.getElementById('panel-rational');
+        const panelIrrational = document.getElementById('panel-irrational');
+        const panelManual = document.getElementById('panel-manual');
+
+        // Manual controls
+        const sliderF0 = document.getElementById('slider-f0');
+        const checkSnap = document.getElementById('check-snap');
+        const labelF0Val = document.getElementById('label-f0-val');
+        const sliderNum = document.getElementById('slider-num');
+        const sliderDen = document.getElementById('slider-den');
+        const labelNum = document.getElementById('label-num');
+        const labelDen = document.getElementById('label-den');
+        const customRatioPreview = document.getElementById('custom-ratio-preview');
+
+        // Dashboards
+        const dashFreqRatio = document.getElementById('dash-freq-ratio');
+        const dashOmega = document.getElementById('dash-omega');
+        const dashStep = document.getElementById('dash-step');
+        const dashUnique = document.getElementById('dash-unique');
+        const hudSinVal = document.getElementById('hud-sin-val');
+        
+        const periodLED = document.getElementById('period-led');
+        const periodStatusText = document.getElementById('period-status-text');
+        const legendPeriodicMatch = document.getElementById('legend-periodic-match');
+        const textVerdict = document.getElementById('text-verdict');
+
+        // Interactive simulation states
+        let f0 = 0.1250;           // Normalized frequency ratio f0 = Omega_0 / (2pi)
+        let omega0 = 2 * Math.PI * f0; // Omega0 = 2 * pi * f0
+        let currentStep = 0;       // Current step index n
+        let isPlaying = false;     // Play state
+        let speed = 10;            // Steps per second
+        let isCumulative = false;  // History persistence setting
+        let activeTab = 'rational';// 'rational' | 'irrational' | 'manual'
+
+        // Precision mapping of past angles
+        let historySet = new Set(); // Stores unique angles encountered in current run
+        let pathHistory = [];       // Sequential history array of angles visited
+
+        // Audio & Timing tickers
+        let animationTimer = null;
+        let lastTickTime = 0;
+
+        // GCD solver
+        function gcd(a, b) {
+            return b ? gcd(b, a % b) : a;
+        }
+
+        // Farey Fraction approximation to detect simple denominators
+        function getRationalApproximation(val, maxDenominator = 64, tolerance = 0.0001) {
+            for (let den = 1; den <= maxDenominator; den++) {
+                let num = Math.round(val * den);
+                if (Math.abs(val - num / den) < tolerance) {
+                    let divisor = gcd(num, den);
+                    return {
+                        m: num / divisor,
+                        N: den / divisor,
+                        exact: Math.abs(val - num / den) < 1e-12
+                    };
+                }
+            }
+            return null;
+        }
+
+        // Context setup
+        const ctxCircle = canvasCircle.getContext('2d');
+        const ctxPlot = canvasPlot.getContext('2d');
+
+        function resizeCanvases() {
+            // Circle canvas responsive sizing
+            const circleParent = canvasCircle.parentElement;
+            const circleW = circleParent.clientWidth;
+            const circleH = Math.max(300, circleW * 0.9);
+            
+            canvasCircle.width = circleW * window.devicePixelRatio;
+            canvasCircle.height = circleH * window.devicePixelRatio;
+            canvasCircle.style.width = circleW + 'px';
+            canvasCircle.style.height = circleH + 'px';
+            ctxCircle.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+            // Plot canvas responsive sizing
+            const plotParent = canvasPlot.parentElement;
+            const plotW = plotParent.clientWidth;
+            const plotH = 300;
+            
+            canvasPlot.width = plotW * window.devicePixelRatio;
+            canvasPlot.height = plotH * window.devicePixelRatio;
+            canvasPlot.style.width = plotW + 'px';
+            canvasPlot.style.height = plotH + 'px';
+            ctxPlot.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+            drawScene();
+        }
+
+        window.addEventListener('resize', resizeCanvases);
+
+        // Core state logic synchronization
+        function updateState() {
+            omega0 = 2 * Math.PI * f0;
+
+            // Approximate rational components (for display & logic)
+            const approx = getRationalApproximation(f0, 64, 0.0005);
+            const isRational = approx !== null;
+
+            // Render LED Indicators
+            if (isRational) {
+                periodLED.className = "h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_12px_#10b981]";
+                periodStatusText.innerText = `Periodic (Period N = ${approx.N})`;
+                periodStatusText.className = "text-xs font-semibold text-emerald-400 uppercase tracking-wider";
+                legendPeriodicMatch.style.opacity = "1";
+            } else {
+                periodLED.className = "h-2.5 w-2.5 rounded-full bg-slate-600 shadow-none";
+                periodStatusText.innerText = "Aperiodic (Non-Periodic)";
+                periodStatusText.className = "text-xs font-semibold text-slate-500 uppercase tracking-wider";
+                legendPeriodicMatch.style.opacity = "0.2";
+            }
+
+            // Sync top metrics dashboard
+            dashFreqRatio.innerText = f0.toFixed(4);
+            dashOmega.innerHTML = `${(f0 * 2).toFixed(4)}&pi;`;
+            dashStep.innerText = currentStep;
+            dashUnique.innerText = `${historySet.size}`;
+            hudSinVal.innerText = Math.sin(omega0 * currentStep).toFixed(4);
+
+            // Compute diagnostic mathematical text
+            if (isRational) {
+                textVerdict.innerHTML = `
+                    <div class="flex items-center gap-1.5 text-emerald-400 font-bold mb-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        SIGNAL IS PERIODIC
+                    </div>
+                    <span>Fraction ratio f₀:</span> <span class="text-sky-400 font-bold">${approx.m} / ${approx.N}</span><br>
+                    <span>Fundamental Period:</span> <span class="text-indigo-400 font-bold">N = ${approx.N}</span> samples.<br>
+                    <span class="text-slate-400 mt-1 block">Because f₀ is rational, the sequence perfectly overlaps. Every step lands on exactly <span class="text-emerald-400">${approx.N}</span> distinct positions on the unit circle.</span>
+                `;
+            } else {
+                textVerdict.innerHTML = `
+                    <div class="flex items-center gap-1.5 text-rose-500 font-bold mb-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                        SIGNAL IS APERIODIC
+                    </div>
+                    <span>Fraction ratio f₀:</span> <span class="text-amber-500 font-bold">${f0.toFixed(6)}...</span> (Irrational)<br>
+                    <span>Fundamental Period:</span> <span class="text-rose-400">N = &infin;</span> (Does not exist)<br>
+                    <span class="text-slate-400 mt-1 block">Because f₀ is irrational, the vector rotates forever without returning to its exact start. It will visit <span class="text-amber-400 font-semibold">infinitely many</span> unique positions on the circle.</span>
+                `;
+            }
+
+            // Custom slider sync matching
+            sliderF0.value = f0;
+            labelF0Val.innerText = f0.toFixed(4);
+        }
+
+        function registerCurrentPoint() {
+            // Find current wrapped angle [0, 2pi)
+            let angle = (omega0 * currentStep) % (2 * Math.PI);
+            if (angle < 0) angle += 2 * Math.PI;
+
+            // Store in history
+            pathHistory.push({
+                n: currentStep,
+                angle: angle,
+                y: Math.sin(omega0 * currentStep)
+            });
+
+            // Prevent history array memory leak
+            if (pathHistory.length > 5000) {
+                pathHistory.shift();
+            }
+
+            // Set accuracy decimal boundary for mathematical overlaps
+            historySet.add(angle.toFixed(5));
+        }
+
+        function stepSimulation() {
+            currentStep++;
+            registerCurrentPoint();
+            updateState();
+            drawScene();
+        }
+
+        function resetSimulation() {
+            currentStep = 0;
+            historySet.clear();
+            pathHistory = [];
+            registerCurrentPoint();
+            updateState();
+            drawScene();
+        }
+
+        function drawUnitCircle() {
+            const w = canvasCircle.width / window.devicePixelRatio;
+            const h = canvasCircle.height / window.devicePixelRatio;
+            const cx = w / 2;
+            const cy = h / 2;
+            const radius = Math.min(cx, cy) * 0.75;
+
+            // Clear Canvas
+            ctxCircle.fillStyle = '#020617'; // Slate 950
+            ctxCircle.fillRect(0, 0, w, h);
+
+            // Draw Cartesian Grid
+            ctxCircle.strokeStyle = '#1e293b'; // Slate 800
+            ctxCircle.lineWidth = 1;
+            
+            // X & Y Axes
+            ctxCircle.beginPath();
+            ctxCircle.moveTo(cx - radius * 1.2, cy);
+            ctxCircle.lineTo(cx + radius * 1.2, cy);
+            ctxCircle.moveTo(cx, cy - radius * 1.2);
+            ctxCircle.lineTo(cx, cy + radius * 1.2);
+            ctxCircle.stroke();
+
+            // Draw unit circle boundary outline
+            ctxCircle.strokeStyle = '#334155'; // Slate 700
+            ctxCircle.lineWidth = 1.5;
+            ctxCircle.setLineDash([5, 5]);
+            ctxCircle.beginPath();
+            ctxCircle.arc(cx, cy, radius, 0, 2 * Math.PI);
+            ctxCircle.stroke();
+            ctxCircle.setLineDash([]); // Reset line dash
+
+            // Draw circular degree grid details
+            ctxCircle.fillStyle = '#475569';
+            ctxCircle.font = '10px "Fira Code", monospace';
+            ctxCircle.fillText("1", cx + radius + 5, cy - 4);
+            ctxCircle.fillText("-1", cx - radius - 20, cy - 4);
+            ctxCircle.fillText("j", cx - 12, cy - radius - 6);
+            ctxCircle.fillText("-j", cx - 16, cy + radius + 14);
+
+            // Highlight all visited points within history limits
+            const limit = isCumulative ? pathHistory.length : Math.min(60, pathHistory.length);
+            const startIdx = pathHistory.length - limit;
+
+            ctxCircle.globalCompositeOperation = 'screen'; // Additive overlap highlight brightness
+            
+            for (let i = startIdx; i < pathHistory.length; i++) {
+                if (i < 0) continue;
+                const pt = pathHistory[i];
+                const px = cx + Math.cos(pt.angle) * radius;
+                const py = cy - Math.sin(pt.angle) * radius; // subtract because canvas Y starts at top
+
+                // Fade trail opacity based on proximity in step size
+                const recency = (i - startIdx) / limit;
+                const dotAlpha = isCumulative ? 0.75 : 0.2 + 0.8 * recency;
+                
+                // Color represents how old/new the point is
+                ctxCircle.fillStyle = `rgba(14, 165, 233, ${dotAlpha})`; // Sky-500
+                ctxCircle.beginPath();
+                ctxCircle.arc(px, py, isCumulative ? 3 : 2 + 1.5 * recency, 0, 2 * Math.PI);
+                ctxCircle.fill();
+
+                // Subtle grid radial link lines
+                if (!isCumulative && i > startIdx) {
+                    const prevPt = pathHistory[i - 1];
+                    if (prevPt) {
+                        ctxCircle.strokeStyle = `rgba(59, 130, 246, ${0.1 * recency})`; // Blue-500
+                        ctxCircle.lineWidth = 1;
+                        ctxCircle.beginPath();
+                        ctxCircle.moveTo(cx, cy);
+                        ctxCircle.lineTo(px, py);
+                        ctxCircle.stroke();
+                    }
+                }
+            }
+            
+            ctxCircle.globalCompositeOperation = 'source-over'; // Reset blend mode
+
+            // Draw Current Vector Handle
+            const currentAngle = (omega0 * currentStep) % (2 * Math.PI);
+            const curX = cx + Math.cos(currentAngle) * radius;
+            const curY = cy - Math.sin(currentAngle) * radius;
+
+            // Rotating Arm Vector Line
+            ctxCircle.strokeStyle = '#f59e0b'; // Amber 500
+            ctxCircle.lineWidth = 2.5;
+            ctxCircle.beginPath();
+            ctxCircle.moveTo(cx, cy);
+            ctxCircle.lineTo(curX, curY);
+            ctxCircle.stroke();
+
+            // Vector center pivot point
+            ctxCircle.fillStyle = '#0f172a';
+            ctxCircle.strokeStyle = '#f59e0b';
+            ctxCircle.lineWidth = 2;
+            ctxCircle.beginPath();
+            ctxCircle.arc(cx, cy, 4, 0, 2 * Math.PI);
+            ctxCircle.fill();
+            ctxCircle.stroke();
+
+            // Active head pulsing circle
+            ctxCircle.fillStyle = '#f59e0b';
+            ctxCircle.shadowColor = '#f59e0b';
+            ctxCircle.shadowBlur = 10;
+            ctxCircle.beginPath();
+            ctxCircle.arc(curX, curY, 6, 0, 2 * Math.PI);
+            ctxCircle.fill();
+            ctxCircle.shadowBlur = 0; // Reset shadows
+
+            // Horizontal projection line towards screen edge
+            ctxCircle.strokeStyle = 'rgba(245, 158, 11, 0.45)';
+            ctxCircle.lineWidth = 1;
+            ctxCircle.setLineDash([3, 4]);
+            ctxCircle.beginPath();
+            ctxCircle.moveTo(curX, curY);
+            ctxCircle.lineTo(w, curY);
+            ctxCircle.stroke();
+            ctxCircle.setLineDash([]);
+        }
+
+        function drawStemPlot() {
+            const w = canvasPlot.width / window.devicePixelRatio;
+            const h = canvasPlot.height / window.devicePixelRatio;
+
+            // Inner drawing plot bounding box coordinates
+            const marginL = 40;
+            const marginR = 25;
+            const marginT = 40;
+            const marginB = 35;
+            const plotW = w - marginL - marginR;
+            const plotH = h - marginT - marginB;
+
+            // Clear Background
+            ctxPlot.fillStyle = '#020617';
+            ctxPlot.fillRect(0, 0, w, h);
+
+            // Compute window sample indices to display (width: 50 samples)
+            const numDisplaySamples = 50;
+            const nStart = Math.max(0, currentStep - 25);
+            const nEnd = nStart + numDisplaySamples;
+
+            // Horizontal Scale Helper
+            function getXPixel(idx) {
+                return marginL + ((idx - nStart) / numDisplaySamples) * plotW;
+            }
+
+            // Vertical Scale Helper
+            function getYPixel(value) {
+                // Map [-1.2, 1.2] to plot height
+                return marginT + (1.0 - value / 1.2) * (plotH / 2);
+            }
+
+            // Draw Y-Axis Guide grid markings
+            ctxPlot.strokeStyle = '#1e293b';
+            ctxPlot.lineWidth = 1;
+            const yTicks = [-1.0, -0.5, 0, 0.5, 1.0];
+            yTicks.forEach(tick => {
+                const py = getYPixel(tick);
+                ctxPlot.beginPath();
+                ctxPlot.moveTo(marginL, py);
+                ctxPlot.lineTo(w - marginR, py);
+                ctxPlot.stroke();
+
+                // Labels
+                ctxPlot.fillStyle = '#475569';
+                ctxPlot.font = '9px "Fira Code", monospace';
+                ctxPlot.fillText(tick.toFixed(1), 8, py + 3);
+            });
+
+            // If system is rational & periodic, draw background shaded period vertical columns
+            const approx = getRationalApproximation(f0, 64, 0.0005);
+            if (approx !== null) {
+                const N = approx.N;
+                ctxPlot.fillStyle = 'rgba(16, 185, 129, 0.04)'; // Subtle transparent emerald
+
+                // Iterate over periods that slice current viewing interval
+                const startPeriod = Math.floor(nStart / N);
+                const endPeriod = Math.ceil(nEnd / N);
+
+                for (let p = startPeriod; p <= endPeriod; p++) {
+                    // Shading block bounds
+                    const xL = getXPixel(p * N);
+                    const xR = getXPixel((p + 1) * N);
+                    
+                    // Constrain within margins
+                    const xLClamped = Math.max(marginL, xL);
+                    const xRClamped = Math.min(w - marginR, xR);
+
+                    if (xRClamped > xLClamped) {
+                        ctxPlot.fillRect(xLClamped, marginT, xRClamped - xLClamped, plotH);
+                        
+                        // Vertical dividing line boundary marks
+                        ctxPlot.strokeStyle = 'rgba(16, 185, 129, 0.12)';
+                        ctxPlot.lineWidth = 1;
+                        ctxPlot.beginPath();
+                        ctxPlot.moveTo(xL, marginT);
+                        ctxPlot.lineTo(xL, h - marginB);
+                        ctxPlot.stroke();
+                    }
+                }
+            }
+
+            // Draw X Zero Line axis
+            ctxPlot.strokeStyle = '#334155';
+            ctxPlot.lineWidth = 1.5;
+            ctxPlot.beginPath();
+            ctxPlot.moveTo(marginL, getYPixel(0));
+            ctxPlot.lineTo(w - marginR, getYPixel(0));
+            ctxPlot.stroke();
+
+            // Render all stems in the viewable sample window
+            for (let i = nStart; i < nEnd; i++) {
+                const val = Math.sin(omega0 * i);
+                const px = getXPixel(i);
+                const py = getYPixel(val);
+                const pyZero = getYPixel(0);
+
+                // Check matches for period intervals highlighting
+                let isPeriodicMatch = false;
+                if (approx !== null) {
+                    const N = approx.N;
+                    isPeriodicMatch = Math.abs(i - currentStep) % N === 0;
+                }
+
+                const isCurrent = (i === currentStep);
+
+                // Set stem stroke colors based on active parameters
+                if (isCurrent) {
+                    ctxPlot.strokeStyle = '#f59e0b'; // Current active stem: Amber
+                    ctxPlot.lineWidth = 3;
+                } else if (isPeriodicMatch) {
+                    ctxPlot.strokeStyle = '#10b981'; // Period phase matching duplicate stems: Emerald
+                    ctxPlot.lineWidth = 1.8;
+                } else {
+                    ctxPlot.strokeStyle = '#4f46e5'; // Normal structural discrete stems: Indigo
+                    ctxPlot.lineWidth = 1.2;
+                }
+
+                // Draw vertical stem line
+                ctxPlot.beginPath();
+                ctxPlot.moveTo(px, pyZero);
+                ctxPlot.lineTo(px, py);
+                ctxPlot.stroke();
+
+                // Draw lollipop top dot
+                if (isCurrent) {
+                    ctxPlot.fillStyle = '#f59e0b';
+                    ctxPlot.beginPath();
+                    ctxPlot.arc(px, py, 5.5, 0, 2 * Math.PI);
+                    ctxPlot.fill();
+                } else if (isPeriodicMatch) {
+                    ctxPlot.fillStyle = '#10b981';
+                    ctxPlot.beginPath();
+                    ctxPlot.arc(px, py, 4, 0, 2 * Math.PI);
+                    ctxPlot.fill();
+                    
+                    // Glow halo ring around matched periodic points
+                    ctxPlot.strokeStyle = 'rgba(16, 185, 129, 0.4)';
+                    ctxPlot.lineWidth = 1.5;
+                    ctxPlot.beginPath();
+                    ctxPlot.arc(px, py, 6.5, 0, 2 * Math.PI);
+                    ctxPlot.stroke();
+                } else {
+                    ctxPlot.fillStyle = '#6366f1'; // Violet-500
+                    ctxPlot.beginPath();
+                    ctxPlot.arc(px, py, 3, 0, 2 * Math.PI);
+                    ctxPlot.fill();
+                }
+            }
+
+            // Draw moving Playhead Tracker Line & labels
+            if (currentStep >= nStart && currentStep <= nEnd) {
+                const curX = getXPixel(currentStep);
+                ctxPlot.strokeStyle = 'rgba(245, 158, 11, 0.3)';
+                ctxPlot.lineWidth = 1;
+                ctxPlot.setLineDash([4, 4]);
+                ctxPlot.beginPath();
+                ctxPlot.moveTo(curX, marginT - 15);
+                ctxPlot.lineTo(curX, h - marginB);
+                ctxPlot.stroke();
+                ctxPlot.setLineDash([]);
+
+                // Current index label above playhead
+                ctxPlot.fillStyle = '#f59e0b';
+                ctxPlot.font = 'bold 9px "Fira Code", monospace';
+                ctxPlot.fillText(`n=${currentStep}`, curX - 12, marginT - 18);
+            }
+
+            // Horizontal cross-projection line visual link
+            const currentVal = Math.sin(omega0 * currentStep);
+            const pyProj = getYPixel(currentVal);
+            ctxPlot.strokeStyle = 'rgba(245, 158, 11, 0.45)';
+            ctxPlot.lineWidth = 1;
+            ctxPlot.setLineDash([3, 4]);
+            ctxPlot.beginPath();
+            ctxPlot.moveTo(0, pyProj);
+            ctxPlot.lineTo(getXPixel(currentStep), pyProj);
+            ctxPlot.stroke();
+            ctxPlot.setLineDash([]);
+        }
+
+        // Consolidated drawing scene
+        function drawScene() {
+            drawUnitCircle();
+            drawStemPlot();
+        }
+
+        // Animation execution loops
+        function runLoop(timestamp) {
+            if (!isPlaying) return;
+
+            const elapsed = timestamp - lastTickTime;
+            const msInterval = 1000 / speed;
+
+            if (elapsed >= msInterval) {
+                stepSimulation();
+                lastTickTime = timestamp - (elapsed % msInterval);
+            }
+
+            animationTimer = requestAnimationFrame(runLoop);
+        }
+
+        // Play/Pause toggler
+        btnPlay.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            if (isPlaying) {
+                playIcon.classList.add('hidden');
+                pauseIcon.classList.remove('hidden');
+                btnPlayText.innerText = "Pause";
+                btnPlay.classList.replace('bg-indigo-600', 'bg-slate-700');
+                btnPlay.classList.replace('hover:bg-indigo-500', 'hover:bg-slate-600');
+                lastTickTime = performance.now();
+                animationTimer = requestAnimationFrame(runLoop);
+            } else {
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+                btnPlayText.innerText = "Play";
+                btnPlay.classList.replace('bg-slate-700', 'bg-indigo-600');
+                btnPlay.classList.replace('hover:bg-slate-600', 'hover:bg-indigo-500');
+                cancelAnimationFrame(animationTimer);
+            }
+        });
+
+        btnStep.addEventListener('click', () => {
+            if (isPlaying) {
+                btnPlay.click(); // Stop if playing
+            }
+            stepSimulation();
+        });
+
+        btnReset.addEventListener('click', () => {
+            resetSimulation();
+        });
+
+        // Speed Slider update
+        sliderSpeed.addEventListener('input', (e) => {
+            speed = parseInt(e.target.value, 10);
+            labelSpeed.innerText = `${speed} steps/sec`;
+        });
+
+        // History mode selection
+        btnHistFade.addEventListener('click', () => {
+            isCumulative = false;
+            btnHistFade.classList.add('bg-indigo-600', 'text-white');
+            btnHistFade.classList.remove('text-slate-400');
+            btnHistCumul.classList.remove('bg-indigo-600', 'text-white');
+            btnHistCumul.classList.add('text-slate-400');
+            drawScene();
+        });
+
+        btnHistCumul.addEventListener('click', () => {
+            isCumulative = true;
+            btnHistCumul.classList.add('bg-indigo-600', 'text-white');
+            btnHistCumul.classList.remove('text-slate-400');
+            btnHistFade.classList.remove('bg-indigo-600', 'text-white');
+            btnHistFade.classList.add('text-slate-400');
+            drawScene();
+        });
+
+        function switchTab(targetTab) {
+            activeTab = targetTab;
+            
+            // Unify all tabs style resets
+            [tabRational, tabIrrational, tabManual].forEach(t => {
+                t.className = "flex-1 py-2 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200";
+            });
+            [panelRational, panelIrrational, panelManual].forEach(p => {
+                p.classList.add('hidden');
+            });
+
+            if (targetTab === 'rational') {
+                tabRational.className = "flex-1 py-2 text-xs font-semibold rounded-lg transition-all bg-sky-500/10 text-sky-400 border border-sky-500/20";
+                panelRational.classList.remove('hidden');
+            } else if (targetTab === 'irrational') {
+                tabIrrational.className = "flex-1 py-2 text-xs font-semibold rounded-lg transition-all bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                panelIrrational.classList.remove('hidden');
+            } else {
+                tabManual.className = "flex-1 py-2 text-xs font-semibold rounded-lg transition-all bg-indigo-500/10 text-indigo-400 border border-indigo-500/20";
+                panelManual.classList.remove('hidden');
+            }
+        }
+
+        tabRational.addEventListener('click', () => switchTab('rational'));
+        tabIrrational.addEventListener('click', () => switchTab('irrational'));
+        tabManual.addEventListener('click', () => switchTab('manual'));
+
+        // Rational preset handlers
+        document.querySelectorAll('.btn-preset-rat').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const target = e.currentTarget;
+                const m = parseInt(target.getAttribute('data-m'), 10);
+                const n = parseInt(target.getAttribute('data-n'), 10);
+                
+                // Set rational variables
+                f0 = m / n;
+                
+                // Update manual sliders internally
+                sliderNum.value = m;
+                sliderDen.value = n;
+                labelNum.innerText = m;
+                labelDen.innerText = n;
+                customRatioPreview.innerText = `${m} / ${n}`;
+
+                resetSimulation();
+            });
+        });
+
+        // Irrational preset handlers
+        document.querySelectorAll('.btn-preset-irrat').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const target = e.currentTarget;
+                f0 = parseFloat(target.getAttribute('data-value'));
+                resetSimulation();
+            });
+        });
+
+        // Continuous Slider logic
+        sliderF0.addEventListener('input', (e) => {
+            let val = parseFloat(e.target.value);
+            
+            // Check snap conditions to integers denominators
+            if (checkSnap.checked) {
+                const approx = getRationalApproximation(val, 24, 0.005);
+                if (approx !== null) {
+                    val = approx.m / approx.N;
+                }
+            }
+
+            f0 = val;
+            resetSimulation();
+        });
+
+        // Rational Constructor Builders
+        function updateCustomFraction() {
+            const m = parseInt(sliderNum.value, 10);
+            const N = parseInt(sliderDen.value, 10);
+            
+            // Simplify values for display
+            const commonDiv = gcd(m, N);
+            const simpM = m / commonDiv;
+            const simpN = N / commonDiv;
+
+            customRatioPreview.innerText = simpM === m ? `${m} / ${N}` : `${m}/${N} (Simp: ${simpM}/${simpN})`;
+            labelNum.innerText = m;
+            labelDen.innerText = N;
+
+            f0 = m / N;
+            resetSimulation();
+        }
+
+        sliderNum.addEventListener('input', updateCustomFraction);
+        sliderDen.addEventListener('input', updateCustomFraction);
+
+        // Initialize Scene elements on startup load
+        window.onload = function() {
+            resizeCanvases();
+            resetSimulation();
+        };
+    </script>
+</body>
+</html>

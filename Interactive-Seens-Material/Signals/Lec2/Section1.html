@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discrete-Time Impulse & Step Foundations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- KaTeX for beautiful math equations -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <!-- FontAwesome for modern visual icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tone.js for synthesized, immersive audio interactions -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f19;
+        }
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+        /* Custom scrollbar style for elegant dashboards */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111827;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4b5563;
+        }
+        /* Glow animations */
+        @keyframes pulse-glow {
+            0%, 100% { filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.6)); }
+            50% { filter: drop-shadow(0 0 12px rgba(99, 102, 241, 0.9)); }
+        }
+        .pulse-glow-effect {
+            animation: pulse-glow 2s infinite;
+        }
+    </style>
+</head>
+<body class="text-slate-200 min-h-screen flex flex-col overflow-x-hidden">
+
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-indigo-600/20 text-indigo-400 rounded-lg border border-indigo-500/30">
+                    <i class="fa-solid fa-chart-line text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold text-white tracking-tight flex items-center gap-2">
+                        Discrete Signal Explorer <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">LTI Foundations</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Interactive Visualization of Impulse Accumulation and Sifting Property</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <!-- Sound Toggle -->
+                <button id="soundToggleBtn" onclick="toggleAudio()" class="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/80 hover:bg-slate-700 hover:text-white transition flex items-center gap-2 text-sm text-slate-300">
+                    <i id="soundIcon" class="fa-solid fa-volume-xmark text-rose-400"></i>
+                    <span id="soundText">Audio Synthesizer Muted</span>
+                </button>
+                <span class="text-xs text-slate-500">v1.2.0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Panel: Interactive controls & Guided explanation -->
+        <section class="lg:col-span-4 flex flex-col gap-6">
+            
+            <!-- Learning Mode Selector Tab -->
+            <div class="bg-slate-900/60 border border-slate-800 p-1.5 rounded-xl flex">
+                <button id="tabAccumulation" onclick="switchTab('accumulation')" class="flex-1 py-2.5 px-4 text-center text-sm font-semibold rounded-lg transition-all bg-indigo-600 text-white shadow-lg shadow-indigo-500/15">
+                    <i class="fa-solid fa-cubes mr-2"></i>Accumulation
+                </button>
+                <button id="tabSifting" onclick="switchTab('sifting')" class="flex-1 py-2.5 px-4 text-center text-sm font-semibold rounded-lg transition-all text-slate-400 hover:text-white hover:bg-slate-800/50">
+                    <i class="fa-solid fa-crosshairs mr-2"></i>Sifting Property
+                </button>
+            </div>
+
+            <!-- Contextual Math Card -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider mb-3 flex items-center justify-between">
+                    <span>Mathematical Model</span>
+                    <i class="fa-solid fa-square-root-variable text-indigo-400"></i>
+                </h3>
+                
+                <!-- Accumulation Math Context -->
+                <div id="mathAccumulation" class="space-y-4">
+                    <p class="text-sm text-slate-400 leading-relaxed">
+                        A discrete-time unit step signal <code class="text-emerald-400 font-semibold">$u[n]$</code> can be synthesized by accumulating shifted unit impulses <code class="text-cyan-400 font-semibold">$\delta[n-k]$</code>:
+                    </p>
+                    <div class="p-4 bg-slate-950/70 border border-slate-800/80 rounded-xl flex items-center justify-center">
+                        <div id="equationStepSum" class="text-lg text-white font-mono"></div>
+                    </div>
+                    <p class="text-xs text-slate-500 leading-relaxed">
+                        Moving the slider positions a single impulse at index <code class="text-amber-400 font-semibold">k</code>. By sweeping <code class="text-amber-400 font-semibold">k</code> from $0$ to $\infty$, you stamp impulses that assemble into a solid wall of height $1.0$ representing $u[n]$.
+                    </p>
+                </div>
+
+                <!-- Sifting Math Context -->
+                <div id="mathSifting" class="space-y-4 hidden">
+                    <p class="text-sm text-slate-400 leading-relaxed">
+                        The impulse's **Sifting (Sampling)** property selects the exact amplitude of a wave $x[n]$ at a specified time step $k$:
+                    </p>
+                    <div class="p-4 bg-slate-950/70 border border-slate-800/80 rounded-xl flex flex-col items-center justify-center gap-2">
+                        <div id="equationSifting" class="text-base text-white font-mono"></div>
+                        <div id="equationSiftingProduct" class="text-sm text-emerald-400 font-semibold font-mono"></div>
+                    </div>
+                    <p class="text-xs text-slate-500 leading-relaxed">
+                        Multiplying a continuous/complex discrete-time wave by a shifted unit impulse $\delta[n-k]$ eliminates all points except at index $k$.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Controls Card -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col justify-between gap-6">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4">Interactive Handles</h3>
+                    
+                    <!-- Slider for 'k' -->
+                    <div class="space-y-2 mb-6">
+                        <div class="flex items-center justify-between text-sm">
+                            <label for="sliderK" class="font-medium text-slate-400 flex items-center gap-2">
+                                <span class="px-2 py-0.5 bg-amber-500/10 text-amber-400 rounded border border-amber-500/20 text-xs">k</span>
+                                Impulse Offset (Shift)
+                            </label>
+                            <span class="text-lg font-bold text-amber-400 code-font" id="kValDisplay">k = 0</span>
+                        </div>
+                        <input type="range" id="sliderK" min="-10" max="15" value="0" step="1" 
+                               class="w-full h-2 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/30">
+                        <div class="flex justify-between text-[10px] text-slate-600 font-mono">
+                            <span>-10 (Left)</span>
+                            <span>0 (Origin)</span>
+                            <span>15 (Right)</span>
+                        </div>
+                    </div>
+
+                    <!-- Mode-Specific Accumulation Settings -->
+                    <div id="accumControls" class="space-y-4">
+                        <div class="p-3 bg-slate-950/40 border border-slate-800/80 rounded-xl space-y-3">
+                            <span class="text-xs font-semibold text-slate-400 block">Accumulation Controls</span>
+                            
+                            <div class="grid grid-cols-2 gap-2">
+                                <button onclick="stampCurrentImpulse()" class="py-2 px-3 text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg shadow-lg shadow-emerald-600/10 transition flex items-center justify-center gap-1">
+                                    <i class="fa-solid fa-stamp"></i> Stamp At k
+                                </button>
+                                <button id="playBtn" onclick="toggleAutoAccumulate()" class="py-2 px-3 text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg shadow-lg shadow-indigo-600/10 transition flex items-center justify-center gap-1">
+                                    <i id="playIcon" class="fa-solid fa-play"></i> <span id="playText">Auto Stamp</span>
+                                </button>
+                            </div>
+                            
+                            <button onclick="clearAccumulator()" class="w-full py-2 px-3 text-xs bg-slate-800 hover:bg-slate-700 hover:text-rose-400 text-slate-300 font-semibold rounded-lg border border-slate-700/80 transition flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-trash-can"></i> Reset Signal Board
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Mode-Specific Sifting Settings -->
+                    <div id="siftingControls" class="space-y-4 hidden">
+                        <div class="p-3 bg-slate-950/40 border border-slate-800/80 rounded-xl space-y-3">
+                            <span class="text-xs font-semibold text-slate-400 block">Signal Source Waveform</span>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button onclick="changeWaveform('sine')" id="wfSine" class="py-2 px-1 text-xs font-semibold rounded bg-indigo-600 text-white border border-indigo-500">Sine</button>
+                                <button onclick="changeWaveform('decaying')" id="wfDecay" class="py-2 px-1 text-xs font-semibold rounded bg-slate-800 text-slate-400 hover:text-white transition">Decay</button>
+                                <button onclick="changeWaveform('random')" id="wfRandom" class="py-2 px-1 text-xs font-semibold rounded bg-slate-800 text-slate-400 hover:text-white transition">Random</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulation Info Banner -->
+                <div class="p-4 rounded-xl bg-gradient-to-r from-indigo-950/40 to-slate-950 border border-indigo-500/20 text-xs space-y-2">
+                    <div class="flex items-center gap-2 text-indigo-400 font-bold uppercase tracking-wider">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span>How to observe</span>
+                    </div>
+                    <p class="text-slate-400 leading-relaxed" id="interactiveInstruction">
+                        Drag the offset slider <code class="text-amber-400">k</code> to move the active impulse. Click "Stamp At k" to save this impulse state permanently onto the accumulation graph to compose <code class="text-emerald-400">$u[n]$</code>.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Panel: Visualization Canvases -->
+        <section class="lg:col-span-8 flex flex-col gap-6">
+            
+            <!-- Canvas Container: Accumulation Visualizer -->
+            <div id="panelAccumulation" class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 inline-block"></span>
+                            Impulse Accumulation Board
+                        </h2>
+                        <p class="text-xs text-slate-400">Interactive Discrete Axis: Watch individual impulses stack to form the unit step.</p>
+                    </div>
+                    <span class="text-xs bg-slate-800 border border-slate-700 px-3 py-1 rounded-full text-slate-400 font-mono">
+                        u[n] = ∑ δ[n-k]
+                    </span>
+                </div>
+
+                <!-- Canvas Wrapper -->
+                <div class="relative bg-slate-950/80 rounded-xl border border-slate-800/80 p-4 aspect-[16/9] min-h-[300px] flex items-center justify-center overflow-hidden">
+                    <canvas id="accumulationCanvas" class="w-full h-full block z-10"></canvas>
+                    <!-- Background ambient graphic elements -->
+                    <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.04)_0%,transparent_70%)]"></div>
+                </div>
+
+                <!-- Legend of signals -->
+                <div class="grid grid-cols-3 gap-4 text-xs">
+                    <div class="flex items-center gap-2 px-3 py-2 bg-slate-950/40 border border-slate-800 rounded-lg">
+                        <span class="w-3 h-3 rounded-full bg-amber-500 shadow-md shadow-amber-500/30"></span>
+                        <div class="flex flex-col">
+                            <span class="text-slate-300 font-bold">Active Impulse</span>
+                            <span class="text-slate-500">δ[n - k]</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 px-3 py-2 bg-slate-950/40 border border-slate-800 rounded-lg">
+                        <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-md shadow-emerald-400/30"></span>
+                        <div class="flex flex-col">
+                            <span class="text-slate-300 font-bold">Stamps (Step)</span>
+                            <span class="text-slate-500">∑ δ[n-k] (Solid u[n])</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 px-3 py-2 bg-slate-950/40 border border-slate-800 rounded-lg">
+                        <span class="w-3 h-3 rounded-full bg-slate-600"></span>
+                        <div class="flex flex-col">
+                            <span class="text-slate-300 font-bold">Empty Points</span>
+                            <span class="text-slate-500">Amplitude 0.0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Canvas Container: Sifting Property Visualizer (Hidden initially) -->
+            <div id="panelSifting" class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col gap-4 hidden">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-indigo-400 inline-block"></span>
+                            Sifting Property Viewer
+                        </h2>
+                        <p class="text-xs text-slate-400">Observe how multiplying the impulse with wave x[n] selects only a single value at index k.</p>
+                    </div>
+                    <span class="text-xs bg-slate-800 border border-slate-700 px-3 py-1 rounded-full text-slate-400 font-mono">
+                        x[n]·δ[n-k] = x[k]·δ[n-k]
+                    </span>
+                </div>
+
+                <!-- Canvas Wrapper -->
+                <div class="relative bg-slate-950/80 rounded-xl border border-slate-800/80 p-4 aspect-[16/9] min-h-[300px] flex items-center justify-center overflow-hidden">
+                    <canvas id="siftingCanvas" class="w-full h-full block z-10"></canvas>
+                    <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.04)_0%,transparent_70%)]"></div>
+                </div>
+
+                <!-- Legend of signals -->
+                <div class="grid grid-cols-3 gap-4 text-xs">
+                    <div class="flex items-center gap-2 px-3 py-2 bg-slate-950/40 border border-slate-800 rounded-lg">
+                        <span class="w-3 h-3 rounded-full bg-indigo-400 shadow-md shadow-indigo-400/30"></span>
+                        <div class="flex flex-col">
+                            <span class="text-slate-300 font-bold">Input Signal</span>
+                            <span class="text-slate-500">x[n]</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 px-3 py-2 bg-slate-950/40 border border-slate-800 rounded-lg">
+                        <span class="w-3 h-3 rounded-full bg-amber-400 shadow-md shadow-amber-400/30"></span>
+                        <div class="flex flex-col">
+                            <span class="text-slate-300 font-bold">Impulse</span>
+                            <span class="text-slate-500">δ[n - k]</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 px-3 py-2 bg-slate-950/40 border border-slate-800 rounded-lg border-emerald-500/20">
+                        <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-md shadow-emerald-400/30 animate-pulse"></span>
+                        <div class="flex flex-col">
+                            <span class="text-slate-300 font-bold">Sifted Sample</span>
+                            <span class="text-slate-500">x[k]·δ[n - k]</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Signal Reference Card -->
+            <div class="bg-slate-900/40 border border-slate-800/80 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div class="space-y-1">
+                    <span class="text-xs text-slate-500 uppercase tracking-wider font-bold">Signal Glossary</span>
+                    <p class="text-xs text-slate-300 leading-relaxed max-w-xl">
+                        The impulse $\delta[n]$ is the atom of digital signal processing. Every discrete signal is a sum of scaled, shifted impulses. This fundamental concept allows us to construct convolutions and analyze LTI systems.
+                    </p>
+                </div>
+                <div class="flex gap-2">
+                    <span class="px-2.5 py-1 bg-slate-800 border border-slate-700 rounded text-[11px] font-semibold text-indigo-300">Impulse Response</span>
+                    <span class="px-2.5 py-1 bg-slate-800 border border-slate-700 rounded text-[11px] font-semibold text-emerald-300">Sifting Theorem</span>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <script>
+        // Global variables & state tracking
+        let currentTab = 'accumulation';
+        let kOffset = 0;
+        let isAudioEnabled = false;
+        let oscSynth = null;
+
+        // Visual board states
+        const maxStamps = 30; // Indices tracked [-10 to 15]
+        const minIndex = -10;
+        const maxIndex = 15;
+        let stampedImpulsives = Array(maxIndex - minIndex + 1).fill(0); // Filled with 0 amplitude initially
+
+        // Automate accumulation state
+        let isAutoAccumulating = false;
+        let autoStepInterval = null;
+
+        // Signal wave models for the sifting view
+        let activeWaveform = 'sine';
+        let signalWaveCache = [];
+
+        // Particles for glorious stamping visual feedback
+        let particles = [];
+
+        // Setup elements & contexts on window load
+        window.addEventListener('load', () => {
+            initKaTeX();
+            initCanvases();
+            generateWaveformData();
+            
+            // Set up UI listeners
+            const sliderK = document.getElementById('sliderK');
+            sliderK.addEventListener('input', (e) => {
+                kOffset = parseInt(e.target.value);
+                document.getElementById('kValDisplay').textContent = `k = ${kOffset}`;
+                playSynthesizedTone();
+                updateStaticEquations();
+            });
+
+            // Prevent scroll/gesture conflicts on sliders for mobile
+            sliderK.addEventListener('touchstart', (e) => {}, {passive: true});
+
+            // Trigger window resize to size canvases nicely
+            window.addEventListener('resize', handleCanvasResize);
+            handleCanvasResize();
+
+            // Run visual loops
+            requestAnimationFrame(drawLoop);
+        });
+
+        function initKaTeX() {
+            try {
+                katex.render("u[n] = \\sum_{k=-\\infty}^{n} \\delta[k]", document.getElementById('equationStepSum'), {
+                    throwOnError: false,
+                    displayMode: true
+                });
+                updateStaticEquations();
+            } catch (err) {
+                console.warn("KaTeX loading error", err);
+            }
+        }
+
+        function updateStaticEquations() {
+            if (!window.katex) return;
+            
+            if (currentTab === 'accumulation') {
+                const equationStr = `u[n] = \\sum_{k=-\\infty}^{n} \\delta[k] \\quad \\text{Current impulse at } k = ${kOffset}`;
+                katex.render(equationStr, document.getElementById('equationStepSum'), { throwOnError: false, displayMode: false });
+            } else {
+                const siftingStr = `x[n]\\delta[n - ${kOffset}] = x[${kOffset}]\\delta[n - ${kOffset}]`;
+                katex.render(siftingStr, document.getElementById('equationSifting'), { throwOnError: false, displayMode: false });
+                
+                // Read current sample amplitude
+                const ampVal = sampleWaveform(kOffset);
+                const siftingResultStr = `\\text{Selected Sample: } x[${kOffset}] = ${ampVal.toFixed(3)}`;
+                katex.render(siftingResultStr, document.getElementById('equationSiftingProduct'), { throwOnError: false, displayMode: false });
+            }
+        }
+
+        function toggleAudio() {
+            if (!isAudioEnabled) {
+                Tone.start();
+                oscSynth = new Tone.Synth({
+                    oscillator: { type: "sine" },
+                    envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }
+                }).toDestination();
+                oscSynth.volume.value = -12; // lower volume for comfort
+                isAudioEnabled = true;
+                document.getElementById('soundIcon').className = 'fa-solid fa-volume-high text-emerald-400 animate-pulse';
+                document.getElementById('soundText').textContent = 'Audio Synthesizer Active';
+                playSynthesizedTone();
+            } else {
+                isAudioEnabled = false;
+                document.getElementById('soundIcon').className = 'fa-solid fa-volume-xmark text-rose-400';
+                document.getElementById('soundText').textContent = 'Audio Synthesizer Muted';
+            }
+        }
+
+        function playSynthesizedTone() {
+            if (!isAudioEnabled || !oscSynth) return;
+            // Map k position [-10 to 15] to an audio frequency range [220Hz to 660Hz]
+            const minFreq = 220;
+            const maxFreq = 660;
+            const factor = (kOffset - minIndex) / (maxIndex - minIndex);
+            const freq = minFreq + factor * (maxFreq - minFreq);
+            
+            // In sifting mode, modulate pitch also by amplitude of wave x[k]
+            let amplitudeMod = 1.0;
+            if (currentTab === 'sifting') {
+                amplitudeMod = Math.max(0.2, Math.abs(sampleWaveform(kOffset)));
+            }
+
+            oscSynth.triggerAttackRelease(freq * amplitudeMod, "16n");
+        }
+
+        function switchTab(mode) {
+            currentTab = mode;
+            
+            const btnAccum = document.getElementById('tabAccumulation');
+            const btnSift = document.getElementById('tabSifting');
+            
+            const panelAccum = document.getElementById('panelAccumulation');
+            const panelSift = document.getElementById('panelSifting');
+
+            const controlsAccum = document.getElementById('accumControls');
+            const controlsSift = document.getElementById('siftingControls');
+
+            const mathAccum = document.getElementById('mathAccumulation');
+            const mathSift = document.getElementById('mathSifting');
+
+            const instStr = document.getElementById('interactiveInstruction');
+
+            if (mode === 'accumulation') {
+                btnAccum.className = "flex-1 py-2.5 px-4 text-center text-sm font-semibold rounded-lg transition-all bg-indigo-600 text-white shadow-lg shadow-indigo-500/15";
+                btnSift.className = "flex-1 py-2.5 px-4 text-center text-sm font-semibold rounded-lg transition-all text-slate-400 hover:text-white hover:bg-slate-800/50";
+                
+                panelAccum.classList.remove('hidden');
+                panelSift.classList.add('hidden');
+
+                controlsAccum.classList.remove('hidden');
+                controlsSift.classList.add('hidden');
+
+                mathAccum.classList.remove('hidden');
+                mathSift.classList.add('hidden');
+
+                instStr.innerHTML = 'Drag the offset slider <code class="text-amber-400">k</code> to move the active impulse. Click "Stamp At k" to save this impulse state permanently onto the accumulation graph to compose <code class="text-emerald-400">$u[n]$</code>.';
+            } else {
+                btnSift.className = "flex-1 py-2.5 px-4 text-center text-sm font-semibold rounded-lg transition-all bg-indigo-600 text-white shadow-lg shadow-indigo-500/15";
+                btnAccum.className = "flex-1 py-2.5 px-4 text-center text-sm font-semibold rounded-lg transition-all text-slate-400 hover:text-white hover:bg-slate-800/50";
+                
+                panelSift.classList.remove('hidden');
+                panelAccum.classList.add('hidden');
+
+                controlsAccum.classList.add('hidden');
+                controlsSift.classList.remove('hidden');
+
+                mathAccum.classList.add('hidden');
+                mathSift.classList.remove('hidden');
+
+                instStr.innerHTML = 'The sifting visual demonstrates sampling! Drag slider <code class="text-amber-400">k</code> to watch the yellow impulse $\\delta[n-k]$ interact with the waveform to isolate $x[k]$.';
+            }
+            
+            updateStaticEquations();
+            handleCanvasResize();
+            playSynthesizedTone();
+        }
+
+        let accumCanvas, accumCtx;
+        let siftingCanvas, siftingCtx;
+
+        function initCanvases() {
+            accumCanvas = document.getElementById('accumulationCanvas');
+            accumCtx = accumCanvas.getContext('2d');
+            
+            siftingCanvas = document.getElementById('siftingCanvas');
+            siftingCtx = siftingCanvas.getContext('2d');
+        }
+
+        function handleCanvasResize() {
+            const list = [
+                { canvas: accumCanvas, ctx: accumCtx },
+                { canvas: siftingCanvas, ctx: siftingCtx }
+            ];
+
+            list.forEach(({ canvas, ctx }) => {
+                if (!canvas) return;
+                const rect = canvas.getBoundingClientRect();
+                const dpr = window.devicePixelRatio || 1;
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+                ctx.scale(dpr, dpr);
+            });
+        }
+
+        function generateWaveformData() {
+            signalWaveCache = [];
+            for (let i = minIndex; i <= maxIndex; i++) {
+                signalWaveCache.push(computeWaveValue(i));
+            }
+        }
+
+        function computeWaveValue(n) {
+            // Generates beautiful complex-shaped waveforms normalized to [-1.0, 1.0] scale
+            if (activeWaveform === 'sine') {
+                return 0.75 * Math.sin(0.35 * n) + 0.15 * Math.sin(1.2 * n);
+            } else if (activeWaveform === 'decaying') {
+                return (n >= 0) ? Math.exp(-0.12 * n) * Math.sin(0.55 * n) * 0.9 : 0;
+            } else {
+                // Pseudo-random but deterministic for neat rendering (seeded on indices)
+                const pseudo = Math.sin(n * 2.3) * Math.cos(n * 4.7) * 1.5;
+                return Math.max(-0.85, Math.min(0.85, pseudo));
+            }
+        }
+
+        function sampleWaveform(n) {
+            if (n < minIndex || n > maxIndex) return 0;
+            return computeWaveValue(n);
+        }
+
+        function changeWaveform(type) {
+            activeWaveform = type;
+            
+            document.getElementById('wfSine').className = "py-2 px-1 text-xs font-semibold rounded bg-slate-800 text-slate-400 hover:text-white transition";
+            document.getElementById('wfDecay').className = "py-2 px-1 text-xs font-semibold rounded bg-slate-800 text-slate-400 hover:text-white transition";
+            document.getElementById('wfRandom').className = "py-2 px-1 text-xs font-semibold rounded bg-slate-800 text-slate-400 hover:text-white transition";
+
+            if (type === 'sine') {
+                document.getElementById('wfSine').className = "py-2 px-1 text-xs font-semibold rounded bg-indigo-600 text-white border border-indigo-500";
+            } else if (type === 'decaying') {
+                document.getElementById('wfDecay').className = "py-2 px-1 text-xs font-semibold rounded bg-indigo-600 text-white border border-indigo-500";
+            } else {
+                document.getElementById('wfRandom').className = "py-2 px-1 text-xs font-semibold rounded bg-indigo-600 text-white border border-indigo-500";
+            }
+
+            generateWaveformData();
+            updateStaticEquations();
+            playSynthesizedTone();
+        }
+
+        function stampCurrentImpulse() {
+            const internalIdx = kOffset - minIndex;
+            if (internalIdx >= 0 && internalIdx < stampedImpulsives.length) {
+                // Stamp value
+                stampedImpulsives[internalIdx] = 1.0; 
+                
+                // Add spark burst effect on canvas coords
+                spawnStampParticles(kOffset, 1.0);
+                
+                // Auditory response chime
+                if (isAudioEnabled && oscSynth) {
+                    oscSynth.triggerAttackRelease(523.25, "8n"); // Quick sweet High C stamp note
+                }
+            }
+        }
+
+        function clearAccumulator() {
+            stampedImpulsives.fill(0);
+            if (isAutoAccumulating) {
+                toggleAutoAccumulate();
+            }
+        }
+
+        function toggleAutoAccumulate() {
+            const playBtn = document.getElementById('playBtn');
+            const playIcon = document.getElementById('playIcon');
+            const playText = document.getElementById('playText');
+
+            if (!isAutoAccumulating) {
+                isAutoAccumulating = true;
+                playBtn.classList.replace('bg-indigo-600', 'bg-rose-600');
+                playBtn.classList.replace('hover:bg-indigo-500', 'hover:bg-rose-500');
+                playIcon.className = 'fa-solid fa-pause';
+                playText.textContent = 'Pause Auto';
+                
+                // Start sequential stamping sequence starting at 0 to maxIndex
+                let targetK = 0;
+                sliderK.value = targetK;
+                kOffset = targetK;
+                document.getElementById('kValDisplay').textContent = `k = ${targetK}`;
+                updateStaticEquations();
+
+                autoStepInterval = setInterval(() => {
+                    stampCurrentImpulse();
+                    
+                    targetK++;
+                    if (targetK > maxIndex) {
+                        targetK = 0; // wrap loop
+                    }
+                    sliderK.value = targetK;
+                    kOffset = targetK;
+                    document.getElementById('kValDisplay').textContent = `k = ${targetK}`;
+                    updateStaticEquations();
+                    playSynthesizedTone();
+                }, 400);
+            } else {
+                isAutoAccumulating = false;
+                clearInterval(autoStepInterval);
+                playBtn.classList.replace('bg-rose-600', 'bg-indigo-600');
+                playBtn.classList.replace('hover:bg-rose-500', 'hover:bg-indigo-500');
+                playIcon.className = 'fa-solid fa-play';
+                playText.textContent = 'Auto Stamp';
+            }
+        }
+
+        function spawnStampParticles(k, amp) {
+            // Estimate drawing positions
+            const width = accumCanvas.getBoundingClientRect().width;
+            const height = accumCanvas.getBoundingClientRect().height;
+            const margin = 50;
+            const cellWidth = (width - margin * 2) / (maxIndex - minIndex);
+            
+            const px = margin + (k - minIndex) * cellWidth + cellWidth / 2;
+            const zeroY = height / 2 + 20;
+            const py = zeroY - amp * (height * 0.3);
+
+            for (let i = 0; i < 15; i++) {
+                particles.push({
+                    x: px,
+                    y: py,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: (Math.random() - 1.2) * 5,
+                    color: `hsla(${140 + Math.random() * 40}, 85%, 65%, 1)`, // Emerald scale
+                    radius: 2 + Math.random() * 4,
+                    alpha: 1.0,
+                    life: 1.0,
+                    decay: 0.02 + Math.random() * 0.03
+                });
+            }
+        }
+
+        function updateAndDrawParticles(ctx) {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.15; // Simulated gravity
+                p.life -= p.decay;
+                
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+
+                ctx.save();
+                ctx.globalAlpha = p.life;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = p.color;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function drawLoop() {
+            if (currentTab === 'accumulation') {
+                renderAccumulationCanvas();
+            } else {
+                renderSiftingCanvas();
+            }
+            requestAnimationFrame(drawLoop);
+        }
+
+        function renderAccumulationCanvas() {
+            if (!accumCanvas || !accumCtx) return;
+            const ctx = accumCtx;
+            const width = accumCanvas.width / (window.devicePixelRatio || 1);
+            const height = accumCanvas.height / (window.devicePixelRatio || 1);
+
+            // Clean Slate background
+            ctx.clearRect(0, 0, width, height);
+
+            // Layout Margins
+            const margin = 50;
+            const cellWidth = (width - margin * 2) / (maxIndex - minIndex);
+            const zeroY = height / 2 + 20;
+            const ampScale = height * 0.3; // Limit signal visual scope
+
+            // 1. Grid & Axes Lines
+            ctx.save();
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+            
+            // Draw horizontal horizontal helper gridlines (Amplitude levels 0.5, 1.0, -0.5, -1.0)
+            const levels = [1.0, 0.5, -0.5, -1.0];
+            levels.forEach(lvl => {
+                const y = zeroY - lvl * ampScale;
+                ctx.beginPath();
+                ctx.moveTo(margin, y);
+                ctx.lineTo(width - margin, y);
+                ctx.stroke();
+
+                // Amplitude tick labels
+                ctx.fillStyle = '#64748b';
+                ctx.font = '10px "Fira Code", monospace';
+                ctx.fillText(lvl.toFixed(1), 15, y + 3);
+            });
+
+            // Clean solid center/zero horizontal baseline
+            ctx.restore();
+            ctx.save();
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(margin - 10, zeroY);
+            ctx.lineTo(width - margin + 10, zeroY);
+            ctx.stroke();
+            ctx.restore();
+
+            // 2. Draw Indices and Stem Pillars
+            for (let i = minIndex; i <= maxIndex; i++) {
+                const x = margin + (i - minIndex) * cellWidth + cellWidth / 2;
+                
+                // Index text on zero axis
+                ctx.fillStyle = (i === kOffset) ? '#f59e0b' : '#475569';
+                ctx.font = (i === kOffset) ? 'bold 11px "Fira Code", monospace' : '10px "Fira Code", monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(i.toString(), x, zeroY + 16);
+
+                const internalIdx = i - minIndex;
+                const stampedVal = stampedImpulsives[internalIdx];
+                const isActive = (i === kOffset);
+
+                // Stem Line drawing
+                ctx.save();
+                
+                // Color configuration:
+                // Yellow = Active moving impulse
+                // Emerald = Stamped component of the unit step
+                if (stampedVal > 0) {
+                    ctx.strokeStyle = 'rgba(52, 211, 153, 0.9)'; // emerald-400
+                    ctx.shadowColor = 'rgba(52, 211, 153, 0.5)';
+                    ctx.shadowBlur = 8;
+                    ctx.lineWidth = 3.5;
+                    ctx.beginPath();
+                    ctx.moveTo(x, zeroY);
+                    ctx.lineTo(x, zeroY - stampedVal * ampScale);
+                    ctx.stroke();
+
+                    // Anchor cap node (circle)
+                    ctx.fillStyle = '#34d399';
+                    ctx.beginPath();
+                    ctx.arc(x, zeroY - stampedVal * ampScale, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Superimpose active moving impulse (dashed or styled to distinct)
+                if (isActive) {
+                    ctx.restore();
+                    ctx.save();
+                    ctx.strokeStyle = '#f59e0b'; // amber-500
+                    ctx.shadowColor = 'rgba(245, 158, 11, 0.6)';
+                    ctx.shadowBlur = 12;
+                    ctx.lineWidth = stampedVal > 0 ? 1.5 : 3; // Slimmer outline if already stamped
+                    ctx.beginPath();
+                    ctx.moveTo(x, zeroY);
+                    ctx.lineTo(x, zeroY - 1.0 * ampScale);
+                    ctx.stroke();
+
+                    // Active marker Cap node
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.beginPath();
+                    ctx.arc(x, zeroY - 1.0 * ampScale, 7, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Draw mini arrow above it pointing down
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.moveTo(x, zeroY - 1.0 * ampScale - 16);
+                    ctx.lineTo(x - 4, zeroY - 1.0 * ampScale - 22);
+                    ctx.lineTo(x + 4, zeroY - 1.0 * ampScale - 22);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+                // If not active and not stamped, draw empty placeholders (faint small baseline dots)
+                if (stampedVal === 0 && !isActive) {
+                    ctx.fillStyle = '#334155';
+                    ctx.beginPath();
+                    ctx.arc(x, zeroY, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+
+            // Draw visual indicator text on upper boundaries
+            ctx.save();
+            ctx.fillStyle = '#64748b';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText("Amplitude", width - margin, margin - 15);
+            ctx.fillText("Time index (n)", width - margin, zeroY + 36);
+            ctx.restore();
+
+            // Render Stamp Particle effects
+            updateAndDrawParticles(ctx);
+        }
+
+        function renderSiftingCanvas() {
+            if (!siftingCanvas || !siftingCtx) return;
+            const ctx = siftingCtx;
+            const width = siftingCanvas.width / (window.devicePixelRatio || 1);
+            const height = siftingCanvas.height / (window.devicePixelRatio || 1);
+
+            ctx.clearRect(0, 0, width, height);
+
+            const margin = 50;
+            const cellWidth = (width - margin * 2) / (maxIndex - minIndex);
+            const zeroY = height / 2 + 20;
+            const ampScale = height * 0.3;
+
+            // 1. Grid & Axes Lines
+            ctx.save();
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+            
+            const levels = [1.0, 0.5, -0.5, -1.0];
+            levels.forEach(lvl => {
+                const y = zeroY - lvl * ampScale;
+                ctx.beginPath();
+                ctx.moveTo(margin, y);
+                ctx.lineTo(width - margin, y);
+                ctx.stroke();
+
+                ctx.fillStyle = '#64748b';
+                ctx.font = '10px "Fira Code", monospace';
+                ctx.fillText(lvl.toFixed(1), 15, y + 3);
+            });
+
+            ctx.restore();
+            ctx.save();
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(margin - 10, zeroY);
+            ctx.lineTo(width - margin + 10, zeroY);
+            ctx.stroke();
+            ctx.restore();
+
+            // 2. Continuous guide envelope curve representing source x[n] (faint dashed gray line)
+            ctx.save();
+            ctx.strokeStyle = 'rgba(129, 140, 248, 0.35)'; // Faint indigo
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([6, 4]);
+            ctx.beginPath();
+            
+            for (let i = minIndex; i <= maxIndex; i++) {
+                const x = margin + (i - minIndex) * cellWidth + cellWidth / 2;
+                const waveVal = computeWaveValue(i);
+                const y = zeroY - waveVal * ampScale;
+                if (i === minIndex) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+            ctx.restore();
+
+            // 3. Draw individual stems of x[n] and the interacting shifted impulse
+            for (let i = minIndex; i <= maxIndex; i++) {
+                const x = margin + (i - minIndex) * cellWidth + cellWidth / 2;
+                const waveVal = computeWaveValue(i);
+                const yWave = zeroY - waveVal * ampScale;
+                const isActive = (i === kOffset);
+
+                // Index labels
+                ctx.fillStyle = isActive ? '#f59e0b' : '#475569';
+                ctx.font = isActive ? 'bold 11px "Fira Code", monospace' : '10px "Fira Code", monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(i.toString(), x, zeroY + 16);
+
+                if (isActive) {
+                    // This is the active column where sampling happens!
+                    // Highlight Area (Spotlight Ring)
+                    ctx.save();
+                    const ringRadius = 16;
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = '#10b981'; // emerald green sifting spot
+                    ctx.strokeStyle = 'rgba(16, 185, 129, 0.8)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(x, yWave, ringRadius, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+
+                    // Draw the yellow impulse stem: delta[n - k]
+                    ctx.save();
+                    ctx.strokeStyle = '#f59e0b'; // amber-500
+                    ctx.shadowColor = 'rgba(245, 158, 11, 0.5)';
+                    ctx.shadowBlur = 10;
+                    ctx.lineWidth = 3.5;
+                    ctx.beginPath();
+                    ctx.moveTo(x, zeroY);
+                    ctx.lineTo(x, zeroY - 1.0 * ampScale); // Unit height
+                    ctx.stroke();
+                    
+                    // Cap node for pure impulse delta
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.beginPath();
+                    ctx.arc(x, zeroY - 1.0 * ampScale, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+
+                    // Draw the resulting product stem: x[k]*delta[n - k] (glowing emerald stem)
+                    ctx.save();
+                    ctx.strokeStyle = '#10b981'; // emerald-500
+                    ctx.shadowColor = 'rgba(16, 185, 129, 0.7)';
+                    ctx.shadowBlur = 15;
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.moveTo(x, zeroY);
+                    ctx.lineTo(x, yWave);
+                    ctx.stroke();
+
+                    // Dynamic Result Cap Node
+                    ctx.fillStyle = '#10b981';
+                    ctx.beginPath();
+                    ctx.arc(x, yWave, 7, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Text Flag indicating value
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 9px "Fira Code", monospace';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(`x[${kOffset}] = ${waveVal.toFixed(2)}`, x + 10, yWave - 4);
+                    ctx.restore();
+
+                } else {
+                    // Regular elements of wave x[n] represented in dim indigo blue
+                    ctx.save();
+                    ctx.strokeStyle = 'rgba(99, 102, 241, 0.45)'; // indigo-500/40
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(x, zeroY);
+                    ctx.lineTo(x, yWave);
+                    ctx.stroke();
+
+                    // Anchor Dot
+                    ctx.fillStyle = 'rgba(99, 102, 241, 0.7)';
+                    ctx.beginPath();
+                    ctx.arc(x, yWave, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+
+            // Draw visual reference labels
+            ctx.save();
+            ctx.fillStyle = '#64748b';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText("Amplitude", width - margin, margin - 15);
+            ctx.fillText("Time index (n)", width - margin, zeroY + 36);
+            ctx.restore();
+        }
+    </script>
+</body>
+</html>
