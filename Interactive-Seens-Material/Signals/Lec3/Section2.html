@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Convolution Explorer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .code-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom scrollbar for control panels */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        .glow-blue {
+            text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+        .glow-amber {
+            text-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+        }
+        .glow-emerald {
+            text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col overflow-x-hidden">
+
+    <!-- Top Navigation Header -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-indigo-600/20 text-indigo-400 rounded-lg border border-indigo-500/30">
+                    <i data-lucide="activity" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-400 via-sky-400 to-emerald-400 bg-clip-text text-transparent">
+                        Interactive Convolution Explorer
+                    </h1>
+                    <p class="text-xs text-slate-400">Visualizing LTI System Time Evolution & Accumulation</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="bg-slate-800/80 border border-slate-700 rounded-lg px-3 py-1.5 flex items-center gap-2 text-xs font-mono">
+                    <span class="text-indigo-400">y(t) = x(τ) * h(t)</span>
+                    <span class="text-slate-500">=</span>
+                    <span class="text-emerald-400">∫ x(τ) h(t - τ) dτ</span>
+                </div>
+                <button id="btn-guide" class="flex items-center gap-1.5 text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-700 transition">
+                    <i data-lucide="help-circle" class="w-4 h-4 text-sky-400"></i>
+                    <span>Show Guide</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Interactive Dashboard Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Side: Control & Configuration Panel (4 cols) -->
+        <section class="lg:col-span-4 flex flex-col gap-6">
+            
+            <!-- Signal Selectors Card -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col gap-5">
+                <div class="flex items-center gap-2 border-b border-slate-800 pb-3">
+                    <i data-lucide="sliders" class="w-5 h-5 text-indigo-400"></i>
+                    <h2 class="font-semibold text-sm tracking-wide uppercase text-slate-300">Signal Configurator</h2>
+                </div>
+
+                <!-- Input Signal x(tau) -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-2 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span>
+                            Input Signal: <strong class="text-blue-400 code-font">x(τ)</strong> (Fixed)
+                        </span>
+                    </label>
+                    <select id="select-x" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50">
+                        <option value="square">Square Wave (Box Pulse)</option>
+                        <option value="triangle">Triangle Wave</option>
+                        <option value="exponential">Exponential Decay (e^(-0.5t))</option>
+                        <option value="sine">Half-Sine Pulse</option>
+                        <option value="gaussian">Gaussian Curve</option>
+                    </select>
+                </div>
+
+                <!-- Impulse Response h(tau) -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-2 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span>
+                            Impulse Response: <strong class="text-amber-400 code-font">h(τ)</strong> (To be flipped/slid)
+                        </span>
+                    </label>
+                    <select id="select-h" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+                        <option value="square" selected>Square Wave (Box Pulse)</option>
+                        <option value="triangle">Triangle Wave</option>
+                        <option value="exponential">Exponential Decay (e^(-0.5t))</option>
+                        <option value="sine">Half-Sine Pulse</option>
+                        <option value="gaussian">Gaussian Curve</option>
+                    </select>
+                </div>
+
+                <!-- Preset Pairs -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-2">Quick Presets</label>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <button onclick="loadPreset('square', 'square')" class="bg-slate-850 hover:bg-slate-800 border border-slate-800 py-1.5 px-2 rounded text-left hover:border-slate-700 transition">
+                            Box ∗ Box
+                        </button>
+                        <button onclick="loadPreset('square', 'triangle')" class="bg-slate-850 hover:bg-slate-800 border border-slate-800 py-1.5 px-2 rounded text-left hover:border-slate-700 transition">
+                            Box ∗ Triangle
+                        </button>
+                        <button onclick="loadPreset('exponential', 'square')" class="bg-slate-850 hover:bg-slate-800 border border-slate-800 py-1.5 px-2 rounded text-left hover:border-slate-700 transition">
+                            Exp ∗ Box
+                        </button>
+                        <button onclick="loadPreset('sine', 'sine')" class="bg-slate-850 hover:bg-slate-800 border border-slate-800 py-1.5 px-2 rounded text-left hover:border-slate-700 transition">
+                            Sine ∗ Sine
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Time & Playback Control Card -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col gap-5">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="clock" class="w-5 h-5 text-emerald-400"></i>
+                        <h2 class="font-semibold text-sm tracking-wide uppercase text-slate-300">Time & Evolution Control</h2>
+                    </div>
+                    <span id="badge-t" class="bg-emerald-500/10 text-emerald-400 text-xs px-2 py-0.5 rounded border border-emerald-500/20 code-font">t = 0.00</span>
+                </div>
+
+                <!-- Time Slider -->
+                <div>
+                    <div class="flex justify-between text-xs text-slate-400 mb-1.5 font-mono">
+                        <span>-8.0 (Start)</span>
+                        <span class="text-indigo-400">Slider t (Shift)</span>
+                        <span>+8.0 (End)</span>
+                    </div>
+                    <input type="range" id="slider-t" min="-8" max="8" step="0.05" value="-4" 
+                           class="w-full h-2 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                </div>
+
+                <!-- Main Player Controls -->
+                <div class="flex items-center justify-between gap-2">
+                    <button id="btn-prev" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 p-2.5 rounded-lg border border-slate-700 transition flex justify-center items-center" title="Step Backward">
+                        <i data-lucide="skip-back" class="w-4 h-4"></i>
+                    </button>
+                    
+                    <button id="btn-play-pause" class="flex-[2] bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2.5 px-4 rounded-lg flex justify-center items-center gap-2 shadow-lg shadow-emerald-900/20 transition">
+                        <i id="play-icon" data-lucide="play" class="w-4 h-4 fill-white"></i>
+                        <span id="play-text">Auto Slide</span>
+                    </button>
+
+                    <button id="btn-next" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 p-2.5 rounded-lg border border-slate-700 transition flex justify-center items-center" title="Step Forward">
+                        <i data-lucide="skip-forward" class="w-4 h-4"></i>
+                    </button>
+
+                    <button id="btn-reset" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 p-2.5 rounded-lg border border-slate-700 transition flex justify-center items-center" title="Reset to Start">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <!-- Speed Control -->
+                <div class="flex items-center justify-between gap-4">
+                    <span class="text-xs text-slate-400">Simulation Speed:</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="setSpeed(0.5)" id="speed-05" class="speed-btn px-2 py-1 rounded bg-slate-850 hover:bg-slate-800 text-xs border border-slate-800 transition">0.5x</button>
+                        <button onclick="setSpeed(1.0)" id="speed-10" class="speed-btn px-2 py-1 rounded bg-slate-800 text-xs border border-slate-700 transition text-emerald-400">1x</button>
+                        <button onclick="setSpeed(2.0)" id="speed-20" class="speed-btn px-2 py-1 rounded bg-slate-850 hover:bg-slate-800 text-xs border border-slate-800 transition">2x</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mathematical Insight / Real-time info card -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col gap-4">
+                <h3 class="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                    <i data-lucide="info" class="w-4.5 h-4.5 text-indigo-400"></i>
+                    Status & Analysis
+                </h3>
+                <div class="space-y-3 text-xs">
+                    <div class="bg-slate-950/80 p-3 rounded-lg border border-slate-850">
+                        <span class="text-slate-400 block mb-1">State:</span>
+                        <span id="overlap-status" class="font-semibold text-slate-200">Checking overlap...</span>
+                    </div>
+                    <div class="bg-slate-950/80 p-3 rounded-lg border border-slate-850 font-mono">
+                        <div class="flex justify-between mb-1">
+                            <span class="text-slate-400">Current integral:</span>
+                            <span id="integral-val" class="text-emerald-400 font-bold">0.00</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Overlap Bounds:</span>
+                            <span id="overlap-bounds" class="text-indigo-400">None</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Right Side: Visualization Windows (8 cols) -->
+        <section class="lg:col-span-8 flex flex-col gap-6">
+            
+            <!-- Window 1: Signals & Overlap (Top panel) -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-2">
+                <div class="flex justify-between items-center px-2">
+                    <span class="text-xs font-semibold tracking-wide uppercase text-slate-400 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                        Panel 1: Overlapping Signals <span class="text-indigo-400 code-font">x(τ)</span> & <span class="text-amber-400 code-font">h(t-τ)</span>
+                    </span>
+                    <span class="text-[10px] text-slate-500 font-mono">Abscissa = Variable τ (Integration domain)</span>
+                </div>
+                <!-- Canvas 1 Container -->
+                <div class="relative bg-slate-950/80 border border-slate-850 rounded-lg overflow-hidden h-56">
+                    <canvas id="canvas-overlap" class="w-full h-full block"></canvas>
+                </div>
+            </div>
+
+            <!-- Window 2: Product Signal & Integral Area (Middle panel) -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-2">
+                <div class="flex justify-between items-center px-2">
+                    <span class="text-xs font-semibold tracking-wide uppercase text-slate-400 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-pink-500"></span>
+                        Panel 2: Product Signal <span class="text-pink-400 code-font">p(τ) = x(τ) · h(t-τ)</span>
+                    </span>
+                    <span class="text-[10px] text-slate-500 font-mono">Area under this curve is the convolution output y(t)</span>
+                </div>
+                <!-- Canvas 2 Container -->
+                <div class="relative bg-slate-950/80 border border-slate-850 rounded-lg overflow-hidden h-36">
+                    <canvas id="canvas-product" class="w-full h-full block"></canvas>
+                </div>
+            </div>
+
+            <!-- Window 3: Accumulated Output y(t) (Bottom panel) -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-2">
+                <div class="flex justify-between items-center px-2">
+                    <span class="text-xs font-semibold tracking-wide uppercase text-slate-400 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        Panel 3: Convolution Result <span class="text-emerald-400 code-font">y(t) = (x ∗ h)(t)</span>
+                    </span>
+                    <span class="text-[10px] text-slate-500 font-mono">Abscissa = Sliding Parameter t</span>
+                </div>
+                <!-- Canvas 3 Container -->
+                <div class="relative bg-slate-950/80 border border-slate-850 rounded-lg overflow-hidden h-44">
+                    <canvas id="canvas-result" class="w-full h-full block"></canvas>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Interactive Guide Modal -->
+    <div id="guide-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm transition-opacity duration-300 pointer-events-none opacity-0">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 m-4 shadow-2xl relative">
+            <button id="guide-close" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            
+            <div class="flex items-center gap-2 mb-4">
+                <i data-lucide="compass" class="w-6 h-6 text-indigo-400"></i>
+                <h3 class="text-lg font-bold">Understanding Convolution Graphically</h3>
+            </div>
+
+            <div class="space-y-4 text-sm text-slate-300">
+                <p>Convolution measures the overlap area of two functions as one passes over the other. Let's trace the steps visualized in this simulation:</p>
+                
+                <ol class="space-y-3 list-decimal pl-5 marker:text-indigo-400">
+                    <li>
+                        <strong class="text-slate-100">Flip $h(\tau) \rightarrow h(-\tau)$:</strong> 
+                        We reflect the impulse response signal horizontally around the origin.
+                    </li>
+                    <li>
+                        <strong class="text-slate-100">Shift to get $h(t - \tau)$:</strong> 
+                        As you drag the slider, you shift the flipped signal along the horizontal axis by time $t$.
+                    </li>
+                    <li>
+                        <strong class="text-slate-100">Multiply $x(\tau) \cdot h(t - \tau)$:</strong> 
+                        At every point, we multiply the fixed blue signal $x(\tau)$ with the moving amber signal. The result is plotted in the middle panel.
+                    </li>
+                    <li>
+                        <strong class="text-slate-100">Integrate (Accumulate Area):</strong> 
+                        The area under the product curve (filled in purple) is calculated and mapped directly to the bottom green curve $y(t)$ at the current position $t$.
+                    </li>
+                </ol>
+
+                <div class="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-xs text-indigo-300">
+                    <strong>Try this interaction:</strong> Choose "Box Wave" for both inputs, click <strong>Auto Slide</strong>, and watch how the triangular shape is born naturally from overlapping squares!
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end">
+                <button id="guide-dismiss" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-5 py-2 rounded-lg transition text-sm">
+                    Got it, Let's Explore!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts & Application Logic -->
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Canvas Setup
+        const cOverlap = document.getElementById('canvas-overlap');
+        const cProduct = document.getElementById('canvas-product');
+        const cResult = document.getElementById('canvas-result');
+
+        const ctxOverlap = cOverlap.getContext('2d');
+        const ctxProduct = cProduct.getContext('2d');
+        const ctxResult = cResult.getContext('2d');
+
+        // State variables
+        let signalXType = 'square';
+        let signalHType = 'square';
+        let currentTime = -4.0;
+        let isPlaying = false;
+        let animationSpeed = 1.0;
+        let lastTimestamp = 0;
+        
+        // Math coordinates system configuration
+        // Domain of tau is [-10, 10]
+        const domainMin = -10;
+        const domainMax = 10;
+        const totalResolution = 500; // number of points for numerical methods
+        
+        // Setup slider & buttons
+        const sliderT = document.getElementById('slider-t');
+        const badgeT = document.getElementById('badge-t');
+        const playBtn = document.getElementById('btn-play-pause');
+        const playIcon = document.getElementById('play-icon');
+        const playText = document.getElementById('play-text');
+        const selectX = document.getElementById('select-x');
+        const selectH = document.getElementById('select-h');
+        
+        const overlapStatus = document.getElementById('overlap-status');
+        const integralVal = document.getElementById('integral-val');
+        const overlapBounds = document.getElementById('overlap-bounds');
+
+        // Signal functions
+        // All signals defined in local tau coordinate system
+        function evaluateSignal(type, tau) {
+            switch(type) {
+                case 'square':
+                    // Box signal between -1.5 and 1.5
+                    return (tau >= -1.5 && tau <= 1.5) ? 1.0 : 0.0;
+                case 'triangle':
+                    // Triangle signal of base width 4 (-2 to 2), height 1
+                    if (tau >= -2 && tau <= 2) {
+                        return 1.0 - Math.abs(tau) / 2.0;
+                    }
+                    return 0.0;
+                case 'exponential':
+                    // e^(-0.5 * tau) starting from 0 to 5
+                    if (tau >= 0 && tau <= 5) {
+                        return Math.exp(-0.6 * tau);
+                    }
+                    return 0.0;
+                case 'sine':
+                    // Half-sine pulse between -2 and 2
+                    if (tau >= -2 && tau <= 2) {
+                        return Math.cos((Math.PI * tau) / 4);
+                    }
+                    return 0.0;
+                case 'gaussian':
+                    // Bell curve
+                    return Math.exp(-0.5 * tau * tau);
+                default:
+                    return 0.0;
+            }
+        }
+
+        // Flipped and shifted response h(t - tau)
+        function evaluateShiftedH(type, t, tau) {
+            // h(t - tau) -> evaluate at (t - tau)
+            return evaluateSignal(type, t - tau);
+        }
+
+        // Precalculate entire convolution output range for y(t)
+        // y(t) = integral over tau of [ x(tau) * h(t - tau) ] dtau
+        let precalculatedY = [];
+        const tRange = [];
+        const tSteps = 400; // Resolution of the final convolution output trace
+        
+        function updatePrecalculations() {
+            precalculatedY = [];
+            tRange.length = 0;
+            
+            const stepSize = (domainMax - domainMin) / tSteps;
+            
+            for (let i = 0; i <= tSteps; i++) {
+                const t = domainMin + i * stepSize;
+                tRange.push(t);
+                
+                // Integrate using standard Trapezoidal or Riemann approximation
+                let sum = 0;
+                const integrationSteps = 300;
+                const dTau = (domainMax - domainMin) / integrationSteps;
+                
+                for (let j = 0; j < integrationSteps; j++) {
+                    const tauVal1 = domainMin + j * dTau;
+                    const tauVal2 = tauVal1 + dTau;
+                    
+                    const p1 = evaluateSignal(signalXType, tauVal1) * evaluateShiftedH(signalHType, t, tauVal1);
+                    const p2 = evaluateSignal(signalXType, tauVal2) * evaluateShiftedH(signalHType, t, tauVal2);
+                    
+                    // Trapezoidal integration step
+                    sum += 0.5 * (p1 + p2) * dTau;
+                }
+                
+                precalculatedY.push(sum);
+            }
+        }
+
+        // Helper to map mathematical coordinates to canvas pixels
+        function getCanvasCoords(canvas, xVal, yVal, xMin, xMax, yMin, yMax) {
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // Map x from [xMin, xMax] to [0, width]
+            const pxX = ((xVal - xMin) / (xMax - xMin)) * width;
+            // Map y from [yMin, yMax] to [height, 0] (y-axis inverted in Canvas)
+            const pxY = height - ((yVal - yMin) / (yMax - yMin)) * height;
+            
+            return { x: pxX, y: pxY };
+        }
+
+        // Draw coordinate grid system
+        function drawGrid(ctx, canvas, xMin, xMax, yMin, yMax, xlabel = 'τ') {
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // Clear screen
+            ctx.fillStyle = '#020617'; // slate-950
+            ctx.fillRect(0, 0, width, height);
+            
+            // Grid line colors
+            ctx.strokeStyle = '#1e293b'; // slate-800
+            ctx.lineWidth = 1;
+            
+            // Draw vertical ticks/gridlines
+            for (let val = Math.ceil(xMin); val <= Math.floor(xMax); val += 2) {
+                if (val === 0) continue;
+                const pt = getCanvasCoords(canvas, val, 0, xMin, xMax, yMin, yMax);
+                ctx.beginPath();
+                ctx.moveTo(pt.x, 0);
+                ctx.lineTo(pt.x, height);
+                ctx.stroke();
+                
+                // Labels
+                ctx.fillStyle = '#64748b'; // slate-500
+                ctx.font = '10px JetBrains Mono';
+                ctx.fillText(val, pt.x - 5, height - 6);
+            }
+            
+            // Draw horizontal ticks/gridlines
+            for (let val = Math.ceil(yMin); val <= Math.floor(yMax); val += 1) {
+                if (val === 0) continue;
+                const pt = getCanvasCoords(canvas, 0, val, xMin, xMax, yMin, yMax);
+                ctx.beginPath();
+                ctx.moveTo(0, pt.y);
+                ctx.lineTo(width, pt.y);
+                ctx.stroke();
+                
+                // Labels
+                ctx.fillStyle = '#64748b';
+                ctx.font = '10px JetBrains Mono';
+                ctx.fillText(val, 6, pt.y + 3);
+            }
+            
+            // Draw Main Axes
+            ctx.strokeStyle = '#334155'; // slate-700
+            ctx.lineWidth = 2;
+            
+            // Zero tau-axis (horizontal)
+            const origin = getCanvasCoords(canvas, 0, 0, xMin, xMax, yMin, yMax);
+            ctx.beginPath();
+            ctx.moveTo(0, origin.y);
+            ctx.lineTo(width, origin.y);
+            ctx.stroke();
+            
+            // Zero y-axis (vertical)
+            ctx.beginPath();
+            ctx.moveTo(origin.x, 0);
+            ctx.lineTo(origin.x, height);
+            ctx.stroke();
+            
+            // Axis label
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '11px sans-serif';
+            ctx.fillText(xlabel, width - 15, origin.y - 6);
+        }
+
+        // Main rendering function for Panel 1 (Overlap signals)
+        function renderOverlap() {
+            const canvas = cOverlap;
+            const ctx = ctxOverlap;
+            const xMin = -8, xMax = 8;
+            const yMin = -0.5, yMax = 1.8;
+            
+            drawGrid(ctx, canvas, xMin, xMax, yMin, yMax, 'τ');
+            
+            const resolution = 400;
+            const dTau = (xMax - xMin) / resolution;
+            
+            // 1. Plot Fixed Signal x(tau) (Blue)
+            ctx.beginPath();
+            let first = true;
+            for (let i = 0; i <= resolution; i++) {
+                const tau = xMin + i * dTau;
+                const val = evaluateSignal(signalXType, tau);
+                const pt = getCanvasCoords(canvas, tau, val, xMin, xMax, yMin, yMax);
+                
+                if (first) {
+                    ctx.moveTo(pt.x, pt.y);
+                    first = false;
+                } else {
+                    ctx.lineTo(pt.x, pt.y);
+                }
+            }
+            ctx.strokeStyle = '#3b82f6'; // blue-500
+            ctx.lineWidth = 2.5;
+            ctx.shadowColor = 'rgba(59, 130, 246, 0.4)';
+            ctx.shadowBlur = 4;
+            ctx.stroke();
+            ctx.shadowBlur = 0; // reset
+            
+            // Fill x(tau) subtly
+            ctx.lineTo(canvas.width, getCanvasCoords(canvas, xMax, 0, xMin, xMax, yMin, yMax).y);
+            ctx.lineTo(0, getCanvasCoords(canvas, xMin, 0, xMin, xMax, yMin, yMax).y);
+            ctx.fillStyle = 'rgba(59, 130, 246, 0.05)';
+            ctx.fill();
+
+            // 2. Plot Shifted Signal h(t - tau) (Amber)
+            ctx.beginPath();
+            first = true;
+            for (let i = 0; i <= resolution; i++) {
+                const tau = xMin + i * dTau;
+                const val = evaluateShiftedH(signalHType, currentTime, tau);
+                const pt = getCanvasCoords(canvas, tau, val, xMin, xMax, yMin, yMax);
+                
+                if (first) {
+                    ctx.moveTo(pt.x, pt.y);
+                    first = false;
+                } else {
+                    ctx.lineTo(pt.x, pt.y);
+                }
+            }
+            ctx.strokeStyle = '#f59e0b'; // amber-500
+            ctx.lineWidth = 2.5;
+            ctx.shadowColor = 'rgba(245, 158, 11, 0.4)';
+            ctx.shadowBlur = 4;
+            ctx.stroke();
+            ctx.shadowBlur = 0; // reset
+            
+            // Fill h(t - tau) subtly
+            ctx.lineTo(canvas.width, getCanvasCoords(canvas, xMax, 0, xMin, xMax, yMin, yMax).y);
+            ctx.lineTo(0, getCanvasCoords(canvas, xMin, 0, xMin, xMax, yMin, yMax).y);
+            ctx.fillStyle = 'rgba(245, 158, 11, 0.05)';
+            ctx.fill();
+
+            // 3. Highlight/Shade Overlap zone
+            // We highlight where both are nonzero
+            ctx.beginPath();
+            let hasOverlap = false;
+            let overlapStart = null;
+            let overlapEnd = null;
+            
+            first = true;
+            for (let i = 0; i <= resolution; i++) {
+                const tau = xMin + i * dTau;
+                const valX = evaluateSignal(signalXType, tau);
+                const valH = evaluateShiftedH(signalHType, currentTime, tau);
+                
+                if (valX > 0.01 && valH > 0.01) {
+                    if (overlapStart === null) overlapStart = tau;
+                    overlapEnd = tau;
+                    hasOverlap = true;
+                    
+                    const minVal = Math.min(valX, valH);
+                    const pt = getCanvasCoords(canvas, tau, minVal, xMin, xMax, yMin, yMax);
+                    
+                    if (first) {
+                        const basePt = getCanvasCoords(canvas, tau, 0, xMin, xMax, yMin, yMax);
+                        ctx.moveTo(basePt.x, basePt.y);
+                        ctx.lineTo(pt.x, pt.y);
+                        first = false;
+                    } else {
+                        ctx.lineTo(pt.x, pt.y);
+                    }
+                }
+            }
+            
+            if (hasOverlap && overlapStart !== null && overlapEnd !== null) {
+                const finalPt = getCanvasCoords(canvas, overlapEnd, 0, xMin, xMax, yMin, yMax);
+                ctx.lineTo(finalPt.x, finalPt.y);
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(16, 185, 129, 0.25)'; // emerald overlay
+                ctx.fill();
+                
+                // Draw boundaries
+                overlapStatus.innerText = "Signals Overlapping (Integrating Area)";
+                overlapStatus.className = "font-semibold text-emerald-400 glow-emerald";
+                overlapBounds.innerText = `τ ∈ [${overlapStart.toFixed(2)}, ${overlapEnd.toFixed(2)}]`;
+            } else {
+                overlapStatus.innerText = "No Overlap (Zero Output)";
+                overlapStatus.className = "font-semibold text-slate-400";
+                overlapBounds.innerText = "None";
+            }
+            
+            // Draw small time slider guide marker on top
+            const cursorPt = getCanvasCoords(canvas, currentTime, 1.6, xMin, xMax, yMin, yMax);
+            if (currentTime >= xMin && currentTime <= xMax) {
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath();
+                ctx.arc(cursorPt.x, cursorPt.y, 5, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // Line down to center
+                ctx.strokeStyle = 'rgba(245, 158, 11, 0.3)';
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(cursorPt.x, cursorPt.y);
+                ctx.lineTo(cursorPt.x, canvas.height);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        }
+
+        // Main rendering function for Panel 2 (Product Area)
+        function renderProduct() {
+            const canvas = cProduct;
+            const ctx = ctxProduct;
+            const xMin = -8, xMax = 8;
+            const yMin = -0.2, yMax = 1.3;
+            
+            drawGrid(ctx, canvas, xMin, xMax, yMin, yMax, 'τ');
+            
+            const resolution = 400;
+            const dTau = (xMax - xMin) / resolution;
+            
+            ctx.beginPath();
+            let first = true;
+            
+            for (let i = 0; i <= resolution; i++) {
+                const tau = xMin + i * dTau;
+                const valX = evaluateSignal(signalXType, tau);
+                const valH = evaluateShiftedH(signalHType, currentTime, tau);
+                const product = valX * valH;
+                const pt = getCanvasCoords(canvas, tau, product, xMin, xMax, yMin, yMax);
+                
+                if (first) {
+                    ctx.moveTo(pt.x, pt.y);
+                    first = false;
+                } else {
+                    ctx.lineTo(pt.x, pt.y);
+                }
+            }
+            
+            // Stroke product path
+            ctx.strokeStyle = '#ec4899'; // pink-500
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Fill area under product
+            const originY = getCanvasCoords(canvas, 0, 0, xMin, xMax, yMin, yMax).y;
+            ctx.lineTo(canvas.width, originY);
+            ctx.lineTo(0, originY);
+            ctx.closePath();
+            
+            // Create vibrant gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, 'rgba(236, 72, 153, 0.4)');
+            gradient.addColorStop(1, 'rgba(168, 85, 247, 0.0)');
+            ctx.fillStyle = gradient;
+            ctx.fill();
+        }
+
+        // Main rendering function for Panel 3 (Convolution Waveform y(t))
+        function renderResult() {
+            const canvas = cResult;
+            const ctx = ctxResult;
+            const xMin = -8, xMax = 8;
+            
+            // Dynamically scale y amplitude to prevent clipping of result
+            let maxVal = Math.max(...precalculatedY, 1.0);
+            let minVal = Math.min(...precalculatedY, -0.5);
+            // Add padding
+            let yMax = maxVal * 1.25;
+            let yMin = minVal < 0 ? minVal * 1.25 : -0.25 * yMax;
+            
+            drawGrid(ctx, canvas, xMin, xMax, yMin, yMax, 't');
+            
+            // Draw whole precalculated convolution line up to the current sliding time
+            ctx.beginPath();
+            let first = true;
+            
+            // Determine index of current t in our precalculated range
+            const stepSize = (domainMax - domainMin) / tSteps;
+            const currentIndex = Math.round((currentTime - domainMin) / stepSize);
+            
+            // Draw past accumulated history (brighter/filled)
+            ctx.beginPath();
+            first = true;
+            for (let i = 0; i <= tSteps; i++) {
+                const t = tRange[i];
+                if (t > xMax) break;
+                
+                const val = precalculatedY[i];
+                const pt = getCanvasCoords(canvas, t, val, xMin, xMax, yMin, yMax);
+                
+                if (first) {
+                    ctx.moveTo(pt.x, pt.y);
+                    first = false;
+                } else {
+                    ctx.lineTo(pt.x, pt.y);
+                }
+            }
+            ctx.strokeStyle = '#10b981'; // emerald-500
+            ctx.lineWidth = 2.5;
+            ctx.shadowColor = 'rgba(16, 185, 129, 0.4)';
+            ctx.shadowBlur = 4;
+            ctx.stroke();
+            ctx.shadowBlur = 0; // reset
+            
+            // Shade the accumulated history up to current slider value
+            ctx.beginPath();
+            first = true;
+            for (let i = 0; i <= currentIndex; i++) {
+                const t = tRange[i];
+                if (t < xMin) continue;
+                if (t > xMax) break;
+                
+                const val = precalculatedY[i];
+                const pt = getCanvasCoords(canvas, t, val, xMin, xMax, yMin, yMax);
+                
+                if (first) {
+                    const basePt = getCanvasCoords(canvas, t, 0, xMin, xMax, yMin, yMax);
+                    ctx.moveTo(basePt.x, basePt.y);
+                    ctx.lineTo(pt.x, pt.y);
+                    first = false;
+                } else {
+                    ctx.lineTo(pt.x, pt.y);
+                }
+            }
+            
+            if (!first) {
+                const currentTVal = tRange[currentIndex] !== undefined ? tRange[currentIndex] : currentTime;
+                const endPt = getCanvasCoords(canvas, currentTVal, 0, xMin, xMax, yMin, yMax);
+                ctx.lineTo(endPt.x, endPt.y);
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(16, 185, 129, 0.15)';
+                ctx.fill();
+            }
+
+            // Draw a glowing beacon indicating current time slider state on the result curve
+            const currentY = precalculatedY[currentIndex] !== undefined ? precalculatedY[currentIndex] : 0.0;
+            const beaconPt = getCanvasCoords(canvas, currentTime, currentY, xMin, xMax, yMin, yMax);
+            
+            // Draw glowing vertical dotted guide connecting Panel 1 slider position to output
+            ctx.setLineDash([3, 3]);
+            ctx.strokeStyle = 'rgba(16, 185, 129, 0.4)';
+            ctx.beginPath();
+            ctx.moveTo(beaconPt.x, beaconPt.y);
+            ctx.lineTo(beaconPt.x, getCanvasCoords(canvas, currentTime, 0, xMin, xMax, yMin, yMax).y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Tracker bead
+            ctx.fillStyle = '#10b981';
+            ctx.beginPath();
+            ctx.arc(beaconPt.x, beaconPt.y, 6, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Bead border highlight
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(beaconPt.x, beaconPt.y, 6, 0, 2 * Math.PI);
+            ctx.stroke();
+            
+            // Update UI status value text
+            integralVal.innerText = currentY.toFixed(3);
+        }
+
+        // Handle global resizing of canvases
+        function handleResize() {
+            const containers = [cOverlap.parentElement, cProduct.parentElement, cResult.parentElement];
+            const canvases = [cOverlap, cProduct, cResult];
+            
+            for (let i = 0; i < canvases.length; i++) {
+                const canvas = canvases[i];
+                const container = containers[i];
+                // Set resolution to actual bounding pixel width
+                canvas.width = container.clientWidth * window.devicePixelRatio;
+                canvas.height = container.clientHeight * window.devicePixelRatio;
+                
+                // Keep context scaled
+                const ctx = canvas.getContext('2d');
+                ctx.resetTransform();
+                ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+            }
+            
+            triggerRender();
+        }
+
+        // Trigger updates and draw all frames
+        function triggerRender() {
+            renderOverlap();
+            renderProduct();
+            renderResult();
+        }
+
+        // Animation updates
+        function update(timestamp) {
+            if (!lastTimestamp) lastTimestamp = timestamp;
+            const delta = (timestamp - lastTimestamp) / 1000;
+            lastTimestamp = timestamp;
+            
+            if (isPlaying) {
+                // Advance the time sliding motion
+                currentTime += delta * 1.5 * animationSpeed;
+                
+                // Loop simulation back once it reaches past +8
+                if (currentTime > 8.0) {
+                    currentTime = -8.0;
+                }
+                
+                sliderT.value = currentTime;
+                badgeT.innerText = `t = ${currentTime.toFixed(2)}`;
+                triggerRender();
+            }
+            
+            requestAnimationFrame(update);
+        }
+
+        // Wire interface events
+        sliderT.addEventListener('input', (e) => {
+            currentTime = parseFloat(e.target.value);
+            badgeT.innerText = `t = ${currentTime.toFixed(2)}`;
+            triggerRender();
+        });
+
+        // Dropdown interactions
+        selectX.addEventListener('change', (e) => {
+            signalXType = e.target.value;
+            updatePrecalculations();
+            triggerRender();
+        });
+
+        selectH.addEventListener('change', (e) => {
+            signalHType = e.target.value;
+            updatePrecalculations();
+            triggerRender();
+        });
+
+        // Presets loader
+        window.loadPreset = function(typeX, typeH) {
+            signalXType = typeX;
+            signalHType = typeH;
+            
+            selectX.value = typeX;
+            selectH.value = typeH;
+            
+            // Reset to beginning of slider range
+            currentTime = -4.0;
+            sliderT.value = currentTime;
+            badgeT.innerText = `t = ${currentTime.toFixed(2)}`;
+            
+            updatePrecalculations();
+            triggerRender();
+        };
+
+        // Play Pause State management
+        playBtn.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            if (isPlaying) {
+                playIcon.setAttribute('data-lucide', 'pause');
+                playText.innerText = "Pause";
+                playBtn.className = "flex-[2] bg-amber-600 hover:bg-amber-500 text-white font-medium py-2.5 px-4 rounded-lg flex justify-center items-center gap-2 shadow-lg transition";
+            } else {
+                playIcon.setAttribute('data-lucide', 'play');
+                playText.innerText = "Auto Slide";
+                playBtn.className = "flex-[2] bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2.5 px-4 rounded-lg flex justify-center items-center gap-2 shadow-lg transition";
+            }
+            lucide.createIcons();
+            lastTimestamp = performance.now();
+        });
+
+        // Playback modifiers
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            currentTime = -8.0;
+            sliderT.value = currentTime;
+            badgeT.innerText = `t = ${currentTime.toFixed(2)}`;
+            triggerRender();
+        });
+
+        document.getElementById('btn-prev').addEventListener('click', () => {
+            currentTime = Math.max(-8.0, currentTime - 0.25);
+            sliderT.value = currentTime;
+            badgeT.innerText = `t = ${currentTime.toFixed(2)}`;
+            triggerRender();
+        });
+
+        document.getElementById('btn-next').addEventListener('click', () => {
+            currentTime = Math.min(8.0, currentTime + 0.25);
+            sliderT.value = currentTime;
+            badgeT.innerText = `t = ${currentTime.toFixed(2)}`;
+            triggerRender();
+        });
+
+        window.setSpeed = function(speed) {
+            animationSpeed = speed;
+            document.querySelectorAll('.speed-btn').forEach(btn => {
+                btn.className = "speed-btn px-2 py-1 rounded bg-slate-850 hover:bg-slate-800 text-xs border border-slate-800 transition";
+            });
+            
+            const activeId = speed === 0.5 ? 'speed-05' : speed === 1.0 ? 'speed-10' : 'speed-20';
+            document.getElementById(activeId).className = "speed-btn px-2 py-1 rounded bg-slate-800 text-xs border border-slate-700 transition text-emerald-400 font-medium";
+        };
+
+        // Guide Modal Events
+        const modal = document.getElementById('guide-modal');
+        const showGuideBtn = document.getElementById('btn-guide');
+        const closeGuideBtn = document.getElementById('guide-close');
+        const dismissGuideBtn = document.getElementById('guide-dismiss');
+
+        function toggleGuide(show) {
+            if (show) {
+                modal.classList.remove('pointer-events-none', 'opacity-0');
+                modal.classList.add('opacity-100');
+            } else {
+                modal.classList.add('pointer-events-none', 'opacity-0');
+                modal.classList.remove('opacity-100');
+            }
+        }
+
+        showGuideBtn.addEventListener('click', () => toggleGuide(true));
+        closeGuideBtn.addEventListener('click', () => toggleGuide(false));
+        dismissGuideBtn.addEventListener('click', () => toggleGuide(false));
+
+        // Start initialization sequence
+        window.addEventListener('resize', handleResize);
+        
+        // Initial setup
+        window.onload = function() {
+            handleResize();
+            updatePrecalculations();
+            triggerRender();
+            requestAnimationFrame(update);
+            
+            // Show guide on startup
+            setTimeout(() => toggleGuide(true), 600);
+        };
+    </script>
+</body>
+</html>
