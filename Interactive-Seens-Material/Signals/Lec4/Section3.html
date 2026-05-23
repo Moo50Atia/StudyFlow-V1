@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LTI System Causality Lab: The Temporal Shield</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter and Fira Code -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #030712;
+        }
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1f2937;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #374151;
+        }
+        /* Warning Glow Effects */
+        .glowing-red {
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.45);
+            border-color: rgba(239, 68, 68, 0.6);
+            animation: pulse-border 1.5s infinite alternate;
+        }
+        .glowing-green {
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+        @keyframes pulse-border {
+            0% { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); }
+            100% { border-color: rgba(239, 68, 68, 0.9); box-shadow: 0 0 25px rgba(239, 68, 68, 0.6); }
+        }
+        /* Grid background pattern for layout sections */
+        .bg-grid {
+            background-size: 20px 20px;
+            background-image: linear-gradient(to right, rgba(31, 41, 55, 0.1) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(31, 41, 55, 0.1) 1px, transparent 1px);
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col selection:bg-rose-500 selection:text-white bg-grid">
+
+    <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-gradient-to-tr from-rose-600 to-amber-500 p-2.5 rounded-xl text-slate-950 font-extrabold text-xl shadow-lg shadow-rose-950/40">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg md:text-xl bg-gradient-to-r from-slate-100 via-rose-400 to-amber-400 bg-clip-text text-transparent">
+                        Temporal Causality Lab
+                    </h1>
+                    <p class="text-xs text-slate-400 font-medium">LTI Impulse Response Diagnostics: <span class="code-font text-rose-400">h(t) = 0 for t &lt; 0</span></p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <!-- Live Shield Status Badge -->
+                <div id="header-status-badge" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    TEMPORAL SHIELD SECURE
+                </div>
+                <a href="#explanatory-section" class="text-xs font-medium text-slate-400 hover:text-white transition-colors">
+                    <i class="fa-regular fa-circle-question mr-1"></i> Theory
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Column: Waveform Plotter & Time Controller -->
+        <div class="lg:col-span-8 flex flex-col gap-6">
+            
+            <!-- Real-time Status Alert Banner -->
+            <div id="breach-alert-banner" class="bg-emerald-950/20 border border-emerald-500/20 rounded-2xl p-4 flex items-center justify-between transition-all duration-300">
+                <div class="flex items-center gap-3">
+                    <div id="alert-banner-icon" class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                        <i class="fa-solid fa-circle-check text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 id="alert-banner-title" class="font-bold text-sm text-slate-100">Physical Causality Intact</h3>
+                        <p id="alert-banner-desc" class="text-xs text-slate-400">No response exists prior to the excitation event at t = 0.</p>
+                    </div>
+                </div>
+                <div class="text-right hidden sm:block">
+                    <span class="text-[10px] uppercase font-bold text-slate-500 block">Anticorrelation Metric</span>
+                    <span id="noncausal-energy-display" class="code-font font-bold text-emerald-400 text-xs">E_pre = 0.0%</span>
+                </div>
+            </div>
+
+            <!-- Main Interactive Canvas Sandbox -->
+            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5 shadow-2xl relative flex-1 flex flex-col min-h-[480px]">
+                
+                <!-- Scope Control Header -->
+                <div class="flex flex-wrap items-center justify-between gap-4 mb-3 border-b border-slate-800 pb-3">
+                    <div class="flex items-center gap-3">
+                        <span class="flex h-3 w-3 relative">
+                            <span id="ping-indicator" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span id="dot-indicator" class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                        </span>
+                        <div>
+                            <h2 class="text-base font-bold text-white flex items-center gap-2">
+                                Dynamic Temporal Scope
+                            </h2>
+                            <p id="active-system-desc" class="text-xs text-slate-400">First-Order RC Lowpass Impulse Response</p>
+                        </div>
+                    </div>
+
+                    <!-- Visual Customizer Toggles -->
+                    <div class="flex items-center gap-2 bg-slate-900 p-1 rounded-lg border border-slate-800 text-xs">
+                        <button id="toggle-shield-mesh" class="px-2.5 py-1.5 rounded-md font-semibold text-white bg-slate-800 shadow-sm transition-all flex items-center gap-1">
+                            <i class="fa-solid fa-border-none"></i> Grid Matrix
+                        </button>
+                        <button id="toggle-nodes" class="px-2.5 py-1.5 rounded-md font-semibold text-slate-400 hover:text-white transition-all flex items-center gap-1">
+                            <i class="fa-solid fa-circle-nodes"></i> Drag Handles
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Custom HTML5 Graph Container -->
+                <div class="relative flex-1 bg-slate-950 rounded-xl overflow-hidden border border-slate-850 cursor-crosshair">
+                    <canvas id="causality-canvas" class="block w-full h-full"></canvas>
+                    
+                    <!-- Floating Alert Box directly on canvas when breached -->
+                    <div id="causality-breach-badge" class="absolute top-4 left-4 pointer-events-none bg-rose-950/90 border border-rose-500/50 rounded-lg px-3 py-1.5 text-xs text-rose-300 shadow-xl hidden animate-pulse">
+                        <div class="font-bold flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-exclamation text-rose-400"></i>
+                            TEMPORAL PARADOX WARNING!
+                        </div>
+                    </div>
+
+                    <!-- Trigger Point Highlight Overlay -->
+                    <div id="trigger-point-card" class="absolute pointer-events-none bg-slate-900/95 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-300 shadow-xl hidden">
+                        <div class="font-bold text-emerald-400 flex items-center gap-1">
+                            <i class="fa-solid fa-circle-play"></i> Time Trigger Point (t = 0)
+                        </div>
+                        <p class="text-[11px] text-slate-400 mt-0.5 leading-normal">
+                            This is the exact moment of excitation input impulse $\delta(t)$.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Bottom Simulation Controls -->
+                <div class="mt-4 pt-3 border-t border-slate-800 flex flex-col md:flex-row items-center gap-4">
+                    <!-- Play / Pause Action Controls -->
+                    <div class="flex items-center gap-2">
+                        <button id="btn-play" class="w-10 h-10 rounded-xl bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all" title="Animate Shift">
+                            <i id="play-icon" class="fa-solid fa-play text-sm"></i>
+                        </button>
+                        <button id="btn-reset-shift" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center border border-slate-700 hover:scale-105 active:scale-95 transition-all" title="Reset Waveform Alignment">
+                            <i class="fa-solid fa-arrows-to-dot text-sm"></i>
+                        </button>
+                    </div>
+
+                    <!-- Main Dynamic Shift Slider ($t_0$ Delay / Advance) -->
+                    <div class="flex-1 w-full flex flex-col gap-1.5">
+                        <div class="flex justify-between items-center">
+                            <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-timeline text-rose-400"></i>
+                                Shift Waveform in Time Axis ($t_d$ Delay)
+                            </label>
+                            <span id="delay-amount-label" class="text-xs font-bold code-font text-rose-400">t_d = 0.00s</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-[10px] text-slate-500 font-semibold code-font min-w-[30px] text-right">Advance</span>
+                            <input type="range" id="time-shift-slider" min="-4.5" max="4.5" step="0.05" value="0.0" class="flex-1 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-500 focus:outline-none">
+                            <span class="text-[10px] text-slate-500 font-semibold code-font min-w-[30px]">Delay</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Dynamic Temporal Checkpoints -->
+            <div class="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 shadow-lg">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+                    <i class="fa-solid fa-magnifying-glass-chart text-amber-500"></i>
+                    Temporal Milestones &amp; Causality Proofs
+                </h4>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" id="milestones-container">
+                    <!-- Dynamic Milestones injected by JS -->
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Settings, Formulas, Node Editor, Mini-Quiz -->
+        <div class="lg:col-span-4 flex flex-col gap-6">
+            
+            <!-- Preset System Selection Panel -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col gap-4">
+                <div class="flex items-center gap-2 border-b border-slate-800 pb-3">
+                    <i class="fa-solid fa-diagram-project text-rose-500"></i>
+                    <h3 class="font-bold text-sm text-slate-100">Select LTI Waveform</h3>
+                </div>
+
+                <!-- Preset System Radio Grid -->
+                <div class="flex flex-col gap-2" id="preset-group">
+                    <!-- Loaded dynamically via JavaScript -->
+                </div>
+
+                <!-- Custom Parameter Controllers for Active Presets -->
+                <div class="flex flex-col gap-3 pt-2" id="system-sliders-container">
+                    <!-- Loaded dynamically depending on system -->
+                </div>
+            </div>
+
+            <!-- mathematical Blueprint Display -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
+                <div class="flex items-center gap-2 border-b border-slate-800 pb-3 mb-3">
+                    <i class="fa-solid fa-square-root-variable text-amber-400"></i>
+                    <h3 class="font-bold text-sm text-slate-100">The Temporal Shield Formula</h3>
+                </div>
+
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-850 flex flex-col gap-3">
+                    <div>
+                        <span class="text-[10px] uppercase font-bold text-rose-400 tracking-wider">LTI Causality Rule</span>
+                        <div class="code-font text-xs text-slate-200 mt-1">
+                            h(t) = 0 &nbsp;&nbsp;for all &nbsp;&nbsp;t &lt; 0
+                        </div>
+                    </div>
+                    
+                    <div class="border-t border-slate-850 my-1"></div>
+
+                    <div>
+                        <span class="text-[10px] uppercase font-bold text-amber-400 tracking-wider">Active Equation h(t - t_d)</span>
+                        <div id="equation-display" class="code-font text-[11px] text-slate-300 mt-1 leading-relaxed">
+                            Loading formula...
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-xs text-slate-400 mt-3 leading-relaxed">
+                    <p>
+                        A non-zero value at $t < 0$ implies the system responds **prior** to the trigger impulse at $t=0$, meaning output depends on future input (physically impossible in real-time).
+                    </p>
+                </div>
+            </div>
+
+            <!-- Interactive Assessment Challenge -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-graduation-cap text-indigo-400"></i>
+                        <h3 class="font-bold text-sm text-slate-100">Causality Checkpoint</h3>
+                    </div>
+                    <span id="quiz-badge" class="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full">0/3 Completed</span>
+                </div>
+
+                <!-- Quiz Card Content -->
+                <div id="quiz-box" class="bg-slate-950 p-4 rounded-xl border border-slate-850">
+                    <h4 id="quiz-question-txt" class="text-xs font-semibold text-slate-200 mb-3 leading-relaxed">
+                        Loading challenge...
+                    </h4>
+                    <div id="quiz-options-box" class="flex flex-col gap-2">
+                        <!-- Options injected here -->
+                    </div>
+                    
+                    <!-- Explanation Alert Block -->
+                    <div id="quiz-result-feedback" class="hidden mt-3 p-2.5 rounded-lg text-xs leading-normal">
+                        <!-- Loaded dynamic feedback -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Detailed Theory Lesson on Causality -->
+    <section id="explanatory-section" class="max-w-7xl w-full mx-auto p-4 mb-8">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl">
+            <h2 class="text-xl md:text-2xl font-black text-slate-100 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-circle-question text-rose-500 animate-pulse"></i>
+                Correcting the "Pre-Echo" Misconception
+            </h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 text-sm text-slate-300 leading-relaxed">
+                <!-- Left Theory Panel -->
+                <div class="flex flex-col gap-4">
+                    <p>
+                        A common source of confusion in signal processing is the existence of non-causal equations, such as the ideal brickwall sinc filter. Since we can easily model sinc filters on computers, students often assume that real-world hardware systems can anticipate inputs.
+                    </p>
+                    <p class="border-l-2 border-rose-500 pl-4 py-1 italic bg-rose-950/10 text-slate-200">
+                        "If a system's response begins even a microsecond before t = 0, it means the output has anticipated the physical arrival of the trigger."
+                    </p>
+                    <p>
+                        In physical reality, time only flows in the positive direction. For a physical system to have a non-zero impulse response $h(t)$ in the $t < 0$ region, the system would need to anticipate the future. This is why any physically buildable analog circuit is <strong>strictly causal</strong>.
+                    </p>
+                </div>
+
+                <!-- Right Theory Panel -->
+                <div class="bg-slate-950 p-5 rounded-2xl border border-slate-850 flex flex-col gap-4">
+                    <h3 class="font-bold text-white text-base flex items-center gap-1.5">
+                        <i class="fa-solid fa-gears text-amber-400"></i>
+                        The "Trick" behind Software Non-Causality
+                    </h3>
+                    <p class="text-xs leading-normal">
+                        How do we implement zero-phase non-causal filters in software?
+                    </p>
+                    <ul class="space-y-3">
+                        <li class="flex gap-3 text-xs">
+                            <span class="text-emerald-400 font-bold mt-0.5"><i class="fa-solid fa-circle-check"></i></span>
+                            <div>
+                                <strong class="text-slate-100">Introducing Bulk Delay:</strong>
+                                We shift the non-causal system's response to the right by a delay $t_d$. If the tails at negative time decay quickly, introducing enough delay turns a theoretical non-causal model into an effectively causal one.
+                            </div>
+                        </li>
+                        <li class="flex gap-3 text-xs">
+                            <span class="text-emerald-400 font-bold mt-0.5"><i class="fa-solid fa-circle-check"></i></span>
+                            <div>
+                                <strong class="text-slate-100">Offline Post-Processing (Look-Ahead):</strong>
+                                In digital signal processing (DSP), we can run a filter backward and forward because the full signal buffer is already saved in memory. This is called *offline* filtering—which does not happen in real-time.
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="mt-auto border-t border-slate-900 bg-slate-950 text-slate-500 py-6 px-4 text-center text-xs">
+        <p>© 2026 LTI System Dynamics Lab. Designed for visual intuitive engineering and systems theory.</p>
+    </footer>
+
+    <script>
+        // --- 1. System Presets & Math Specifications ---
+        const systemPresets = {
+            rc: {
+                id: 'rc',
+                name: 'Causal RC Low-Pass Filter',
+                desc: 'A physically realizable system. Its response starts abruptly at t=0 when the trigger arrives.',
+                params: [
+                    { key: 'tau', label: 'Time Constant (τ)', min: 0.2, max: 2.0, step: 0.1, val: 0.8, unit: 's' }
+                ],
+                // Evaluates the response value at time t with shifting parameter td
+                evaluate: (t, td, p) => {
+                    const shiftedT = t - td;
+                    if (shiftedT < 0) return 0; // Strictly Causal
+                    return (1 / p.tau) * Math.exp(-shiftedT / p.tau);
+                },
+                equation: (td, p) => {
+                    const tVal = p.tau.toFixed(1);
+                    const tdStr = td >= 0 ? `(t - ${td.toFixed(2)})` : `(t + ${Math.abs(td).toFixed(2)})`;
+                    return `h(t) = \\frac{1}{${tVal}} e^{-\\frac{${tdStr}}{${tVal}}} u${tdStr}`;
+                },
+                milestones: [
+                    { label: 'Causal Shift', shift: 0.0, desc: 'At t_d = 0.0, the response aligns perfectly with the t = 0 trigger point. Safe and physical.' },
+                    { label: 'Causality Breach', shift: -1.0, desc: 'Shifting the response to t_d < 0 forces output to appear *before* input triggers. Invalid!' },
+                    { label: 'Safe Delay', shift: 1.5, desc: 'A positive delay shifts the system to occur later. Safe, stable and realizable.' }
+                ]
+            },
+            sinc: {
+                id: 'sinc',
+                name: 'Ideal Low-Pass (Sinc) - Pre-ringing',
+                desc: 'A mathematically perfect but physically non-causal brickwall filter showing anti-causal preringing.',
+                params: [
+                    { key: 'fc', label: 'Cutoff Freq (fc)', min: 0.5, max: 2.5, step: 0.1, val: 1.2, unit: 'Hz' }
+                ],
+                evaluate: (t, td, p) => {
+                    const shiftedT = t - td;
+                    if (shiftedT === 0) return 2 * p.fc;
+                    const val = 2 * p.fc * Math.PI * shiftedT;
+                    return Math.sin(val) / (Math.PI * shiftedT);
+                },
+                equation: (td, p) => {
+                    const fcVal = p.fc.toFixed(1);
+                    const tdStr = td >= 0 ? `(t - ${td.toFixed(2)})` : `(t + ${Math.abs(td).toFixed(2)})`;
+                    return `h(t) = 2 f_c \\text{sinc}(2 f_c ${tdStr})`;
+                },
+                milestones: [
+                    { label: 'Symmetric Sinc', shift: 0.0, desc: 'At t_d = 0, the infinite preringing tail breaches the t < 0 temporal shield.' },
+                    { label: 'Delay Truncation', shift: 3.5, desc: 'Shifting td far right minimizes the energy breaching t < 0. This is how we approximate it in DSP.' },
+                    { label: 'Breach Overload', shift: -2.0, desc: 'Severe anticipatory ringing enters the shield, requiring future data to compute.' }
+                ]
+            },
+            gaussian: {
+                id: 'gaussian',
+                name: 'Anticipatory Gaussian Waveform',
+                desc: 'A symmetrical normal distribution curve representing a predictive smoothing kernel.',
+                params: [
+                    { key: 'sigma', label: 'Width (σ)', min: 0.3, max: 1.5, step: 0.1, val: 0.6, unit: 's' }
+                ],
+                evaluate: (t, td, p) => {
+                    const shiftedT = t - td;
+                    return (1 / (p.sigma * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow(shiftedT / p.sigma, 2));
+                },
+                equation: (td, p) => {
+                    const sVal = p.sigma.toFixed(2);
+                    const tdStr = td >= 0 ? `(t - ${td.toFixed(2)})` : `(t + ${Math.abs(td).toFixed(2)})`;
+                    return `h(t) = \\frac{1}{${sVal}\\sqrt{2\\pi}} e^{-\\frac{1}{2}\\left(\\frac{${tdStr}}{${sVal}}\\right)^2}`;
+                },
+                milestones: [
+                    { label: 'Peak Alignment', shift: 0.0, desc: 'Zero-phase Gaussian peak. Highly non-causal since half the signal is pre-trigger.' },
+                    { label: 'Secure Window', shift: 2.5, desc: 'Almost 99.9% of Gaussian energy is safely shifted to the right of t=0.' },
+                    { label: 'Full Breach', shift: -2.5, desc: 'Almost the entire distribution is in the t < 0 region, anticipating everything.' }
+                ]
+            },
+            custom: {
+                id: 'custom',
+                name: 'Custom User-Drawn Waveform',
+                desc: 'Click and drag the node handles directly on the canvas grid to test your own impulse response design.',
+                params: [],
+                evaluate: (t, td, p) => {
+                    // Handled internally by dynamic custom node interpolator
+                    return interpolateCustom(t, td);
+                },
+                equation: (td, p) => {
+                    return `h(t - t_d) = \\text{Piecewise Linear [Custom Node Setup]}`;
+                },
+                milestones: [
+                    { label: 'Clear Canvas', action: 'clear', desc: 'Click to reset custom nodes.' },
+                    { label: 'Build Causal', action: 'causal', desc: 'Creates safe nodes only on the right side of t=0.' },
+                    { label: 'Test Breach', action: 'breach', desc: 'Generates non-zero elements to the left of t=0.' }
+                ]
+            }
+        };
+
+        // --- 2. Interactive App State ---
+        let currentSystemId = 'rc';
+        let parameters = {};
+        let timeDelay = 0.0; // Current shift td
+        let isMoving = false; // Is playing continuous shifts
+        let animationDirection = 1; // back and forth
+        let customNodes = [
+            { t: -3.0, h: 0.0 },
+            { t: -1.0, h: 0.0 },
+            { t: 0.0, h: 1.5 },
+            { t: 1.5, h: 0.8 },
+            { t: 3.5, h: 0.0 }
+        ];
+        let draggingNodeIndex = -1;
+        let showNodes = true;
+        let showGridMesh = true;
+
+        // UI Element references
+        const canvas = document.getElementById('causality-canvas');
+        const ctx = canvas.getContext('2d');
+
+        const quizQuestions = [
+            {
+                q: "What is the mathematical condition for an LTI system to be causal?",
+                options: [
+                    { text: "h(t) approaches infinity as t approaches infinity.", correct: false },
+                    { text: "h(t) = 0 for all t < 0.", correct: true },
+                    { text: "h(t) must be a symmetrical function about t = 0.", correct: false },
+                    { text: "h(t) must be non-zero for all inputs.", correct: false }
+                ],
+                explain: "By definition, a system is causal if its output at any time depends only on current and past inputs. For an impulse response h(t), this requires h(t) = 0 for t < 0."
+            },
+            {
+                q: "Why can't an ideal brickwall low-pass filter (which has a Sinc impulse response) be built in real-time hardware?",
+                options: [
+                    { text: "The impulse response has tails that extend infinitely into negative time, anticipating the impulse.", correct: true },
+                    { text: "The response requires infinite voltage power supply to operate.", correct: false },
+                    { text: "Sinc waves cannot travel along copper wires.", correct: false },
+                    { text: "It violates the conservation of charge.", correct: false }
+                ],
+                explain: "The ideal sinc wave is symmetrical and has non-zero values stretching to negative infinity. Building this in real-time would require the circuit to know when the impulse will strike before it happens!"
+            },
+            {
+                q: "How does digital post-processing software bypass the physical limits of causality?",
+                options: [
+                    { text: "By using negative resistors to reverse current flow.", correct: false },
+                    { text: "By buffering the entire signal first and applying symmetric filtering offline.", correct: true },
+                    { text: "By ignoring mathematics and using high-speed transistors.", correct: false },
+                    { text: "Post-processing software cannot filter signals non-causally.", correct: false }
+                ],
+                explain: "When signals are saved in a buffer (offline processing), 'future' data is simply next in the memory index. Thus, we can slide filters symmetrically without violating physical causality."
+            }
+        ];
+
+        let activeQuizIdx = 0;
+        let quizScore = 0;
+
+        // --- 3. Custom Node Interpolation for tactile editor ---
+        function interpolateCustom(t, td) {
+            const shiftedT = t - td;
+            // Sort custom nodes to ensure accurate linear mapping
+            const sorted = [...customNodes].sort((a,b) => a.t - b.t);
+            
+            if (shiftedT < sorted[0].t) return sorted[0].h;
+            if (shiftedT > sorted[sorted.length - 1].t) return sorted[sorted.length - 1].h;
+
+            for (let i = 0; i < sorted.length - 1; i++) {
+                const n1 = sorted[i];
+                const n2 = sorted[i+1];
+                if (shiftedT >= n1.t && shiftedT <= n2.t) {
+                    const ratio = (shiftedT - n1.t) / (n2.t - n1.t);
+                    return n1.h + ratio * (n2.h - n1.h);
+                }
+            }
+            return 0;
+        }
+
+        // --- 4. Main Initialization ---
+        function initApp() {
+            renderPresetsUI();
+            loadPreset(currentSystemId);
+            setupCanvasInteractions();
+            setupQuizQuestion();
+            setupControls();
+            
+            // Start rendering pipeline
+            requestAnimationFrame(renderLoop);
+        }
+
+        function renderPresetsUI() {
+            const container = document.getElementById('preset-group');
+            container.innerHTML = '';
+
+            Object.values(systemPresets).forEach(sys => {
+                const isSelected = sys.id === currentSystemId;
+                const activeClasses = isSelected 
+                    ? 'border-rose-500 bg-rose-500/10 text-rose-200'
+                    : 'border-slate-800 bg-slate-950 text-slate-400 hover:border-slate-700 hover:text-slate-200';
+                
+                const btn = document.createElement('button');
+                btn.className = `w-full text-left p-3 rounded-xl border-2 transition-all flex flex-col gap-1 ${activeClasses}`;
+                btn.onclick = () => loadPreset(sys.id);
+                btn.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold leading-none">${sys.name}</span>
+                        <i class="fa-solid ${sys.id === 'rc' ? 'fa-bolt' : sys.id === 'sinc' ? 'fa-wave-square' : sys.id === 'gaussian' ? 'fa-circle-half-stroke' : 'fa-hand-pointer'} text-[11px] opacity-85"></i>
+                    </div>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        function loadPreset(sysId) {
+            currentSystemId = sysId;
+            const sys = systemPresets[sysId];
+
+            parameters = {};
+            sys.params.forEach(p => {
+                parameters[p.key] = p.val;
+            });
+
+            document.getElementById('active-system-desc').textContent = sys.desc;
+            renderSlidersUI();
+            renderMilestonesUI();
+            renderPresetsUI();
+            updateFormulaDisplay();
+
+            // Set delay back to 0 when reloading to observe initial causality state
+            timeDelay = 0;
+            document.getElementById('time-shift-slider').value = 0;
+            document.getElementById('delay-amount-label').textContent = 't_d = 0.00s';
+        }
+
+        function renderSlidersUI() {
+            const container = document.getElementById('system-sliders-container');
+            container.innerHTML = '';
+
+            const sys = systemPresets[currentSystemId];
+            sys.params.forEach(p => {
+                const block = document.createElement('div');
+                block.className = 'flex flex-col gap-1.5 bg-slate-950 p-3 rounded-xl border border-slate-850';
+                block.innerHTML = `
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-medium text-slate-300">${p.label}</span>
+                        <span class="code-font font-bold text-amber-400" id="val-${p.key}">${parameters[p.key].toFixed(2)}${p.unit}</span>
+                    </div>
+                    <input type="range" 
+                        min="${p.min}" 
+                        max="${p.max}" 
+                        step="${p.step}" 
+                        value="${parameters[p.key]}" 
+                        class="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-500"
+                        oninput="onParamChange('${p.key}', this.value)"
+                    >
+                `;
+                container.appendChild(block);
+            });
+        }
+
+        function onParamChange(key, val) {
+            parameters[key] = parseFloat(val);
+            const unit = systemPresets[currentSystemId].params.find(p=>p.key===key).unit;
+            document.getElementById(`val-${key}`).textContent = parameters[key].toFixed(2) + unit;
+            updateFormulaDisplay();
+        }
+
+        function updateFormulaDisplay() {
+            const sys = systemPresets[currentSystemId];
+            document.getElementById('equation-display').innerHTML = sys.equation(timeDelay, parameters);
+        }
+
+        function renderMilestonesUI() {
+            const container = document.getElementById('milestones-container');
+            container.innerHTML = '';
+
+            const sys = systemPresets[currentSystemId];
+            sys.milestones.forEach(m => {
+                const item = document.createElement('button');
+                item.className = "text-left p-2.5 rounded-xl border border-slate-800 bg-slate-950/40 hover:bg-slate-900/80 hover:border-amber-500/40 transition-all text-xs flex flex-col gap-1";
+                
+                if (currentSystemId === 'custom') {
+                    item.onclick = () => handleCustomAction(m.action);
+                    item.innerHTML = `
+                        <div class="flex items-center gap-1 text-amber-400 font-bold">
+                            <i class="fa-solid fa-gamepad text-[10px]"></i>
+                            <span>${m.label}</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400 leading-snug">${m.desc}</p>
+                    `;
+                } else {
+                    item.onclick = () => jumpToShift(m.shift);
+                    item.innerHTML = `
+                        <div class="flex items-center gap-1 text-amber-400 font-bold">
+                            <i class="fa-solid fa-location-crosshairs text-[10px]"></i>
+                            <span>${m.label} (t_d = ${m.shift.toFixed(1)}s)</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400 leading-snug">${m.desc}</p>
+                    `;
+                }
+                
+                container.appendChild(item);
+            });
+        }
+
+        function jumpToShift(s) {
+            timeDelay = s;
+            document.getElementById('time-shift-slider').value = s;
+            document.getElementById('delay-amount-label').textContent = `t_d = ${s.toFixed(2)}s`;
+            isMoving = false;
+            document.getElementById('play-icon').className = "fa-solid fa-play text-sm";
+            updateFormulaDisplay();
+        }
+
+        function handleCustomAction(act) {
+            if (act === 'clear') {
+                customNodes = [
+                    { t: -3.0, h: 0.0 },
+                    { t: 0.0, h: 0.0 },
+                    { t: 3.0, h: 0.0 }
+                ];
+            } else if (act === 'causal') {
+                customNodes = [
+                    { t: -2.0, h: 0.0 },
+                    { t: 0.0, h: 0.0 },
+                    { t: 1.0, h: 1.5 },
+                    { t: 2.0, h: 0.5 },
+                    { t: 3.5, h: 0.0 }
+                ];
+            } else if (act === 'breach') {
+                customNodes = [
+                    { t: -2.5, h: 1.2 },
+                    { t: -1.0, h: 0.6 },
+                    { t: 0.0, h: 1.8 },
+                    { t: 1.5, h: 0.2 },
+                    { t: 3.0, h: 0.0 }
+                ];
+            }
+            timeDelay = 0;
+            document.getElementById('time-shift-slider').value = 0;
+            document.getElementById('delay-amount-label').textContent = 't_d = 0.00s';
+            updateFormulaDisplay();
+        }
+
+        // --- 5. Controls Handlers ---
+        function setupControls() {
+            const btnPlay = document.getElementById('btn-play');
+            btnPlay.onclick = () => {
+                isMoving = !isMoving;
+                document.getElementById('play-icon').className = isMoving 
+                    ? "fa-solid fa-pause text-sm" 
+                    : "fa-solid fa-play text-sm";
+            };
+
+            const btnReset = document.getElementById('btn-reset-shift');
+            btnReset.onclick = () => {
+                timeDelay = 0.0;
+                document.getElementById('time-shift-slider').value = 0;
+                document.getElementById('delay-amount-label').textContent = 't_d = 0.00s';
+                isMoving = false;
+                document.getElementById('play-icon').className = "fa-solid fa-play text-sm";
+                updateFormulaDisplay();
+            };
+
+            const slider = document.getElementById('time-shift-slider');
+            slider.oninput = (e) => {
+                timeDelay = parseFloat(e.target.value);
+                document.getElementById('delay-amount-label').textContent = `t_d = ${timeDelay.toFixed(2)}s`;
+                isMoving = false;
+                document.getElementById('play-icon').className = "fa-solid fa-play text-sm";
+                updateFormulaDisplay();
+            };
+
+            const toggleMesh = document.getElementById('toggle-shield-mesh');
+            toggleMesh.onclick = () => {
+                showGridMesh = !showGridMesh;
+                toggleMesh.className = showGridMesh 
+                    ? "px-2.5 py-1.5 rounded-md font-semibold text-white bg-slate-800 shadow-sm transition-all flex items-center gap-1"
+                    : "px-2.5 py-1.5 rounded-md font-semibold text-slate-400 hover:text-white transition-all flex items-center gap-1";
+            };
+
+            const toggleNodeBtn = document.getElementById('toggle-nodes');
+            toggleNodeBtn.onclick = () => {
+                showNodes = !showNodes;
+                toggleNodeBtn.className = showNodes 
+                    ? "px-2.5 py-1.5 rounded-md font-semibold text-white bg-slate-800 shadow-sm transition-all flex items-center gap-1"
+                    : "px-2.5 py-1.5 rounded-md font-semibold text-slate-400 hover:text-white transition-all flex items-center gap-1";
+            };
+        }
+
+        // --- 6. Graphics & High Fidelity Rendering Loop ---
+        function renderLoop(timestamp) {
+            // Animate shift if active
+            if (isMoving) {
+                timeDelay += 0.03 * animationDirection;
+                if (timeDelay > 4.2) {
+                    animationDirection = -1;
+                } else if (timeDelay < -4.2) {
+                    animationDirection = 1;
+                }
+                document.getElementById('time-shift-slider').value = timeDelay;
+                document.getElementById('delay-amount-label').textContent = `t_d = ${timeDelay.toFixed(2)}s`;
+                updateFormulaDisplay();
+            }
+
+            resizeCanvas();
+
+            // Clear Frame
+            ctx.fillStyle = '#030712';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const dpr = window.devicePixelRatio || 1;
+            const w = canvas.width / dpr;
+            const h = canvas.height / dpr;
+
+            const paddingLeft = 50;
+            const paddingRight = 40;
+            const paddingTop = 45;
+            const paddingBottom = 40;
+            const graphW = w - paddingLeft - paddingRight;
+            const graphH = h - paddingTop - paddingBottom;
+
+            const plotBox = { x: paddingLeft, y: paddingTop, w: graphW, h: graphH };
+
+            // Grid Ranges
+            const minT = -5.0;
+            const maxT = 5.0;
+            const minH = -1.0;
+            const maxH = 2.5;
+
+            // Compute math coordinate transformation
+            const toCoord = (t, val) => {
+                const x = plotBox.x + ((t - minT) / (maxT - minT)) * plotBox.w;
+                const y = plotBox.y + plotBox.h - ((val - minH) / (maxH - minH)) * plotBox.h;
+                return { x, y };
+            };
+
+            const fromCoord = (x, y) => {
+                const t = minT + ((x - plotBox.x) / plotBox.w) * (maxT - minT);
+                const val = minH + (1.0 - (y - plotBox.y) / plotBox.h) * (maxH - minH);
+                return { t, val };
+            };
+
+            // 1. Draw Grid Lines
+            if (showGridMesh) {
+                ctx.strokeStyle = '#111827';
+                ctx.lineWidth = 1;
+                for (let i = -5; i <= 5; i++) {
+                    const lineCoords = toCoord(i, 0);
+                    ctx.beginPath();
+                    ctx.moveTo(lineCoords.x, plotBox.y);
+                    ctx.lineTo(lineCoords.x, plotBox.y + plotBox.h);
+                    ctx.stroke();
+
+                    // T-axis label
+                    ctx.fillStyle = '#4b5563';
+                    ctx.font = '10px "Fira Code", monospace';
+                    ctx.fillText(i + 's', lineCoords.x - 10, plotBox.y + plotBox.h + 15);
+                }
+
+                for (let val = -1; val <= 2.5; val += 0.5) {
+                    const lineCoords = toCoord(0, val);
+                    ctx.beginPath();
+                    ctx.moveTo(plotBox.x, lineCoords.y);
+                    ctx.lineTo(plotBox.x + plotBox.w, lineCoords.y);
+                    ctx.stroke();
+
+                    // H-axis label
+                    ctx.fillStyle = '#4b5563';
+                    ctx.font = '10px "Fira Code", monospace';
+                    ctx.fillText(val.toFixed(1), plotBox.x - 30, lineCoords.y + 4);
+                }
+            }
+
+            // 2. Draw "Causality Shield" (The forbidden zone: t < 0)
+            const midCoords = toCoord(0, 0);
+            const shieldW = midCoords.x - plotBox.x;
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.05)';
+            ctx.fillRect(plotBox.x, plotBox.y, shieldW, plotBox.h);
+
+            // Draw futuristic striped patterns on the causality zone
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(plotBox.x, plotBox.y, shieldW, plotBox.h);
+            ctx.clip();
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.08)';
+            ctx.lineWidth = 2;
+            for (let offset = -plotBox.h; offset < shieldW; offset += 15) {
+                ctx.beginPath();
+                ctx.moveTo(plotBox.x + offset, plotBox.y);
+                ctx.lineTo(plotBox.x + offset + plotBox.h, plotBox.y + plotBox.h);
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // Draw shield barrier boundary line (t=0)
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(midCoords.x, plotBox.y);
+            ctx.lineTo(midCoords.x, plotBox.y + plotBox.h);
+            ctx.stroke();
+
+            // Shield text overlay inside the t<0 zone
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.25)';
+            ctx.font = 'bold 9px "Inter"';
+            ctx.fillText("FORBIDDEN TEMPORAL SHIELD (t < 0)", plotBox.x + 15, plotBox.y + 20);
+
+            // Safe causal zone text overlay
+            ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+            ctx.font = 'bold 9px "Inter"';
+            ctx.fillText("CAUSAL REGION (t \u2265 0)", midCoords.x + 15, plotBox.y + 20);
+
+            // 3. Evaluate active wave coordinates & Detect Causality breaches
+            const sys = systemPresets[currentSystemId];
+            const steps = 300;
+            const points = [];
+            let nonCausalEnergy = 0.0;
+            let totalEnergy = 0.0;
+            let isCurrentlyBreached = false;
+
+            for (let i = 0; i <= steps; i++) {
+                const t = minT + (i / steps) * (maxT - minT);
+                const val = sys.evaluate(t, timeDelay, parameters);
+                const coords = toCoord(t, val);
+                
+                points.push({ t, val, x: coords.x, y: coords.y });
+
+                // Accumulate energy metrics (squared amplitude)
+                const energyTerm = val * val * (maxT - minT) / steps;
+                if (t < 0) {
+                    nonCausalEnergy += energyTerm;
+                    if (Math.abs(val) > 0.02) {
+                        isCurrentlyBreached = true;
+                    }
+                }
+                totalEnergy += energyTerm;
+            }
+
+            const pctNonCausal = totalEnergy > 1e-4 ? (nonCausalEnergy / totalEnergy) * 100 : 0;
+            updateStatusAlerts(isCurrentlyBreached, pctNonCausal);
+
+            // 4. Draw Waveform curve
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(plotBox.x, plotBox.y, plotBox.w, plotBox.h);
+            ctx.clip();
+
+            ctx.strokeStyle = isCurrentlyBreached ? '#f43f5e' : '#10b981';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            points.forEach((pt, idx) => {
+                if (idx === 0) {
+                    ctx.moveTo(pt.x, pt.y);
+                } else {
+                    ctx.lineTo(pt.x, pt.y);
+                }
+            });
+            ctx.stroke();
+
+            // Optional fill under curve
+            ctx.fillStyle = isCurrentlyBreached ? 'rgba(244, 63, 94, 0.08)' : 'rgba(16, 185, 129, 0.05)';
+            ctx.lineTo(points[points.length-1].x, toCoord(maxT, 0).y);
+            ctx.lineTo(points[0].x, toCoord(minT, 0).y);
+            ctx.closePath();
+            ctx.fill();
+
+            // 5. Draw Custom nodes if preset is active
+            if (currentSystemId === 'custom' && showNodes) {
+                customNodes.forEach((node, idx) => {
+                    const nodeCoords = toCoord(node.t + timeDelay, node.h);
+                    
+                    // Outer glow rings
+                    ctx.fillStyle = isCurrentlyBreached ? 'rgba(244, 63, 94, 0.3)' : 'rgba(16, 185, 129, 0.3)';
+                    ctx.beginPath();
+                    ctx.arc(nodeCoords.x, nodeCoords.y, 8, 0, 2 * Math.PI);
+                    ctx.fill();
+
+                    // Node center point
+                    ctx.fillStyle = '#ffffff';
+                    ctx.strokeStyle = isCurrentlyBreached ? '#f43f5e' : '#10b981';
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    ctx.arc(nodeCoords.x, nodeCoords.y, 4, 0, 2 * Math.PI);
+                    ctx.fill();
+                    ctx.stroke();
+                });
+            }
+
+            ctx.restore();
+
+            // 6. Plot Reference Outer Frame Box
+            ctx.strokeStyle = '#374151';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(plotBox.x, plotBox.y, plotBox.w, plotBox.h);
+
+            // Highlight t = 0 trigger point node on zero axis
+            const triggerCoords = toCoord(0, 0);
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath();
+            ctx.arc(triggerCoords.x, triggerCoords.y, 5, 0, 2 * Math.PI);
+            ctx.fill();
+
+            requestAnimationFrame(renderLoop);
+        }
+
+        // Keep canvas size synchronized to viewport container
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            const targetWidth = Math.floor(rect.width);
+            const targetHeight = Math.floor(rect.height);
+            
+            if (canvas.width !== targetWidth * dpr || canvas.height !== targetHeight * dpr) {
+                canvas.width = targetWidth * dpr;
+                canvas.height = targetHeight * dpr;
+                ctx.scale(dpr, dpr);
+                canvas.style.width = targetWidth + 'px';
+                canvas.style.height = targetHeight + 'px';
+            }
+        }
+
+        // Adjust UI banners and alert flags depending on active breach calculation
+        function updateStatusAlerts(isBreached, percentage) {
+            const hBadge = document.getElementById('header-status-badge');
+            const bBanner = document.getElementById('breach-alert-banner');
+            const aIcon = document.getElementById('alert-banner-icon');
+            const aTitle = document.getElementById('alert-banner-title');
+            const aDesc = document.getElementById('alert-banner-desc');
+            const eDisplay = document.getElementById('noncausal-energy-display');
+            const breachBadge = document.getElementById('causality-breach-badge');
+
+            // Scrubber indicators
+            const ping = document.getElementById('ping-indicator');
+            const dot = document.getElementById('dot-indicator');
+
+            // Update energy tracker text
+            eDisplay.textContent = `E_pre = ${percentage.toFixed(1)}%`;
+
+            if (isBreached) {
+                hBadge.className = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20";
+                hBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></span> SYSTEM CAUSALITY BREACHED`;
+
+                bBanner.className = "bg-rose-950/20 border border-rose-500/30 rounded-2xl p-4 flex items-center justify-between transition-all duration-300 glowing-red";
+                aIcon.className = "w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-400";
+                aIcon.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-lg animate-bounce"></i>`;
+                aTitle.className = "font-bold text-sm text-rose-300";
+                aTitle.textContent = "Anticipatory Behavior Detected!";
+                aDesc.textContent = "Waveform values exist at t < 0. This system reacts before the input trigger strikes.";
+                
+                eDisplay.className = "code-font font-bold text-rose-400 text-xs";
+                breachBadge.style.display = 'block';
+
+                ping.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75";
+                dot.className = "relative inline-flex rounded-full h-3 w-3 bg-rose-500";
+            } else {
+                hBadge.className = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                hBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span> TEMPORAL SHIELD SECURE`;
+
+                bBanner.className = "bg-emerald-950/20 border border-emerald-500/20 rounded-2xl p-4 flex items-center justify-between transition-all duration-300 glowing-green";
+                aIcon.className = "w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400";
+                aIcon.innerHTML = `<i class="fa-solid fa-circle-check text-lg"></i>`;
+                aTitle.className = "font-bold text-sm text-slate-100";
+                aTitle.textContent = "Physical Causality Intact";
+                aDesc.textContent = "No response exists prior to the excitation event at t = 0.";
+
+                eDisplay.className = "code-font font-bold text-emerald-400 text-xs";
+                breachBadge.style.display = 'none';
+
+                ping.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
+                dot.className = "relative inline-flex rounded-full h-3 w-3 bg-emerald-500";
+            }
+        }
+
+        // --- 7. Interactive Custom Node Editor Mechanics ---
+        function setupCanvasInteractions() {
+            canvas.addEventListener('mousedown', handleMouseDown);
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('mouseup', handleMouseUp);
+
+            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+            canvas.addEventListener('touchend', handleTouchEnd);
+        }
+
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            return { x, y };
+        }
+
+        function handleMouseDown(e) {
+            if (currentSystemId !== 'custom' || !showNodes) return;
+            const mousePos = getMousePos(e);
+            findClickedNode(mousePos);
+        }
+
+        function handleMouseMove(e) {
+            if (currentSystemId !== 'custom' || draggingNodeIndex === -1) return;
+            const mousePos = getMousePos(e);
+            dragNodeTo(mousePos);
+        }
+
+        function handleMouseUp() {
+            draggingNodeIndex = -1;
+        }
+
+        function handleTouchStart(e) {
+            if (currentSystemId !== 'custom' || !showNodes || e.touches.length === 0) return;
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            const touchPos = {
+                x: touch.clientX - rect.left,
+                y: touch.clientY - rect.top
+            };
+            findClickedNode(touchPos);
+            e.preventDefault();
+        }
+
+        function handleTouchMove(e) {
+            if (currentSystemId !== 'custom' || draggingNodeIndex === -1 || e.touches.length === 0) return;
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            const touchPos = {
+                x: touch.clientX - rect.left,
+                y: touch.clientY - rect.top
+            };
+            dragNodeTo(touchPos);
+            e.preventDefault();
+        }
+
+        function handleTouchEnd() {
+            draggingNodeIndex = -1;
+        }
+
+        function findClickedNode(pos) {
+            const dpr = window.devicePixelRatio || 1;
+            const w = canvas.width / dpr;
+            const h = canvas.height / dpr;
+
+            const paddingLeft = 50;
+            const paddingRight = 40;
+            const paddingTop = 45;
+            const paddingBottom = 40;
+            const graphW = w - paddingLeft - paddingRight;
+            const graphH = h - paddingTop - paddingBottom;
+
+            const plotBox = { x: paddingLeft, y: paddingTop, w: graphW, h: graphH };
+
+            const minT = -5.0;
+            const maxT = 5.0;
+            const minH = -1.0;
+            const maxH = 2.5;
+
+            // Search if click coordinates are near any active node handle
+            for (let i = 0; i < customNodes.length; i++) {
+                const node = customNodes[i];
+                // Transform node space to canvas pixels
+                const nx = plotBox.x + ((node.t + timeDelay - minT) / (maxT - minT)) * plotBox.w;
+                const ny = plotBox.y + plotBox.h - ((node.h - minH) / (maxH - minH)) * plotBox.h;
+
+                const distance = Math.sqrt(Math.pow(pos.x - nx, 2) + Math.pow(pos.y - ny, 2));
+                if (distance < 12) {
+                    draggingNodeIndex = i;
+                    break;
+                }
+            }
+        }
+
+        function dragNodeTo(pos) {
+            const dpr = window.devicePixelRatio || 1;
+            const w = canvas.width / dpr;
+            const h = canvas.height / dpr;
+
+            const paddingLeft = 50;
+            const paddingRight = 40;
+            const paddingTop = 45;
+            const paddingBottom = 40;
+            const graphW = w - paddingLeft - paddingRight;
+            const graphH = h - paddingTop - paddingBottom;
+
+            const plotBox = { x: paddingLeft, y: paddingTop, w: graphW, h: graphH };
+
+            const minT = -5.0;
+            const maxT = 5.0;
+            const minH = -1.0;
+            const maxH = 2.5;
+
+            // Map mouse back into math domains
+            let tNew = minT + ((pos.x - plotBox.x) / plotBox.w) * (maxT - minT);
+            let hNew = minH + (1.0 - (pos.y - plotBox.y) / plotBox.h) * (maxH - minH);
+
+            // Bounded limits
+            tNew = Math.max(minT, Math.min(maxT, tNew));
+            hNew = Math.max(minH, Math.min(maxH, hNew));
+
+            // Shift coordinate alignment offset
+            customNodes[draggingNodeIndex].t = tNew - timeDelay;
+            customNodes[draggingNodeIndex].h = hNew;
+        }
+
+        // --- 8. Interactive Concept Quiz System ---
+        function setupQuizQuestion() {
+            const qData = quizQuestions[activeQuizIdx];
+            document.getElementById('quiz-question-txt').textContent = `${activeQuizIdx + 1}. ${qData.q}`;
+            
+            const box = document.getElementById('quiz-options-box');
+            box.innerHTML = '';
+
+            const feedback = document.getElementById('quiz-result-feedback');
+            feedback.className = "hidden mt-3 p-2.5 rounded-lg text-xs leading-normal";
+
+            qData.options.forEach((opt, idx) => {
+                const button = document.createElement('button');
+                button.className = "w-full text-left p-2.5 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-800 hover:border-indigo-500/40 text-xs transition-all text-slate-300 hover:text-white";
+                button.onclick = () => selectQuizAnswer(idx, button);
+                button.textContent = opt.text;
+                box.appendChild(button);
+            });
+        }
+
+        function selectQuizAnswer(selectedIdx, clickedBtn) {
+            const qData = quizQuestions[activeQuizIdx];
+            const isCorrect = qData.options[selectedIdx].correct;
+            const feedback = document.getElementById('quiz-result-feedback');
+
+            // Lock options to avoid cheating
+            const options = document.getElementById('quiz-options-box').querySelectorAll('button');
+            options.forEach(btn => btn.disabled = true);
+
+            if (isCorrect) {
+                quizScore++;
+                clickedBtn.className = "w-full text-left p-2.5 rounded-xl border border-emerald-500/50 bg-emerald-500/10 text-emerald-300 text-xs font-semibold";
+                feedback.className = "mt-3 p-2.5 rounded-lg text-xs leading-normal bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 block";
+                feedback.innerHTML = `<span class="font-bold text-emerald-300"><i class="fa-solid fa-circle-check"></i> Correct!</span> ${qData.explain}`;
+            } else {
+                clickedBtn.className = "w-full text-left p-2.5 rounded-xl border border-rose-500/50 bg-rose-500/10 text-rose-300 text-xs font-semibold";
+                feedback.className = "mt-3 p-2.5 rounded-lg text-xs leading-normal bg-rose-500/10 text-rose-400 border border-rose-500/20 block";
+                feedback.innerHTML = `<span class="font-bold text-rose-300"><i class="fa-solid fa-triangle-exclamation"></i> Incorrect.</span> ${qData.explain}`;
+
+                // Highlight correct answer
+                const correctIdx = qData.options.findIndex(o => o.correct);
+                options[correctIdx].className = "w-full text-left p-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 text-emerald-400 text-xs";
+            }
+
+            document.getElementById('quiz-badge').textContent = `${quizScore}/3 Correct`;
+
+            // Transition to next challenge after a reading delay
+            setTimeout(() => {
+                activeQuizIdx = (activeQuizIdx + 1) % quizQuestions.length;
+                if (activeQuizIdx === 0) {
+                    quizScore = 0;
+                    document.getElementById('quiz-badge').textContent = `0/3 Completed`;
+                }
+                setupQuizQuestion();
+            }, 8000); // 8-second delay allows reading full educational explanations
+        }
+
+        // Start initialization sequence
+        initApp();
+    </script>
+</body>
+</html>

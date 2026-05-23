@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LTI Interconnection Explorer: Series vs. Parallel Routing</title>
+    <!-- Tailwind CSS for high-fidelity responsive UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Modern academic/dashboard Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+        /* Pulse & Signal Path Keyframes */
+        @keyframes signalFlow {
+            to {
+                stroke-dashoffset: -40;
+            }
+        }
+        .animate-flow {
+            stroke-dasharray: 8, 4;
+            animation: signalFlow 1s linear infinite;
+        }
+        /* Custom styled scrolls for equation explanations */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(51, 65, 85, 0.8);
+            border-radius: 4px;
+        }
+        /* Dynamic SVG Transitions */
+        .block-transition {
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col overflow-x-hidden selection:bg-cyan-500 selection:text-slate-950">
+
+    <!-- Premium Interactive Header -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-purple-500 to-indigo-500 flex items-center justify-center text-slate-950 font-black text-2xl shadow-lg shadow-indigo-500/20">
+                    ⇌
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
+                        LTI Connection Explorer
+                    </h1>
+                    <p class="text-xs text-slate-400">Demystifying System Interconnections: Series Convolution vs. Parallel Addition</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 text-xs bg-slate-950 border border-slate-800 rounded-full px-4 py-1.5 text-slate-300">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                <span class="font-medium">Active Interconnection Engine</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Simulation Panel -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Column: Controls and System Block Simplification (Col span 5) -->
+        <section class="lg:col-span-5 flex flex-col gap-6">
+            
+            <!-- System Routing Switchboard -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                        1. System Interconnection Configuration
+                    </h2>
+                    <span id="routingBadge" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">Series</span>
+                </div>
+
+                <!-- Main Connection Toggle Toggle -->
+                <div class="grid grid-cols-2 gap-3 mb-5">
+                    <button id="btnSeries" onclick="setRoutingMode('series')" class="py-2.5 px-4 rounded-xl font-semibold text-xs border transition-all duration-300 flex flex-col items-center justify-center gap-1.5 bg-cyan-600/20 border-cyan-500 text-cyan-200 shadow-lg shadow-cyan-950">
+                        <span class="text-lg">➔ █ ➔ █ ➔</span>
+                        <span>Series (Cascade)</span>
+                    </button>
+                    <button id="btnParallel" onclick="setRoutingMode('parallel')" class="py-2.5 px-4 rounded-xl font-semibold text-xs border transition-all duration-300 flex flex-col items-center justify-center gap-1.5 bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200">
+                        <div class="flex flex-col items-center justify-center leading-none">
+                            <span class="text-xs">⎾ █ ⎿</span>
+                            <span class="text-xs">⎿ █ ⎾</span>
+                        </div>
+                        <span>Parallel (Summed)</span>
+                    </button>
+                </div>
+
+                <!-- Input Signal Selection -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Input Stimulus $x(t)$</label>
+                        <select id="selectInput" onchange="calculateAndDraw()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 transition">
+                            <option value="impulse">Unit Impulse δ(t)</option>
+                            <option value="step">Heaviside Step u(t)</option>
+                            <option value="sine">Cosine Waveburst</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">Simulation Engine Speed</label>
+                        <div class="flex items-center gap-2 mt-1.5">
+                            <span class="text-xs text-slate-400">Steady</span>
+                            <input id="sliderSpeed" type="range" min="1" max="10" value="5" oninput="updateSpeed()" class="w-full accent-cyan-400 cursor-pointer h-1.5 bg-slate-800 rounded-lg">
+                            <span class="text-xs text-slate-400">Live</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Parameters for Systems -->
+                <div class="border-t border-slate-800 pt-4 mt-2">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-3">System Constants</span>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[11px] text-slate-300 mb-1">$h_1(t)$ Decaying Rate (a)</label>
+                            <input id="sliderH1" type="range" min="5" max="25" value="12" oninput="calculateAndDraw()" class="w-full accent-emerald-400 h-1 bg-slate-800 rounded-lg cursor-pointer">
+                            <div class="flex justify-between text-[9px] text-slate-500 font-mono mt-1">
+                                <span>Fast Decay</span>
+                                <span id="valH1">0.12</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-slate-300 mb-1">$h_2(t)$ Frequency Pulse (b)</label>
+                            <input id="sliderH2" type="range" min="3" max="15" value="8" oninput="calculateAndDraw()" class="w-full accent-pink-400 h-1 bg-slate-800 rounded-lg cursor-pointer">
+                            <div class="flex justify-between text-[9px] text-slate-500 font-mono mt-1">
+                                <span>Low Freq</span>
+                                <span id="valH2">8.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Block Diagram Simulator Interface -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-sm relative overflow-hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        2. Dynamic Signal Flow Diagrams
+                    </h2>
+                    
+                    <button id="btnSimplify" onclick="toggleSimplification()" class="px-3 py-1 bg-gradient-to-r from-purple-500 to-indigo-500 text-slate-950 hover:from-purple-400 hover:to-indigo-400 font-bold rounded-lg text-xs transition duration-300 shadow-md flex items-center gap-1">
+                        <span id="simplifyIcon">⚡</span>
+                        <span id="simplifyBtnText">Simplify Blocks</span>
+                    </button>
+                </div>
+
+                <!-- Block Diagram Canvas Container -->
+                <div class="bg-slate-950 rounded-xl p-4 border border-slate-800/60 relative flex items-center justify-center min-h-[180px]">
+                    
+                    <svg id="diagramSvg" class="w-full h-full min-h-[160px]" viewBox="0 0 500 160">
+                        <!-- Definitions for Gradients -->
+                        <defs>
+                            <linearGradient id="cyanGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#22d3ee" />
+                                <stop offset="100%" stop-color="#0891b2" />
+                            </linearGradient>
+                            <linearGradient id="emeraldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#34d399" />
+                                <stop offset="100%" stop-color="#059669" />
+                            </linearGradient>
+                            <linearGradient id="pinkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#f472b6" />
+                                <stop offset="100%" stop-color="#db2777" />
+                            </linearGradient>
+                            <linearGradient id="purpleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#c084fc" />
+                                <stop offset="100%" stop-color="#7e22ce" />
+                            </linearGradient>
+                        </defs>
+
+                        <!-- Input Label & Line -->
+                        <text x="15" y="85" fill="#e2e8f0" font-size="11" font-weight="bold" class="code-font">x(t)</text>
+                        
+                        <!-- Base Paths for signals (will be updated dynamically by js) -->
+                        <path id="svgPathInputSplit" d="" stroke="#1e293b" stroke-width="2" fill="none" class="block-transition" />
+                        
+                        <!-- Main active flow lines -->
+                        <path id="svgFlowPath1" d="" stroke="#06b6d4" stroke-width="2" fill="none" class="animate-flow block-transition" />
+                        <path id="svgFlowPath2" d="" stroke="#06b6d4" stroke-width="2" fill="none" class="animate-flow block-transition" />
+                        <path id="svgFlowPath3" d="" stroke="#06b6d4" stroke-width="2" fill="none" class="animate-flow block-transition" />
+                        
+                        <!-- System Box 1 -->
+                        <g id="svgBlockH1" class="block-transition">
+                            <rect x="130" y="30" width="85" height="46" rx="8" fill="url(#emeraldGradient)" filter="drop-shadow(0 4px 6px rgba(0,0,0,0.5))" class="stroke-2 stroke-emerald-300/40" />
+                            <text x="172.5" y="52" fill="#090d16" font-size="12" font-weight="900" text-anchor="middle" class="code-font">h₁(t)</text>
+                            <text x="172.5" y="66" fill="#090d16" font-size="8.5" text-anchor="middle" class="font-sans font-semibold">Exponential</text>
+                        </g>
+
+                        <!-- System Box 2 -->
+                        <g id="svgBlockH2" class="block-transition">
+                            <rect x="280" y="30" width="85" height="46" rx="8" fill="url(#pinkGradient)" filter="drop-shadow(0 4px 6px rgba(0,0,0,0.5))" class="stroke-2 stroke-pink-300/40" />
+                            <text x="322.5" y="52" fill="#090d16" font-size="12" font-weight="900" text-anchor="middle" class="code-font">h₂(t)</text>
+                            <text x="322.5" y="66" fill="#090d16" font-size="8.5" text-anchor="middle" class="font-sans font-semibold">Sinusoidal</text>
+                        </g>
+
+                        <!-- Summation Node (Parallel Only) -->
+                        <g id="svgSumNode" class="block-transition" opacity="0">
+                            <circle cx="410" cy="80" r="14" fill="#1e1b4b" stroke="#818cf8" stroke-width="2" />
+                            <text x="410" y="84.5" fill="#c7d2fe" font-size="14" font-weight="bold" text-anchor="middle">+</text>
+                        </g>
+
+                        <!-- Consolidated Single Block (Appears when Simplified is active) -->
+                        <g id="svgCombinedBlock" class="block-transition" opacity="0" style="transform: scale(0.5); transform-origin: 250px 80px;">
+                            <rect x="160" y="50" width="180" height="60" rx="12" fill="url(#purpleGradient)" filter="drop-shadow(0 6px 12px rgba(126, 34, 206, 0.4))" stroke="#e9d5ff" stroke-width="1.5" />
+                            <text x="250" y="80" fill="#f5f3ff" font-size="15" font-weight="bold" text-anchor="middle" class="code-font" id="combinedBlockText">heq(t) = h₁(t) * h₂(t)</text>
+                            <text x="250" y="98" fill="#d8b4fe" font-size="9" text-anchor="middle" class="font-sans font-semibold uppercase tracking-wider" id="combinedBlockSubtext">Equivalent Cascade System</text>
+                        </g>
+
+                        <!-- Output Label -->
+                        <text x="465" y="85" fill="#22d3ee" font-size="11" font-weight="bold" class="code-font" text-anchor="end">y(t)</text>
+                    </svg>
+
+                </div>
+            </div>
+
+            <!-- Mythbuster Interactive Card -->
+            <div class="bg-gradient-to-br from-slate-900 via-indigo-950/20 to-slate-900 border border-indigo-900/40 rounded-2xl p-5 shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute bottom-0 left-0 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl pointer-events-none"></div>
+
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="p-1 rounded bg-amber-500/20 text-amber-400 text-xs">⚠️</span>
+                    <h3 class="text-xs font-bold text-amber-400 uppercase tracking-widest">Common LTI Misconception Buster</h3>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="bg-slate-950/80 rounded-xl p-3 border border-slate-800">
+                        <span class="text-[10px] text-pink-400 font-extrabold uppercase block tracking-wider">The False Belief:</span>
+                        <p class="text-[12px] text-slate-300 mt-1 leading-relaxed">
+                            "Connecting two linear systems in series simply adds their individual impulse responses together: <span class="text-pink-400 font-semibold">$h_{eq}(t) = h_1(t) + h_2(t)$</span>."
+                        </p>
+                    </div>
+
+                    <div class="bg-cyan-950/30 border border-cyan-500/20 rounded-xl p-3">
+                        <span class="text-[10px] text-cyan-400 font-extrabold uppercase block tracking-wider">The Real Math:</span>
+                        <div id="mythExplanationText" class="text-[12px] text-slate-200 mt-1 leading-relaxed">
+                            For cascaded (Series) systems, the output of System 1 serves as the input to System 2. Therefore, they are combined using <strong class="text-cyan-400">Convolution ($*$)</strong> rather than addition. Parallel systems are the ones that add!
+                        </div>
+                    </div>
+
+                    <!-- Sandbox Truth Toggle for math comparison -->
+                    <div class="flex items-center justify-between pt-1">
+                        <span class="text-[11px] text-slate-400 font-medium">Test Misconception on Output Plot:</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input id="misconceptionToggle" type="checkbox" onchange="calculateAndDraw()" class="sr-only peer">
+                            <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:height-4 after:w-4 after:transition-all peer-checked:bg-rose-600 peer-checked:after:bg-slate-100"></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Right Column: Interactive Real-time Oscilloscope Plots -->
+        <section class="lg:col-span-7 flex flex-col gap-6">
+            
+            <!-- Dual Scope Panel -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+                
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                    <div>
+                        <h2 class="text-sm font-bold text-slate-100 flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-cyan-500"></span>
+                            Real-Time Response Oscilloscope
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Observe live system waveforms, combined impulse response, and output results</p>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <!-- Play/Pause Simulation button -->
+                        <button id="btnPause" onclick="togglePlayState()" class="p-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-semibold transition flex items-center gap-1">
+                            <span id="pauseBtnIcon">⏸</span>
+                            <span id="pauseBtnText">Pause</span>
+                        </button>
+                        <button id="btnReset" onclick="resetSimulationTime()" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-xs rounded-lg text-slate-300 font-semibold transition">
+                            ↺ Reset Time
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Custom Grid Layout for Plots -->
+                <div class="space-y-4">
+                    
+                    <!-- Plot 1: Source Input & Systems Responses -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-xs font-semibold text-slate-400 tracking-wider flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-cyan-400"></span> Input x(t) and Systems h₁, h₂
+                            </span>
+                            <div class="flex items-center gap-3 text-[10px] font-medium">
+                                <span class="text-cyan-400">● Input x</span>
+                                <span class="text-emerald-400">● h₁ (Decay)</span>
+                                <span class="text-pink-400">● h₂ (Oscillation)</span>
+                            </div>
+                        </div>
+                        <div class="relative bg-slate-950 rounded-xl border border-slate-800/80 overflow-hidden">
+                            <canvas id="canvasInputs" class="w-full h-[130px] block"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Plot 2: Simplified Equivalent Impulse Response -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-xs font-semibold text-slate-400 tracking-wider flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-purple-400"></span> Equivalent System Response h_eq(t)
+                            </span>
+                            <div class="flex items-center gap-2 text-[10px] font-mono" id="equationLabel">
+                                <span class="text-purple-400 font-bold bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded">h_eq(t) = h₁(t) * h₂(t)</span>
+                            </div>
+                        </div>
+                        <div class="relative bg-slate-950 rounded-xl border border-slate-800/80 overflow-hidden">
+                            <canvas id="canvasHeq" class="w-full h-[130px] block"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Plot 3: Output Signal Response -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-xs font-semibold text-slate-400 tracking-wider flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-indigo-400"></span> Final Combined Output y(t)
+                            </span>
+                            <div class="flex items-center gap-2 text-[10px] font-semibold">
+                                <span class="text-indigo-400" id="outputMathLabel">y(t) = x(t) * h_eq(t)</span>
+                                <span id="warningTag" class="hidden text-rose-400 bg-rose-500/10 border border-rose-500/20 px-1.5 py-0.5 rounded text-[9px] animate-pulse">Incorrect (Additive Series) Mode Active!</span>
+                            </div>
+                        </div>
+                        <div class="relative bg-slate-950 rounded-xl border border-slate-800/80 overflow-hidden">
+                            <canvas id="canvasOutput" class="w-full h-[155px] block"></canvas>
+                            <!-- Vertical cursor tracking dynamic time -->
+                            <div id="verticalTimeline" class="absolute top-0 bottom-0 w-[2px] bg-cyan-400/40 pointer-events-none transition-all duration-75">
+                                <div class="absolute -top-1 -left-[3px] w-2 h-2 rounded-full bg-cyan-400"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Simulation Info Banner -->
+                <div class="bg-slate-950 border border-slate-800/60 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                    <div class="flex items-center gap-2 text-slate-300">
+                        <span class="code-font font-semibold text-cyan-400">Time Index t:</span>
+                        <span id="liveTimeTracker" class="font-mono bg-slate-900 border border-slate-800 px-2 py-0.5 rounded text-cyan-300">0.00s</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 text-slate-400">
+                        <span>Output Peak Value:</span>
+                        <span id="peakValue" class="font-mono font-bold text-slate-200">0.000</span>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Detailed Mathematical Underpinnings Panel -->
+    <section class="max-w-7xl w-full mx-auto px-4 pb-12">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl">
+            <h3 class="text-sm font-bold text-slate-200 uppercase tracking-wider border-b border-slate-800 pb-3 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Mathematical Formulation of LTI Interconnection
+            </h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm text-slate-300 leading-relaxed">
+                <!-- Box 1: Series Cascade -->
+                <div class="bg-slate-950/70 rounded-xl p-4 border border-slate-800/80">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                        <h4 class="font-bold text-slate-100">Series Cascaded Setup</h4>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-3">
+                        When system blocks are aligned sequentially (output of system 1 becomes the input to system 2):
+                    </p>
+                    <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800/60 font-mono text-xs text-cyan-300 mb-3">
+                        y(t) = [x(t) * h₁(t)] * h₂(t)<br>
+                        By associativity:<br>
+                        y(t) = x(t) * [h₁(t) * h₂(t)]
+                    </div>
+                    <p class="text-xs text-slate-400">
+                        Hence, the equivalent system response is the <strong class="text-cyan-300">Convolution</strong> of both responses: <span class="code-font text-[11px] text-cyan-300">h_eq(t) = h₁(t) * h₂(t)</span>.
+                    </p>
+                </div>
+
+                <!-- Box 2: Parallel Setup -->
+                <div class="bg-slate-950/70 rounded-xl p-4 border border-slate-800/80">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                        <h4 class="font-bold text-slate-100">Parallel Summed Setup</h4>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-3">
+                        When the input signal branches out simultaneously to multiple system blocks and their outputs are summed:
+                    </p>
+                    <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800/60 font-mono text-xs text-emerald-300 mb-3">
+                        y(t) = y₁(t) + y₂(t)<br>
+                        y(t) = (x * h₁)(t) + (x * h₂)(t)<br>
+                        By distributivity:<br>
+                        y(t) = x(t) * [h₁(t) + h₂(t)]
+                    </div>
+                    <p class="text-xs text-slate-400">
+                        Hence, the equivalent system response is the <strong class="text-emerald-300">Sum</strong> of both responses: <span class="code-font text-[11px] text-emerald-300">h_eq(t) = h₁(t) + h₂(t)</span>.
+                    </p>
+                </div>
+
+                <!-- Box 3: Laplace Domain Transform -->
+                <div class="bg-slate-950/70 rounded-xl p-4 border border-slate-800/80">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
+                        <h4 class="font-bold text-slate-100">Frequency (s-Domain) View</h4>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-2">
+                        Converting time-domain convolution into Laplace s-domain highlights why the misconception happens:
+                    </p>
+                    <div class="space-y-1.5 text-xs">
+                        <div class="bg-slate-900 p-2 rounded border border-slate-800/60 flex justify-between font-mono">
+                            <span class="text-slate-400">Series:</span>
+                            <span class="text-purple-300">H_eq(s) = H₁(s) × H₂(s)</span>
+                        </div>
+                        <div class="bg-slate-900 p-2 rounded border border-slate-800/60 flex justify-between font-mono">
+                            <span class="text-slate-400">Parallel:</span>
+                            <span class="text-purple-300">H_eq(s) = H₁(s) + H₂(s)</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-2">
+                        Students often confuse time-domain operations with s-domain operations. While Series systems <em class="text-purple-300">multiply</em> in frequency, they must <strong class="text-purple-300">convolve</strong> in time!
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // Core state model
+        let routingMode = 'series'; // 'series' or 'parallel'
+        let isSimplified = false; // collapses blocks to a single equivalent block
+        let isPlaying = true; // controls vertical time slider animation
+        let simTime = 0.0; // Current simulation time index [0, 10]
+        let stepSpeed = 0.05; // Default time step speed
+
+        // Arrays to hold calculated waveforms
+        const arraySize = 150; // High resolution array size
+        const dt = 10 / arraySize; // Delta time per sample
+        const timeAxis = new Float32Array(arraySize);
+        const signalX = new Float32Array(arraySize);
+        const signalH1 = new Float32Array(arraySize);
+        const signalH2 = new Float32Array(arraySize);
+        let signalHeq = new Float32Array(arraySize);
+        let signalY = new Float32Array(arraySize);
+
+        // Precompute Time Axis
+        for (let i = 0; i < arraySize; i++) {
+            timeAxis[i] = i * dt;
+        }
+
+        // Initialize Canvases
+        const canvasInputs = document.getElementById('canvasInputs');
+        const canvasHeq = document.getElementById('canvasHeq');
+        const canvasOutput = document.getElementById('canvasOutput');
+
+        const ctxInputs = canvasInputs.getContext('2d');
+        const ctxHeq = canvasHeq.getContext('2d');
+        const ctxOutput = canvasOutput.getContext('2d');
+
+        // Standard signal generator helpers
+        function generateInput(type) {
+            const arr = new Float32Array(arraySize);
+            if (type === 'impulse') {
+                // Approximate Delta Dirac with a very narrow tall pulse
+                arr[0] = 5.0 / dt; 
+            } else if (type === 'step') {
+                for (let i = 0; i < arraySize; i++) {
+                    arr[i] = i >= 0 ? 1.0 : 0.0;
+                }
+            } else if (type === 'sine') {
+                // Cosine wave windowed burst
+                for (let i = 0; i < arraySize; i++) {
+                    const t = timeAxis[i];
+                    if (t <= 5.0) {
+                        arr[i] = Math.cos(2 * Math.PI * 0.6 * t);
+                    } else {
+                        arr[i] = 0.0;
+                    }
+                }
+            }
+            return arr;
+        }
+
+        function generateH1(a) {
+            const arr = new Float32Array(arraySize);
+            for (let i = 0; i < arraySize; i++) {
+                const t = timeAxis[i];
+                // Exponential Decay: e^(-at)
+                arr[i] = Math.exp(-a * t);
+            }
+            return arr;
+        }
+
+        function generateH2(freq) {
+            const arr = new Float32Array(arraySize);
+            for (let i = 0; i < arraySize; i++) {
+                const t = timeAxis[i];
+                // Sinusoidal underdamped burst: e^(-0.4t) * cos(freq * t)
+                arr[i] = Math.exp(-0.4 * t) * Math.cos(freq * t);
+            }
+            return arr;
+        }
+
+        // Numerical Discrete-Time Convolution Engine
+        function convolve(arr1, arr2) {
+            const result = new Float32Array(arraySize);
+            for (let i = 0; i < arraySize; i++) {
+                let sum = 0.0;
+                for (let j = 0; j <= i; j++) {
+                    sum += arr1[j] * arr2[i - j];
+                }
+                result[i] = sum * dt; // Scaling by differential dt
+            }
+            return result;
+        }
+
+        // Element-wise sum operation
+        function addSignals(arr1, arr2) {
+            const result = new Float32Array(arraySize);
+            for (let i = 0; i < arraySize; i++) {
+                result[i] = arr1[i] + arr2[i];
+            }
+            return result;
+        }
+
+        // SVG flow path layout recalculation
+        function updateSvgPaths() {
+            const pathSplit = document.getElementById('svgPathInputSplit');
+            const flow1 = document.getElementById('svgFlowPath1');
+            const flow2 = document.getElementById('svgFlowPath2');
+            const flow3 = document.getElementById('svgFlowPath3');
+            
+            const blockH1 = document.getElementById('svgBlockH1');
+            const blockH2 = document.getElementById('svgBlockH2');
+            const sumNode = document.getElementById('svgSumNode');
+            const combinedBlock = document.getElementById('svgCombinedBlock');
+
+            if (isSimplified) {
+                // Simplify Active: fade out individual blocks and show combined block
+                blockH1.style.opacity = '0';
+                blockH2.style.opacity = '0';
+                sumNode.style.opacity = '0';
+                combinedBlock.style.opacity = '1';
+                combinedBlock.style.transform = 'scale(1)';
+
+                // Continuous signal straight line through equivalent block
+                pathSplit.setAttribute('d', 'M 40 80 L 160 80');
+                flow1.setAttribute('d', 'M 40 80 L 160 80');
+                flow2.setAttribute('d', 'M 340 80 L 460 80');
+                flow3.setAttribute('d', 'M 340 80 L 460 80');
+                return;
+            }
+
+            // Normal state logic
+            combinedBlock.style.opacity = '0';
+            combinedBlock.style.transform = 'scale(0.5)';
+            blockH1.style.opacity = '1';
+            blockH2.style.opacity = '1';
+
+            if (routingMode === 'series') {
+                sumNode.style.opacity = '0';
+                
+                // Position blocks sequentially
+                blockH1.style.transform = 'translate(0px, 30px)';
+                blockH2.style.transform = 'translate(0px, 30px)';
+
+                // Render Series flow paths
+                const dInput = "M 40 80 L 130 83";
+                const dInter = "M 215 83 L 280 83";
+                const dOutput = "M 365 83 L 460 80";
+
+                pathSplit.setAttribute('d', '');
+                flow1.setAttribute('d', dInput);
+                flow2.setAttribute('d', dInter);
+                flow3.setAttribute('d', dOutput);
+            } else {
+                // Parallel Active
+                sumNode.style.opacity = '1';
+
+                // Shift block 1 up and block 2 down
+                blockH1.style.transform = 'translate(60px, -15px)'; // y=15
+                blockH2.style.transform = 'translate(60px, 50px)';  // y=80
+
+                // Split inputs, route, sum, and outputs paths
+                pathSplit.setAttribute('d', 'M 40 80 L 100 80 L 100 38 L 190 38 M 100 80 L 100 103 L 190 103');
+                
+                flow1.setAttribute('d', 'M 40 80 L 100 80 L 100 38 L 190 38');
+                flow2.setAttribute('d', 'M 100 80 L 100 103 L 190 103');
+                
+                // From blocks to summation node
+                flow3.setAttribute('d', 'M 275 38 L 410 38 L 410 66 M 275 103 L 410 103 L 410 94 M 424 80 L 460 80');
+            }
+        }
+
+        // Generalized grid drawing utility
+        function drawGrid(ctx, w, h, xMax, yMax) {
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+            
+            // Vertical gridlines
+            for (let t = 0; t <= xMax; t += 2) {
+                const x = (t / xMax) * w;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, h);
+                ctx.stroke();
+                
+                // Labels
+                ctx.fillStyle = '#64748b';
+                ctx.font = '9px monospace';
+                ctx.fillText(t + 's', x + 4, h - 4);
+            }
+
+            // Horizontal baseline grid
+            ctx.beginPath();
+            ctx.moveTo(0, h / 2);
+            ctx.lineTo(w, h / 2);
+            ctx.stroke();
+
+            // Zero value indicator label
+            ctx.fillStyle = '#475569';
+            ctx.font = '9px monospace';
+            ctx.fillText('0.0', 4, (h / 2) - 4);
+        }
+
+        // Draw multiple arrays on a single canvas
+        function drawCurves(canvas, ctx, datasets, xMax, yMax) {
+            const w = canvas.width;
+            const h = canvas.height;
+            ctx.clearRect(0, 0, w, h);
+
+            // Redraw Grid
+            drawGrid(ctx, w, h, xMax, yMax);
+
+            // Draw each dataset
+            datasets.forEach(data => {
+                ctx.strokeStyle = data.color;
+                ctx.lineWidth = data.weight || 2;
+                ctx.beginPath();
+
+                for (let i = 0; i < arraySize; i++) {
+                    const x = (timeAxis[i] / xMax) * w;
+                    // Normalized dynamic centering around baseline
+                    const val = data.values[i];
+                    const y = (h / 2) - (val / yMax) * (h / 2);
+
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+            });
+        }
+
+        // Recalculates full math profiles when parameters or modes change
+        function calculateAndDraw() {
+            // Get interactive slider variables
+            const a = parseFloat(document.getElementById('sliderH1').value) / 100;
+            const freq = parseFloat(document.getElementById('sliderH2').value);
+            
+            // Live label text feedback
+            document.getElementById('valH1').textContent = a.toFixed(2);
+            document.getElementById('valH2').textContent = freq.toFixed(2);
+
+            // Generate source waveforms
+            const inputSel = document.getElementById('selectInput').value;
+            const x = generateInput(inputSel);
+            const h1 = generateH1(a);
+            const h2 = generateH2(freq);
+
+            // Copy back into global arrays
+            signalX.set(x);
+            signalH1.set(h1);
+            signalH2.set(h2);
+
+            // Check if misconception toggle is checked
+            const misconceptionActive = document.getElementById('misconceptionToggle').checked;
+            const warningTag = document.getElementById('warningTag');
+
+            if (misconceptionActive) {
+                warningTag.classList.remove('hidden');
+            } else {
+                warningTag.classList.add('hidden');
+            }
+
+            // Calculate Equivalent Response based on routing mode AND misconception
+            let heq;
+            if (routingMode === 'series') {
+                if (misconceptionActive) {
+                    // INCORRECT MISCONCEPTION: Add series components
+                    heq = addSignals(h1, h2);
+                } else {
+                    // CORRECT: Series is Cascade Convolution
+                    heq = convolve(h1, h2);
+                }
+            } else {
+                // Parallel
+                if (misconceptionActive) {
+                    // INCORRECT MISCONCEPTION: Multiply parallel elements together
+                    heq = new Float32Array(arraySize);
+                    for (let i = 0; i < arraySize; i++) {
+                        heq[i] = h1[i] * h2[i];
+                    }
+                } else {
+                    // CORRECT: Parallel adds
+                    heq = addSignals(h1, h2);
+                }
+            }
+            signalHeq.set(heq);
+
+            // Calculate Final System Output (y = x * h_eq)
+            const y = convolve(x, heq);
+            signalY.set(y);
+
+            // Compute peak signal values to auto-scale output ranges nicely
+            let maxVal = 0.001;
+            for (let i = 0; i < arraySize; i++) {
+                if (Math.abs(y[i]) > maxVal) {
+                    maxVal = Math.abs(y[i]);
+                }
+            }
+            document.getElementById('peakValue').textContent = maxVal.toFixed(3);
+
+            // Dynamic equation text updates
+            const eqLabel = document.getElementById('equationLabel');
+            const outputMathLabel = document.getElementById('outputMathLabel');
+            const combinedBlockText = document.getElementById('combinedBlockText');
+            const combinedBlockSubtext = document.getElementById('combinedBlockSubtext');
+
+            if (routingMode === 'series') {
+                if (misconceptionActive) {
+                    eqLabel.innerHTML = `<span class="text-rose-400 font-bold bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded">h_eq(t) = h₁(t) + h₂(t) [WRONG]</span>`;
+                    outputMathLabel.innerHTML = `y(t) = x(t) * [h₁(t) + h₂(t)] <span class="text-rose-400 font-extrabold">[MISCONCEPTION]</span>`;
+                    combinedBlockText.textContent = "heq(t) = h₁(t) + h₂(t)";
+                    combinedBlockText.setAttribute("fill", "#f43f5e");
+                    combinedBlockSubtext.textContent = "INCORRECT ADDITIVE MISCONCEPTION";
+                } else {
+                    eqLabel.innerHTML = `<span class="text-purple-400 font-bold bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded">h_eq(t) = h₁(t) * h₂(t)</span>`;
+                    outputMathLabel.innerHTML = `y(t) = x(t) * [h₁(t) * h₂(t)]`;
+                    combinedBlockText.textContent = "heq(t) = h₁(t) * h₂(t)";
+                    combinedBlockText.setAttribute("fill", "#f5f3ff");
+                    combinedBlockSubtext.textContent = "Equivalent Cascade System";
+                }
+            } else {
+                // Parallel
+                if (misconceptionActive) {
+                    eqLabel.innerHTML = `<span class="text-rose-400 font-bold bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded">h_eq(t) = h₁(t) × h₂(t) [WRONG]</span>`;
+                    outputMathLabel.innerHTML = `y(t) = x(t) * [h₁(t) × h₂(t)] <span class="text-rose-400 font-extrabold">[MISCONCEPTION]</span>`;
+                    combinedBlockText.textContent = "heq(t) = h₁(t) × h₂(t)";
+                    combinedBlockText.setAttribute("fill", "#f43f5e");
+                    combinedBlockSubtext.textContent = "INCORRECT MULTIPLICATIVE PARALLEL";
+                } else {
+                    eqLabel.innerHTML = `<span class="text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">h_eq(t) = h₁(t) + h₂(t)</span>`;
+                    outputMathLabel.innerHTML = `y(t) = x(t) * [h₁(t) + h₂(t)]`;
+                    combinedBlockText.textContent = "heq(t) = h₁(t) + h₂(t)";
+                    combinedBlockText.setAttribute("fill", "#f5f3ff");
+                    combinedBlockSubtext.textContent = "Equivalent Parallel System";
+                }
+            }
+
+            // Draw Plots
+            renderPlots();
+            updateSvgPaths();
+        }
+
+        // Render Canvas layouts responsive
+        function renderPlots() {
+            // High DPI resolution adjustments
+            const dpr = window.devicePixelRatio || 1;
+            
+            [canvasInputs, canvasHeq, canvasOutput].forEach(canvas => {
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+                const ctx = canvas.getContext('2d');
+                ctx.scale(dpr, dpr);
+            });
+
+            // Re-render dataset arrays
+            // For Inputs (Plot 1): Scale tall impulse signals proportionally
+            const inputSel = document.getElementById('selectInput').value;
+            const xMaxVal = inputSel === 'impulse' ? 10.0 : 1.5;
+
+            drawCurves(canvasInputs, ctxInputs, [
+                { values: signalX, color: '#22d3ee', weight: 2.5 },
+                { values: signalH1, color: '#34d399', weight: 1.5 },
+                { values: signalH2, color: '#f472b6', weight: 1.5 }
+            ], 10, xMaxVal);
+
+            // For Heq (Plot 2):
+            drawCurves(canvasHeq, ctxHeq, [
+                { values: signalHeq, color: '#c084fc', weight: 3 }
+            ], 10, 1.5);
+
+            // For Output Y (Plot 3) auto-scaling:
+            const dynamicScale = Math.max(0.1, ...Array.from(signalY).map(Math.abs)) * 1.1;
+            drawCurves(canvasOutput, ctxOutput, [
+                { values: signalY, color: '#818cf8', weight: 3 }
+            ], 10, dynamicScale);
+
+            updateVerticalLinePosition();
+        }
+
+        // Repositions the timeline overlay cursors
+        function updateVerticalLinePosition() {
+            const containerWidth = canvasOutput.getBoundingClientRect().width;
+            const xOffset = (simTime / 10.0) * containerWidth;
+            
+            const line = document.getElementById('verticalTimeline');
+            line.style.transform = `translateX(${xOffset}px)`;
+            
+            document.getElementById('liveTimeTracker').textContent = simTime.toFixed(2) + 's';
+        }
+
+        // Main Animation Time loop
+        function animationStep() {
+            if (isPlaying) {
+                simTime += stepSpeed;
+                if (simTime > 10.0) {
+                    simTime = 0.0;
+                }
+                updateVerticalLinePosition();
+            }
+            requestAnimationFrame(animationStep);
+        }
+
+        // Switch Routing configurations
+        function setRoutingMode(mode) {
+            routingMode = mode;
+            const btnSeries = document.getElementById('btnSeries');
+            const btnParallel = document.getElementById('btnParallel');
+            const badge = document.getElementById('routingBadge');
+            const explanation = document.getElementById('mythExplanationText');
+
+            if (mode === 'series') {
+                btnSeries.className = "py-2.5 px-4 rounded-xl font-semibold text-xs border transition-all duration-300 flex flex-col items-center justify-center gap-1.5 bg-cyan-600/20 border-cyan-500 text-cyan-200 shadow-lg shadow-cyan-950";
+                btnParallel.className = "py-2.5 px-4 rounded-xl font-semibold text-xs border transition-all duration-300 flex flex-col items-center justify-center gap-1.5 bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200";
+                badge.textContent = "Series";
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-cyan-500/10 text-cyan-400 border border-cyan-500/20";
+                
+                explanation.innerHTML = `For cascaded (Series) systems, the output of System 1 serves as the input to System 2. Therefore, they are combined using <strong class="text-cyan-400">Convolution ($*$)</strong> rather than addition. Parallel systems are the ones that add!`;
+            } else {
+                btnParallel.className = "py-2.5 px-4 rounded-xl font-semibold text-xs border transition-all duration-300 flex flex-col items-center justify-center gap-1.5 bg-indigo-600/20 border-indigo-500 text-indigo-200 shadow-lg shadow-indigo-950";
+                btnSeries.className = "py-2.5 px-4 rounded-xl font-semibold text-xs border transition-all duration-300 flex flex-col items-center justify-center gap-1.5 bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200";
+                badge.textContent = "Parallel";
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-indigo-500/10 text-indigo-400 border border-indigo-500/20";
+                
+                explanation.innerHTML = `For parallel setups, input signals branch, flow simultaneously through $h_1(t)$ and $h_2(t)$, and combine at a summing junction. This sums the waveforms directly: <strong class="text-indigo-400">$h_{eq}(t) = h_1(t) + h_2(t)$</strong>. Multiplying them is incorrect!`;
+            }
+
+            calculateAndDraw();
+        }
+
+        // Toggle simplified block presentation
+        function toggleSimplification() {
+            isSimplified = !isSimplified;
+            const btnText = document.getElementById('simplifyBtnText');
+            const icon = document.getElementById('simplifyIcon');
+
+            if (isSimplified) {
+                btnText.textContent = "Restore Blocks";
+                icon.textContent = "↩";
+            } else {
+                btnText.textContent = "Simplify Blocks";
+                icon.textContent = "⚡";
+            }
+            calculateAndDraw();
+        }
+
+        // Update timeline step speeds
+        function updateSpeed() {
+            const val = parseFloat(document.getElementById('sliderSpeed').value);
+            stepSpeed = val * 0.01;
+        }
+
+        // Playback control states
+        function togglePlayState() {
+            isPlaying = !isPlaying;
+            const btnText = document.getElementById('pauseBtnText');
+            const icon = document.getElementById('pauseBtnIcon');
+
+            if (isPlaying) {
+                btnText.textContent = "Pause";
+                icon.textContent = "⏸";
+            } else {
+                btnText.textContent = "Play";
+                icon.textContent = "▶";
+            }
+        }
+
+        function resetSimulationTime() {
+            simTime = 0.0;
+            updateVerticalLinePosition();
+        }
+
+        // Handle canvas click to drag timeline cursor manually
+        canvasOutput.addEventListener('mousedown', (e) => {
+            const rect = canvasOutput.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            simTime = (x / rect.width) * 10.0;
+            updateVerticalLinePosition();
+        });
+
+        canvasOutput.addEventListener('mousemove', (e) => {
+            if (e.buttons === 1) { // Left-click drag
+                const rect = canvasOutput.getBoundingClientRect();
+                const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+                simTime = (x / rect.width) * 10.0;
+                updateVerticalLinePosition();
+            }
+        });
+
+        // Touch device support for slider cursor
+        canvasOutput.addEventListener('touchmove', (e) => {
+            const rect = canvasOutput.getBoundingClientRect();
+            const touch = e.touches[0];
+            const x = Math.max(0, Math.min(rect.width, touch.clientX - rect.left));
+            simTime = (x / rect.width) * 10.0;
+            updateVerticalLinePosition();
+            e.preventDefault();
+        });
+
+        // On window resize event handler
+        window.addEventListener('resize', renderPlots);
+
+        window.onload = function() {
+            calculateAndDraw();
+            animationStep();
+        };
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BIBO Stability & Absolute Integrability Explorer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- KaTeX for formulas -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .code-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Glowing effects for real-time status UI */
+        .glow-emerald {
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+            border-color: rgba(16, 185, 129, 0.6);
+        }
+        .glow-red {
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+            border-color: rgba(239, 68, 68, 0.6);
+        }
+        .glow-amber {
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+            border-color: rgba(245, 158, 11, 0.6);
+        }
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+    </style>
+</head>
+<body class="bg-[#030712] text-slate-100 min-h-screen flex flex-col overflow-x-hidden">
+
+    <header class="border-b border-slate-900 bg-slate-950/80 backdrop-blur sticky top-0 z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-emerald-500/15 text-emerald-400 rounded-lg border border-emerald-500/20">
+                    <i data-lucide="activity" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-emerald-400 via-cyan-400 to-indigo-400 bg-clip-text text-transparent">
+                        Absolute Integrability Explorer
+                    </h1>
+                    <p class="text-xs text-slate-400">Demystifying BIBO Stability and the Decaying Signal Misconception</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <!-- Mathematical Condition Banner -->
+                <div class="bg-slate-900 border border-slate-800 rounded-lg px-4 py-2 flex items-center gap-2 text-xs font-mono">
+                    <span class="text-slate-400">BIBO Rule:</span>
+                    <span class="text-emerald-400 font-bold">\int_{-\infty}^{\infty} |h(t)| dt < \infty</span>
+                </div>
+                <button id="btn-info" class="p-2 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-lg border border-slate-800 transition">
+                    <i data-lucide="help-circle" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Panel: Configurations, Preset Signals, & Explanations (4 Cols) -->
+        <section class="lg:col-span-4 flex flex-col gap-6">
+            
+            <!-- Signal Selectors Card -->
+            <div class="bg-slate-950 border border-slate-900 rounded-xl p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                        <i data-lucide="sliders" class="w-4 h-4 text-emerald-400"></i>
+                        Select Impulse Response $h(t)$
+                    </h2>
+                </div>
+                
+                <div class="space-y-3" id="signal-presets-list">
+                    <!-- Presets will be dynamically populated here -->
+                </div>
+            </div>
+
+            <!-- Misconception Debunker Card -->
+            <div class="bg-slate-950 border border-slate-900 rounded-xl p-5 shadow-xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl -mr-8 -mt-8"></div>
+                
+                <h3 class="text-sm font-semibold uppercase tracking-wider text-amber-500 flex items-center gap-2 mb-3">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-500"></i>
+                    The Decaying Signal Fallacy
+                </h3>
+                <div class="text-xs text-slate-300 space-y-2 leading-relaxed">
+                    <p>
+                        Many engineers and students falsely believe that <strong>"if an impulse response decays to $0$ as $t \to \infty$, the system is automatically stable."</strong>
+                    </p>
+                    <p class="text-slate-400">
+                        This is a dangerous mathematical trap! Take the harmonic decay <span class="code-font text-amber-400">1 / (t + 1)</span>. It gets continuously smaller, yet its accumulation integral grows logarithmically to infinity ($\ln(\infty)$).
+                    </p>
+                    <p>
+                        Compare this with the stable exponential decay <span class="code-font text-emerald-400">e^{-t}</span> which easily converges to $1$. Absolute integration determines physical stability!
+                    </p>
+                </div>
+            </div>
+
+            <!-- Custom Mathematical Expression Editor -->
+            <div class="bg-slate-950 border border-slate-900 rounded-xl p-5 shadow-xl">
+                <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2 mb-4">
+                    <i data-lucide="variable" class="w-4 h-4 text-indigo-400"></i>
+                    Custom Impulse Response $h(t)$
+                </h2>
+                
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Enter expression in terms of <span class="text-emerald-400 font-bold">t</span>:</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="custom-formula-input" value="1 / (t + 1)" 
+                                   class="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 code-font">
+                            <button id="btn-apply-custom" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition">
+                                Apply
+                            </button>
+                        </div>
+                        <p class="text-[10px] text-slate-500 mt-1">Supports JS Math: <span class="code-font">Math.sin(t), Math.exp(-t), Math.abs(), Math.pow(t, -0.5)</span></p>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Right Panel: Dual Visualizations and HUD Readout (8 Cols) -->
+        <section class="lg:col-span-8 flex flex-col gap-6">
+            
+            <!-- Real-time Status HUD -->
+            <div id="stability-hud" class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-950 border border-slate-900 p-5 rounded-xl shadow-xl transition-all duration-300">
+                <!-- Stability Light Indicator -->
+                <div class="flex items-center gap-3 border-r border-slate-900 pr-4">
+                    <div id="status-light" class="w-4 h-4 rounded-full bg-emerald-500 animate-pulse glow-emerald"></div>
+                    <div>
+                        <div class="text-[10px] uppercase text-slate-500 tracking-wider">BIBO System Status</div>
+                        <div id="status-text" class="text-base font-bold text-emerald-400">BIBO STABLE</div>
+                    </div>
+                </div>
+
+                <!-- Live Integration Meter -->
+                <div class="flex flex-col justify-center border-r border-slate-900 px-4">
+                    <div class="text-[10px] uppercase text-slate-500 tracking-wider">Accumulated Area $\int_0^T |h(t)| dt$</div>
+                    <div class="flex items-baseline gap-2">
+                        <span id="integration-value" class="text-2xl font-bold code-font text-cyan-400">0.000</span>
+                        <span id="divergence-indicator" class="text-xs text-rose-500 hidden animate-bounce">▲ DIVERGING</span>
+                    </div>
+                </div>
+
+                <!-- Simulation Time -->
+                <div class="flex items-center justify-between pl-4">
+                    <div>
+                        <div class="text-[10px] uppercase text-slate-500 tracking-wider">Upper Integration Bound (T)</div>
+                        <div class="flex items-baseline gap-1">
+                            <span id="time-hud" class="text-2xl font-bold code-font text-slate-300">0.0</span>
+                            <span class="text-xs text-slate-500">sec</span>
+                        </div>
+                    </div>
+                    <!-- Play / Pause / Reset controls -->
+                    <div class="flex gap-1.5 bg-slate-900 p-1 rounded-lg border border-slate-800">
+                        <button id="btn-play-pause" class="p-2 hover:bg-slate-800 rounded text-emerald-400 transition" title="Play / Pause">
+                            <i data-lucide="play" class="w-4 h-4" id="play-icon"></i>
+                        </button>
+                        <button id="btn-reset" class="p-2 hover:bg-slate-800 rounded text-slate-400 transition" title="Reset Simulation">
+                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Graph Canvas Area -->
+            <div class="bg-slate-950 border border-slate-900 rounded-xl p-5 shadow-xl flex-1 flex flex-col gap-4">
+                
+                <!-- Main Slider Controls -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400 font-semibold flex items-center gap-1">
+                            <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-cyan-400"></i>
+                            Adjust Current Evaluation Time Limit ($T$)
+                        </span>
+                        <span class="code-font text-cyan-400 bg-cyan-950/40 px-2 py-0.5 rounded border border-cyan-500/20" id="slider-label">T = 10.0s</span>
+                    </div>
+                    <!-- Dual custom slider with highlight tracks -->
+                    <div class="relative w-full">
+                        <input type="range" id="time-slider" min="0.1" max="50" step="0.1" value="10" 
+                               class="w-full h-2 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-cyan-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Interactive Dual Plot Canvas -->
+                <div class="flex-1 relative min-h-[400px]">
+                    <canvas id="stability-canvas" class="w-full h-full absolute inset-0"></canvas>
+                </div>
+
+                <!-- Dynamic Math Formula Details & Overlay -->
+                <div class="bg-slate-900/40 border border-slate-800/60 rounded-lg p-3 text-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+                    <div class="flex items-center gap-2">
+                        <div class="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded font-mono text-[10px]">Math Proof</div>
+                        <div id="math-details" class="text-slate-300 italic"></div>
+                    </div>
+                    <div class="text-slate-500 text-[10px] code-font">
+                        Grid Step: 5.0 units
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Info Modal / Guide Overlay -->
+    <div id="info-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-950 border border-slate-800 rounded-xl max-w-2xl w-full p-6 shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-900 pb-3">
+                <div class="flex items-center gap-2 text-emerald-400 font-bold">
+                    <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+                    <span>BIBO Stability & Absolute Integrability Guide</span>
+                </div>
+                <button id="btn-close-modal" class="text-slate-400 hover:text-white transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-3 text-xs text-slate-300 leading-relaxed overflow-y-auto max-h-[60vh] pr-2">
+                <p>
+                    A Continuous-Time Linear Time-Invariant (LTI) system with an impulse response $h(t)$ is stable in the **BIBO (Bounded-Input Bounded-Output)** sense if and only if its impulse response is **absolutely integrable**:
+                </p>
+                
+                <div class="bg-slate-900 p-3 rounded-lg border border-slate-800 text-center text-sm font-mono text-cyan-300">
+                    \int_{-\infty}^{\infty} |h(t)| dt = S < \infty
+                </div>
+
+                <h4 class="font-bold text-slate-100 flex items-center gap-1.5 mt-2">
+                    <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+                    What is the Misconception?
+                </h4>
+                <p>
+                    Many believe that if $h(t) \to 0$ as $t \to \infty$, the system is BIBO stable. However, decay speed matters. Consider:
+                </p>
+                <ul class="list-disc pl-5 space-y-1 text-slate-400">
+                    <li><strong class="text-emerald-400">$h(t) = e^{-at}$ (Exponential Decay):</strong> Integrates to $1/a$ (Finite). This system is <strong class="text-emerald-400">BIBO Stable</strong>.</li>
+                    <li><strong class="text-rose-400">$h(t) = \frac{1}{t+1}$ (Harmonic Decay):</strong> The area under this curve behaves like a natural logarithm $\ln(t+1)$. As $t \to \infty$, $\ln(\infty) = \infty$. This system is <strong class="text-rose-400">Unstable</strong>!</li>
+                </ul>
+
+                <h4 class="font-bold text-slate-100 flex items-center gap-1.5 mt-2">
+                    <i data-lucide="eye" class="w-4 h-4 text-indigo-400"></i>
+                    How to read the Explorer:
+                </h4>
+                <ol class="list-decimal pl-5 space-y-1 text-slate-400">
+                    <li>Select different presets on the left.</li>
+                    <li>Toggle "Play" or drag the $T$ slider to simulate time propagation.</li>
+                    <li>The <strong class="text-cyan-400">Top Plot</strong> displays the absolute function $|h(t)|$ with glowing shaded region up to $T$.</li>
+                    <li>The <strong class="text-emerald-400">Bottom Plot</strong> charts the real-time accumulation integral. Watch how the stable signals plateau (converge), while unstable signals climb forever.</li>
+                </ol>
+            </div>
+
+            <div class="pt-3 border-t border-slate-900 flex justify-end">
+                <button id="btn-modal-understand" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-5 py-2 rounded-lg transition">
+                    Get Started
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const PRESETS = [
+            {
+                id: "exp_stable",
+                name: "Exponential Decay (Stable)",
+                exprStr: "Math.exp(-t)",
+                latex: "h(t) = e^{-t}",
+                desc: "Decays quickly to zero. The accumulated area cleanly converges to exactly 1.0.",
+                isStable: true,
+                proof: "\\int_{0}^{\\infty} e^{-t} dt = 1 < \\infty",
+                maxIntegral: 1.0
+            },
+            {
+                id: "harmonic_unstable",
+                name: "Harmonic Decay (Unstable)",
+                exprStr: "1 / (t + 1)",
+                latex: "h(t) = \\frac{1}{t + 1}",
+                desc: "Decays to zero, but too slowly! Integral diverges logarithmically. Classic misconception breaker.",
+                isStable: false,
+                proof: "\\int_{0}^{\\infty} \\frac{1}{t+1} dt = \\ln(\\infty) = \\infty",
+                maxIntegral: "Infinity"
+            },
+            {
+                id: "sqrt_unstable",
+                name: "Slow Algebraic (Unstable)",
+                exprStr: "1 / Math.sqrt(t + 1)",
+                latex: "h(t) = \\frac{1}{\\sqrt{t + 1}}",
+                desc: "Extremely slow decay. Its accumulation grows even faster than the harmonic signal.",
+                isStable: false,
+                proof: "\\int_{0}^{\\infty} (t+1)^{-0.5} dt = 2\\sqrt{\\infty} = \\infty",
+                maxIntegral: "Infinity"
+            },
+            {
+                id: "damped_oscillator",
+                name: "Damped Sine (Stable)",
+                exprStr: "Math.abs(Math.exp(-0.5 * t) * Math.sin(2 * t))",
+                latex: "h(t) = e^{-0.5t} \\sin(2t)",
+                desc: "Oscillatory decay. Shows absolute integration evaluates absolute bounds.",
+                isStable: true,
+                proof: "\\int_{0}^{\\infty} |e^{-0.5t}\\sin(2t)| dt < \\int_{0}^{\\infty} e^{-0.5t} dt = 2 < \\infty",
+                maxIntegral: 0.8
+            },
+            {
+                id: "fast_algebraic",
+                name: "Inverse Square (Stable)",
+                exprStr: "1 / (t * t + 1)",
+                latex: "h(t) = \\frac{1}{t^2 + 1}",
+                desc: "Decays algebraically, but fast enough ($t^{-2}$) to converge to a finite area.",
+                isStable: true,
+                proof: "\\int_{0}^{\\infty} \\frac{1}{t^2+1} dt = \\frac{\\pi}{2} \\approx 1.57 < \\infty",
+                maxIntegral: 1.57
+            }
+        ];
+
+        let activePreset = PRESETS[0];
+        let currentT = 10.0;
+        let isPlaying = false;
+        let lastTimestamp = 0;
+        let integrationHistory = []; // Tracks calculated integrals over time
+
+        // Canvas & DOM References
+        const canvas = document.getElementById('stability-canvas');
+        const ctx = canvas.getContext('2d');
+        const timeSlider = document.getElementById('time-slider');
+        const sliderLabel = document.getElementById('slider-label');
+        const btnPlayPause = document.getElementById('btn-play-pause');
+        const playIcon = document.getElementById('play-icon');
+        const btnReset = document.getElementById('btn-reset');
+        const statusLight = document.getElementById('status-light');
+        const statusText = document.getElementById('status-text');
+        const integrationValue = document.getElementById('integration-value');
+        const divergenceIndicator = document.getElementById('divergence-indicator');
+        const timeHud = document.getElementById('time-hud');
+        const mathDetails = document.getElementById('math-details');
+        const presetsContainer = document.getElementById('signal-presets-list');
+        const customFormulaInput = document.getElementById('custom-formula-input');
+        const btnApplyCustom = document.getElementById('btn-apply-custom');
+        const infoModal = document.getElementById('info-modal');
+        const btnInfo = document.getElementById('btn-info');
+        const btnCloseModal = document.getElementById('btn-close-modal');
+        const btnModalUnderstand = document.getElementById('btn-modal-understand');
+
+        // Safely evaluate custom impulse functions
+        function evalFunction(t, exprStr) {
+            try {
+                // Limit range of t to safeguard evaluation
+                if (t < 0) return 0;
+                // Run evaluation inside custom scoped sandbox logic
+                const safeEval = new Function('t', `return Math.abs(${exprStr});`);
+                const val = safeEval(t);
+                return isNaN(val) || !isFinite(val) ? 0 : val;
+            } catch (err) {
+                return 0;
+            }
+        }
+
+        // Integrate numerically from 0 to T using fine-grain trapezoidal rule
+        function calculateIntegral(limitT, exprStr) {
+            const steps = 500;
+            const dt = limitT / steps;
+            let sum = 0;
+            for (let i = 0; i < steps; i++) {
+                const t1 = i * dt;
+                const t2 = (i + 1) * dt;
+                const y1 = evalFunction(t1, exprStr);
+                const y2 = evalFunction(t2, exprStr);
+                sum += (y1 + y2) * 0.5 * dt;
+            }
+            return sum;
+        }
+
+        function createPresetList() {
+            presetsContainer.innerHTML = '';
+            PRESETS.forEach(preset => {
+                const isActive = activePreset.id === preset.id;
+                const card = document.createElement('div');
+                card.className = `p-3.5 rounded-lg border text-left cursor-pointer transition-all ${
+                    isActive 
+                        ? 'bg-slate-900 border-indigo-500/50 shadow-md shadow-indigo-950/20' 
+                        : 'bg-slate-950 border-slate-900 hover:bg-slate-900/60 hover:border-slate-800'
+                }`;
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="font-semibold text-xs text-slate-200">${preset.name}</span>
+                        <span class="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
+                            preset.isStable 
+                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                                : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                        }">
+                            ${preset.isStable ? 'Stable' : 'Divergent'}
+                        </span>
+                    </div>
+                    <div class="text-[11px] code-font text-indigo-400 mt-1" id="katex-${preset.id}"></div>
+                    <p class="text-[11px] text-slate-400 mt-1.5 leading-relaxed">${preset.desc}</p>
+                `;
+                card.addEventListener('click', () => selectPreset(preset));
+                presetsContainer.appendChild(card);
+                
+                // Render KaTeX for cards safely
+                setTimeout(() => {
+                    const el = document.getElementById(`katex-${preset.id}`);
+                    if (el && window.katex) {
+                        try {
+                            window.katex.render(preset.latex, el, { throwOnError: false });
+                        } catch (e) {
+                            el.textContent = preset.latex;
+                        }
+                    }
+                }, 100);
+            });
+        }
+
+        function selectPreset(preset) {
+            activePreset = preset;
+            customFormulaInput.value = preset.exprStr;
+            resetSimulation();
+            createPresetList();
+            updateHUDAndMath();
+        }
+
+        function updateHUDAndMath() {
+            // Update formulas in math detail box
+            if (window.katex) {
+                try {
+                    window.katex.render(`S = \\int_{0}^{T} |h(t)| dt`, document.getElementById('math-details'), { throwOnError: false });
+                } catch (e) {
+                    mathDetails.textContent = `S = Integral of |h(t)| dt`;
+                }
+            }
+
+            // Real-time integration value up to current limit T
+            const currentVal = calculateIntegral(currentT, activePreset.exprStr);
+            integrationValue.textContent = currentVal.toFixed(3);
+            timeHud.textContent = currentT.toFixed(1);
+
+            // Determine stability visual display
+            const isCustom = activePreset.id === 'custom';
+            const isStable = isCustom ? (currentVal < 8.0) : activePreset.isStable;
+
+            if (isStable) {
+                statusLight.className = "w-4 h-4 rounded-full bg-emerald-500 glow-emerald";
+                statusText.textContent = "BIBO STABLE";
+                statusText.className = "text-base font-bold text-emerald-400";
+                divergenceIndicator.classList.add('hidden');
+            } else {
+                // If unstable and reaching larger integration values
+                if (currentVal > 3.0) {
+                    statusLight.className = "w-4 h-4 rounded-full bg-rose-500 glow-red animate-ping";
+                    statusText.textContent = "DIVERGING SYSTEM";
+                    statusText.className = "text-base font-bold text-rose-500";
+                    divergenceIndicator.classList.remove('hidden');
+                } else {
+                    statusLight.className = "w-4 h-4 rounded-full bg-amber-500 glow-amber";
+                    statusText.textContent = "SLOW DIVERGENCE";
+                    statusText.className = "text-base font-bold text-amber-400";
+                    divergenceIndicator.classList.add('hidden');
+                }
+            }
+        }
+
+        // Resize canvas to properly accommodate High-DPI screens
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            draw();
+        }
+
+        // Draw grids, labels, shaded curves, and historical charts
+        function draw() {
+            const width = canvas.width / window.devicePixelRatio;
+            const height = canvas.height / window.devicePixelRatio;
+
+            ctx.clearRect(0, 0, width, height);
+
+            // Split canvas vertically into two plots: top (signal h(t)), bottom (accumulating integration S(T))
+            const padding = { top: 30, right: 30, bottom: 30, left: 55 };
+            const plotHeight = (height - padding.top - padding.bottom - 40) / 2;
+
+            const topPlotY0 = padding.top + plotHeight; // Baseline of top plot
+            const bottomPlotY0 = height - padding.bottom; // Baseline of bottom plot
+
+            const maxTimeDomain = 50.0; // Show up to 50 seconds horizontally
+            
+            // X mapping helper
+            const getX = (t) => padding.left + (t / maxTimeDomain) * (width - padding.left - padding.right);
+            // Y mapping helpers
+            const getTopY = (val) => topPlotY0 - (val / 1.5) * plotHeight; // assume max vertical value around 1.5
+            const getBottomY = (val) => bottomPlotY0 - (val / 5.0) * plotHeight; // assume integral limit around 5.0 for display
+
+            /* DRAW TOP PLOT: Absolute value |h(t)| */
+            // Background Grid Lines
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+            
+            // Vertical Grid lines
+            for (let t = 0; t <= maxTimeDomain; t += 5) {
+                const gx = getX(t);
+                ctx.beginPath();
+                ctx.moveTo(gx, padding.top - 10);
+                ctx.lineTo(gx, bottomPlotY0);
+                ctx.stroke();
+
+                // Draw X grid values at very bottom
+                ctx.setLineDash([]);
+                ctx.fillStyle = '#64748b';
+                ctx.font = '10px "JetBrains Mono", monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(t + "s", gx, bottomPlotY0 + 15);
+                ctx.setLineDash([4, 4]);
+            }
+
+            // Draw axis baselines
+            ctx.setLineDash([]);
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(padding.left, topPlotY0);
+            ctx.lineTo(width - padding.right, topPlotY0);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(padding.left, bottomPlotY0);
+            ctx.lineTo(width - padding.right, bottomPlotY0);
+            ctx.stroke();
+
+            // Plot 1: Draw absolute signal |h(t)| curve
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = '#22d3ee'; // cyan
+            ctx.beginPath();
+            let first = true;
+            for (let t = 0; t <= maxTimeDomain; t += 0.1) {
+                const val = evalFunction(t, activePreset.exprStr);
+                const px = getX(t);
+                const py = getTopY(val);
+                if (first) {
+                    ctx.moveTo(px, py);
+                    first = false;
+                } else {
+                    ctx.lineTo(px, py);
+                }
+            }
+            ctx.stroke();
+
+            // Shaded Integral Area (up to limit T)
+            ctx.fillStyle = 'rgba(34, 211, 238, 0.15)'; // translucent cyan
+            ctx.beginPath();
+            ctx.moveTo(getX(0), getTopY(0));
+            for (let t = 0; t <= currentT; t += 0.05) {
+                const val = evalFunction(t, activePreset.exprStr);
+                ctx.lineTo(getX(t), getTopY(val));
+            }
+            ctx.lineTo(getX(currentT), getTopY(0));
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw dynamic cursor at current limit T
+            const tx = getX(currentT);
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([6, 3]);
+            ctx.beginPath();
+            ctx.moveTo(tx, padding.top - 10);
+            ctx.lineTo(tx, bottomPlotY0);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Plot titles and labels
+            ctx.fillStyle = '#e2e8f0';
+            ctx.font = 'bold 11px Inter, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText("I. Absolute Impulse Response |h(t)|", padding.left, padding.top - 10);
+
+            // Left axis labels
+            ctx.fillStyle = '#64748b';
+            ctx.font = '10px "JetBrains Mono"';
+            ctx.fillText("1.0", padding.left - 25, getTopY(1.0));
+            ctx.fillText("0.5", padding.left - 25, getTopY(0.5));
+            ctx.fillText("0.0", padding.left - 25, getTopY(0.0) + 4);
+
+            /* DRAW BOTTOM PLOT: Cumulative Integral accumulation curve */
+            ctx.fillStyle = '#e2e8f0';
+            ctx.font = 'bold 11px Inter, sans-serif';
+            ctx.fillText("II. Cumulative Integration: S(T) = \u222B |h(t)| dt", padding.left, topPlotY0 + 35);
+
+            // Compute the historical trajectory of integration
+            ctx.lineWidth = 2.5;
+            const isStable = activePreset.id === 'custom' ? true : activePreset.isStable;
+            ctx.strokeStyle = isStable ? '#10b981' : '#f59e0b'; // green if stable, orange if unstable
+
+            ctx.beginPath();
+            first = true;
+            for (let t = 0; t <= currentT; t += 0.1) {
+                const integralVal = calculateIntegral(t, activePreset.exprStr);
+                const px = getX(t);
+                const py = getBottomY(integralVal);
+                if (first) {
+                    ctx.moveTo(px, py);
+                    first = false;
+                } else {
+                    ctx.lineTo(px, py);
+                }
+            }
+            ctx.stroke();
+
+            // Shading bottom historical area
+            ctx.fillStyle = isStable ? 'rgba(16, 185, 129, 0.08)' : 'rgba(245, 158, 11, 0.08)';
+            ctx.beginPath();
+            ctx.moveTo(getX(0), getBottomY(0));
+            for (let t = 0; t <= currentT; t += 0.1) {
+                const integralVal = calculateIntegral(t, activePreset.exprStr);
+                ctx.lineTo(getX(t), getBottomY(integralVal));
+            }
+            ctx.lineTo(getX(currentT), getBottomY(0));
+            ctx.closePath();
+            ctx.fill();
+
+            // Target/Bounded Threshold line at bottom plot (helps show visual convergence vs divergence)
+            ctx.strokeStyle = 'rgba(244, 63, 94, 0.4)'; // soft crimson
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(padding.left, getBottomY(2.0)); // Arbitrary ceiling threshold
+            ctx.lineTo(width - padding.right, getBottomY(2.0));
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            ctx.fillStyle = 'rgba(244, 63, 94, 0.7)';
+            ctx.font = '9px "JetBrains Mono"';
+            ctx.fillText("Threshold (S = 2.0)", width - padding.right - 105, getBottomY(2.0) - 4);
+
+            // Left axis labels for integration
+            ctx.fillStyle = '#64748b';
+            ctx.font = '10px "JetBrains Mono"';
+            ctx.fillText("4.0", padding.left - 25, getBottomY(4.0));
+            ctx.fillText("2.0", padding.left - 25, getBottomY(2.0));
+            ctx.fillText("0.0", padding.left - 25, getBottomY(0.0) + 4);
+
+            // Dot cursor at current limit of cumulative curve
+            const currentInt = calculateIntegral(currentT, activePreset.exprStr);
+            ctx.fillStyle = isStable ? '#34d399' : '#fbbf24';
+            ctx.beginPath();
+            ctx.arc(getX(currentT), getBottomY(currentInt), 5, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        function animate(timestamp) {
+            if (!lastTimestamp) lastTimestamp = timestamp;
+            const elapsed = timestamp - lastTimestamp;
+
+            if (isPlaying) {
+                // Progress evaluated time T proportionally (e.g., speed rate)
+                currentT += (elapsed / 1000) * 2.5; // step 2.5 seconds of signal simulation per real-time second
+                
+                if (currentT >= 50.0) {
+                    currentT = 50.0;
+                    isPlaying = false;
+                    playIcon.setAttribute('data-lucide', 'play');
+                    lucide.createIcons();
+                }
+                
+                // Keep slider synchronized with active animation bounds
+                timeSlider.value = currentT;
+                sliderLabel.textContent = `T = ${currentT.toFixed(1)}s`;
+                updateHUDAndMath();
+                draw();
+            }
+
+            lastTimestamp = timestamp;
+            requestAnimationFrame(animate);
+        }
+
+        function resetSimulation() {
+            isPlaying = false;
+            currentT = 0.1;
+            timeSlider.value = currentT;
+            sliderLabel.textContent = `T = ${currentT.toFixed(1)}s`;
+            playIcon.setAttribute('data-lucide', 'play');
+            lucide.createIcons();
+            updateHUDAndMath();
+            draw();
+        }
+
+        // Initialize Slider Events
+        timeSlider.addEventListener('input', (e) => {
+            currentT = parseFloat(e.target.value);
+            sliderLabel.textContent = `T = ${currentT.toFixed(1)}s`;
+            updateHUDAndMath();
+            draw();
+        });
+
+        // Initialize Player Control Buttons
+        btnPlayPause.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            if (isPlaying && currentT >= 50.0) {
+                currentT = 0.1; // loop back to start if finished
+            }
+            playIcon.setAttribute('data-lucide', isPlaying ? 'pause' : 'play');
+            lucide.createIcons();
+        });
+
+        btnReset.addEventListener('click', () => {
+            resetSimulation();
+        });
+
+        // Custom Mathematical formula evaluation
+        btnApplyCustom.addEventListener('click', () => {
+            const val = customFormulaInput.value.trim();
+            if (val) {
+                activePreset = {
+                    id: "custom",
+                    name: "Custom Signal",
+                    exprStr: val,
+                    latex: `h(t) = |${val}|`,
+                    desc: "User-defined mathematical formula evaluated in real-time.",
+                    isStable: true, // evaluated dynamically
+                    proof: "\\int_{0}^{\\infty} |h(t)| dt",
+                    maxIntegral: "Dynamic"
+                };
+                resetSimulation();
+                createPresetList();
+                updateHUDAndMath();
+            }
+        });
+
+        // Manage Modal View state triggers
+        btnInfo.addEventListener('click', () => {
+            infoModal.classList.remove('hidden');
+        });
+
+        const closeModal = () => {
+            infoModal.classList.add('hidden');
+        };
+
+        btnCloseModal.addEventListener('click', closeModal);
+        btnModalUnderstand.addEventListener('click', closeModal);
+
+        // Resize Event
+        window.addEventListener('resize', resizeCanvas);
+
+        // Initial Startup Execution
+        window.onload = function() {
+            createPresetList();
+            resizeCanvas();
+            updateHUDAndMath();
+            lucide.createIcons();
+            
+            // Kickstart general frame loop
+            requestAnimationFrame(animate);
+        };
+    </script>
+</body>
+</html>
