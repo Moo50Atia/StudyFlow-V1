@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sphere and Plane Intersection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #1a202c; /* Tailwind gray-900 */
+            color: #e2e8f0; /* Tailwind slate-200 */
+            font-family: 'Inter', sans-serif;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(30, 41, 59, 0.85); /* Tailwind slate-800 with opacity */
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-width: 300px;
+        }
+        
+        /* Custom range slider styling */
+        input[type=range] {
+            -webkit-appearance: none; /* Hides the slider so that custom slider can be made */
+            width: 100%; /* Specific width is required for Firefox. */
+            background: transparent; /* Otherwise white in Chrome */
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #3b82f6; /* Tailwind blue-500 */
+            cursor: pointer;
+            margin-top: -8px; /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
+            box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+            transition: background 0.15s ease-in-out, transform 0.1s;
+        }
+
+        input[type=range]::-webkit-slider-thumb:hover {
+            background: #60a5fa; /* Tailwind blue-400 */
+            transform: scale(1.1);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #475569; /* Tailwind slate-600 */
+            border-radius: 3px;
+        }
+
+        input[type=range]:focus {
+            outline: none; /* Removes the blue border. You should probably do some kind of focus styling for accessibility reasons though. */
+        }
+        
+        #math-display {
+            font-family: 'Courier New', Courier, monospace;
+            background: rgba(15, 23, 42, 0.6); /* Darker background for math */
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 0.95rem;
+        }
+        
+        .highlight-value {
+            color: #60a5fa; /* Tailwind blue-400 */
+            font-weight: bold;
+        }
+    </style>
+    <!-- Load Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Load OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <div id="ui-container" class="text-sm">
+        <h1 class="text-xl font-bold mb-4 text-white border-b border-slate-600 pb-2">Sphere-Plane Intersection</h1>
+        
+        <div class="mb-2 flex justify-between items-center">
+            <label for="distance-slider" class="font-medium text-slate-300">Distance from center ($d$):</label>
+            <span id="distance-value" class="highlight-value">0.00</span>
+        </div>
+        <!-- Slider ranges from -1.5 to 1.5 to allow moving completely out of a unit sphere -->
+        <input type="range" id="distance-slider" min="-1.5" max="1.5" step="0.01" value="0">
+        
+        <div id="math-display" class="space-y-2">
+            <div>Sphere Equation: $x^2 + y^2 + z^2 = R^2$</div>
+            <div>Plane Equation: $y = d$</div>
+            <div class="mt-2 pt-2 border-t border-slate-600 text-slate-400">Intersection Calculation:</div>
+            <div>$x^2 + (d)^2 + z^2 = R^2$</div>
+            <div>$x^2 + z^2 = R^2 - d^2$</div>
+            <div class="mt-2 text-base">
+                Intersection Radius ($r$): 
+                <span id="radius-value" class="text-green-400 font-bold">1.00</span>
+            </div>
+            <div id="status-message" class="mt-2 italic text-green-400">Status: Circle</div>
+        </div>
+        
+        <div class="mt-4 text-xs text-slate-400">
+            Left click + drag to rotate.<br>
+            Scroll to zoom.
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script>
+        // Scene setup variables
+        let scene, camera, renderer, controls;
+        
+        // Geometry variables
+        let sphereMesh, planeMesh, intersectionLine, intersectionPoint;
+        
+        // Constants
+        const SPHERE_RADIUS = 1.0;
+        
+        // DOM Elements
+        const distanceSlider = document.getElementById('distance-slider');
+        const distanceValueDisplay = document.getElementById('distance-value');
+        const radiusValueDisplay = document.getElementById('radius-value');
+        const statusMessage = document.getElementById('status-message');
+
+        function init() {
+            // 1. Setup Scene, Camera, Renderer
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a202c); // Match body background
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(3, 2, 4);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            // 2. Add Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 10, 7);
+            scene.add(directionalLight);
+            
+            const pointLight = new THREE.PointLight(0x60a5fa, 0.5);
+            pointLight.position.set(-5, -5, -5);
+            scene.add(pointLight);
+
+            // 3. Create Objects
+            
+            // Sphere (Translucent)
+            const sphereGeometry = new THREE.SphereGeometry(SPHERE_RADIUS, 64, 64);
+            const sphereMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0x3b82f6, // Blue
+                transparent: true,
+                opacity: 0.25,
+                roughness: 0.1,
+                transmission: 0.9, // glass-like
+                thickness: 0.5,
+                side: THREE.DoubleSide
+            });
+            sphereMesh = new THREE.Mesh(sphereGeometry, sphereMaterial);
+            scene.add(sphereMesh);
+
+            // Grid helper for context
+            const gridHelper = new THREE.GridHelper(5, 20, 0x475569, 0x334155);
+            gridHelper.position.y = -1.5;
+            scene.add(gridHelper);
+            
+            // Axes helper
+            const axesHelper = new THREE.AxesHelper(1.5);
+            scene.add(axesHelper);
+
+            // Plane (Geometric 2D Plane)
+            const planeSize = 4;
+            const planeGeometry = new THREE.PlaneGeometry(planeSize, planeSize);
+            const planeMaterial = new THREE.MeshBasicMaterial({
+                color: 0xf87171, // Red-ish
+                transparent: true,
+                opacity: 0.4,
+                side: THREE.DoubleSide,
+                depthWrite: false // Helps with transparency sorting
+            });
+            planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
+            // Rotate plane to be horizontal (xz plane)
+            planeMesh.rotation.x = -Math.PI / 2; 
+            scene.add(planeMesh);
+
+            // Setup Intersection Highlights (Circle and Point)
+            setupIntersectionObjects();
+
+            // 4. Setup Event Listeners
+            window.addEventListener('resize', onWindowResize);
+            distanceSlider.addEventListener('input', updateIntersection);
+
+            // Initial calculation
+            updateIntersection();
+        }
+
+        function setupIntersectionObjects() {
+            // A. Intersection Circle (Line Loop)
+            // Create a circle with radius 1 initially, we will scale it dynamically
+            const circleGeometry = new THREE.BufferGeometry();
+            const points = [];
+            const segments = 64;
+            for (let i = 0; i <= segments; i++) {
+                const theta = (i / segments) * Math.PI * 2;
+                points.push(new THREE.Vector3(Math.cos(theta), 0, Math.sin(theta)));
+            }
+            circleGeometry.setFromPoints(points);
+            
+            // Use a thick line material if possible, otherwise standard line
+            const lineMaterial = new THREE.LineBasicMaterial({ 
+                color: 0x4ade80, // Green
+                linewidth: 3 // Note: linewidth often doesn't work well on Windows WebGL, but we try
+            });
+            
+            intersectionLine = new THREE.Line(circleGeometry, lineMaterial);
+            // Slightly offset to avoid z-fighting with the plane
+            intersectionLine.position.y = 0.001; 
+            planeMesh.add(intersectionLine); // Make it a child of the plane so it moves with it
+
+            // B. Intersection Point (For tangent cases)
+            const pointGeometry = new THREE.SphereGeometry(0.05, 16, 16);
+            const pointMaterial = new THREE.MeshBasicMaterial({ color: 0x4ade80 });
+            intersectionPoint = new THREE.Mesh(pointGeometry, pointMaterial);
+            intersectionPoint.visible = false;
+            planeMesh.add(intersectionPoint);
+        }
+
+        function updateIntersection() {
+            const distance = parseFloat(distanceSlider.value);
+            
+            // Update UI
+            distanceValueDisplay.textContent = distance.toFixed(2);
+            
+            // Move the plane vertically
+            planeMesh.position.y = distance;
+
+            // Calculate intersection
+            // Equation: r^2 = R^2 - d^2
+            const dSquared = distance * distance;
+            const rSquared = SPHERE_RADIUS * SPHERE_RADIUS - dSquared;
+
+            if (rSquared > 0) {
+                // Case 1: Intersecting forming a circle
+                const radius = Math.sqrt(rSquared);
+                
+                // Update Line
+                intersectionLine.visible = true;
+                intersectionLine.scale.set(radius, 1, radius);
+                
+                // Hide Point
+                intersectionPoint.visible = false;
+                
+                // Update UI Texts
+                radiusValueDisplay.textContent = radius.toFixed(3);
+                radiusValueDisplay.className = "text-green-400 font-bold";
+                statusMessage.textContent = "Status: Circle";
+                statusMessage.className = "mt-2 italic text-green-400";
+                
+                // Color the plane slightly differently when intersecting
+                planeMesh.material.color.setHex(0xf87171); 
+                
+            } else if (Math.abs(rSquared) < 0.001) { 
+                // Case 2: Tangent (Point intersection)
+                // Using a small epsilon for floating point comparison
+                
+                intersectionLine.visible = false;
+                intersectionPoint.visible = true;
+                
+                radiusValueDisplay.textContent = "0.000";
+                radiusValueDisplay.className = "text-yellow-400 font-bold";
+                statusMessage.textContent = "Status: Point (Tangent)";
+                statusMessage.className = "mt-2 italic text-yellow-400";
+                
+                planeMesh.material.color.setHex(0xfacc15); // Yellow
+
+            } else {
+                // Case 3: No intersection
+                intersectionLine.visible = false;
+                intersectionPoint.visible = false;
+                
+                radiusValueDisplay.textContent = "NaN";
+                radiusValueDisplay.className = "text-red-400 font-bold";
+                statusMessage.textContent = "Status: No Intersection";
+                statusMessage.className = "mt-2 italic text-red-400";
+                
+                planeMesh.material.color.setHex(0x94a3b8); // Slate/Gray
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Update controls for damping
+            controls.update();
+            
+            // Optional: gently rotate the sphere to show its 3D nature better
+            sphereMesh.rotation.y += 0.001;
+            
+            renderer.render(scene, camera);
+        }
+
+        // Start everything once the window loads to ensure resources are ready
+        window.onload = function() {
+            init();
+            animate();
+        };
+    </script>
+</body>
+</html>

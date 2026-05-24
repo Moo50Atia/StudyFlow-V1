@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integration Interactive Scene</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow: hidden; /* Prevent scrolling for app-like feel */
+        }
+        
+        @keyframes popUp {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        
+        .popup-active {
+            animation: popUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            display: flex !important;
+        }
+
+        .step-active {
+            background-color: #1e293b;
+            border-left: 4px solid #3b82f6;
+            color: #ffffff;
+        }
+
+        .step-inactive {
+            border-left: 4px solid transparent;
+            color: #94a3b8;
+        }
+        
+        #canvas-container {
+            cursor: crosshair;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+        }
+    </style>
+</head>
+<body class="flex flex-col md:flex-row h-screen w-screen">
+
+    <!-- Sidebar Control Panel -->
+    <div class="w-full md:w-[350px] bg-slate-900 border-b md:border-b-0 md:border-r border-slate-700 flex flex-col p-6 z-10 shadow-2xl overflow-y-auto">
+        <h1 class="text-2xl font-bold mb-2 text-white">Area Between Curves</h1>
+        <p class="text-sm text-slate-400 mb-6">Finding the area bounded by intersecting functions.</p>
+
+        <!-- Equations -->
+        <div class="bg-slate-800 rounded-lg p-4 mb-6 shadow-inner border border-slate-700">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="w-3 h-3 rounded-full bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.8)]"></div>
+                <span class="font-mono text-lg text-pink-400">y = x + 2</span>
+                <span class="text-xs text-slate-500 uppercase tracking-wider ml-auto">Top</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="w-3 h-3 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.8)]"></div>
+                <span class="font-mono text-lg text-sky-400">y = x²</span>
+                <span class="text-xs text-slate-500 uppercase tracking-wider ml-auto">Bottom</span>
+            </div>
+        </div>
+
+        <!-- Animation Steps -->
+        <div class="flex flex-col gap-2 mb-8">
+            <div id="step-1" class="step-inactive p-3 rounded-r-md transition-all duration-300">
+                <span class="font-semibold block mb-1">1. Intersections</span>
+                <span class="text-sm">Find where x + 2 = x²</span>
+            </div>
+            <div id="step-2" class="step-inactive p-3 rounded-r-md transition-all duration-300">
+                <span class="font-semibold block mb-1">2. Integration Limits</span>
+                <span class="text-sm">Drop verticals to establish [a, b]</span>
+            </div>
+            <div id="step-3" class="step-inactive p-3 rounded-r-md transition-all duration-300">
+                <span class="font-semibold block mb-1">3. Scan & Accumulate</span>
+                <span class="text-sm">Integrate (Top - Bottom) dx</span>
+            </div>
+        </div>
+
+        <!-- Dynamic Math Display -->
+        <div class="mt-auto bg-slate-950 rounded-lg p-4 border border-slate-800">
+            <div class="text-sm text-slate-400 mb-1">Live Calculation:</div>
+            <div class="font-mono flex justify-between items-center text-lg">
+                <span class="text-emerald-400">Area =</span>
+                <span id="live-area" class="text-2xl font-bold text-white">0.000</span>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <button id="start-btn" class="mt-6 w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg shadow-[0_0_15px_rgba(37,99,235,0.4)] transition-all flex justify-center items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            Start Animation
+        </button>
+    </div>
+
+    <!-- Canvas Area -->
+    <div id="canvas-container" class="flex-1 relative w-full h-full">
+        <canvas id="math-canvas" class="absolute inset-0 w-full h-full"></canvas>
+        
+        <!-- Final Pop-up -->
+        <div id="final-popup" class="hidden absolute top-1/2 left-1/2 flex flex-col items-center justify-center bg-slate-900/90 backdrop-blur-md border-2 border-emerald-500 rounded-2xl p-8 shadow-[0_0_50px_rgba(16,185,129,0.3)] z-20 pointer-events-none text-center">
+            <div class="text-emerald-400 font-bold tracking-widest uppercase text-sm mb-2">Total Area Bounded</div>
+            <div class="text-5xl font-extrabold text-white font-mono drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">4.5</div>
+            <div class="text-slate-300 mt-4 text-sm font-mono bg-slate-800 px-4 py-2 rounded-lg">
+                ∫<sub class="text-xs">-1</sub><sup class="text-xs">2</sup> ((x+2) - x²) dx = 4.5
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const canvas = document.getElementById('math-canvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvas-container');
+        const startBtn = document.getElementById('start-btn');
+        const liveAreaDisplay = document.getElementById('live-area');
+        const finalPopup = document.getElementById('final-popup');
+        
+        const steps = [
+            document.getElementById('step-1'),
+            document.getElementById('step-2'),
+            document.getElementById('step-3')
+        ];
+
+        // Math Constants & Functions
+        const xMin = -3.5, xMax = 4.5;
+        const yMin = -2, yMax = 7;
+        const limits = { a: -1, b: 2 };
+        
+        const fTop = (x) => x + 2;
+        const fBottom = (x) => x * x;
+        
+        // Exact Antiderivative for Area: integral of (x+2 - x^2) dx = x^2/2 + 2x - x^3/3
+        const F = (x) => (x * x) / 2 + 2 * x - (x * x * x) / 3;
+        const calculateAreaTo = (x) => F(x) - F(limits.a);
+        const totalArea = calculateAreaTo(limits.b);
+
+        // State Machine Variables
+        // 0: Idle, 1: Intersections, 2: Limits, 3: Scanning, 4: Done
+        let state = 0; 
+        let animationStartTime = null;
+        let animationId = null;
+
+        // Colors
+        const colors = {
+            bg: '#0f172a',
+            grid: '#334155',
+            axes: '#64748b',
+            parabola: '#38bdf8',
+            line: '#f472b6',
+            intersection: '#fde047',
+            limitLine: '#fbbf24',
+            shade: 'rgba(16, 185, 129, 0.3)',
+            scanner: '#34d399',
+            text: '#f8fafc'
+        };
+
+        // Coordinate Mapping Functions
+        function mapX(x) {
+            return ((x - xMin) / (xMax - xMin)) * canvas.width;
+        }
+
+        function mapY(y) {
+            return canvas.height - ((y - yMin) / (yMax - yMin)) * canvas.height;
+        }
+
+        // Resize Canvas safely
+        function resizeCanvas() {
+            canvas.width = container.clientWidth * window.devicePixelRatio;
+            canvas.height = container.clientHeight * window.devicePixelRatio;
+            
+            // Normalize coordinates system for high DPI displays
+            ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+            
+            // Reset logical size for mapping
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            
+            if (state === 0 || state === 4) {
+                renderFrame(); // Redraw static states
+            }
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        function drawGridAndAxes() {
+            ctx.lineWidth = 1;
+            
+            // Grid
+            ctx.strokeStyle = colors.grid;
+            for (let x = Math.floor(xMin); x <= Math.ceil(xMax); x++) {
+                ctx.beginPath();
+                ctx.moveTo(mapX(x), 0);
+                ctx.lineTo(mapX(x), canvas.height);
+                ctx.stroke();
+            }
+            for (let y = Math.floor(yMin); y <= Math.ceil(yMax); y++) {
+                ctx.beginPath();
+                ctx.moveTo(0, mapY(y));
+                ctx.lineTo(canvas.width, mapY(y));
+                ctx.stroke();
+            }
+
+            // Axes
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = colors.axes;
+            // X Axis
+            ctx.beginPath();
+            ctx.moveTo(0, mapY(0));
+            ctx.lineTo(canvas.width, mapY(0));
+            ctx.stroke();
+            // Y Axis
+            ctx.beginPath();
+            ctx.moveTo(mapX(0), 0);
+            ctx.lineTo(mapX(0), canvas.height);
+            ctx.stroke();
+
+            // Origin Label
+            ctx.fillStyle = colors.axes;
+            ctx.font = "12px Inter, sans-serif";
+            ctx.fillText("0", mapX(0) - 15, mapY(0) + 15);
+            
+            // Tick marks
+            ctx.textAlign = "center";
+            ctx.textBaseline = "top";
+            for (let x = Math.floor(xMin); x <= Math.ceil(xMax); x++) {
+                if(x !== 0) {
+                    ctx.fillText(x, mapX(x), mapY(0) + 5);
+                    ctx.beginPath(); ctx.moveTo(mapX(x), mapY(0)-3); ctx.lineTo(mapX(x), mapY(0)+3); ctx.stroke();
+                }
+            }
+        }
+
+        function drawCurves() {
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            // Parabola: y = x^2
+            ctx.beginPath();
+            ctx.strokeStyle = colors.parabola;
+            ctx.lineWidth = 3;
+            for (let x = xMin; x <= xMax; x += 0.05) {
+                const y = fBottom(x);
+                if (x === xMin) ctx.moveTo(mapX(x), mapY(y));
+                else ctx.lineTo(mapX(x), mapY(y));
+            }
+            ctx.stroke();
+            
+            // Line: y = x + 2
+            ctx.beginPath();
+            ctx.strokeStyle = colors.line;
+            ctx.lineWidth = 3;
+            ctx.moveTo(mapX(xMin), mapY(fTop(xMin)));
+            ctx.lineTo(mapX(xMax), mapY(fTop(xMax)));
+            ctx.stroke();
+        }
+
+        function drawIntersections(progress) {
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, Math.min(progress, 1));
+            ctx.fillStyle = colors.intersection;
+            
+            const points = [
+                { x: -1, y: 1 },
+                { x: 2, y: 4 }
+            ];
+
+            points.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(mapX(p.x), mapY(p.y), 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowColor = colors.intersection;
+                ctx.shadowBlur = 10;
+                ctx.fill(); // double fill for glow
+                ctx.shadowBlur = 0;
+
+                // Labels
+                ctx.fillStyle = colors.text;
+                ctx.font = "bold 14px Inter, sans-serif";
+                ctx.textAlign = "left";
+                ctx.fillText(`(${p.x}, ${p.y})`, mapX(p.x) + 12, mapY(p.y) - 10);
+            });
+            ctx.restore();
+        }
+
+        function drawLimits(progress) {
+            ctx.save();
+            ctx.globalAlpha = 1;
+            ctx.strokeStyle = colors.limitLine;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 6]);
+
+            const points = [
+                { x: -1, y: 1 },
+                { x: 2, y: 4 }
+            ];
+
+            points.forEach(p => {
+                // Determine how far down the line has dropped based on progress
+                const targetY = 0;
+                const currentY = p.y - (p.y - targetY) * progress;
+                
+                ctx.beginPath();
+                ctx.moveTo(mapX(p.x), mapY(p.y));
+                ctx.lineTo(mapX(p.x), mapY(currentY));
+                ctx.stroke();
+
+                // Draw end marker on axis if fully dropped
+                if (progress > 0.98) {
+                    ctx.beginPath();
+                    ctx.arc(mapX(p.x), mapY(0), 4, 0, Math.PI * 2);
+                    ctx.fillStyle = colors.limitLine;
+                    ctx.fill();
+                }
+            });
+            ctx.restore();
+        }
+
+        function drawScanning(progress) {
+            const currentX = limits.a + (limits.b - limits.a) * progress;
+            
+            // 1. Draw Shaded Region Accumulation
+            if (currentX > limits.a) {
+                ctx.beginPath();
+                ctx.fillStyle = colors.shade;
+                
+                // Trace top line
+                ctx.moveTo(mapX(limits.a), mapY(fTop(limits.a)));
+                for (let x = limits.a; x <= currentX; x += 0.02) {
+                    ctx.lineTo(mapX(x), mapY(fTop(x)));
+                }
+                
+                // Trace bottom parabola backward
+                for (let x = currentX; x >= limits.a; x -= 0.02) {
+                    ctx.lineTo(mapX(x), mapY(fBottom(x)));
+                }
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // 2. Draw Vertical Scanning Slice
+            const topY = fTop(currentX);
+            const bottomY = fBottom(currentX);
+            const diff = topY - bottomY;
+
+            ctx.beginPath();
+            ctx.strokeStyle = colors.scanner;
+            ctx.lineWidth = 3;
+            ctx.moveTo(mapX(currentX), mapY(topY));
+            ctx.lineTo(mapX(currentX), mapY(bottomY));
+            ctx.stroke();
+
+            // Glow for scanner
+            ctx.save();
+            ctx.shadowColor = colors.scanner;
+            ctx.shadowBlur = 10;
+            ctx.stroke();
+            ctx.restore();
+
+            // 3. Draw Dynamic Text Label near the slice
+            if (progress < 1) {
+                ctx.fillStyle = colors.scanner;
+                ctx.font = "bold 13px mono";
+                ctx.textAlign = "left";
+                ctx.textBaseline = "middle";
+                ctx.fillText(`Δy = ${diff.toFixed(2)}`, mapX(currentX) + 10, mapY((topY + bottomY) / 2));
+            }
+
+            // 4. Update UI Area live counter
+            const currentArea = calculateAreaTo(currentX);
+            liveAreaDisplay.innerText = currentArea.toFixed(3);
+        }
+
+        function updateUI(stepIndex) {
+            steps.forEach((el, idx) => {
+                if (idx === stepIndex) {
+                    el.classList.remove('step-inactive');
+                    el.classList.add('step-active');
+                } else {
+                    el.classList.remove('step-active');
+                    el.classList.add('step-inactive');
+                }
+            });
+        }
+
+        function renderFrame(timestamp = 0) {
+            if (!animationStartTime) animationStartTime = timestamp;
+            const elapsed = timestamp - animationStartTime;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGridAndAxes();
+            drawCurves();
+
+            if (state === 0) {
+                // Initial static state
+                updateUI(-1);
+            } 
+            else if (state === 1) {
+                // Phase 1: Highlight Intersections (1.5s)
+                updateUI(0);
+                const p = Math.min(elapsed / 1500, 1);
+                drawIntersections(p);
+                
+                if (p >= 1 && elapsed > 2000) {
+                    state = 2;
+                    animationStartTime = timestamp; // Reset timer for next phase
+                }
+            } 
+            else if (state === 2) {
+                // Phase 2: Drop Limits (1.5s)
+                updateUI(1);
+                drawIntersections(1);
+                
+                // Easing function for dropping lines
+                const t = Math.min(elapsed / 1500, 1);
+                const easeOutQuad = t => t * (2 - t);
+                drawLimits(easeOutQuad(t));
+                
+                if (t >= 1 && elapsed > 2000) {
+                    state = 3;
+                    animationStartTime = timestamp;
+                }
+            } 
+            else if (state === 3) {
+                // Phase 3: Scanning and Shading (4s)
+                updateUI(2);
+                drawIntersections(1);
+                drawLimits(1);
+                
+                // Linear scan
+                const p = Math.min(elapsed / 4000, 1);
+                drawScanning(p);
+
+                if (p >= 1 && elapsed > 4500) { // Small pause at the end
+                    state = 4;
+                }
+            } 
+            else if (state === 4) {
+                // Done - Show full scene and Pop-up
+                drawIntersections(1);
+                drawLimits(1);
+                drawScanning(1);
+                liveAreaDisplay.innerText = "4.500";
+                
+                if (finalPopup.classList.contains('hidden')) {
+                    finalPopup.classList.remove('hidden');
+                    finalPopup.classList.add('popup-active');
+                    startBtn.innerHTML = `
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        Restart Animation
+                    `;
+                    startBtn.classList.replace('bg-blue-600', 'bg-slate-600');
+                    startBtn.classList.replace('hover:bg-blue-500', 'hover:bg-slate-500');
+                    updateUI(-1); // Deselect all
+                }
+            }
+
+            if (state !== 0 && state !== 4) {
+                animationId = requestAnimationFrame(renderFrame);
+            }
+        }
+
+        startBtn.addEventListener('click', () => {
+            // Reset everything
+            cancelAnimationFrame(animationId);
+            state = 1;
+            animationStartTime = null;
+            finalPopup.classList.add('hidden');
+            finalPopup.classList.remove('popup-active');
+            liveAreaDisplay.innerText = "0.000";
+            
+            // Button style reset
+            startBtn.innerHTML = `
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Animating...
+            `;
+            startBtn.classList.replace('bg-slate-600', 'bg-blue-600');
+            startBtn.classList.replace('hover:bg-slate-500', 'hover:bg-blue-500');
+            
+            animationId = requestAnimationFrame(renderFrame);
+        });
+
+        // Initialize setup
+        resizeCanvas();
+        
+    </script>
+</body>
+</html>

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integration as Accumulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons for UI -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom range slider styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #10b981;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 3px;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans overflow-hidden">
+
+    <!-- Header / Controls Top Bar -->
+    <header class="p-6 pb-4 border-b border-slate-800 flex flex-col md:flex-row gap-6 justify-between items-center shrink-0">
+        <div class="flex-1">
+            <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-sky-400 mb-1">
+                Integration as Accumulation
+            </h1>
+            <p class="text-slate-400 text-sm">Visualizing the definite integral using Riemann Sums</p>
+        </div>
+
+        <div class="flex flex-col gap-4 w-full md:w-1/2 lg:w-1/3">
+            <div class="flex items-center justify-between text-sm font-medium">
+                <span class="text-emerald-400" id="nLabel">n = 4</span>
+                <span class="text-slate-400 text-xs">Infinity (250)</span>
+            </div>
+            <div class="flex gap-4 items-center">
+                <button id="playBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white rounded-full p-2 h-10 w-10 flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-900">
+                    <i data-lucide="play" class="w-5 h-5 ml-1"></i>
+                </button>
+                <input type="range" id="nSlider" min="1" max="250" value="4" class="flex-1">
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Canvas Area -->
+    <main class="flex-1 relative flex flex-col lg:flex-row min-h-0">
+        
+        <!-- Graph Area -->
+        <div class="flex-1 relative bg-slate-950 rounded-lg m-4 shadow-2xl border border-slate-800 overflow-hidden" id="canvasContainer">
+            <canvas id="graphCanvas" class="absolute inset-0 w-full h-full"></canvas>
+            
+            <!-- Function Overlay -->
+            <div class="absolute top-4 left-4 bg-slate-900/80 backdrop-blur border border-slate-700 p-3 rounded-lg pointer-events-none">
+                <div class="text-sky-400 font-mono text-sm mb-1">f(x) = 4 + 3sin(0.5x - 1)</div>
+                <div class="text-xs text-slate-400">Interval: [1, 9]</div>
+            </div>
+        </div>
+
+        <!-- Sidebar Details -->
+        <aside class="w-full lg:w-72 p-6 flex flex-col gap-6 bg-slate-900 border-l border-slate-800 shrink-0 overflow-y-auto">
+            
+            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
+                <h3 class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">Area Approximation</h3>
+                <div class="flex flex-col gap-1">
+                    <div class="flex justify-between items-end">
+                        <span class="text-sm text-slate-400">Current Sum</span>
+                        <span id="approxArea" class="text-2xl font-mono font-bold text-emerald-400">0.00</span>
+                    </div>
+                    <div class="text-[10px] text-slate-500 text-right">square units</div>
+                </div>
+            </div>
+
+            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
+                <h3 class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">Exact Integral</h3>
+                <div class="flex flex-col gap-1">
+                    <div class="flex justify-between items-end">
+                        <span class="text-sm text-slate-400">True Area</span>
+                        <span id="exactArea" class="text-2xl font-mono font-bold text-sky-400">42.88</span>
+                    </div>
+                    <div class="text-[10px] text-slate-500 text-right">square units</div>
+                </div>
+            </div>
+
+            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
+                <h3 class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">Error</h3>
+                <div class="flex flex-col gap-1">
+                    <div class="flex justify-between items-end">
+                        <span class="text-sm text-slate-400">Δ Difference</span>
+                        <span id="errorVal" class="text-xl font-mono font-bold text-rose-400">0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-auto pt-6 border-t border-slate-800 text-sm text-slate-500">
+                <p>As <b>n</b> approaches infinity, the width of each rectangle approaches zero (dx), and their accumulated sum matches the exact definite integral.</p>
+            </div>
+        </aside>
+
+    </main>
+
+    <script>
+        // Initialize Icons
+        lucide.createIcons();
+
+        // Canvas Setup
+        const canvas = document.getElementById('graphCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvasContainer');
+
+        // UI Elements
+        const nSlider = document.getElementById('nSlider');
+        const nLabel = document.getElementById('nLabel');
+        const approxAreaEl = document.getElementById('approxArea');
+        const exactAreaEl = document.getElementById('exactArea');
+        const errorValEl = document.getElementById('errorVal');
+        const playBtn = document.getElementById('playBtn');
+
+        // Mathematical Function & Domain
+        const fn = (x) => 4 + 3 * Math.sin(0.5 * x - 1);
+        const a = 1;  // Interval start
+        const b = 9;  // Interval end
+        
+        // Exact Area Calculation (Integral of fn from a to b)
+        // F(x) = 4x - 6cos(0.5x - 1)
+        const F = (x) => 4 * x - 6 * Math.cos(0.5 * x - 1);
+        const exactAreaVal = F(b) - F(a);
+        exactAreaEl.textContent = exactAreaVal.toFixed(4);
+
+        // Logical Graph Bounds
+        const logicBounds = {
+            xMin: -1,
+            xMax: 11,
+            yMin: -1,
+            yMax: 8
+        };
+
+        // Animation State
+        let isAnimating = false;
+        let animationFrameId;
+        let floatN = parseFloat(nSlider.value);
+        const MAX_N = parseInt(nSlider.max);
+
+        // Coordinate Mapping Functions
+        function mapX(x) {
+            return ((x - logicBounds.xMin) / (logicBounds.xMax - logicBounds.xMin)) * canvas.width;
+        }
+
+        function mapY(y) {
+            // Y is inverted in canvas (0 is top)
+            return canvas.height - ((y - logicBounds.yMin) / (logicBounds.yMax - logicBounds.yMin)) * canvas.height;
+        }
+
+        // Resize Canvas to fit container
+        function resize() {
+            // Setup for High DPI displays
+            const dpr = window.devicePixelRatio || 1;
+            const rect = container.getBoundingClientRect();
+            
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            
+            ctx.scale(dpr, dpr);
+            canvas.style.width = `${rect.width}px`;
+            canvas.style.height = `${rect.height}px`;
+            
+            // Re-assign dimensions for mapping based on CSS size
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            
+            draw();
+        }
+
+        // Main Draw Function
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            drawGrid();
+            
+            const n = parseInt(nSlider.value);
+            drawRiemannSums(n);
+            drawExactArea(); // Faint exact area in background
+            drawFunctionCurve();
+            
+            updateUI(n);
+        }
+
+        function drawGrid() {
+            ctx.lineWidth = 1;
+            
+            // Grid Lines
+            ctx.strokeStyle = '#1e293b'; // slate-800
+            for(let x = Math.ceil(logicBounds.xMin); x <= Math.floor(logicBounds.xMax); x++) {
+                ctx.beginPath();
+                ctx.moveTo(mapX(x), 0);
+                ctx.lineTo(mapX(x), canvas.height);
+                ctx.stroke();
+            }
+            for(let y = Math.ceil(logicBounds.yMin); y <= Math.floor(logicBounds.yMax); y++) {
+                ctx.beginPath();
+                ctx.moveTo(0, mapY(y));
+                ctx.lineTo(canvas.width, mapY(y));
+                ctx.stroke();
+            }
+
+            // Axes
+            ctx.strokeStyle = '#475569'; // slate-600
+            ctx.lineWidth = 2;
+            
+            // X-Axis
+            ctx.beginPath();
+            ctx.moveTo(0, mapY(0));
+            ctx.lineTo(canvas.width, mapY(0));
+            ctx.stroke();
+            
+            // Y-Axis
+            ctx.beginPath();
+            ctx.moveTo(mapX(0), 0);
+            ctx.lineTo(mapX(0), canvas.height);
+            ctx.stroke();
+        }
+
+        function drawFunctionCurve() {
+            ctx.beginPath();
+            ctx.strokeStyle = '#38bdf8'; // sky-400
+            ctx.lineWidth = 3;
+            ctx.shadowColor = '#38bdf8';
+            ctx.shadowBlur = 10;
+            
+            const steps = 300;
+            for(let i = 0; i <= steps; i++) {
+                const x = logicBounds.xMin + (logicBounds.xMax - logicBounds.xMin) * (i / steps);
+                const y = fn(x);
+                if(i === 0) ctx.moveTo(mapX(x), mapY(y));
+                else ctx.lineTo(mapX(x), mapY(y));
+            }
+            ctx.stroke();
+            
+            // Reset shadow
+            ctx.shadowBlur = 0;
+        }
+
+        function drawExactArea() {
+            ctx.beginPath();
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.1)'; // faint sky blue
+            ctx.moveTo(mapX(a), mapY(0));
+            
+            const steps = 100;
+            for(let i = 0; i <= steps; i++) {
+                const x = a + (b - a) * (i / steps);
+                ctx.lineTo(mapX(x), mapY(fn(x)));
+            }
+            ctx.lineTo(mapX(b), mapY(0));
+            ctx.fill();
+        }
+
+        function drawRiemannSums(n) {
+            const dx = (b - a) / n;
+            let currentArea = 0;
+            
+            // Calculate opacity and stroke based on n to show "merging"
+            // At small n, distinct borders. At large n, borders vanish.
+            const mergeRatio = n / MAX_N; // 0 to 1
+            const fillOpacity = 0.3 + (mergeRatio * 0.4); // goes from 0.3 to 0.7
+            const strokeOpacity = Math.max(0, 0.8 - (mergeRatio * 3)); // goes to 0 quickly
+            
+            for(let i = 0; i < n; i++) {
+                // Left Riemann Sum
+                const x_i = a + i * dx;
+                const rectHeight = fn(x_i);
+                const rectArea = rectHeight * dx;
+                currentArea += rectArea;
+
+                const xPx = mapX(x_i);
+                const yPx = mapY(rectHeight);
+                const wPx = mapX(x_i + dx) - mapX(x_i);
+                const hPx = mapY(0) - mapY(rectHeight);
+
+                // Fill
+                ctx.fillStyle = `rgba(16, 185, 129, ${fillOpacity})`; // emerald-500
+                ctx.fillRect(xPx, yPx, wPx, hPx);
+
+                // Border
+                if (strokeOpacity > 0.05) {
+                    ctx.strokeStyle = `rgba(16, 185, 129, ${strokeOpacity})`;
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(xPx, yPx, wPx, hPx);
+                }
+            }
+            
+            return currentArea;
+        }
+
+        function updateUI(n) {
+            // Calculate Area to update text
+            const dx = (b - a) / n;
+            let currentArea = 0;
+            for(let i = 0; i < n; i++) {
+                currentArea += fn(a + i * dx) * dx;
+            }
+
+            nLabel.textContent = `n = ${n}`;
+            approxAreaEl.textContent = currentArea.toFixed(4);
+            
+            const error = Math.abs(exactAreaVal - currentArea);
+            errorValEl.textContent = error.toFixed(4);
+            
+            // Color code error
+            if (error < 0.1) errorValEl.className = "text-xl font-mono font-bold text-emerald-400";
+            else if (error < 1.0) errorValEl.className = "text-xl font-mono font-bold text-amber-400";
+            else errorValEl.className = "text-xl font-mono font-bold text-rose-400";
+        }
+
+        // Animation Logic
+        function animate() {
+            if (!isAnimating) return;
+
+            // Exponential growth to make it speed through high numbers visually smoothly
+            floatN += Math.max(0.2, floatN * 0.02);
+            
+            if (floatN >= MAX_N) {
+                floatN = MAX_N;
+                nSlider.value = MAX_N;
+                stopAnimation();
+            } else {
+                nSlider.value = Math.floor(floatN);
+                animationFrameId = requestAnimationFrame(animate);
+            }
+            draw();
+        }
+
+        function toggleAnimation() {
+            if (isAnimating) {
+                stopAnimation();
+            } else {
+                startAnimation();
+            }
+        }
+
+        function startAnimation() {
+            if (parseInt(nSlider.value) === MAX_N) {
+                floatN = 1; // restart if at the end
+            } else {
+                floatN = parseInt(nSlider.value);
+            }
+            isAnimating = true;
+            playBtn.innerHTML = '<i data-lucide="square" class="w-4 h-4 fill-current"></i>';
+            lucide.createIcons();
+            playBtn.classList.replace('bg-emerald-600', 'bg-rose-600');
+            playBtn.classList.replace('hover:bg-emerald-500', 'hover:bg-rose-500');
+            playBtn.classList.replace('focus:ring-emerald-400', 'focus:ring-rose-400');
+            animate();
+        }
+
+        function stopAnimation() {
+            isAnimating = false;
+            cancelAnimationFrame(animationFrameId);
+            playBtn.innerHTML = '<i data-lucide="play" class="w-5 h-5 ml-1 fill-current"></i>';
+            lucide.createIcons();
+            playBtn.classList.replace('bg-rose-600', 'bg-emerald-600');
+            playBtn.classList.replace('hover:bg-rose-500', 'hover:bg-emerald-500');
+            playBtn.classList.replace('focus:ring-rose-400', 'focus:ring-emerald-400');
+        }
+
+        // Event Listeners
+        window.addEventListener('resize', resize);
+        
+        nSlider.addEventListener('input', (e) => {
+            if (isAnimating) stopAnimation();
+            floatN = parseInt(e.target.value);
+            draw();
+        });
+
+        playBtn.addEventListener('click', toggleAnimation);
+
+        // Initial setup
+        resize();
+
+    </script>
+</body>
+</html>

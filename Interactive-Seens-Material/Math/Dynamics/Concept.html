@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inclined Plane Physics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #0f172a; /* Tailwind slate-900 */
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(30, 41, 59, 0.9);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            width: 380px;
+            pointer-events: auto;
+            z-index: 10;
+        }
+        .slider-container {
+            margin-bottom: 1.25rem;
+        }
+        input[type=range] {
+            width: 100%;
+            accent-color: #38bdf8;
+            height: 6px;
+            border-radius: 3px;
+            background: #334155;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(56, 189, 248, 0.5);
+        }
+        
+        #math-display {
+            font-family: 'Courier New', Courier, monospace;
+            background: rgba(15, 23, 42, 0.7);
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+        .accel-gauge-bg {
+            background-color: #1e293b;
+            height: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 8px;
+            position: relative;
+        }
+        .accel-gauge-fill {
+            background: linear-gradient(90deg, #10b981, #ef4444);
+            height: 100%;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+        
+        /* Vector Color Classes */
+        .c-w { color: #f43f5e; font-weight: bold; } /* Gravity - Rose */
+        .c-wpar { color: #facc15; font-weight: bold; } /* Parallel - Yellow */
+        .c-wperp { color: #fb923c; font-weight: bold; } /* Perpendicular - Orange */
+        .c-fric { color: #60a5fa; font-weight: bold; } /* Friction - Blue */
+        
+        .scene-label {
+            position: absolute;
+            background: rgba(15, 23, 42, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            border: 1px solid rgba(255,255,255,0.1);
+            white-space: nowrap;
+            transition: opacity 0.2s;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <div id="ui-container">
+        <h1 class="text-xl font-bold mb-1 text-white">Block on Incline</h1>
+        <p class="text-sm text-slate-300 mb-5 border-b border-slate-600 pb-3">
+            Analyze the forces and sliding motion.
+        </p>
+        
+        <!-- Controls -->
+        <div class="slider-container">
+            <div class="flex justify-between text-sm mb-2">
+                <label for="angle-slider" class="text-slate-200">Inclination Angle (&theta;)</label>
+                <span id="angle-val" class="font-mono text-sky-400">20&deg;</span>
+            </div>
+            <input type="range" id="angle-slider" min="0" max="60" step="1" value="20">
+        </div>
+
+        <div class="slider-container">
+            <div class="flex justify-between text-sm mb-2">
+                <label for="fric-slider" class="text-slate-200">Friction Coeff (&mu;)</label>
+                <span id="fric-val" class="font-mono text-sky-400">0.30</span>
+            </div>
+            <input type="range" id="fric-slider" min="0" max="0.8" step="0.01" value="0.30">
+        </div>
+        
+        <div id="math-display">
+            <div class="flex justify-between mb-1">
+                <span>Mass (m):</span> <span class="font-bold">10 kg</span>
+            </div>
+            <div class="flex justify-between mb-3 pb-2 border-b border-slate-600">
+                <span>Gravity (W):</span> <span class="c-w">98.1 N</span>
+            </div>
+            
+            <div class="space-y-1 mb-3 text-sm">
+                <div class="flex justify-between">
+                    <span class="c-wpar">W<sub>&parallel;</sub> = W&middot;sin(&theta;)</span>
+                    <span id="calc-wpar" class="c-wpar">33.55 N</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="c-wperp">W<sub>&perp;</sub> = W&middot;cos(&theta;)</span>
+                    <span id="calc-wperp" class="c-wperp">92.18 N</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="c-fric">Max Friction = &mu;&middot;W<sub>&perp;</sub></span>
+                    <span id="calc-fric" class="c-fric">27.65 N</span>
+                </div>
+            </div>
+            
+            <div id="status-box" class="p-2 rounded text-center font-bold mb-2 transition-colors">
+                Static
+            </div>
+            
+            <div class="mt-2">
+                <div class="flex justify-between text-sm">
+                    <span>Acceleration</span>
+                    <span id="calc-accel" class="text-emerald-400 font-bold">0.00 m/s&sup2;</span>
+                </div>
+                <div class="accel-gauge-bg">
+                    <div id="accel-gauge" class="accel-gauge-fill"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="lbl-W" class="scene-label c-w">W</div>
+    <div id="lbl-Wpar" class="scene-label c-wpar">W<sub>&parallel;</sub></div>
+    <div id="lbl-Wperp" class="scene-label c-wperp">W<sub>&perp;</sub></div>
+    <div id="lbl-Ff" class="scene-label c-fric">F<sub>f</sub></div>
+
+    <div id="canvas-container"></div>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let rampGroup, rampMesh, blockMesh;
+        let wArrow, wParArrow, wPerpArrow, fricArrow;
+        let dashedLines = [];
+        
+        // Physics Constants
+        const MASS = 10;
+        const G = 9.81;
+        const W = MASS * G;
+        const RAMP_LENGTH = 20;
+        
+        // Simulation State
+        let angleDeg = 20;
+        let mu = 0.30;
+        let isSliding = false;
+        let velocity = 0;
+        let posOnRamp = -RAMP_LENGTH / 2 + 2; // Start near the top
+        const START_POS = -RAMP_LENGTH / 2 + 2;
+        
+        // Vectors scaling for visual representation
+        const VEC_SCALE = 0.05; 
+        
+        // DOM Elements
+        const elAngle = document.getElementById('angle-slider');
+        const elFric = document.getElementById('fric-slider');
+        const txtAngle = document.getElementById('angle-val');
+        const txtFric = document.getElementById('fric-val');
+        const txtWPar = document.getElementById('calc-wpar');
+        const txtWPerp = document.getElementById('calc-wperp');
+        const txtFricCalc = document.getElementById('calc-fric');
+        const boxStatus = document.getElementById('status-box');
+        const txtAccel = document.getElementById('calc-accel');
+        const gaugeAccel = document.getElementById('accel-gauge');
+
+        const labels = {
+            W: document.getElementById('lbl-W'),
+            Wpar: document.getElementById('lbl-Wpar'),
+            Wperp: document.getElementById('lbl-Wperp'),
+            Ff: document.getElementById('lbl-Ff')
+        };
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f172a); 
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 5, 25);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(0, 0, 0);
+
+            // Lights
+            scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(10, 20, 10);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            const gridHelper = new THREE.GridHelper(30, 30, 0x334155, 0x1e293b);
+            gridHelper.position.y = -5; // Lower the grid
+            scene.add(gridHelper);
+
+            buildScene();
+            setupVectors();
+
+            window.addEventListener('resize', onWindowResize);
+            elAngle.addEventListener('input', onInputChanged);
+            elFric.addEventListener('input', onInputChanged);
+
+            updatePhysics();
+        }
+
+        function buildScene() {
+            // Ramp Group (rotates)
+            rampGroup = new THREE.Group();
+            scene.add(rampGroup);
+
+            // The Ramp Mesh
+            const rampGeo = new THREE.BoxGeometry(RAMP_LENGTH, 0.5, 6);
+            const rampMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.7 });
+            rampMesh = new THREE.Mesh(rampGeo, rampMat);
+            rampMesh.position.y = -0.25; // Align top surface to group's origin Y
+            rampMesh.receiveShadow = true;
+            rampGroup.add(rampMesh);
+
+            // The Block
+            const blockGeo = new THREE.BoxGeometry(2, 2, 2);
+            const blockMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.4, metalness: 0.1 });
+            blockMesh = new THREE.Mesh(blockGeo, blockMat);
+            blockMesh.castShadow = true;
+            // Block is placed slightly above the ramp surface
+            blockMesh.position.set(posOnRamp, 1, 0); 
+            rampGroup.add(blockMesh);
+        }
+
+        function setupVectors() {
+            const origin = new THREE.Vector3(0,0,0);
+            
+            // Vector W (Gravity) - Points straight down
+            wArrow = new THREE.ArrowHelper(new THREE.Vector3(0,-1,0), origin, 1, 0xf43f5e, 0.5, 0.3);
+            scene.add(wArrow);
+            
+            // Vector W_parallel - Points down incline
+            wParArrow = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), origin, 1, 0xfacc15, 0.4, 0.25);
+            scene.add(wParArrow);
+
+            // Vector W_perpendicular - Points into incline
+            wPerpArrow = new THREE.ArrowHelper(new THREE.Vector3(0,-1,0), origin, 1, 0xfb923c, 0.4, 0.25);
+            scene.add(wPerpArrow);
+
+            // Friction Vector - Points up incline
+            fricArrow = new THREE.ArrowHelper(new THREE.Vector3(-1,0,0), origin, 1, 0x60a5fa, 0.4, 0.25);
+            scene.add(fricArrow);
+
+            // Dashed lines for vector projection rectangle
+            const dashMat = new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 0.2, gapSize: 0.1, opacity: 0.5, transparent: true });
+            for(let i=0; i<2; i++) {
+                const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(1,1,1)]);
+                const line = new THREE.Line(geo, dashMat);
+                line.computeLineDistances();
+                scene.add(line);
+                dashedLines.push(line);
+            }
+        }
+
+        function onInputChanged() {
+            angleDeg = parseFloat(elAngle.value);
+            mu = parseFloat(elFric.value);
+            
+            txtAngle.innerHTML = `${angleDeg}&deg;`;
+            txtFric.innerText = mu.toFixed(2);
+            
+            // Reset sliding state when parameters change
+            posOnRamp = START_POS;
+            velocity = 0;
+            isSliding = false;
+            
+            updatePhysics();
+        }
+
+        function updatePhysics() {
+            // Apply rotation to ramp (negative Z rotates it down to the right)
+            const angleRad = THREE.MathUtils.degToRad(angleDeg);
+            rampGroup.rotation.z = -angleRad;
+            
+            // Position block
+            blockMesh.position.x = posOnRamp;
+            
+            // Force calculations
+            const wPar = W * Math.sin(angleRad);
+            const wPerp = W * Math.cos(angleRad);
+            const maxFric = mu * wPerp;
+            
+            // Update Text
+            txtWPar.innerText = `${wPar.toFixed(2)} N`;
+            txtWPerp.innerText = `${wPerp.toFixed(2)} N`;
+            txtFricCalc.innerText = `${maxFric.toFixed(2)} N`;
+            
+            // Determine state
+            let netForce = 0;
+            if (wPar > maxFric) {
+                netForce = wPar - maxFric; // Accelerating
+                boxStatus.innerText = "Sliding";
+                boxStatus.className = "p-2 rounded text-center font-bold mb-2 bg-rose-900 bg-opacity-60 text-rose-300 border border-rose-700";
+            } else {
+                netForce = 0; // Static
+                boxStatus.innerText = "Static";
+                boxStatus.className = "p-2 rounded text-center font-bold mb-2 bg-emerald-900 bg-opacity-60 text-emerald-300 border border-emerald-700";
+            }
+            
+            const accel = netForce / MASS;
+            txtAccel.innerHTML = `${accel.toFixed(2)} m/s&sup2;`;
+            
+            // Max possible acceleration is g (when angle is 90, mu=0)
+            const gaugePercent = (accel / G) * 100;
+            gaugeAccel.style.width = `${gaugePercent}%`;
+            
+            // We'll let the animation loop handle position updates if isSliding = true
+            // But we need to update arrows immediately
+            updateArrows(wPar, wPerp, Math.min(wPar, maxFric));
+        }
+
+        function updateArrows(wPar, wPerp, currentFric) {
+            // Get block's global position as origin for arrows
+            const blockPos = new THREE.Vector3();
+            blockMesh.getWorldPosition(blockPos);
+            
+            const angleRad = THREE.MathUtils.degToRad(angleDeg);
+            
+            // 1. Gravity (W) -> Always down
+            wArrow.position.copy(blockPos);
+            wArrow.setLength(W * VEC_SCALE, 0.5, 0.3);
+            
+            // Calculate direction vectors in global space
+            // Ramp X-axis (down incline)
+            const dirPar = new THREE.Vector3(Math.cos(-angleRad), Math.sin(-angleRad), 0).normalize();
+            // Ramp -Y-axis (into incline)
+            const dirPerp = new THREE.Vector3(Math.sin(angleRad), -Math.cos(angleRad), 0).normalize();
+            // Up incline (for friction)
+            const dirFric = dirPar.clone().negate();
+
+            // 2. Parallel Gravity (W_par)
+            wParArrow.position.copy(blockPos);
+            wParArrow.setDirection(dirPar);
+            if (wPar > 0.1) {
+                wParArrow.setLength(wPar * VEC_SCALE, 0.4, 0.25);
+                wParArrow.visible = true;
+            } else wParArrow.visible = false;
+
+            // 3. Perpendicular Gravity (W_perp)
+            wPerpArrow.position.copy(blockPos);
+            wPerpArrow.setDirection(dirPerp);
+            if (wPerp > 0.1) {
+                wPerpArrow.setLength(wPerp * VEC_SCALE, 0.4, 0.25);
+                wPerpArrow.visible = true;
+            } else wPerpArrow.visible = false;
+
+            // 4. Friction
+            fricArrow.position.copy(blockPos);
+            fricArrow.setDirection(dirFric);
+            if (currentFric > 0.1) {
+                fricArrow.setLength(currentFric * VEC_SCALE, 0.4, 0.25);
+                fricArrow.visible = true;
+            } else fricArrow.visible = false;
+
+            // Update Dashed Lines forming the rectangle
+            // Line 1: Tip of W_perp to Tip of W
+            const tipWPerp = blockPos.clone().add(dirPerp.clone().multiplyScalar(wPerp * VEC_SCALE));
+            const tipW = blockPos.clone().add(new THREE.Vector3(0,-1,0).multiplyScalar(W * VEC_SCALE));
+            dashedLines[0].geometry.setFromPoints([tipWPerp, tipW]);
+            dashedLines[0].computeLineDistances();
+
+            // Line 2: Tip of W_par to Tip of W
+            const tipWPar = blockPos.clone().add(dirPar.clone().multiplyScalar(wPar * VEC_SCALE));
+            dashedLines[1].geometry.setFromPoints([tipWPar, tipW]);
+            dashedLines[1].computeLineDistances();
+        }
+
+        function updateLabels() {
+            const project = (vec, element, offset = {x:0, y:0}) => {
+                if(!element) return;
+                const pos = vec.clone().project(camera);
+                // Check if behind camera
+                if (pos.z > 1) { element.style.opacity = 0; return; }
+                
+                const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
+                const y = (pos.y * -0.5 + 0.5) * window.innerHeight;
+                element.style.left = `${x + offset.x}px`;
+                element.style.top = `${y + offset.y}px`;
+                element.style.opacity = 1;
+            };
+
+            const angleRad = THREE.MathUtils.degToRad(angleDeg);
+            const wPar = W * Math.sin(angleRad);
+            const wPerp = W * Math.cos(angleRad);
+            const maxFric = mu * wPerp;
+            const currentFric = Math.min(wPar, maxFric);
+
+            const blockPos = new THREE.Vector3();
+            blockMesh.getWorldPosition(blockPos);
+
+            // W Label
+            const tipW = blockPos.clone().add(new THREE.Vector3(0,-1,0).multiplyScalar(W * VEC_SCALE));
+            project(tipW, labels.W, {x: 15, y: 15});
+
+            // W_par Label
+            const dirPar = new THREE.Vector3(Math.cos(-angleRad), Math.sin(-angleRad), 0).normalize();
+            const tipWPar = blockPos.clone().add(dirPar.clone().multiplyScalar(wPar * VEC_SCALE));
+            project(tipWPar, labels.Wpar, {x: 20, y: 0});
+
+            // W_perp Label
+            const dirPerp = new THREE.Vector3(Math.sin(angleRad), -Math.cos(angleRad), 0).normalize();
+            const tipWPerp = blockPos.clone().add(dirPerp.clone().multiplyScalar(wPerp * VEC_SCALE));
+            project(tipWPerp, labels.Wperp, {x: -20, y: 20});
+
+            // Friction Label
+            const dirFric = dirPar.clone().negate();
+            const tipFric = blockPos.clone().add(dirFric.clone().multiplyScalar(currentFric * VEC_SCALE));
+            project(tipFric, labels.Ff, {x: -20, y: -10});
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        let lastTime = 0;
+        function animate(time) {
+            requestAnimationFrame(animate);
+            controls.update();
+
+            const delta = (time - lastTime) / 1000; // seconds
+            lastTime = time;
+
+            // Physics step
+            const angleRad = THREE.MathUtils.degToRad(angleDeg);
+            const wPar = W * Math.sin(angleRad);
+            const wPerp = W * Math.cos(angleRad);
+            const maxFric = mu * wPerp;
+            
+            if (wPar > maxFric) {
+                // Accelerating
+                const accel = (wPar - maxFric) / MASS;
+                velocity += accel * delta;
+                posOnRamp += velocity * delta;
+                
+                // Stop at bottom of ramp
+                if (posOnRamp > RAMP_LENGTH / 2 - 1) {
+                    posOnRamp = RAMP_LENGTH / 2 - 1;
+                    velocity = 0; // stop
+                }
+                
+                // Update mesh
+                blockMesh.position.x = posOnRamp;
+                // Update arrows to follow block
+                updateArrows(wPar, wPerp, maxFric);
+            }
+
+            updateLabels();
+            renderer.render(scene, camera);
+        }
+
+        window.onload = function() {
+            init();
+            requestAnimationFrame((t) => { lastTime = t; animate(t); });
+        };
+    </script>
+</body>
+</html>

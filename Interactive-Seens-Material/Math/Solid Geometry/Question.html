@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sphere and Plane Intersection - Step by Step</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #0f172a; /* Tailwind slate-900 */
+            color: #f8fafc; /* Tailwind slate-50 */
+            font-family: 'Inter', sans-serif;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(30, 41, 59, 0.9);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            width: 380px;
+            pointer-events: auto;
+        }
+        
+        #math-display {
+            font-family: 'Courier New', Courier, monospace;
+            background: rgba(15, 23, 42, 0.8);
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 0.95rem;
+            min-height: 180px;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+        
+        .equation { margin-bottom: 8px; transition: opacity 0.5s ease; }
+        .highlight-text { color: #38bdf8; font-weight: bold; }
+        .highlight-calc { color: #4ade80; font-weight: bold; }
+        .highlight-var { color: #f472b6; font-weight: bold; }
+        
+        .btn {
+            background-color: #3b82f6;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s, transform 0.1s;
+            width: 100%;
+        }
+        .btn:hover { background-color: #2563eb; }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { background-color: #475569; cursor: not-allowed; transform: none; }
+
+        /* 3D Scene HTML Labels */
+        .scene-label {
+            position: absolute;
+            background: rgba(15, 23, 42, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            border: 1px solid rgba(255,255,255,0.2);
+            display: none;
+            white-space: nowrap;
+        }
+        
+        .center-dot {
+            color: #f87171;
+            font-weight: bold;
+        }
+        
+        .radius-label {
+            color: #4ade80;
+            font-weight: bold;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <div id="ui-container">
+        <h1 class="text-xl font-bold mb-2 text-white">Interactive Solution</h1>
+        <p class="text-sm text-slate-300 mb-4 border-b border-slate-600 pb-3">
+            Find the intersection of the sphere and the plane.
+        </p>
+        
+        <div class="flex justify-between items-center mb-4 space-x-2">
+            <button id="btn-prev" class="btn" style="background-color: #475569;">Previous</button>
+            <button id="btn-next" class="btn">Start Animation</button>
+        </div>
+
+        <!-- Step Indicator -->
+        <div class="flex justify-between mb-2 text-xs font-semibold text-slate-400">
+            <span id="step-1-ind" class="text-blue-400">1. Setup</span>
+            <span id="step-2-ind">2. Isolate</span>
+            <span id="step-3-ind">3. Substitute</span>
+            <span id="step-4-ind">4. Project</span>
+        </div>
+        <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden mb-2">
+            <div id="progress-bar" class="bg-blue-500 h-full transition-all duration-500" style="width: 25%;"></div>
+        </div>
+        
+        <div id="math-display">
+            <!-- Dynamic Math Content gets injected here -->
+        </div>
+        
+        <div class="mt-4 text-xs text-slate-400 text-center">
+            Left click + drag to rotate space.<br>Scroll to zoom.
+        </div>
+    </div>
+
+    <!-- HTML Overlays for 3D Labels -->
+    <div id="label-center" class="scene-label">
+        <span class="center-dot">●</span> C(2, -1, 3)
+    </div>
+    <div id="label-radius" class="scene-label">
+        <span class="radius-label">r = 4</span>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script>
+        // -- Scene Setup --
+        let scene, camera, renderer, controls;
+        let sphereMesh, planeMesh, intersectionLine, centerPoint, radiusLine;
+        
+        // -- Math Constants --
+        const S_CX = 2, S_CY = -1, S_CZ = 0; // Sphere Center
+        const S_R = 5; // Sphere Radius
+        const P_Z = 3; // Plane Z
+        const I_R = 4; // Intersection Radius (sqrt(25 - 3^2))
+        
+        // -- State --
+        let currentStep = 0;
+        const totalSteps = 4; // 0: Setup, 1: Isolate, 2: Substitute, 3: Project
+        
+        // -- Animation targets --
+        let targetPlaneOpacity = 0.2;
+        let targetSphereOpacity = 0.3;
+        let targetRadiusScale = 0.001;
+        
+        // -- DOM Elements --
+        const mathDisplay = document.getElementById('math-display');
+        const btnNext = document.getElementById('btn-next');
+        const btnPrev = document.getElementById('btn-prev');
+        const progressBar = document.getElementById('progress-bar');
+        const labelCenter = document.getElementById('label-center');
+        const labelRadius = document.getElementById('label-radius');
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f172a); 
+
+            // Camera setup to look at the intersection area
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(12, 8, 15);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(S_CX, S_CY, P_Z); // Look at the intersection center
+
+            // Lights
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(10, 10, 10);
+            scene.add(dirLight);
+
+            // 1. Grid and Axes (Using Z as depth, XY as screen plane, standard Cartesian)
+            // Three.js standard is X right, Y up, Z forward. We will map:
+            // Math X -> Three.js X
+            // Math Y -> Three.js Y
+            // Math Z -> Three.js Z
+            
+            const axesHelper = new THREE.AxesHelper(10);
+            scene.add(axesHelper);
+            
+            // Add grid in XY plane to ground the scene visually
+            const gridHelper = new THREE.GridHelper(20, 20, 0x475569, 0x1e293b);
+            gridHelper.rotation.x = Math.PI / 2; // Make it XY plane
+            scene.add(gridHelper);
+
+            // 2. Sphere
+            const sphereGeo = new THREE.SphereGeometry(S_R, 64, 64);
+            const sphereMat = new THREE.MeshPhysicalMaterial({
+                color: 0x38bdf8,
+                transparent: true,
+                opacity: 0.3,
+                roughness: 0.2,
+                transmission: 0.5,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+            sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
+            sphereMesh.position.set(S_CX, S_CY, S_CZ);
+            scene.add(sphereMesh);
+
+            // 3. Plane (z = 3)
+            const planeGeo = new THREE.PlaneGeometry(16, 16);
+            const planeMat = new THREE.MeshBasicMaterial({
+                color: 0xf472b6, // Pinkish
+                transparent: true,
+                opacity: 0.2,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+            planeMesh = new THREE.Mesh(planeGeo, planeMat);
+            planeMesh.position.set(0, 0, P_Z);
+            scene.add(planeMesh);
+
+            // 4. Intersection Visuals
+            setupIntersectionObjects();
+
+            // Event Listeners
+            window.addEventListener('resize', onWindowResize);
+            btnNext.addEventListener('click', () => setStep(currentStep + 1));
+            btnPrev.addEventListener('click', () => setStep(currentStep - 1));
+
+            // Initial UI State
+            updateUI();
+        }
+
+        function setupIntersectionObjects() {
+            // Circle Line
+            const circleGeo = new THREE.BufferGeometry();
+            const points = [];
+            for (let i = 0; i <= 64; i++) {
+                const theta = (i / 64) * Math.PI * 2;
+                // Circle in XY plane at Z=0 relative to its local group
+                points.push(new THREE.Vector3(Math.cos(theta), Math.sin(theta), 0));
+            }
+            circleGeo.setFromPoints(points);
+            
+            const lineMat = new THREE.LineBasicMaterial({ color: 0x4ade80, linewidth: 2 });
+            intersectionLine = new THREE.Line(circleGeo, lineMat);
+            intersectionLine.position.set(S_CX, S_CY, P_Z);
+            intersectionLine.scale.set(0.001, 0.001, 0.001); // Start invisible/tiny
+            intersectionLine.visible = false;
+            scene.add(intersectionLine);
+
+            // Center Point
+            const pointGeo = new THREE.SphereGeometry(0.15, 16, 16);
+            const pointMat = new THREE.MeshBasicMaterial({ color: 0xf87171 });
+            centerPoint = new THREE.Mesh(pointGeo, pointMat);
+            centerPoint.position.set(S_CX, S_CY, P_Z);
+            centerPoint.visible = false;
+            scene.add(centerPoint);
+            
+            // Radius Line
+            const radiusGeo = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, 0), // Local center
+                new THREE.Vector3(1, 0, 0)  // Local edge (scale will stretch it)
+            ]);
+            const rLineMat = new THREE.LineBasicMaterial({ color: 0xfacc15 });
+            radiusLine = new THREE.Line(radiusGeo, rLineMat);
+            radiusLine.position.set(S_CX, S_CY, P_Z);
+            radiusLine.scale.set(0.001, 1, 1);
+            radiusLine.visible = false;
+            scene.add(radiusLine);
+        }
+
+        // --- Step Logic ---
+        function setStep(step) {
+            if (step < 0 || step >= totalSteps) return;
+            currentStep = step;
+            
+            // Apply 3D logic
+            switch(step) {
+                case 0: // Setup
+                    targetPlaneOpacity = 0.15;
+                    targetSphereOpacity = 0.35;
+                    intersectionLine.visible = false;
+                    centerPoint.visible = false;
+                    radiusLine.visible = false;
+                    labelCenter.style.display = 'none';
+                    labelRadius.style.display = 'none';
+                    break;
+                case 1: // Isolate Plane
+                    targetPlaneOpacity = 0.6;
+                    targetSphereOpacity = 0.1;
+                    intersectionLine.visible = false;
+                    centerPoint.visible = false;
+                    radiusLine.visible = false;
+                    labelCenter.style.display = 'none';
+                    labelRadius.style.display = 'none';
+                    break;
+                case 2: // Substitute
+                    targetPlaneOpacity = 0.5;
+                    targetSphereOpacity = 0.15;
+                    intersectionLine.visible = true;
+                    targetRadiusScale = I_R; // Animate to full radius
+                    centerPoint.visible = false;
+                    radiusLine.visible = false;
+                    labelCenter.style.display = 'none';
+                    labelRadius.style.display = 'none';
+                    break;
+                case 3: // Project
+                    targetPlaneOpacity = 0.3;
+                    targetSphereOpacity = 0.05;
+                    intersectionLine.visible = true;
+                    targetRadiusScale = I_R;
+                    centerPoint.visible = true;
+                    radiusLine.visible = true;
+                    labelCenter.style.display = 'block';
+                    labelRadius.style.display = 'block';
+                    break;
+            }
+            
+            updateUI();
+        }
+
+        function updateUI() {
+            // Update buttons
+            btnPrev.disabled = currentStep === 0;
+            btnNext.disabled = currentStep === totalSteps - 1;
+            btnNext.textContent = currentStep === totalSteps - 1 ? "Completed" : "Next Step";
+            
+            // Update progress bar & indicators
+            progressBar.style.width = `${(currentStep + 1) * 25}%`;
+            for (let i = 0; i < totalSteps; i++) {
+                const el = document.getElementById(`step-${i+1}-ind`);
+                if (i === currentStep) el.className = "text-blue-400 font-bold";
+                else if (i < currentStep) el.className = "text-green-400";
+                else el.className = "text-slate-500";
+            }
+            
+            // Update Math Text
+            let html = "";
+            switch(currentStep) {
+                case 0:
+                    html = `
+                        <div class="equation text-slate-300">Sphere:</div>
+                        <div class="equation highlight-text text-lg">(x-2)² + (y+1)² + z² = 25</div>
+                        <div class="equation text-slate-300 mt-4">Plane:</div>
+                        <div class="equation highlight-var text-lg">z = 3</div>
+                        <div class="mt-6 text-sm text-slate-400 border-t border-slate-700 pt-2">
+                            Goal: Find the exact shape and properties of the intersection.
+                        </div>
+                    `;
+                    break;
+                case 1:
+                    html = `
+                        <div class="equation text-slate-300">Isolate the cutting plane:</div>
+                        <div class="equation highlight-var text-xl">z = 3</div>
+                        <div class="mt-4 text-sm text-slate-300">
+                            The plane is fixed at a depth of 3 units along the Z-axis. Every point on our intersection must lie on this plane.
+                        </div>
+                    `;
+                    break;
+                case 2:
+                    html = `
+                        <div class="equation text-slate-300">Substitute <span class="highlight-var">z = 3</span> into the sphere:</div>
+                        <div class="equation">(x-2)² + (y+1)² + <span class="highlight-var">(3)</span>² = 25</div>
+                        <div class="equation mt-2">(x-2)² + (y+1)² + 9 = 25</div>
+                        <div class="equation mt-2 text-slate-400 text-xs">Subtract 9 from both sides:</div>
+                        <div class="equation highlight-calc text-lg bg-green-900 bg-opacity-30 p-2 rounded">
+                            (x-2)² + (y+1)² = 16
+                        </div>
+                    `;
+                    break;
+                case 3:
+                    html = `
+                        <div class="equation text-slate-300">The result is a 2D Circle equation:</div>
+                        <div class="equation mb-3">(x-<span class="text-red-400">2</span>)² + (y-(<span class="text-red-400">-1</span>))² = <span class="text-green-400">4</span>²</div>
+                        <ul class="list-disc pl-5 space-y-2 text-sm mt-4">
+                            <li>Lies on Plane: <span class="highlight-var">z = 3</span></li>
+                            <li>Center in 3D: <span class="text-red-400 font-bold">C(2, -1, 3)</span></li>
+                            <li>Radius: <span class="text-green-400 font-bold">r = √16 = 4</span></li>
+                        </ul>
+                    `;
+                    break;
+            }
+            mathDisplay.innerHTML = html;
+        }
+
+        function updateLabels() {
+            // Project 3D coordinates to 2D screen coordinates for HTML labels
+            if (currentStep === 3) {
+                // Center Label
+                const centerVec = new THREE.Vector3(S_CX, S_CY, P_Z);
+                centerVec.project(camera);
+                const xC = (centerVec.x * 0.5 + 0.5) * window.innerWidth;
+                const yC = (centerVec.y * -0.5 + 0.5) * window.innerHeight;
+                
+                labelCenter.style.left = `${xC}px`;
+                labelCenter.style.top = `${yC - 20}px`; // slightly above
+                
+                // Radius Label (midpoint of radius line)
+                const radiusMidVec = new THREE.Vector3(S_CX + (I_R/2), S_CY, P_Z);
+                // Adjust if rotating radius line
+                radiusMidVec.x = S_CX + Math.cos(Date.now() * 0.001) * (I_R/2);
+                radiusMidVec.y = S_CY + Math.sin(Date.now() * 0.001) * (I_R/2);
+                
+                radiusMidVec.project(camera);
+                const xR = (radiusMidVec.x * 0.5 + 0.5) * window.innerWidth;
+                const yR = (radiusMidVec.y * -0.5 + 0.5) * window.innerHeight;
+                
+                labelRadius.style.left = `${xR}px`;
+                labelRadius.style.top = `${yR}px`;
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            
+            // Smoothly animate opacities
+            planeMesh.material.opacity += (targetPlaneOpacity - planeMesh.material.opacity) * 0.1;
+            sphereMesh.material.opacity += (targetSphereOpacity - sphereMesh.material.opacity) * 0.1;
+            
+            // Smoothly animate circle radius (scale)
+            if (currentStep >= 2) {
+                const currentScale = intersectionLine.scale.x;
+                const newScale = currentScale + (targetRadiusScale - currentScale) * 0.1;
+                intersectionLine.scale.set(newScale, newScale, newScale);
+                
+                if (currentStep === 3) {
+                    radiusLine.scale.set(newScale, 1, 1);
+                    // Slowly rotate the radius line to make it visible from all angles
+                    const time = Date.now() * 0.001;
+                    radiusLine.rotation.z = time; 
+                }
+            }
+
+            // Update 2D HTML Labels to track 3D objects
+            updateLabels();
+
+            renderer.render(scene, camera);
+        }
+
+        window.onload = function() {
+            init();
+            animate();
+            setStep(0); // Initialize first step explicitely
+        };
+    </script>
+</body>
+</html>

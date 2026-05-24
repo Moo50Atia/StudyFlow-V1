@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Torque and Moment Vector</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #0f172a; /* Tailwind slate-900 */
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(30, 41, 59, 0.9);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            width: 360px;
+            pointer-events: auto;
+            z-index: 10;
+        }
+        .slider-container {
+            margin-bottom: 1rem;
+        }
+        input[type=range] {
+            width: 100%;
+            accent-color: #3b82f6;
+        }
+        #math-display {
+            font-family: 'Courier New', Courier, monospace;
+            background: rgba(15, 23, 42, 0.8);
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+        .highlight-force { color: #ef4444; font-weight: bold; } /* Red for force */
+        .highlight-moment { color: #3b82f6; font-weight: bold; } /* Blue for moment */
+        .highlight-radius { color: #facc15; font-weight: bold; } /* Yellow for radius */
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <div id="ui-container">
+        <h1 class="text-xl font-bold mb-1 text-white">Torque & Moment</h1>
+        <p class="text-sm text-slate-300 mb-5 border-b border-slate-600 pb-3">
+            Visualize the cross product: <br> <span class="highlight-moment">Moment</span> = <span class="highlight-radius">Radius</span> × <span class="highlight-force">Force</span>
+        </p>
+        
+        <!-- Controls -->
+        <div class="slider-container">
+            <div class="flex justify-between text-sm mb-1">
+                <label for="force-mag" class="text-slate-200">Force Magnitude (N)</label>
+                <span id="force-mag-val" class="font-mono text-blue-400">5.0</span>
+            </div>
+            <input type="range" id="force-mag" min="0" max="10" step="0.1" value="5">
+        </div>
+
+        <div class="slider-container">
+            <div class="flex justify-between text-sm mb-1">
+                <label for="force-angle" class="text-slate-200">Force Angle (&deg;)</label>
+                <span id="force-angle-val" class="font-mono text-blue-400">90&deg;</span>
+            </div>
+            <input type="range" id="force-angle" min="0" max="360" step="1" value="90">
+        </div>
+        
+        <!-- Real-time Math Display -->
+        <div id="math-display">
+            <div class="mb-2 text-slate-300">
+                |\vec{M}| = |\vec{r}| &middot; |\vec{F}| &middot; sin(&theta;)
+            </div>
+            <div class="mb-2">
+                |<span class="highlight-moment">M</span>| = <span class="highlight-radius">5.0 m</span> &middot; <span class="highlight-force" id="calc-f">5.0 N</span> &middot; sin(<span id="calc-theta">90&deg;</span>)
+            </div>
+            <div class="text-lg mt-3 bg-slate-900 bg-opacity-50 p-2 rounded text-center border border-slate-700">
+                Torque = <span class="highlight-moment" id="calc-torque">25.00</span> N&middot;m
+            </div>
+        </div>
+
+        <div class="mt-4 text-xs text-slate-400 text-center">
+            Left click + drag to rotate.<br>Scroll to zoom.
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script>
+        // --- Scene Setup ---
+        let scene, camera, renderer, controls;
+        let forceArrow, momentArrow, radiusLine;
+        
+        // --- Constants ---
+        const R_LENGTH = 5.0; // Distance from bolt center to force application
+        const MOMENT_SCALE = 0.2; // Visual scaling factor for the blue moment arrow
+        
+        // --- DOM Elements ---
+        const magSlider = document.getElementById('force-mag');
+        const angleSlider = document.getElementById('force-angle');
+        const magVal = document.getElementById('force-mag-val');
+        const angleVal = document.getElementById('force-angle-val');
+        
+        const calcF = document.getElementById('calc-f');
+        const calcTheta = document.getElementById('calc-theta');
+        const calcTorque = document.getElementById('calc-torque');
+
+        function init() {
+            // 1. Core Three.js Setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f172a); 
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(6, 6, 12);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            // Enable shadows for realism
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(2.5, 0, 0); // Look at the middle of the wrench
+
+            // 2. Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 10, 5);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 1024;
+            dirLight.shadow.mapSize.height = 1024;
+            scene.add(dirLight);
+            
+            const pointLight = new THREE.PointLight(0x93c5fd, 0.5, 20); // Subtle blue light
+            pointLight.position.set(-2, 2, 5);
+            scene.add(pointLight);
+
+            // 3. Grid and Axes
+            const gridHelper = new THREE.GridHelper(20, 20, 0x334155, 0x1e293b);
+            gridHelper.rotation.x = Math.PI / 2; // Orient to XY plane
+            gridHelper.position.z = -0.5; // Slightly behind the objects
+            scene.add(gridHelper);
+
+            // 4. Build 3D Models
+            createModels();
+            
+            // 5. Build Vectors (Arrows)
+            setupVectors();
+
+            // 6. Event Listeners
+            window.addEventListener('resize', onWindowResize);
+            magSlider.addEventListener('input', updatePhysics);
+            angleSlider.addEventListener('input', updatePhysics);
+
+            // Initial calculation
+            updatePhysics();
+        }
+
+        function createModels() {
+            const materialBolt = new THREE.MeshStandardMaterial({ 
+                color: 0x475569, 
+                metalness: 0.8, 
+                roughness: 0.4 
+            });
+            const materialWrench = new THREE.MeshStandardMaterial({ 
+                color: 0x94a3b8, 
+                metalness: 0.9, 
+                roughness: 0.2 
+            });
+
+            // --- Bolt ---
+            const boltGroup = new THREE.Group();
+            
+            // Bolt Head (Hexagon) - aligned along Z axis
+            const headGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.6, 6);
+            headGeo.rotateX(Math.PI / 2); // Lay flat on XY plane
+            const headMesh = new THREE.Mesh(headGeo, materialBolt);
+            headMesh.castShadow = true;
+            headMesh.receiveShadow = true;
+            boltGroup.add(headMesh);
+            
+            // Bolt Thread
+            const threadGeo = new THREE.CylinderGeometry(0.5, 0.5, 2, 32);
+            threadGeo.rotateX(Math.PI / 2);
+            const threadMesh = new THREE.Mesh(threadGeo, materialBolt);
+            threadMesh.position.z = -1; // Push it back
+            threadMesh.castShadow = true;
+            threadMesh.receiveShadow = true;
+            boltGroup.add(threadMesh);
+            
+            scene.add(boltGroup);
+
+            // --- Wrench ---
+            const wrenchGroup = new THREE.Group();
+            
+            // Wrench Head (Ring around bolt)
+            const ringGeo = new THREE.TorusGeometry(0.8, 0.25, 16, 32);
+            const ringMesh = new THREE.Mesh(ringGeo, materialWrench);
+            ringMesh.castShadow = true;
+            ringMesh.receiveShadow = true;
+            wrenchGroup.add(ringMesh);
+
+            // Wrench Handle
+            // We want it to stretch from x=1 to roughly x=5.5
+            const handleLength = 4.8;
+            const handleGeo = new THREE.BoxGeometry(handleLength, 0.4, 0.2);
+            const handleMesh = new THREE.Mesh(handleGeo, materialWrench);
+            handleMesh.position.set(0.8 + handleLength / 2, 0, 0); // Center the handle appropriately
+            handleMesh.castShadow = true;
+            handleMesh.receiveShadow = true;
+            wrenchGroup.add(handleMesh);
+            
+            // Ensure the wrench sits slightly above the bolt center visually
+            wrenchGroup.position.z = 0; 
+            scene.add(wrenchGroup);
+        }
+
+        function setupVectors() {
+            const originF = new THREE.Vector3(R_LENGTH, 0, 0);
+            
+            // Force Vector (Red)
+            forceArrow = new THREE.ArrowHelper(
+                new THREE.Vector3(0, 1, 0), // Default direction
+                originF, 
+                5, // Default length
+                0xef4444, // Red
+                1, // Head length
+                0.4 // Head width
+            );
+            scene.add(forceArrow);
+
+            // Moment Vector (Blue)
+            momentArrow = new THREE.ArrowHelper(
+                new THREE.Vector3(0, 0, 1), 
+                new THREE.Vector3(0, 0, 0), // Starts at bolt center
+                5, 
+                0x3b82f6, // Blue
+                1, 
+                0.5 
+            );
+            scene.add(momentArrow);
+
+            // Radius visualization (Dashed yellow line)
+            const rPoints = [new THREE.Vector3(0,0,0), new THREE.Vector3(R_LENGTH,0,0)];
+            const rGeo = new THREE.BufferGeometry().setFromPoints(rPoints);
+            const rMat = new THREE.LineDashedMaterial({
+                color: 0xfacc15,
+                linewidth: 2,
+                scale: 1,
+                dashSize: 0.2,
+                gapSize: 0.1,
+            });
+            radiusLine = new THREE.Line(rGeo, rMat);
+            radiusLine.computeLineDistances(); // Required for dashed lines
+            scene.add(radiusLine);
+            
+            // Add a small sphere at the force application point
+            const dotGeo = new THREE.SphereGeometry(0.1, 16, 16);
+            const dotMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+            const dotMesh = new THREE.Mesh(dotGeo, dotMat);
+            dotMesh.position.copy(originF);
+            scene.add(dotMesh);
+        }
+
+        function updatePhysics() {
+            // 1. Read Inputs
+            const fMag = parseFloat(magSlider.value);
+            const fAngleDeg = parseFloat(angleSlider.value);
+            const fAngleRad = THREE.MathUtils.degToRad(fAngleDeg);
+
+            // 2. Update UI Labels
+            magVal.textContent = fMag.toFixed(1);
+            angleVal.innerHTML = fAngleDeg + '&deg;';
+            calcF.textContent = fMag.toFixed(1) + ' N';
+            calcTheta.innerHTML = fAngleDeg + '&deg;';
+
+            // 3. Calculate Force Vector (In XY plane)
+            const fx = Math.cos(fAngleRad);
+            const fy = Math.sin(fAngleRad);
+            const forceDir = new THREE.Vector3(fx, fy, 0);
+            
+            // 4. Update Red Arrow (Force)
+            if (fMag > 0.1) {
+                forceArrow.visible = true;
+                forceArrow.setDirection(forceDir.normalize());
+                // Scale arrow length for better visual balance
+                forceArrow.setLength(fMag * 0.8, Math.max(0.4, fMag * 0.15), Math.max(0.2, fMag * 0.08)); 
+            } else {
+                forceArrow.visible = false;
+            }
+
+            // 5. Calculate Torque (Cross Product: r x F)
+            // r = (R_LENGTH, 0, 0)
+            // F = (fMag * fx, fMag * fy, 0)
+            // M = (0, 0, R_LENGTH * fMag * fy)
+            const torqueZ = R_LENGTH * fMag * fy;
+            const torqueMag = Math.abs(torqueZ);
+            
+            // Update Torque Text
+            calcTorque.textContent = torqueZ.toFixed(2);
+            if(torqueZ < 0) {
+                calcTorque.style.color = "#ec4899"; // Pinkish for negative torque
+            } else {
+                calcTorque.style.color = "#3b82f6"; // Blue for positive torque
+            }
+
+            // 6. Update Blue Arrow (Moment)
+            if (torqueMag > 0.1) {
+                momentArrow.visible = true;
+                // Direction depends on the sign of the torque (Right Hand Rule)
+                const momentDir = new THREE.Vector3(0, 0, Math.sign(torqueZ));
+                momentArrow.setDirection(momentDir);
+                
+                // Scale visually so it doesn't leave the screen, but remains dynamic
+                const visualLength = torqueMag * MOMENT_SCALE;
+                momentArrow.setLength(visualLength, Math.min(1.0, visualLength * 0.3), Math.min(0.5, visualLength * 0.15));
+            } else {
+                momentArrow.visible = false;
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update(); // only required if controls.enableDamping or controls.autoRotate are set
+            renderer.render(scene, camera);
+        }
+
+        // Start
+        window.onload = function() {
+            init();
+            animate();
+        };
+    </script>
+</body>
+</html>

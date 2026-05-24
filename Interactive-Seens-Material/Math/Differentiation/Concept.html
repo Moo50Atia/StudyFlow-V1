@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculus: Secant to Tangent</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom range slider styling for a polished look */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+            margin-top: -7px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+        .math-text {
+            font-family: 'Times New Roman', Times, serif;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans selection:bg-blue-200">
+    <header class="bg-white shadow-sm py-4 px-6 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Secant to Tangent Line</h1>
+            <p class="text-slate-500 text-sm mt-1">Watch how average rate of change approaches the instantaneous rate of change as <span class="math-text">Δx</span> → 0.</p>
+        </div>
+        <div class="bg-blue-50 text-blue-800 px-3 py-1.5 rounded-full text-sm font-medium border border-blue-100 flex items-center gap-2 w-max">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            Interactive Calculus Module
+        </div>
+    </header>
+
+    <main class="flex-grow p-4 md:p-6 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left Column: Graph Interface -->
+        <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col">
+            <div class="flex-grow relative w-full h-[350px] md:h-[450px] bg-slate-50 rounded-xl overflow-hidden border border-slate-100">
+                <canvas id="graphCanvas" class="absolute inset-0 w-full h-full"></canvas>
+            </div>
+            
+            <div class="mt-6 bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-4">
+                <button id="animateBtn" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm whitespace-nowrap flex items-center justify-center gap-2">
+                    <!-- Icon replaced dynamically via JS -->
+                    Animate to 0
+                </button>
+                <div class="flex-grow flex flex-col w-full">
+                    <div class="flex justify-between mb-2">
+                        <label class="text-sm font-semibold text-slate-700">Slide <span class="math-text">Δx</span></label>
+                        <span class="text-sm font-mono bg-slate-100 text-slate-800 px-2 py-0.5 rounded border border-slate-200">Δx = <span id="dxDisplay">7.00</span></span>
+                    </div>
+                    <input type="range" id="dxSlider" min="0" max="7" step="0.01" value="7" class="w-full">
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Dashboard & Calculations -->
+        <div class="flex flex-col gap-6">
+            
+            <!-- Dynamic Speedometer -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col items-center">
+                <h2 class="text-[1.1rem] font-bold text-slate-800 mb-2 tracking-tight text-center transition-colors duration-300" id="modeTitle">Average Rate of Change</h2>
+                <div class="w-full relative aspect-[5/3] mt-2">
+                    <canvas id="speedCanvas" class="absolute inset-0 w-full h-full"></canvas>
+                </div>
+                <div class="mt-2 text-center">
+                    <div class="text-4xl font-extrabold text-slate-900 tabular-nums transition-colors duration-300" id="speedDisplay">0.00</div>
+                    <div class="text-xs text-slate-400 font-bold tracking-widest uppercase mt-1">m/s</div>
+                </div>
+                
+                <div class="mt-5 w-full px-4 py-3 rounded-lg text-sm transition-all duration-300" id="statusMessage">
+                    <!-- Text updated via JS -->
+                </div>
+            </div>
+
+            <!-- Math Readout -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex-grow">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                    Live Calculations
+                </h3>
+                
+                <div class="space-y-4 font-mono text-sm">
+                    <div>
+                        <div class="text-slate-500 mb-1 text-xs sans-serif">Distance Function:</div>
+                        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-slate-700">f(x) = 0.5x²</div>
+                    </div>
+                    <div>
+                        <div class="text-slate-500 mb-1 text-xs sans-serif">Fixed Point P (x₀):</div>
+                        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-slate-700">x₀ = 3.00, f(3.00) = 4.50</div>
+                    </div>
+                    <div>
+                        <div class="text-slate-500 mb-1 text-xs sans-serif">Moving Point Q (x₀ + Δx):</div>
+                        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100 transition-colors duration-300 text-slate-700" id="calcMovingPoint">
+                            x₁ = 10.00, f(10.00) = 50.00
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-slate-500 mb-1 text-xs sans-serif">Rate / Slope (<span class="math-text">m</span>):</div>
+                        <div class="p-3 rounded-lg border transition-colors duration-300" id="calcFormula">
+                            <!-- Formula populated via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // DOM Elements
+        const graphCanvas = document.getElementById('graphCanvas');
+        const speedCanvas = document.getElementById('speedCanvas');
+        const dxSlider = document.getElementById('dxSlider');
+        const animateBtn = document.getElementById('animateBtn');
+        const dxDisplay = document.getElementById('dxDisplay');
+        const speedDisplay = document.getElementById('speedDisplay');
+        const modeTitle = document.getElementById('modeTitle');
+        const statusMessage = document.getElementById('statusMessage');
+        const calcMovingPoint = document.getElementById('calcMovingPoint');
+        const calcFormula = document.getElementById('calcFormula');
+
+        // Application State & Mathematical Functions
+        let dx = 7.0;
+        const x0 = 3.0;
+        const f = (x) => 0.5 * x * x; // Distance over time
+        const df = (x) => x;          // Derivative (Instantaneous Speed)
+        let animationId = null;
+
+        // Canvas Contexts
+        let gCtx, sCtx;
+        let gWidth, gHeight, sWidth, sHeight;
+
+        // Retina Display Canvas Setup
+        function initCanvas(canvas) {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+            return { ctx, w: rect.width, h: rect.height };
+        }
+
+        function resizeCanvases() {
+            const gObj = initCanvas(graphCanvas);
+            gCtx = gObj.ctx; gWidth = gObj.w; gHeight = gObj.h;
+            
+            const sObj = initCanvas(speedCanvas);
+            sCtx = sObj.ctx; sWidth = sObj.w; sHeight = sObj.h;
+            
+            render();
+        }
+
+        window.addEventListener('resize', resizeCanvases);
+        window.onload = resizeCanvases;
+
+        // Main Render Loop
+        function render() {
+            // 1. Math Calculations
+            let x1 = x0 + dx;
+            let y0 = f(x0);
+            let y1 = f(x1);
+            let isTangent = (dx === 0);
+            let rate = isTangent ? df(x0) : (y1 - y0) / dx;
+            
+            // 2. DOM Interface Updates
+            dxDisplay.textContent = dx.toFixed(2);
+            speedDisplay.textContent = rate.toFixed(2);
+            speedDisplay.className = isTangent 
+                ? "text-4xl font-extrabold tabular-nums transition-colors duration-300 text-emerald-600" 
+                : "text-4xl font-extrabold tabular-nums transition-colors duration-300 text-slate-900";
+            
+            if (isTangent) {
+                modeTitle.textContent = "Instantaneous Rate";
+                modeTitle.className = "text-[1.1rem] font-bold tracking-tight text-center transition-colors duration-300 text-emerald-600";
+                
+                statusMessage.innerHTML = "The secant line smoothly transformed into a <strong class='text-emerald-700'>Tangent Line</strong> touching one point. This represents the exact instantaneous speed.";
+                statusMessage.className = "mt-5 w-full px-4 py-3 bg-emerald-50 border border-emerald-100 rounded-lg text-sm text-emerald-800 text-center transition-all duration-300";
+                
+                calcMovingPoint.innerHTML = `x₁ = x₀ = 3.00 <span class="text-emerald-600 text-xs tracking-wider ml-2">(POINTS MERGED)</span>`;
+                calcMovingPoint.className = "bg-emerald-50 p-2.5 rounded-lg border border-emerald-100 text-emerald-800 transition-colors duration-300";
+                
+                calcFormula.innerHTML = `m = <span class="text-xs">lim(Δx→0)</span> [f(3+Δx) - f(3)] / Δx<br><br>m = f'(3.00) = <strong class="text-emerald-700 text-base">${rate.toFixed(2)}</strong>`;
+                calcFormula.className = "bg-emerald-50 p-3 rounded-lg border border-emerald-200 text-emerald-900 transition-colors duration-300";
+            } else {
+                modeTitle.textContent = "Average Rate of Change";
+                modeTitle.className = "text-[1.1rem] font-bold tracking-tight text-center transition-colors duration-300 text-rose-600";
+                
+                statusMessage.innerHTML = "The <strong class='text-rose-600'>Secant Line</strong> connects points P and Q. It visually represents the average speed over interval Δx.";
+                statusMessage.className = "mt-5 w-full px-4 py-3 bg-rose-50 border border-rose-100 rounded-lg text-sm text-rose-800 text-center transition-all duration-300";
+                
+                calcMovingPoint.innerHTML = `x₁ = ${x1.toFixed(2)}, f(${x1.toFixed(2)}) = ${y1.toFixed(2)}`;
+                calcMovingPoint.className = "bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-slate-700 transition-colors duration-300";
+                
+                calcFormula.innerHTML = `m = [f(${x1.toFixed(2)}) - f(3.00)] / ${dx.toFixed(2)}<br><br>m = <strong class="text-rose-600 text-base">${rate.toFixed(2)}</strong>`;
+                calcFormula.className = "bg-slate-50 p-3 rounded-lg border border-slate-200 text-slate-800 transition-colors duration-300";
+            }
+
+            // Update Animation Button State
+            if (isTangent) {
+                animateBtn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Reset & Animate`;
+                animateBtn.classList.replace('bg-blue-600', 'bg-emerald-600');
+                animateBtn.classList.replace('hover:bg-blue-700', 'hover:bg-emerald-700');
+            } else {
+                animateBtn.innerHTML = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg> Animate to 0`;
+                animateBtn.classList.replace('bg-emerald-600', 'bg-blue-600');
+                animateBtn.classList.replace('hover:bg-emerald-700', 'hover:bg-blue-700');
+            }
+
+            // 3. Draw Elements on Canvases
+            drawGraph(gCtx, gWidth, gHeight, x1, y0, y1, isTangent, rate);
+            drawSpeedometer(sCtx, sWidth, sHeight, rate, isTangent);
+        }
+
+        function drawGraph(ctx, w, h, x1, y0, y1, isTangent, rate) {
+            const pad = 50;
+            const chartW = w - pad * 1.5;
+            const chartH = h - pad * 1.5;
+            
+            const xMin = 0, xMax = 10;
+            const yMin = 0, yMax = 50;
+            
+            const sx = (x) => pad + ((x - xMin) / (xMax - xMin)) * chartW;
+            const sy = (y) => h - pad - ((y - yMin) / (yMax - yMin)) * chartH;
+            
+            ctx.clearRect(0, 0, w, h);
+            
+            // Draw Grid
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for(let x=0; x<=10; x+=1) { ctx.moveTo(sx(x), sy(yMin)); ctx.lineTo(sx(x), sy(yMax)); }
+            for(let y=0; y<=50; y+=10) { ctx.moveTo(sx(xMin), sy(y)); ctx.lineTo(sx(xMax), sy(y)); }
+            ctx.stroke();
+            
+            // Draw Axes
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(sx(xMin), sy(yMin)); ctx.lineTo(sx(xMax), sy(yMin));
+            ctx.moveTo(sx(xMin), sy(yMin)); ctx.lineTo(sx(xMin), sy(yMax));
+            ctx.stroke();
+            
+            // Axis Labels & Ticks
+            ctx.fillStyle = '#64748b';
+            ctx.font = '500 13px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Time (x)', sx(5), h - 12);
+            
+            ctx.save();
+            ctx.translate(15, sy(25));
+            ctx.rotate(-Math.PI/2);
+            ctx.textAlign = 'center';
+            ctx.fillText('Distance f(x)', 0, 0);
+            ctx.restore();
+            
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            for(let x=2; x<=10; x+=2) ctx.fillText(x, sx(x), sy(yMin) + 6);
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            for(let y=10; y<=50; y+=10) ctx.fillText(y, sx(xMin) - 8, sy(y));
+
+            // Draw f(x) Curve
+            ctx.strokeStyle = '#3b82f6';
+            ctx.lineWidth = 3.5;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            for(let x=xMin; x<=xMax; x+=0.1) {
+                let y = f(x);
+                if(x === xMin) ctx.moveTo(sx(x), sy(y));
+                else ctx.lineTo(sx(x), sy(y));
+            }
+            ctx.stroke();
+
+            // Draw Right Triangle for DX / DY
+            if (!isTangent && dx >= 0.4) {
+                ctx.strokeStyle = '#94a3b8';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(sx(x0), sy(y0));
+                ctx.lineTo(sx(x1), sy(y0));
+                ctx.lineTo(sx(x1), sy(y1));
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                ctx.fillStyle = '#64748b';
+                ctx.font = 'italic 14px "Times New Roman", serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.fillText('Δx', sx(x0 + dx/2), sy(y0) + 6);
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('Δy', sx(x1) + 8, sy(y0 + (y1-y0)/2));
+            }
+
+            // Calculate & Draw the Line (Secant / Tangent) extending across graph
+            let ly0 = rate * (0 - x0) + y0;
+            let ly10 = rate * (10 - x0) + y0;
+            
+            ctx.strokeStyle = isTangent ? '#10b981' : '#f43f5e';
+            ctx.lineWidth = isTangent ? 3.5 : 2.5;
+            
+            // Add subtle glow for Tangent
+            if(isTangent) {
+                ctx.shadowColor = 'rgba(16, 185, 129, 0.4)';
+                ctx.shadowBlur = 10;
+            } else {
+                ctx.shadowBlur = 0;
+            }
+
+            ctx.beginPath();
+            ctx.moveTo(sx(0), sy(ly0));
+            ctx.lineTo(sx(10), sy(ly10));
+            ctx.stroke();
+            ctx.shadowBlur = 0; // Reset shadow
+
+            // Draw Intersection Points P and Q
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.arc(sx(x0), sy(y0), 5, 0, Math.PI*2);
+            ctx.fill();
+
+            if (!isTangent) {
+                ctx.fillStyle = '#f43f5e';
+                ctx.beginPath();
+                ctx.arc(sx(x1), sy(y1), 5.5, 0, Math.PI*2);
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            } else {
+                // Merge effect
+                ctx.fillStyle = '#10b981';
+                ctx.beginPath();
+                ctx.arc(sx(x0), sy(y0), 8, 0, Math.PI*2);
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+            }
+        }
+
+        function drawSpeedometer(ctx, w, h, value, isTangent) {
+            ctx.clearRect(0, 0, w, h);
+            const cx = w / 2;
+            const cy = h - 25;
+            // Safety: Ensure radius is at least 10 pixels to prevent negative radius error
+            const r = Math.max(10, Math.min(w / 2, h) - 30);
+            
+            // Draw Color Band Tracks
+            ctx.lineWidth = 18;
+            ctx.lineCap = 'butt';
+            
+            ctx.beginPath(); ctx.arc(cx, cy, r, Math.PI, Math.PI + 0.35*Math.PI); ctx.strokeStyle = '#34d399'; ctx.stroke();
+            ctx.beginPath(); ctx.arc(cx, cy, r, Math.PI + 0.35*Math.PI, Math.PI + 0.65*Math.PI); ctx.strokeStyle = '#fbbf24'; ctx.stroke();
+            ctx.beginPath(); ctx.arc(cx, cy, r, Math.PI + 0.65*Math.PI, 2 * Math.PI); ctx.strokeStyle = '#fb7185'; ctx.stroke();
+
+            // Draw Gauge Ticks and Numbers
+            for(let i=0; i<=10; i++) {
+                let angle = Math.PI + (i/10) * Math.PI;
+                let isMajor = i % 2 === 0;
+                let len = isMajor ? 10 : 5;
+                
+                // Track outer border
+                let rOut = r + 9; 
+                
+                ctx.beginPath();
+                ctx.moveTo(cx + rOut * Math.cos(angle), cy + rOut * Math.sin(angle));
+                ctx.lineTo(cx + (rOut + len) * Math.cos(angle), cy + (rOut + len) * Math.sin(angle));
+                ctx.lineWidth = isMajor ? 2.5 : 1.5;
+                ctx.strokeStyle = '#94a3b8';
+                ctx.stroke();
+                
+                // Number Labels
+                if (isMajor) {
+                    let tx = cx + (rOut + 25) * Math.cos(angle);
+                    let ty = cy + (rOut + 25) * Math.sin(angle);
+                    ctx.fillStyle = '#64748b';
+                    ctx.font = '600 12px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(i, tx, ty);
+                }
+            }
+
+            // Draw Dynamic Needle
+            let clampedVal = Math.max(0, Math.min(10, value));
+            let angle = Math.PI + (clampedVal/10) * Math.PI;
+            
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + (r - 2) * Math.cos(angle), cy + (r - 2) * Math.sin(angle));
+            ctx.lineWidth = 5;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = isTangent ? '#059669' : '#1e293b'; // Green when tangent
+            ctx.stroke();
+            
+            // Needle Base Pin
+            ctx.beginPath();
+            ctx.arc(cx, cy, 8, 0, 2*Math.PI);
+            ctx.fillStyle = isTangent ? '#059669' : '#1e293b';
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        // --- Interactivity Setup ---
+
+        // Handle Slider Input
+        dxSlider.addEventListener('input', (e) => {
+            cancelAnimationFrame(animationId);
+            dx = parseFloat(e.target.value);
+            render();
+        });
+
+        // Handle Auto-Animate Logic
+        animateBtn.addEventListener('click', () => {
+            cancelAnimationFrame(animationId);
+            
+            // Reset logic if already zero
+            if (dx === 0) {
+                dx = 7.0; 
+                dxSlider.value = 7.0;
+                render();
+            }
+            
+            let lastTime = performance.now();
+            
+            function step(currentTime) {
+                let dt = currentTime - lastTime;
+                lastTime = currentTime;
+                
+                // Dynamic speed relative to dt. ~2.5 units per sec
+                dx -= (2.5 * dt) / 1000.0;
+                
+                if (dx <= 0) {
+                    dx = 0;
+                    dxSlider.value = 0;
+                    render(); // Final snap to 0
+                    return;   // End loop
+                }
+                
+                dxSlider.value = dx;
+                render();
+                animationId = requestAnimationFrame(step);
+            }
+            
+            animationId = requestAnimationFrame(step);
+        });
+
+    </script>
+</body>
+</html>

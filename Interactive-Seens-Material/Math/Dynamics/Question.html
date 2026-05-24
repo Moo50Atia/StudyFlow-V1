@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atwood Machine Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #0f172a; /* Tailwind slate-900 */
+            color: #f8fafc; /* Tailwind slate-50 */
+            font-family: 'Inter', sans-serif;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(30, 41, 59, 0.95);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            width: 450px;
+            pointer-events: auto;
+            z-index: 10;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        #math-display {
+            font-family: 'Courier New', Courier, monospace;
+            background: rgba(15, 23, 42, 0.8);
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 0.95rem;
+            min-height: 220px;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            position: relative;
+        }
+        
+        .btn {
+            background-color: #3b82f6;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s, transform 0.1s;
+            width: 100%;
+        }
+        .btn:hover { background-color: #2563eb; }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { background-color: #475569; cursor: not-allowed; transform: none; }
+
+        .slider-container { margin-bottom: 1rem; }
+        input[type=range] { width: 100%; accent-color: #3b82f6; }
+        
+        /* Highlighters */
+        .hl-m1 { color: #f87171; font-weight: bold; } /* Red for m1 */
+        .hl-m2 { color: #60a5fa; font-weight: bold; } /* Blue for m2 */
+        .hl-t { color: #34d399; font-weight: bold; }  /* Green for Tension */
+        .hl-g { color: #a78bfa; font-weight: bold; }  /* Purple for gravity */
+        .hl-a { color: #facc15; font-weight: bold; }  /* Yellow for acceleration */
+        
+        .strike { 
+            text-decoration: line-through; 
+            text-decoration-color: #ef4444; 
+            text-decoration-thickness: 2px;
+        }
+
+        /* HTML 3D Labels */
+        .scene-label {
+            position: absolute;
+            background: rgba(15, 23, 42, 0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            border: 1px solid rgba(255,255,255,0.15);
+            display: none;
+            white-space: nowrap;
+            z-index: 5;
+        }
+        
+        /* Custom Scrollbar for UI */
+        #ui-container::-webkit-scrollbar { width: 6px; }
+        #ui-container::-webkit-scrollbar-track { background: transparent; }
+        #ui-container::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <div id="ui-container">
+        <h1 class="text-xl font-bold mb-1 text-white">Atwood Machine</h1>
+        <p class="text-sm text-slate-300 mb-4 border-b border-slate-600 pb-3">
+            Solve for acceleration using Newton's Second Law.
+        </p>
+        
+        <div id="controls-section">
+            <div class="slider-container">
+                <div class="flex justify-between text-sm mb-1">
+                    <label class="hl-m1">Mass 1 (m₁)</label>
+                    <span id="m1-val" class="font-mono text-slate-300">5.0 kg</span>
+                </div>
+                <input type="range" id="m1-slider" min="1" max="15" step="0.5" value="5">
+            </div>
+
+            <div class="slider-container">
+                <div class="flex justify-between text-sm mb-1">
+                    <label class="hl-m2">Mass 2 (m₂)</label>
+                    <span id="m2-val" class="font-mono text-slate-300">8.0 kg</span>
+                </div>
+                <input type="range" id="m2-slider" min="1" max="15" step="0.5" value="8">
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center mb-4 mt-4 space-x-2">
+            <button id="btn-prev" class="btn" style="background-color: #475569;">Restart</button>
+            <button id="btn-next" class="btn">Next Step</button>
+        </div>
+
+        <!-- Step Indicator -->
+        <div class="flex justify-between mb-2 text-xs font-semibold text-slate-400">
+            <span id="step-0-ind" class="text-blue-400">1. Setup</span>
+            <span id="step-1-ind">2. FBDs</span>
+            <span id="step-2-ind">3. Equations</span>
+            <span id="step-3-ind">4. Solve</span>
+            <span id="step-4-ind">5. Animate</span>
+        </div>
+        <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden mb-2">
+            <div id="progress-bar" class="bg-blue-500 h-full transition-all duration-500" style="width: 20%;"></div>
+        </div>
+        
+        <div id="math-display">
+            <!-- Dynamic Math Content gets injected here -->
+        </div>
+        
+        <div class="mt-4 text-xs text-slate-400 text-center">
+            Left click + drag to rotate 3D view.<br>Scroll to zoom.
+        </div>
+    </div>
+
+    <!-- 3D Scene HTML Labels -->
+    <div id="label-m1" class="scene-label hl-m1">m₁</div>
+    <div id="label-m2" class="scene-label hl-m2">m₂</div>
+    <div id="label-acc" class="scene-label hl-a text-lg bg-slate-900 border-yellow-400">a = 0.00 m/s²</div>
+
+    <div id="canvas-container"></div>
+
+    <script>
+        // --- Physics & Math State ---
+        let m1 = 5.0;
+        let m2 = 8.0;
+        const g = 9.81; // Gravity
+        let a = 0;      // Acceleration
+        let t_tension = 0; // Tension
+        
+        let currentStep = 0;
+        const totalSteps = 5;
+        
+        // Kinematics state for animation
+        let simTime = 0;
+        let isAnimating = false;
+        const initialY1 = 4;
+        const initialY2 = 4;
+        const pulleyRadius = 1.5;
+        const pulleyY = 10;
+
+        // --- Three.js Variables ---
+        let scene, camera, renderer, controls;
+        let mass1Mesh, mass2Mesh, pulleyMesh;
+        let string1, string2, stringArc;
+        
+        // FBD Groups and Vectors
+        let fbdGroup1, fbdGroup2;
+        let fbd1TargetX = 0, fbd2TargetX = 0;
+        let fbdOffset = 0; // Current animated offset
+        
+        let arrowT1, arrowW1, arrowT2, arrowW2;
+        let arrowAcc1, arrowAcc2;
+
+        // --- DOM Elements ---
+        const mathDisplay = document.getElementById('math-display');
+        const btnNext = document.getElementById('btn-next');
+        const btnPrev = document.getElementById('btn-prev');
+        const progressBar = document.getElementById('progress-bar');
+        
+        const m1Slider = document.getElementById('m1-slider');
+        const m2Slider = document.getElementById('m2-slider');
+        const m1Val = document.getElementById('m1-val');
+        const m2Val = document.getElementById('m2-val');
+
+        const labelM1 = document.getElementById('label-m1');
+        const labelM2 = document.getElementById('label-m2');
+        const labelAcc = document.getElementById('label-acc');
+
+        function init() {
+            // 1. Scene Setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f172a); 
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 8, 25);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(0, 6, 0);
+
+            // Lights
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(10, 20, 10);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            // Grid & Ground
+            const gridHelper = new THREE.GridHelper(30, 30, 0x334155, 0x1e293b);
+            scene.add(gridHelper);
+            
+            // Build the physical machine
+            buildMachine();
+            
+            // Build FBD elements (hidden/attached initially)
+            buildFBDs();
+
+            // Event Listeners
+            window.addEventListener('resize', onWindowResize);
+            btnNext.addEventListener('click', nextStep);
+            btnPrev.addEventListener('click', restartStep);
+            
+            m1Slider.addEventListener('input', (e) => { m1 = parseFloat(e.target.value); updatePhysics(); });
+            m2Slider.addEventListener('input', (e) => { m2 = parseFloat(e.target.value); updatePhysics(); });
+
+            // Initialize calculations and UI
+            updatePhysics();
+            setStep(0);
+        }
+
+        function buildMachine() {
+            // Pulley
+            const pulleyGeo = new THREE.CylinderGeometry(pulleyRadius, pulleyRadius, 0.5, 32);
+            pulleyGeo.rotateX(Math.PI / 2);
+            const pulleyMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.6, roughness: 0.4 });
+            pulleyMesh = new THREE.Mesh(pulleyGeo, pulleyMat);
+            pulleyMesh.position.set(0, pulleyY, 0);
+            pulleyMesh.castShadow = true;
+            scene.add(pulleyMesh);
+            
+            // Pulley Stand
+            const standGeo = new THREE.BoxGeometry(0.5, pulleyY, 0.5);
+            const standMat = new THREE.MeshStandardMaterial({ color: 0x475569 });
+            const stand = new THREE.Mesh(standGeo, standMat);
+            stand.position.set(0, pulleyY / 2, -1);
+            scene.add(stand);
+
+            // Masses
+            const massGeo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+            
+            const mat1 = new THREE.MeshStandardMaterial({ color: 0xf87171 }); // Red
+            mass1Mesh = new THREE.Mesh(massGeo, mat1);
+            mass1Mesh.position.set(-pulleyRadius, initialY1, 0);
+            mass1Mesh.castShadow = true;
+            scene.add(mass1Mesh);
+
+            const mat2 = new THREE.MeshStandardMaterial({ color: 0x60a5fa }); // Blue
+            mass2Mesh = new THREE.Mesh(massGeo, mat2);
+            mass2Mesh.position.set(pulleyRadius, initialY2, 0);
+            mass2Mesh.castShadow = true;
+            scene.add(mass2Mesh);
+
+            // Strings (Vertical)
+            const stringMat = new THREE.MeshBasicMaterial({ color: 0xe2e8f0 });
+            
+            const strGeo1 = new THREE.CylinderGeometry(0.05, 0.05, 1);
+            string1 = new THREE.Mesh(strGeo1, stringMat);
+            scene.add(string1);
+
+            const strGeo2 = new THREE.CylinderGeometry(0.05, 0.05, 1);
+            string2 = new THREE.Mesh(strGeo2, stringMat);
+            scene.add(string2);
+            
+            // String (Arc over pulley)
+            const arcGeo = new THREE.TorusGeometry(pulleyRadius, 0.05, 8, 32, Math.PI);
+            const arcMesh = new THREE.Mesh(arcGeo, stringMat);
+            arcMesh.position.set(0, pulleyY, 0);
+            scene.add(arcMesh);
+            
+            updateStrings();
+        }
+
+        function buildFBDs() {
+            fbdGroup1 = new THREE.Group();
+            fbdGroup2 = new THREE.Group();
+            scene.add(fbdGroup1);
+            scene.add(fbdGroup2);
+
+            const dirUp = new THREE.Vector3(0, 1, 0);
+            const dirDown = new THREE.Vector3(0, -1, 0);
+            
+            // Arrows for Mass 1
+            arrowT1 = new THREE.ArrowHelper(dirUp, new THREE.Vector3(0,0,0), 2, 0x34d399, 0.5, 0.3); // Tension (Green)
+            arrowW1 = new THREE.ArrowHelper(dirDown, new THREE.Vector3(0,0,0), 2, 0xa78bfa, 0.5, 0.3); // Weight (Purple)
+            fbdGroup1.add(arrowT1);
+            fbdGroup1.add(arrowW1);
+
+            // Arrows for Mass 2
+            arrowT2 = new THREE.ArrowHelper(dirUp, new THREE.Vector3(0,0,0), 2, 0x34d399, 0.5, 0.3); // Tension (Green)
+            arrowW2 = new THREE.ArrowHelper(dirDown, new THREE.Vector3(0,0,0), 2, 0xa78bfa, 0.5, 0.3); // Weight (Purple)
+            fbdGroup2.add(arrowT2);
+            fbdGroup2.add(arrowW2);
+            
+            // Acceleration Arrows (initially hidden)
+            arrowAcc1 = new THREE.ArrowHelper(dirUp, new THREE.Vector3(-1.5, 0, 0), 2, 0xfacc15, 0.5, 0.3);
+            arrowAcc2 = new THREE.ArrowHelper(dirDown, new THREE.Vector3(1.5, 0, 0), 2, 0xfacc15, 0.5, 0.3);
+            arrowAcc1.visible = false;
+            arrowAcc2.visible = false;
+            fbdGroup1.add(arrowAcc1);
+            fbdGroup2.add(arrowAcc2);
+            
+            // Hide FBDs initially
+            fbdGroup1.visible = false;
+            fbdGroup2.visible = false;
+        }
+
+        function updatePhysics() {
+            // Update UI Labels
+            m1Val.textContent = m1.toFixed(1) + " kg";
+            m2Val.textContent = m2.toFixed(1) + " kg";
+            
+            // Size meshes based on mass
+            const scale1 = Math.pow(m1 / 5, 1/3); // Cube root for volume scaling
+            const scale2 = Math.pow(m2 / 5, 1/3);
+            mass1Mesh.scale.set(scale1, scale1, scale1);
+            mass2Mesh.scale.set(scale2, scale2, scale2);
+            
+            // Calculate Physics
+            // Assume positive direction is m2 going down, m1 going up.
+            // (m2*g - T) = m2*a
+            // (T - m1*g) = m1*a
+            // => a = g * (m2 - m1) / (m1 + m2)
+            a = g * (m2 - m1) / (m1 + m2);
+            
+            // T = m1 * (g + a)
+            t_tension = m1 * (g + a);
+            
+            // Update FBD Arrow lengths
+            const visScale = 0.05; // Visual scaling factor for forces
+            const l_w1 = m1 * g * visScale;
+            const l_w2 = m2 * g * visScale;
+            const l_t = t_tension * visScale;
+            
+            arrowW1.setLength(l_w1, 0.5, 0.3);
+            arrowW2.setLength(l_w2, 0.5, 0.3);
+            arrowT1.setLength(l_t, 0.5, 0.3);
+            arrowT2.setLength(l_t, 0.5, 0.3);
+            
+            // Update Acceleration arrows
+            const accLen = Math.abs(a) * 0.3;
+            if(accLen > 0.1) {
+                arrowAcc1.setLength(accLen, 0.4, 0.2);
+                arrowAcc1.setDirection(a > 0 ? new THREE.Vector3(0,1,0) : new THREE.Vector3(0,-1,0));
+                arrowAcc2.setLength(accLen, 0.4, 0.2);
+                arrowAcc2.setDirection(a > 0 ? new THREE.Vector3(0,-1,0) : new THREE.Vector3(0,1,0));
+            }
+            
+            updateMathDisplay();
+        }
+
+        function updateStrings() {
+            // String 1
+            const len1 = pulleyY - mass1Mesh.position.y;
+            string1.scale.set(1, len1, 1);
+            string1.position.set(-pulleyRadius, pulleyY - len1/2, 0);
+            
+            // String 2
+            const len2 = pulleyY - mass2Mesh.position.y;
+            string2.scale.set(1, len2, 1);
+            string2.position.set(pulleyRadius, pulleyY - len2/2, 0);
+        }
+
+        function nextStep() {
+            if(currentStep < totalSteps - 1) {
+                setStep(currentStep + 1);
+            }
+        }
+        
+        function restartStep() {
+            setStep(0);
+        }
+
+        function setStep(step) {
+            currentStep = step;
+            
+            // Base state reset
+            isAnimating = false;
+            m1Slider.disabled = (step > 0);
+            m2Slider.disabled = (step > 0);
+            
+            if (step === 0) {
+                // Reset positions
+                mass1Mesh.position.y = initialY1;
+                mass2Mesh.position.y = initialY2;
+                pulleyMesh.rotation.z = 0;
+                simTime = 0;
+                updateStrings();
+                
+                fbdOffset = 0;
+                fbdGroup1.visible = false;
+                fbdGroup2.visible = false;
+                arrowAcc1.visible = false;
+                arrowAcc2.visible = false;
+                
+                labelAcc.style.display = 'none';
+            }
+            else if (step === 1) {
+                fbdGroup1.visible = true;
+                fbdGroup2.visible = true;
+                fbd1TargetX = -4; // Slide left
+                fbd2TargetX = 4;  // Slide right
+                arrowAcc1.visible = false;
+                arrowAcc2.visible = false;
+                labelAcc.style.display = 'none';
+            }
+            else if (step === 2) {
+                fbd1TargetX = -4;
+                fbd2TargetX = 4;
+                arrowAcc1.visible = false;
+                arrowAcc2.visible = false;
+                labelAcc.style.display = 'none';
+            }
+            else if (step === 3) {
+                fbd1TargetX = -4;
+                fbd2TargetX = 4;
+                if(Math.abs(a) > 0.1) {
+                    arrowAcc1.visible = true;
+                    arrowAcc2.visible = true;
+                }
+                labelAcc.style.display = 'block';
+                labelAcc.innerHTML = `a = ${Math.abs(a).toFixed(2)} m/s²`;
+            }
+            else if (step === 4) {
+                isAnimating = true; // Start physics loop
+                fbdGroup1.visible = false; // Hide FBDs for clean animation
+                fbdGroup2.visible = false;
+            }
+            
+            updateUI();
+        }
+
+        function updateUI() {
+            // Buttons
+            btnPrev.disabled = currentStep === 0;
+            if (currentStep === totalSteps - 1) {
+                btnNext.disabled = true;
+                btnNext.textContent = "Animating...";
+            } else {
+                btnNext.disabled = false;
+                btnNext.textContent = "Next Step";
+            }
+            
+            // Progress Bar
+            progressBar.style.width = `${(currentStep + 1) * 20}%`;
+            for (let i = 0; i < totalSteps; i++) {
+                const el = document.getElementById(`step-${i}-ind`);
+                if (i === currentStep) el.className = "text-blue-400 font-bold";
+                else if (i < currentStep) el.className = "text-green-400";
+                else el.className = "text-slate-500";
+            }
+            
+            updateMathDisplay();
+        }
+
+        function updateMathDisplay() {
+            let html = "";
+            switch(currentStep) {
+                case 0:
+                    html = `
+                        <div class="mb-2"><strong>Step 1: Setup</strong></div>
+                        <p class="text-slate-300">Adjust the masses using the sliders above. The system is currently held at rest.</p>
+                        <p class="text-slate-300 mt-2">Notice how <span class="hl-m1">m₁</span> and <span class="hl-m2">m₂</span> are connected by an inextensible string over a massless, frictionless pulley.</p>
+                    `;
+                    break;
+                case 1:
+                    html = `
+                        <div class="mb-2"><strong>Step 2: Free Body Diagrams</strong></div>
+                        <p class="text-slate-300 mb-2">Isolate each mass. Two vertical forces act on each:</p>
+                        <ul class="list-disc pl-5 space-y-2 text-sm text-slate-300">
+                            <li><span class="hl-t">Tension (T)</span>: Pulls upwards. It's the same for both masses because the string is continuous.</li>
+                            <li><span class="hl-g">Gravity (mg)</span>: Pulls downwards proportional to mass.</li>
+                        </ul>
+                    `;
+                    break;
+                case 2:
+                    // Determine direction of motion assumption
+                    let dir1 = a >= 0 ? "Up" : "Down";
+                    let dir2 = a >= 0 ? "Down" : "Up";
+                    
+                    html = `
+                        <div class="mb-2"><strong>Step 3: Setup Equations (F = ma)</strong></div>
+                        <div class="text-sm text-slate-300 mb-2">Assuming <span class="hl-m2">m₂</span> moves down (+ direction):</div>
+                        
+                        <div class="bg-slate-900 bg-opacity-60 p-3 rounded space-y-3 font-mono text-sm border border-slate-700">
+                            <div>
+                                <span class="text-slate-400">For m₂ (Downwards):</span><br>
+                                <span class="hl-m2">m₂</span><span class="hl-g">g</span> - <span class="hl-t">T</span> = <span class="hl-m2">m₂</span><span class="hl-a">a</span>
+                            </div>
+                            <div class="border-t border-slate-700 pt-2">
+                                <span class="text-slate-400">For m₁ (Upwards):</span><br>
+                                <span class="hl-t">T</span> - <span class="hl-m1">m₁</span><span class="hl-g">g</span> = <span class="hl-m1">m₁</span><span class="hl-a">a</span>
+                            </div>
+                        </div>
+                    `;
+                    break;
+                case 3:
+                    html = `
+                        <div class="mb-2"><strong>Step 4: Solve for Acceleration</strong></div>
+                        <div class="text-sm text-slate-300 mb-2">Add the two equations. Notice how <span class="hl-t">Tension (T)</span> cancels out!</div>
+                        
+                        <div class="bg-slate-900 bg-opacity-60 p-3 rounded space-y-2 font-mono text-sm border border-slate-700">
+                            <div class="text-slate-400">
+                                m₂g <span class="strike hl-t">- T</span> + <span class="strike hl-t">T</span> - m₁g = (m₁ + m₂)a
+                            </div>
+                            <div class="border-t border-slate-700 pt-2">
+                                (m₂ - m₁)g = (m₁ + m₂)a
+                            </div>
+                            <div class="pt-1 hl-a">
+                                a = g * (m₂ - m₁) / (m₁ + m₂)
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 text-center bg-blue-900 bg-opacity-30 border border-blue-500 rounded p-2 text-lg">
+                            <span class="hl-a">a = ${Math.abs(a).toFixed(2)} m/s²</span> ${a > 0 ? '(m₂ down)' : (a < 0 ? '(m₁ down)' : '(Balanced)')}
+                        </div>
+                    `;
+                    break;
+                case 4:
+                    html = `
+                        <div class="mb-2"><strong>Step 5: Animation</strong></div>
+                        <p class="text-slate-300">The system accelerates at <span class="hl-a">${Math.abs(a).toFixed(2)} m/s²</span>.</p>
+                        <p class="text-slate-300 mt-2 text-sm">
+                            Kinematic Equation applied:<br>
+                            y(t) = y₀ + ½at²
+                        </p>
+                    `;
+                    break;
+            }
+            mathDisplay.innerHTML = html;
+        }
+
+        function updateLabels() {
+            // Helper to project 3D to 2D
+            const updatePos = (label, obj, offsetY = 0) => {
+                if(label.style.display === 'none') return;
+                const tempV = new THREE.Vector3();
+                obj.getWorldPosition(tempV);
+                tempV.project(camera);
+                const x = (tempV.x * 0.5 + 0.5) * window.innerWidth;
+                const y = (tempV.y * -0.5 + 0.5) * window.innerHeight;
+                label.style.left = `${x}px`;
+                label.style.top = `${y + offsetY}px`;
+                label.style.display = 'block';
+            };
+
+            updatePos(labelM1, mass1Mesh, 0);
+            updatePos(labelM2, mass2Mesh, 0);
+            
+            if (currentStep >= 3) {
+                // Place acc label near the falling mass
+                if (a > 0) updatePos(labelAcc, mass2Mesh, -60);
+                else if (a < 0) updatePos(labelAcc, mass1Mesh, -60);
+                else labelAcc.style.display = 'none';
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+
+            const dt = clock.getDelta();
+
+            // Handle FBD sliding animation
+            if (currentStep >= 1 && currentStep < 4) {
+                fbdOffset += (1 - fbdOffset) * 0.1; // Lerp to 1
+                
+                fbdGroup1.position.copy(mass1Mesh.position);
+                fbdGroup1.position.x += fbd1TargetX * fbdOffset;
+                
+                fbdGroup2.position.copy(mass2Mesh.position);
+                fbdGroup2.position.x += fbd2TargetX * fbdOffset;
+            }
+
+            // Handle Physics Animation
+            if (isAnimating && Math.abs(a) > 0) {
+                simTime += dt;
+                
+                // y = 1/2 * a * t^2
+                // a is defined as positive for m2 going down
+                const displacement = 0.5 * a * simTime * simTime;
+                
+                let newY2 = initialY2 - displacement;
+                let newY1 = initialY1 + displacement;
+                
+                // Stop condition (hit ground or pulley)
+                if (newY2 < 0.75 || newY1 > pulleyY - 1.5 || newY1 < 0.75 || newY2 > pulleyY - 1.5) {
+                    isAnimating = false;
+                } else {
+                    mass2Mesh.position.y = newY2;
+                    mass1Mesh.position.y = newY1;
+                    
+                    // Rotate pulley (arc length = angle * radius => displacement = angle * radius)
+                    const angle = displacement / pulleyRadius;
+                    pulleyMesh.rotation.z = angle;
+                    
+                    updateStrings();
+                }
+            }
+
+            updateLabels();
+            renderer.render(scene, camera);
+        }
+
+        window.onload = function() {
+            init();
+            animate();
+        };
+    </script>
+</body>
+</html>

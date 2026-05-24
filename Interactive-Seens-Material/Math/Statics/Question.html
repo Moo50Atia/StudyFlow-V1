@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moment Vector - Cross Product</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #0f172a; /* Tailwind slate-900 */
+            color: #f8fafc; /* Tailwind slate-50 */
+            font-family: 'Inter', sans-serif;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(30, 41, 59, 0.95);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            width: 420px;
+            pointer-events: auto;
+            z-index: 10;
+        }
+        
+        #math-display {
+            font-family: 'Courier New', Courier, monospace;
+            background: rgba(15, 23, 42, 0.8);
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 0.95rem;
+            min-height: 250px;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            position: relative;
+        }
+        
+        .btn {
+            background-color: #3b82f6;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s, transform 0.1s;
+            width: 100%;
+        }
+        .btn:hover { background-color: #2563eb; }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { background-color: #475569; cursor: not-allowed; transform: none; }
+
+        /* Custom Matrix Styling */
+        .matrix-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 15px 0;
+            font-size: 1.1rem;
+        }
+        .matrix {
+            display: inline-grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px 20px;
+            text-align: center;
+            position: relative;
+            padding: 5px 15px;
+            margin: 0 10px;
+        }
+        .matrix::before, .matrix::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #fff;
+        }
+        .matrix::before { left: 0; }
+        .matrix::after { right: 0; }
+        
+        .matrix-val { transition: color 0.3s, text-shadow 0.3s; }
+        
+        /* Highlighters */
+        .hl-r { color: #facc15; font-weight: bold; } /* Yellow for position */
+        .hl-f { color: #ef4444; font-weight: bold; } /* Red for force */
+        .hl-m { color: #38bdf8; font-weight: bold; } /* Blue for moment */
+        .hl-i { color: #a78bfa; font-weight: bold; }
+        .hl-j { color: #34d399; font-weight: bold; }
+        .hl-k { color: #f472b6; font-weight: bold; }
+
+        /* HTML 3D Labels */
+        .scene-label {
+            position: absolute;
+            background: rgba(15, 23, 42, 0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            border: 1px solid rgba(255,255,255,0.15);
+            display: none;
+            white-space: nowrap;
+            z-index: 5;
+        }
+        .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <div id="ui-container">
+        <h1 class="text-xl font-bold mb-1 text-white">Moment via Cross Product</h1>
+        <p class="text-sm text-slate-300 mb-4 border-b border-slate-600 pb-3">
+            Calculate the moment <span class="hl-m">M</span> about point B caused by force <span class="hl-f">F</span> at point A.
+        </p>
+        
+        <div class="flex justify-between items-center mb-4 space-x-2">
+            <button id="btn-prev" class="btn" style="background-color: #475569;">Prev Step</button>
+            <button id="btn-next" class="btn">Next Step</button>
+        </div>
+
+        <!-- Step Indicator -->
+        <div class="flex justify-between mb-2 text-xs font-semibold text-slate-400">
+            <span id="step-0-ind" class="text-blue-400">0. Setup</span>
+            <span id="step-1-ind">1. Vector r</span>
+            <span id="step-2-ind">2. Matrix</span>
+            <span id="step-3-ind">3. Result M</span>
+        </div>
+        <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden mb-2">
+            <div id="progress-bar" class="bg-blue-500 h-full transition-all duration-500" style="width: 25%;"></div>
+        </div>
+        
+        <div id="math-display">
+            <!-- Dynamic Content -->
+        </div>
+        
+        <div class="mt-4 text-xs text-slate-400 text-center">
+            Left click + drag to rotate 3D view.<br>Scroll to zoom.
+        </div>
+    </div>
+
+    <!-- 3D Scene HTML Labels -->
+    <div id="label-A" class="scene-label"><span class="dot bg-white"></span>A(3, 2, 2)</div>
+    <div id="label-B" class="scene-label"><span class="dot bg-slate-400"></span>B(1, 0, 1)</div>
+    <div id="label-F" class="scene-label hl-f">F = 3j - 2k</div>
+    <div id="label-r" class="scene-label hl-r">r = 2i + 2j + k</div>
+    <div id="label-M" class="scene-label hl-m">M = -7i + 4j + 6k</div>
+
+    <div id="canvas-container"></div>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let forceArrow, rArrow, mArrow;
+        let pointA, pointB;
+        
+        // --- Math Vectors ---
+        // Point A (Application of Force)
+        const vecA = new THREE.Vector3(3, 2, 2);
+        // Point B (Point to calculate moment about)
+        const vecB = new THREE.Vector3(1, 0, 1);
+        
+        // Force Vector F = 0i + 3j - 2k
+        const vecF = new THREE.Vector3(0, 3, -2);
+        const lenF = vecF.length();
+        const dirF = vecF.clone().normalize();
+        
+        // Position Vector r = A - B = (3-1)i + (2-0)j + (2-1)k = 2i + 2j + 1k
+        const vecR = new THREE.Vector3().subVectors(vecA, vecB);
+        const lenR = vecR.length();
+        const dirR = vecR.clone().normalize();
+        
+        // Moment Vector M = r x F
+        const vecM = new THREE.Vector3().crossVectors(vecR, vecF);
+        const lenM = vecM.length();
+        const dirM = vecM.clone().normalize();
+
+        // --- State ---
+        let currentStep = 0;
+        const totalSteps = 4;
+        
+        // Animation Targets
+        let targetRLen = 0.001;
+        let targetMLen = 0.001;
+        
+        // DOM Elements
+        const mathDisplay = document.getElementById('math-display');
+        const btnNext = document.getElementById('btn-next');
+        const btnPrev = document.getElementById('btn-prev');
+        const progressBar = document.getElementById('progress-bar');
+
+        const labels = {
+            A: document.getElementById('label-A'),
+            B: document.getElementById('label-B'),
+            F: document.getElementById('label-F'),
+            r: document.getElementById('label-r'),
+            M: document.getElementById('label-M')
+        };
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f172a); 
+
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(12, 10, 15);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(1, 1, 1);
+
+            // Lights
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(10, 20, 10);
+            scene.add(dirLight);
+
+            // Grid and Axes
+            const axesHelper = new THREE.AxesHelper(8);
+            scene.add(axesHelper);
+            
+            // XZ Grid to ground it
+            const gridHelper = new THREE.GridHelper(20, 20, 0x334155, 0x1e293b);
+            scene.add(gridHelper);
+
+            buildSceneObjects();
+
+            window.addEventListener('resize', onWindowResize);
+            btnNext.addEventListener('click', () => setStep(currentStep + 1));
+            btnPrev.addEventListener('click', () => setStep(currentStep - 1));
+
+            setStep(0);
+        }
+
+        function buildSceneObjects() {
+            // Points A and B
+            const pointGeo = new THREE.SphereGeometry(0.15, 16, 16);
+            
+            pointA = new THREE.Mesh(pointGeo, new THREE.MeshBasicMaterial({ color: 0xffffff }));
+            pointA.position.copy(vecA);
+            scene.add(pointA);
+
+            pointB = new THREE.Mesh(pointGeo, new THREE.MeshBasicMaterial({ color: 0x94a3b8 }));
+            pointB.position.copy(vecB);
+            scene.add(pointB);
+
+            // Vectors (Arrows)
+            // Force Arrow (Red, at Point A)
+            forceArrow = new THREE.ArrowHelper(dirF, vecA, lenF, 0xef4444, 0.8, 0.3);
+            scene.add(forceArrow);
+
+            // Position Vector r Arrow (Yellow, from B to A)
+            rArrow = new THREE.ArrowHelper(dirR, vecB, 0.001, 0xfacc15, 0.6, 0.2);
+            scene.add(rArrow);
+
+            // Moment Vector M Arrow (Blue, at Point B)
+            mArrow = new THREE.ArrowHelper(dirM, vecB, 0.001, 0x38bdf8, 1.0, 0.4);
+            scene.add(mArrow);
+        }
+
+        function setStep(step) {
+            if (step < 0 || step >= totalSteps) return;
+            currentStep = step;
+            
+            // 3D Visual Targets
+            switch(step) {
+                case 0: // Setup
+                    targetRLen = 0.001;
+                    targetMLen = 0.001;
+                    labels.r.style.display = 'none';
+                    labels.M.style.display = 'none';
+                    break;
+                case 1: // Draw r
+                    targetRLen = lenR;
+                    targetMLen = 0.001;
+                    labels.r.style.display = 'block';
+                    labels.M.style.display = 'none';
+                    break;
+                case 2: // Matrix
+                    targetRLen = lenR;
+                    targetMLen = 0.001;
+                    labels.r.style.display = 'block';
+                    labels.M.style.display = 'none';
+                    break;
+                case 3: // Result M
+                    targetRLen = lenR;
+                    targetMLen = lenM;
+                    labels.r.style.display = 'block';
+                    labels.M.style.display = 'block';
+                    break;
+            }
+            
+            updateUI();
+        }
+
+        function updateUI() {
+            btnPrev.disabled = currentStep === 0;
+            btnNext.disabled = currentStep === totalSteps - 1;
+            btnNext.textContent = currentStep === totalSteps - 1 ? "Completed" : "Next Step";
+            
+            progressBar.style.width = `${(currentStep + 1) * 25}%`;
+            for (let i = 0; i < totalSteps; i++) {
+                const el = document.getElementById(`step-${i}-ind`);
+                if (i === currentStep) el.className = "text-blue-400 font-bold";
+                else if (i < currentStep) el.className = "text-green-400";
+                else el.className = "text-slate-500";
+            }
+            
+            labels.A.style.display = 'block';
+            labels.B.style.display = 'block';
+            labels.F.style.display = 'block';
+
+            let html = "";
+            switch(currentStep) {
+                case 0:
+                    html = `
+                        <div class="mb-4">Given:</div>
+                        <ul class="list-disc pl-5 space-y-2 text-slate-300">
+                            <li>Force applied at <span class="font-bold text-white">A(3, 2, 2)</span></li>
+                            <li>Calculate Moment about <span class="font-bold text-white">B(1, 0, 1)</span></li>
+                            <li>Force vector <span class="hl-f font-bold text-lg">F = (0i + 3j - 2k) N</span></li>
+                        </ul>
+                    `;
+                    break;
+                case 1:
+                    html = `
+                        <div class="mb-2">Step 1: Find Position Vector <span class="hl-r">r</span></div>
+                        <div class="text-sm text-slate-400 mb-3">Draw a vector from the reference point (B) to the point of force application (A).</div>
+                        <div class="bg-slate-900 bg-opacity-50 p-3 rounded text-center">
+                            <span class="hl-r">r</span> = A - B<br>
+                            <span class="hl-r">r</span> = (3-1)<span class="hl-i">i</span> + (2-0)<span class="hl-j">j</span> + (2-1)<span class="hl-k">k</span><br>
+                            <div class="mt-2 text-lg border-t border-slate-700 pt-2 font-bold text-yellow-400">
+                                r = 2i + 2j + 1k
+                            </div>
+                        </div>
+                    `;
+                    break;
+                case 2:
+                    html = `
+                        <div class="mb-2">Step 2: Setup Determinant</div>
+                        <div class="text-sm text-slate-400">The cross product M = r × F is computed using a 3x3 matrix determinant.</div>
+                        <div class="matrix-wrapper">
+                            <span class="hl-m mr-2 font-bold">M</span> = 
+                            <div class="matrix">
+                                <span class="hl-i font-bold">i</span> <span class="hl-j font-bold">j</span> <span class="hl-k font-bold">k</span>
+                                <span class="hl-r">2</span> <span class="hl-r">2</span> <span class="hl-r">1</span>
+                                <span class="hl-f">0</span> <span class="hl-f">3</span> <span class="hl-f">-2</span>
+                            </div>
+                        </div>
+                    `;
+                    break;
+                case 3:
+                    html = `
+                        <div class="mb-2">Step 3: Calculate Components</div>
+                        <div class="bg-slate-900 p-2 rounded text-sm mb-3 space-y-2 font-mono">
+                            <div><span class="hl-i">i</span>: [(<span class="hl-r">2</span>)(<span class="hl-f">-2</span>) - (<span class="hl-r">1</span>)(<span class="hl-f">3</span>)] = -4 - 3 = <b>-7</b></div>
+                            <div><span class="hl-j">-j</span>: [(<span class="hl-r">2</span>)(<span class="hl-f">-2</span>) - (<span class="hl-r">1</span>)(<span class="hl-f">0</span>)] = -4 - 0 = <b>-4</b></div>
+                            <div><span class="hl-k">k</span>: [(<span class="hl-r">2</span>)(<span class="hl-f">3</span>) - (<span class="hl-r">2</span>)(<span class="hl-f">0</span>)] = 6 - 0 = <b>6</b></div>
+                        </div>
+                        <div class="text-center text-lg bg-blue-900 bg-opacity-30 p-2 rounded border border-blue-800">
+                            <span class="hl-m font-bold">M = -7i + 4j + 6k</span>
+                        </div>
+                    `;
+                    break;
+            }
+            mathDisplay.innerHTML = html;
+        }
+
+        function updateLabels() {
+            // Helper function to project 3D to 2D
+            const project = (vec, element, yOffset = 0) => {
+                if(element.style.display === 'none') return;
+                const pos = vec.clone().project(camera);
+                const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
+                const y = (pos.y * -0.5 + 0.5) * window.innerHeight;
+                element.style.left = `${x}px`;
+                element.style.top = `${y + yOffset}px`;
+            };
+
+            project(vecA, labels.A, -20);
+            project(vecB, labels.B, 20);
+            
+            // F label at tip of Force vector
+            const tipF = new THREE.Vector3().addVectors(vecA, vecF);
+            project(tipF, labels.F, -20);
+            
+            // r label at midpoint of r vector
+            const midR = new THREE.Vector3().addVectors(vecB, vecR.clone().multiplyScalar(0.5));
+            project(midR, labels.r, 20);
+            
+            // M label at tip of Moment vector
+            const tipM = new THREE.Vector3().addVectors(vecB, vecM);
+            project(tipM, labels.M, -20);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            
+            // Smoothly animate vector lengths
+            const currentRLen = rArrow.line.scale.y; // ArrowHelper length is scaled via line and cone
+            if (Math.abs(targetRLen - currentRLen) > 0.01) {
+                const newLen = currentRLen + (targetRLen - currentRLen) * 0.1;
+                rArrow.setLength(newLen, Math.min(newLen*0.5, 0.6), Math.min(newLen*0.2, 0.2));
+            }
+            
+            const currentMLen = mArrow.line.scale.y;
+            if (Math.abs(targetMLen - currentMLen) > 0.01) {
+                const newLen = currentMLen + (targetMLen - currentMLen) * 0.1;
+                mArrow.setLength(newLen, Math.min(newLen*0.3, 1.0), Math.min(newLen*0.15, 0.4));
+            }
+
+            updateLabels();
+            renderer.render(scene, camera);
+        }
+
+        window.onload = function() {
+            init();
+            animate();
+        };
+    </script>
+</body>
+</html>
