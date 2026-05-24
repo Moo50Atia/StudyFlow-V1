@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dual-Domain Workflow Map: Laplace Transform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    
+    <style>
+        /* Custom Animations and Transitions */
+        .math-box {
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            border-width: 2px;
+            background-color: rgba(30, 41, 59, 0.85); /* slate-800 */
+            backdrop-filter: blur(4px);
+        }
+
+        .hidden-box {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+            pointer-events: none;
+        }
+
+        .active-box {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        .dimmed-box {
+            opacity: 0.3;
+            transform: translateY(0) scale(0.95);
+            filter: grayscale(80%);
+            pointer-events: none;
+        }
+
+        /* Bridge Flow Animations */
+        .flow-right {
+            position: absolute;
+            top: 0; left: 0; bottom: 0;
+            width: 50%;
+            background: linear-gradient(90deg, transparent, #fb923c, transparent);
+            animation: flowR 1.2s linear infinite;
+        }
+        @keyframes flowR {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(200%); }
+        }
+
+        .flow-left {
+            position: absolute;
+            top: 0; left: 0; bottom: 0;
+            width: 50%;
+            background: linear-gradient(270deg, transparent, #60a5fa, transparent);
+            animation: flowL 1.2s linear infinite;
+        }
+        @keyframes flowL {
+            0% { transform: translateX(200%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* Pulsing for interaction */
+        .pulsing-border {
+            animation: pulseBorder 2s infinite;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(251, 146, 60, 0.5);
+        }
+        .pulsing-border:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(251, 146, 60, 0.8);
+        }
+        @keyframes pulseBorder {
+            0% { box-shadow: 0 0 0 0 rgba(251, 146, 60, 0.7); border-color: rgba(251, 146, 60, 1); }
+            70% { box-shadow: 0 0 0 15px rgba(251, 146, 60, 0); border-color: rgba(251, 146, 60, 0.5); }
+            100% { box-shadow: 0 0 0 0 rgba(251, 146, 60, 0); border-color: rgba(251, 146, 60, 1); }
+        }
+
+        /* KaTeX Overrides for dark mode */
+        .katex { font-size: 1.2em; }
+        @media (min-width: 1024px) { .katex { font-size: 1.4em; } }
+        
+        /* Ghost Animator Element */
+        #ghost {
+            position: absolute;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(30, 41, 59, 0.9);
+            border-radius: 0.75rem;
+            border: 2px solid #fff;
+            box-shadow: 0 0 20px rgba(255,255,255,0.4);
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans h-screen w-screen overflow-hidden flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-slate-800 border-b border-slate-700 p-4 text-center z-20 shadow-md">
+        <h1 class="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-orange-400">
+            Dual-Domain Workflow: Solving Differential Equations
+        </h1>
+        <p id="instruction-text" class="text-lg mt-2 text-slate-300 min-h-[1.75rem] transition-opacity duration-300 font-medium"></p>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 relative flex p-6 md:p-8 w-full max-w-7xl mx-auto overflow-hidden">
+        
+        <!-- Domain Backgrounds -->
+        <div class="absolute inset-y-6 left-6 w-[calc(50%-4rem)] border-2 border-blue-500/30 bg-blue-900/10 rounded-2xl z-0 flex flex-col pt-4">
+            <h2 class="text-blue-400 font-bold text-xl ml-6 tracking-wide">Time Domain (t)</h2>
+        </div>
+        <div class="absolute inset-y-6 right-6 w-[calc(50%-4rem)] border-2 border-orange-500/30 bg-orange-900/10 rounded-2xl z-0 flex flex-col pt-4 items-end pr-6">
+            <h2 class="text-orange-400 font-bold text-xl tracking-wide">Laplace Domain (s)</h2>
+        </div>
+
+        <!-- Grid System for Math Nodes -->
+        <div class="w-full h-full grid grid-cols-[1fr_8rem_1fr] grid-rows-[1fr_1fr_1fr_1fr] gap-4 z-10 relative">
+            
+            <!-- Row 1 -->
+            <div class="flex justify-center items-center">
+                <div id="td-step0" class="math-box border-blue-400 hidden-box"></div>
+            </div>
+            <div class="flex flex-col justify-center items-center">
+                <div id="bridge-forward" class="w-full opacity-30 transition-opacity duration-500 text-center">
+                    <span class="text-xs text-orange-300 font-semibold mb-1 block">Laplace Transform $\mathcal{L}$</span>
+                    <div class="h-2 w-full bg-slate-700 relative overflow-hidden rounded-full">
+                        <div id="flow-forward-indicator" class="flow-right" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-center items-center relative">
+                <div id="ld-step1" class="math-box border-orange-400 absolute hidden-box text-center" onclick="handleICClick()">
+                    <div id="ld-step1-math"></div>
+                    <div id="click-hint" class="text-xs text-orange-300 mt-2 font-bold animate-bounce opacity-0 transition-opacity">Click to substitute!</div>
+                </div>
+                <div id="ld-step2" class="math-box border-green-400 absolute hidden-box"></div>
+            </div>
+
+            <!-- Row 2 -->
+            <div></div> <!-- Empty -->
+            <div></div> <!-- Empty -->
+            <div class="flex justify-center items-center">
+                <div id="ld-step3" class="math-box border-orange-400 hidden-box"></div>
+            </div>
+
+            <!-- Row 3 -->
+            <div></div> <!-- Empty -->
+            <div></div> <!-- Empty -->
+            <div class="flex justify-center items-center">
+                <div id="ld-step4" class="math-box border-orange-400 hidden-box">
+                    <div id="pf-container" class="flex items-center gap-0 transition-all duration-1000 ease-out">
+                        <div id="pf-1" class="transition-all duration-1000"></div>
+                        <div id="pf-2" class="transition-all duration-1000"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 4 -->
+            <div class="flex justify-center items-center">
+                <div id="td-step5" class="math-box border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)] bg-green-900/30 hidden-box"></div>
+            </div>
+            <div class="flex flex-col justify-center items-center">
+                <div id="bridge-backward" class="w-full opacity-30 transition-opacity duration-500 text-center">
+                    <span class="text-xs text-blue-300 font-semibold mb-1 block">Inverse $\mathcal{L}^{-1}$</span>
+                    <div class="h-2 w-full bg-slate-700 relative overflow-hidden rounded-full">
+                        <div id="flow-backward-indicator" class="flow-left" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+            <div></div> <!-- Empty -->
+        </div>
+
+        <!-- Animation Ghost -->
+        <div id="ghost"></div>
+        
+        <!-- Hidden container for combined partial fractions ghost -->
+        <div id="hidden-pf-combined" class="hidden"></div>
+    </main>
+
+    <!-- Controls -->
+    <footer class="bg-slate-800 p-4 border-t border-slate-700 flex justify-between items-center z-20">
+        <button id="btn-prev" class="px-6 py-2 bg-slate-700 text-white font-semibold rounded hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition" onclick="goPrev()">
+            Previous
+        </button>
+
+        <div class="flex gap-3" id="progress-dots">
+            <!-- Populated by JS -->
+        </div>
+
+        <button id="btn-next" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed transition shadow-lg shadow-blue-500/30" onclick="goNext()">
+            Next Step
+        </button>
+    </footer>
+
+    <script>
+        // --- Equations & Data ---
+        const equations = {
+            eq0: "\\displaystyle y''(t) + 5y'(t) + 6y(t) = \\delta(t)",
+            eq1: "\\displaystyle [s^2 Y(s) - s \\textcolor{#f87171}{y(0)} - \\textcolor{#f87171}{y'(0)}] + 5[sY(s) - \\textcolor{#f87171}{y(0)}] + 6Y(s) = 1",
+            eq2: "\\displaystyle [s^2 Y(s) - s(\\textcolor{#4ade80}{2}) - (\\textcolor{#4ade80}{1})] + 5[sY(s) - (\\textcolor{#4ade80}{2})] + 6Y(s) = 1",
+            eq3: "\\displaystyle Y(s)(s^2 + 5s + 6) = 2s + 12 \\implies Y(s) = \\frac{2s + 12}{(s+2)(s+3)}",
+            eq4_1: "\\displaystyle \\frac{8}{s+2}",
+            eq4_2: "\\displaystyle - \\frac{6}{s+3}",
+            eq4_combined: "\\displaystyle \\frac{8}{s+2} - \\frac{6}{s+3}",
+            eq5: "\\displaystyle y(t) = 8e^{-2t} - 6e^{-3t}"
+        };
+
+        const stepsInfo = [
+            { id: 0, text: "Step 1: Start with a 2nd-order Differential Equation in the Time Domain." },
+            { id: 1, text: "Step 2: Apply the Laplace Transform. Click the equation to substitute initial conditions y(0)=2, y'(0)=1." },
+            { id: 2, text: "Step 3: Initial conditions substituted. Derivatives are now algebraic terms." },
+            { id: 3, text: "Step 4: Algebraically rearrange to solve for the transfer function Y(s)." },
+            { id: 4, text: "Step 5: Use Partial Fraction Expansion to break it into simpler terms." },
+            { id: 5, text: "Step 6: Apply the Inverse Laplace Transform to get the final Time Domain solution!" }
+        ];
+
+        let currentStep = 0;
+        let isAnimating = false;
+        const totalSteps = stepsInfo.length;
+
+        // --- Initialization ---
+        document.addEventListener("DOMContentLoaded", () => {
+            // Render Math
+            const render = (id, tex) => {
+                katex.render(tex, document.getElementById(id), { throwOnError: false, displayMode: true });
+            };
+            
+            render('td-step0', equations.eq0);
+            render('ld-step1-math', equations.eq1);
+            render('ld-step2', equations.eq2);
+            render('ld-step3', equations.eq3);
+            render('pf-1', equations.eq4_1);
+            render('pf-2', equations.eq4_2);
+            render('hidden-pf-combined', equations.eq4_combined);
+            render('td-step5', equations.eq5);
+
+            // Setup Progress Dots
+            const dotsContainer = document.getElementById('progress-dots');
+            for(let i=0; i<totalSteps; i++) {
+                const dot = document.createElement('div');
+                dot.className = `w-3 h-3 rounded-full transition-colors duration-300 ${i === 0 ? 'bg-blue-400 shadow-[0_0_8px_#60a5fa]' : 'bg-slate-600'}`;
+                dot.id = `dot-${i}`;
+                dotsContainer.appendChild(dot);
+            }
+
+            // Init State
+            applyState(0, true);
+        });
+
+        // --- Core State Logic ---
+        function applyState(step, immediate = false) {
+            // Update UI Elements
+            document.getElementById('instruction-text').innerHTML = stepsInfo[step].text;
+            
+            // Update Dots
+            for(let i=0; i<totalSteps; i++) {
+                const dot = document.getElementById(`dot-${i}`);
+                if (i === step) {
+                    dot.className = `w-3 h-3 rounded-full transition-colors duration-300 bg-blue-400 shadow-[0_0_8px_#60a5fa]`;
+                } else if (i < step) {
+                    dot.className = `w-3 h-3 rounded-full transition-colors duration-300 bg-slate-400`;
+                } else {
+                    dot.className = `w-3 h-3 rounded-full transition-colors duration-300 bg-slate-600`;
+                }
+            }
+
+            // Reset Classes
+            document.querySelectorAll('.math-box').forEach(el => {
+                el.classList.remove('active-box', 'dimmed-box', 'pulsing-border');
+                el.classList.add('hidden-box');
+            });
+            document.getElementById('click-hint').classList.remove('opacity-100');
+            document.getElementById('click-hint').classList.add('opacity-0');
+            document.getElementById('bridge-forward').classList.remove('opacity-100');
+            document.getElementById('bridge-forward').classList.add('opacity-30');
+            document.getElementById('flow-forward-indicator').style.display = 'none';
+            document.getElementById('bridge-backward').classList.remove('opacity-100');
+            document.getElementById('bridge-backward').classList.add('opacity-30');
+            document.getElementById('flow-backward-indicator').style.display = 'none';
+
+            const setBox = (id, state) => {
+                const el = document.getElementById(id);
+                el.classList.remove('active-box', 'dimmed-box', 'hidden-box');
+                el.classList.add(state);
+            };
+
+            // Switch layout based on step
+            switch(step) {
+                case 0:
+                    setBox('td-step0', 'active-box');
+                    break;
+                case 1:
+                    setBox('td-step0', 'dimmed-box');
+                    setBox('ld-step1', 'active-box');
+                    document.getElementById('ld-step1').classList.add('pulsing-border');
+                    document.getElementById('click-hint').classList.remove('opacity-0');
+                    document.getElementById('click-hint').classList.add('opacity-100');
+                    break;
+                case 2:
+                    setBox('td-step0', 'dimmed-box');
+                    setBox('ld-step2', 'active-box');
+                    break;
+                case 3:
+                    setBox('td-step0', 'dimmed-box');
+                    setBox('ld-step2', 'dimmed-box');
+                    setBox('ld-step3', 'active-box');
+                    break;
+                case 4:
+                    setBox('td-step0', 'dimmed-box');
+                    setBox('ld-step2', 'dimmed-box');
+                    setBox('ld-step3', 'dimmed-box');
+                    setBox('ld-step4', 'active-box');
+                    
+                    const pfC = document.getElementById('pf-container');
+                    if(immediate) {
+                        pfC.classList.remove('gap-0');
+                        pfC.classList.add('gap-8');
+                    } else {
+                        pfC.classList.remove('gap-8');
+                        pfC.classList.add('gap-0');
+                        setTimeout(() => {
+                            pfC.classList.remove('gap-0');
+                            pfC.classList.add('gap-8');
+                        }, 100);
+                    }
+                    break;
+                case 5:
+                    setBox('td-step0', 'dimmed-box');
+                    setBox('ld-step2', 'dimmed-box');
+                    setBox('ld-step3', 'dimmed-box');
+                    setBox('ld-step4', 'dimmed-box');
+                    setBox('td-step5', 'active-box');
+                    
+                    const pfC2 = document.getElementById('pf-container');
+                    pfC2.classList.remove('gap-0');
+                    pfC2.classList.add('gap-8');
+                    break;
+            }
+
+            // Update Buttons
+            document.getElementById('btn-prev').disabled = (step === 0 || isAnimating);
+            // Block Next button on Step 1 (requires click interaction)
+            document.getElementById('btn-next').disabled = (step === totalSteps - 1 || step === 1 || isAnimating);
+        }
+
+        // --- Interaction Handlers ---
+        function handleICClick() {
+            if (currentStep === 1 && !isAnimating) {
+                isAnimating = true;
+                document.getElementById('ld-step1').classList.remove('pulsing-border');
+                document.getElementById('click-hint').style.display = 'none';
+                
+                // Crossfade
+                document.getElementById('ld-step1').classList.add('hidden-box');
+                document.getElementById('ld-step1').classList.remove('active-box');
+                document.getElementById('ld-step2').classList.remove('hidden-box');
+                document.getElementById('ld-step2').classList.add('active-box');
+
+                setTimeout(() => {
+                    currentStep = 2;
+                    applyState(currentStep, true);
+                    isAnimating = false;
+                }, 600);
+            }
+        }
+
+        function goNext() {
+            if (isAnimating || currentStep >= totalSteps - 1) return;
+            const targetStep = currentStep + 1;
+            
+            if (currentStep === 0 && targetStep === 1) {
+                playForwardBridgeAnimation();
+            } else if (currentStep === 3 && targetStep === 4) {
+                currentStep = targetStep;
+                applyState(currentStep, false); // Triggers the split animation
+            } else if (currentStep === 4 && targetStep === 5) {
+                playBackwardBridgeAnimation();
+            } else {
+                currentStep = targetStep;
+                applyState(currentStep, true);
+            }
+        }
+
+        function goPrev() {
+            if (isAnimating || currentStep <= 0) return;
+            currentStep--;
+            applyState(currentStep, true);
+        }
+
+        // --- Complex Animations ---
+        function animateGhost(sourceId, targetId, innerHTML, callback) {
+            const source = document.getElementById(sourceId);
+            const target = document.getElementById(targetId);
+            const ghost = document.getElementById('ghost');
+
+            const sRect = source.getBoundingClientRect();
+            const tRect = target.getBoundingClientRect();
+
+            ghost.innerHTML = innerHTML;
+            ghost.style.transition = 'none';
+            ghost.style.left = `${sRect.left}px`;
+            ghost.style.top = `${sRect.top}px`;
+            ghost.style.width = `${sRect.width}px`;
+            ghost.style.height = `${sRect.height}px`;
+            ghost.style.opacity = '1';
+            ghost.style.transform = 'scale(1)';
+            ghost.style.borderColor = window.getComputedStyle(source).borderColor;
+
+            // Force reflow
+            void ghost.offsetWidth;
+
+            ghost.style.transition = 'all 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
+            ghost.style.left = `${tRect.left}px`;
+            ghost.style.top = `${tRect.top}px`;
+            ghost.style.width = `${tRect.width}px`;
+            ghost.style.height = `${tRect.height}px`;
+            ghost.style.borderColor = window.getComputedStyle(target).borderColor;
+
+            setTimeout(() => {
+                ghost.style.opacity = '0';
+                if(callback) callback();
+            }, 1200);
+        }
+
+        function playForwardBridgeAnimation() {
+            isAnimating = true;
+            document.getElementById('btn-next').disabled = true;
+            document.getElementById('btn-prev').disabled = true;
+
+            // 1. Dim source, activate bridge flow
+            document.getElementById('td-step0').classList.add('dimmed-box');
+            document.getElementById('td-step0').classList.remove('active-box');
+            
+            const bridge = document.getElementById('bridge-forward');
+            bridge.classList.remove('opacity-30');
+            bridge.classList.add('opacity-100');
+            document.getElementById('flow-forward-indicator').style.display = 'block';
+
+            // 2. Animate Ghost
+            const htmlContent = document.getElementById('td-step0').innerHTML;
+            
+            setTimeout(() => {
+                animateGhost('td-step0', 'ld-step1', htmlContent, () => {
+                    currentStep = 1;
+                    applyState(currentStep, true);
+                    isAnimating = false;
+                });
+            }, 300);
+        }
+
+        function playBackwardBridgeAnimation() {
+            isAnimating = true;
+            document.getElementById('btn-next').disabled = true;
+            document.getElementById('btn-prev').disabled = true;
+
+            // 1. Dim source, activate bridge flow
+            document.getElementById('ld-step4').classList.add('dimmed-box');
+            document.getElementById('ld-step4').classList.remove('active-box');
+            
+            const bridge = document.getElementById('bridge-backward');
+            bridge.classList.remove('opacity-30');
+            bridge.classList.add('opacity-100');
+            document.getElementById('flow-backward-indicator').style.display = 'block';
+
+            // 2. Animate Ghost (using the combined PF text)
+            const htmlContent = document.getElementById('hidden-pf-combined').innerHTML;
+            
+            setTimeout(() => {
+                animateGhost('ld-step4', 'td-step5', htmlContent, () => {
+                    currentStep = 5;
+                    applyState(currentStep, true);
+                    isAnimating = false;
+                });
+            }, 300);
+        }
+
+    </script>
+</body>
+</html>

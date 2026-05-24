@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Z-Transform: Discrete to Continuous</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body, html { margin: 0; padding: 0; overflow: hidden; background-color: #050510; font-family: 'Inter', sans-serif; }
+        #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
+        .control-panel { pointer-events: auto; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(56, 189, 248, 0.3); }
+        
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(56,189,248,0.8);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 3px;
+        }
+        
+        .glow-text { text-shadow: 0 0 10px rgba(56, 189, 248, 0.7); }
+    </style>
+</head>
+<body class="text-slate-200">
+
+    <div id="canvas-container"></div>
+
+    <div id="ui-layer" class="flex flex-col justify-between p-6">
+        
+        <!-- Header -->
+        <div class="control-panel p-6 rounded-2xl shadow-2xl max-w-2xl mx-auto text-center">
+            <h1 class="text-3xl font-bold text-sky-400 glow-text mb-2">The Z-Transform Process</h1>
+            <p id="narrative-text" class="text-slate-300 text-lg transition-all duration-300 min-h-[3rem]">
+                Discrete signal stems x[n] in the time domain.
+            </p>
+        </div>
+
+        <!-- Controls -->
+        <div class="control-panel p-6 rounded-2xl shadow-2xl w-full max-w-md ml-auto mt-auto mb-4">
+            
+            <div class="mb-6">
+                <div class="flex justify-between mb-2">
+                    <label class="font-semibold text-sky-400">Transformation Process</label>
+                    <span id="process-val" class="text-sky-200 font-mono text-sm">0%</span>
+                </div>
+                <input type="range" id="process-slider" min="0" max="100" value="0">
+                <div class="flex justify-between text-xs text-slate-400 mt-2">
+                    <span>Discrete x[n]</span>
+                    <span>Summation</span>
+                    <span>Continuous X(z)</span>
+                </div>
+            </div>
+
+            <hr class="border-slate-700 my-4">
+
+            <div>
+                <div class="flex justify-between mb-2">
+                    <label class="font-semibold text-emerald-400">Camera Rotation (Perspective)</label>
+                    <span id="rotation-val" class="text-emerald-200 font-mono text-sm">45°</span>
+                </div>
+                <input type="range" id="rotation-slider" min="0" max="360" value="45">
+            </div>
+
+            <button id="auto-play-btn" class="mt-6 w-full py-2 bg-sky-600 hover:bg-sky-500 text-white font-semibold rounded-lg transition-colors shadow-[0_0_15px_rgba(2,132,199,0.5)]">
+                Auto-Play Sequence
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- Three.js Setup ---
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x050510, 0.02);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(10, 20, 10);
+        scene.add(dirLight);
+
+        // Math Constants & Helpers
+        const N_STEMS = 12;
+        const decay = 0.8; 
+        // x[n] = (0.8)^n
+
+        function getXn(n) { return Math.pow(decay, n); }
+
+        function createStem(color, thickness = 1) {
+            const group = new THREE.Group();
+            
+            // The line
+            const matLine = new THREE.LineBasicMaterial({ color: color, linewidth: thickness });
+            const geoLine = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,1,0)]);
+            const line = new THREE.Line(geoLine, matLine);
+            
+            // The dot at the top
+            const matSphere = new THREE.MeshBasicMaterial({ color: color });
+            const geoSphere = new THREE.SphereGeometry(0.12 * thickness, 16, 16);
+            const sphere = new THREE.Mesh(geoSphere, matSphere);
+            sphere.position.y = 1;
+            
+            group.add(line);
+            group.add(sphere);
+            return group;
+        }
+
+        // --- Visual Assets ---
+
+        // 1. Summation Device (Center)
+        const deviceGeo = new THREE.SphereGeometry(0.5, 32, 32);
+        const deviceMat = new THREE.MeshBasicMaterial({ color: 0xc084fc, transparent: true, opacity: 0 });
+        const summationDevice = new THREE.Mesh(deviceGeo, deviceMat);
+        scene.add(summationDevice);
+
+        const deviceGlowGeo = new THREE.SphereGeometry(0.8, 32, 32);
+        const deviceGlowMat = new THREE.MeshBasicMaterial({ color: 0xd8b4fe, transparent: true, opacity: 0, blending: THREE.AdditiveBlending });
+        const summationGlow = new THREE.Mesh(deviceGlowGeo, deviceGlowMat);
+        scene.add(summationGlow);
+
+        // 2. Time Domain Stems x[n]
+        const timeStems = [];
+        const timeStemsGroup = new THREE.Group();
+        for(let n = 0; n < N_STEMS; n++) {
+            const stem = createStem(0x38bdf8);
+            const val = getXn(n) * 4; // Scale for visibility
+            stem.scale.set(1, val, 1);
+            // Linear position representing time
+            stem.userData = {
+                startX: (n - N_STEMS/2) * 1.0,
+                startZ: -6,
+                targetX: 0,
+                targetZ: 0
+            };
+            stem.position.set(stem.userData.startX, 0, stem.userData.startZ);
+            timeStems.push(stem);
+            timeStemsGroup.add(stem);
+        }
+        scene.add(timeStemsGroup);
+
+        // 3. Complex Plane / Polar Grid
+        const polarGrid = new THREE.PolarGridHelper(10, 16, 8, 64, 0x334155, 0x1e293b);
+        polarGrid.position.y = -0.01;
+        polarGrid.material.transparent = true;
+        polarGrid.material.opacity = 0;
+        scene.add(polarGrid);
+
+        // Axes for Complex Plane
+        const axisMat = new THREE.LineBasicMaterial({ color: 0x64748b, transparent: true, opacity: 0 });
+        const axisGeo = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(-10, 0, 0), new THREE.Vector3(10, 0, 0),
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(0, 0, -10), new THREE.Vector3(0, 0, 10)
+        ]);
+        const complexAxes = new THREE.Line(axisGeo, axisMat);
+        scene.add(complexAxes);
+
+        // 4. Polar Vectors (Intermediate state)
+        const polarVectorsGroup = new THREE.Group();
+        const polarVectors = [];
+        const numSparse = 80; // Discrete points on complex plane
+        
+        // Complex arithmetic for surface evaluation
+        function getSurfaceHeight(r, theta) {
+            let sumR = 0, sumI = 0;
+            for(let n=0; n<N_STEMS; n++) {
+                let xn = getXn(n);
+                // z^-n = r^-n * e^(-j * n * theta)
+                let rn = Math.pow(r, -n);
+                let angle = -n * theta;
+                sumR += xn * rn * Math.cos(angle);
+                sumI += xn * rn * Math.sin(angle);
+            }
+            let mag = Math.sqrt(sumR*sumR + sumI*sumI);
+            return Math.min(mag * 0.8, 8); // Scale and cap height
+        }
+
+        for(let i=0; i<numSparse; i++) {
+            const stem = createStem(0xfde047, 0.5);
+            
+            // Randomly distribute on a disk
+            const r = 0.5 + Math.random() * 8;
+            const theta = Math.random() * Math.PI * 2;
+            const height = getSurfaceHeight(r, theta);
+            
+            stem.userData = { r, theta, targetHeight: height };
+            stem.scale.set(1, 0.01, 1);
+            stem.position.set(0, 0, 0); // Start at center
+            
+            // Make material transparent
+            stem.children.forEach(c => {
+                c.material.transparent = true;
+                c.material.opacity = 0;
+            });
+            
+            polarVectors.push(stem);
+            polarVectorsGroup.add(stem);
+        }
+        scene.add(polarVectorsGroup);
+
+        // 5. Continuous Surface X(z)
+        const radSegs = 40;
+        const angSegs = 70;
+        const surfGeo = new THREE.BufferGeometry();
+        const vertices = [];
+        const indices = [];
+        const colors = [];
+        const colorObj = new THREE.Color();
+
+        for (let i = 0; i <= radSegs; i++) {
+            let r = 0.4 + (i / radSegs) * 9.6; // Avoid pole at r=0
+            for (let j = 0; j <= angSegs; j++) {
+                let theta = (j / angSegs) * Math.PI * 2;
+                let y = getSurfaceHeight(r, theta);
+                let x = r * Math.cos(theta);
+                let z = r * Math.sin(theta);
+                
+                vertices.push(x, y, z);
+                
+                // Color based on height (magnitude)
+                let hue = 0.65 - (y / 8) * 0.7; // Blue to Red/Magenta
+                colorObj.setHSL(Math.max(0, hue), 1.0, 0.5);
+                colors.push(colorObj.r, colorObj.g, colorObj.b);
+            }
+        }
+
+        for (let i = 0; i < radSegs; i++) {
+            for (let j = 0; j < angSegs; j++) {
+                let a = i * (angSegs + 1) + j;
+                let b = a + angSegs + 1;
+                let c = a + 1;
+                let d = b + 1;
+                indices.push(a, b, d);
+                indices.push(a, d, c);
+            }
+        }
+
+        surfGeo.setIndex(indices);
+        surfGeo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        surfGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+        surfGeo.computeVertexNormals();
+
+        const surfMat = new THREE.MeshStandardMaterial({ 
+            vertexColors: true, 
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0,
+            wireframe: false,
+            roughness: 0.2,
+            metalness: 0.1
+        });
+        const surfaceMesh = new THREE.Mesh(surfGeo, surfMat);
+        
+        // Add a wireframe overlay for techy look
+        const wireMat = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0 });
+        const surfaceWire = new THREE.Mesh(surfGeo, wireMat);
+        surfaceMesh.add(surfaceWire);
+        
+        scene.add(surfaceMesh);
+
+        // --- Interaction Logic ---
+        const processSlider = document.getElementById('process-slider');
+        const rotationSlider = document.getElementById('rotation-slider');
+        const processValText = document.getElementById('process-val');
+        const rotationValText = document.getElementById('rotation-val');
+        const narrativeText = document.getElementById('narrative-text');
+
+        function updateCamera() {
+            const rot = parseFloat(rotationSlider.value);
+            const radius = 18;
+            const angleRad = rot * Math.PI / 180;
+            camera.position.x = radius * Math.sin(angleRad);
+            camera.position.z = radius * Math.cos(angleRad);
+            camera.position.y = 8;
+            camera.lookAt(0, 1, 0);
+            rotationValText.innerText = `${rot}°`;
+        }
+
+        function easeInOutCubic(x) {
+            return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+        }
+
+        function updateProcess() {
+            const p = parseFloat(processSlider.value);
+            processValText.innerText = `${Math.round(p)}%`;
+
+            // State definitions based on progress p (0 to 100)
+            
+            // 1. Time stems moving to center (0 to 30)
+            let p1 = Math.max(0, Math.min(1, p / 30));
+            let easeP1 = easeInOutCubic(p1);
+            timeStems.forEach(stem => {
+                stem.position.x = stem.userData.startX + (stem.userData.targetX - stem.userData.startX) * easeP1;
+                stem.position.z = stem.userData.startZ + (stem.userData.targetZ - stem.userData.startZ) * easeP1;
+                
+                // Fade out as they enter summation device (p=25 to 35)
+                let fade = 1 - Math.max(0, Math.min(1, (p - 25) / 10));
+                stem.children.forEach(c => {
+                    c.material.transparent = true;
+                    c.material.opacity = fade;
+                });
+            });
+
+            // 2. Summation Device glow (20 to 50)
+            let p2 = Math.max(0, Math.min(1, (p - 20) / 30));
+            let glowLevel = Math.sin(p2 * Math.PI); // Pulse
+            deviceMat.opacity = glowLevel * 0.8;
+            deviceGlowMat.opacity = glowLevel * 0.5;
+
+            // 3. Complex Grid appears (25 to 45)
+            let pGrid = Math.max(0, Math.min(1, (p - 25) / 20));
+            polarGrid.material.opacity = pGrid * 0.3;
+            axisMat.opacity = pGrid * 0.5;
+
+            // 4. Polar Vectors emerge (40 to 70)
+            let p3 = Math.max(0, Math.min(1, (p - 40) / 30));
+            let easeP3 = easeInOutCubic(p3);
+            
+            polarVectors.forEach(stem => {
+                // Move out
+                stem.position.x = easeP3 * stem.userData.r * Math.cos(stem.userData.theta);
+                stem.position.z = easeP3 * stem.userData.r * Math.sin(stem.userData.theta);
+                // Grow height
+                stem.scale.set(1, 0.01 + easeP3 * stem.userData.targetHeight, 1);
+                
+                // Fade in then out (fade out as surface appears)
+                let fadeOut = 1 - Math.max(0, Math.min(1, (p - 70) / 15));
+                let opacity = p3 > 0 ? (1 * fadeOut) : 0;
+                stem.children.forEach(c => c.material.opacity = opacity);
+            });
+
+            // 5. Continuous Surface emerges (70 to 100)
+            let p4 = Math.max(0, Math.min(1, (p - 70) / 30));
+            surfMat.opacity = p4 * 0.9;
+            wireMat.opacity = p4 * 0.15;
+            
+            // Animate surface scaling up slightly from 0 for organic feel
+            let scaleP4 = 0.8 + 0.2 * easeInOutCubic(p4);
+            surfaceMesh.scale.set(1, scaleP4, 1);
+
+            // Update Narrative Text
+            if (p < 25) {
+                narrativeText.innerHTML = "Process begins: <span class='text-sky-400 font-semibold'>Discrete signal stems x[n]</span> exist linearly in the time domain.";
+            } else if (p < 45) {
+                narrativeText.innerHTML = "Stems move into the <span class='text-purple-400 font-semibold'>Summation Device</span>, preparing to map to the complex plane.";
+            } else if (p < 70) {
+                narrativeText.innerHTML = "Stems are transformed into <span class='text-yellow-400 font-semibold'>polar vectors z⁻ⁿ</span>, distributed by magnitude r and angle Ω.";
+            } else if (p < 95) {
+                narrativeText.innerHTML = "Evaluating for all possible values of z. The discrete vectors multiply and fill the plane...";
+            } else {
+                narrativeText.innerHTML = "Final State: Vectors merge into a <span class='text-emerald-400 font-bold'>Continuous 3D Surface X(z)</span>. The Z-transform is a continuous map, not discrete points!";
+            }
+        }
+
+        // Event Listeners
+        rotationSlider.addEventListener('input', updateCamera);
+        processSlider.addEventListener('input', updateProcess);
+        
+        // Auto Play Logic
+        let autoPlaying = false;
+        let animationFrame;
+        document.getElementById('auto-play-btn').addEventListener('click', () => {
+            if (autoPlaying) {
+                autoPlaying = false;
+                document.getElementById('auto-play-btn').innerText = "Auto-Play Sequence";
+                cancelAnimationFrame(animationFrame);
+            } else {
+                autoPlaying = true;
+                document.getElementById('auto-play-btn').innerText = "Pause Sequence";
+                if (parseFloat(processSlider.value) >= 100) processSlider.value = 0;
+                playStep();
+            }
+        });
+
+        function playStep() {
+            if (!autoPlaying) return;
+            let val = parseFloat(processSlider.value);
+            val += 0.3; // Speed
+            if (val <= 100) {
+                processSlider.value = val;
+                updateProcess();
+                animationFrame = requestAnimationFrame(playStep);
+            } else {
+                autoPlaying = false;
+                document.getElementById('auto-play-btn').innerText = "Auto-Play Sequence";
+            }
+        }
+
+        // Initialization
+        updateCamera();
+        updateProcess();
+
+        // Render Loop
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = clock.getElapsedTime();
+            
+            // Subtle floating effect for elements
+            if(parseFloat(processSlider.value) < 30) {
+                timeStemsGroup.position.y = Math.sin(time * 2) * 0.2;
+            } else {
+                timeStemsGroup.position.y = 0;
+            }
+            
+            // Pulse the glowing core
+            if (deviceGlowMat.opacity > 0) {
+                summationGlow.scale.setScalar(1 + Math.sin(time * 8) * 0.1);
+            }
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Handle Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
+</body>
+</html>

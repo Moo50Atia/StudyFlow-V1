@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laplace Domain: Integration Property</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            color: #0f172a;
+        }
+        .math-font {
+            font-family: 'Lora', serif;
+        }
+        
+        /* Tank styling */
+        .glass-tank {
+            background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.1) 100%);
+            backdrop-filter: blur(10px);
+            border: 4px solid #475569;
+            border-top: none;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.1), 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        /* Fluid animations */
+        .fluid {
+            background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+            transition: height 0.1s linear;
+            box-shadow: 0 -2px 10px rgba(56, 189, 248, 0.5);
+            position: relative;
+        }
+        
+        .fluid::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: rgba(255,255,255,0.4);
+        }
+
+        .initial-fluid {
+            background: linear-gradient(180deg, #94a3b8 0%, #64748b 100%);
+            opacity: 0.8;
+            transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Flow stream animation */
+        .flow-stream {
+            background-image: linear-gradient(to bottom, #38bdf8 50%, transparent 50%);
+            background-size: 100% 20px;
+            animation: flowDown 0.5s linear infinite;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .flow-stream.active {
+            opacity: 1;
+        }
+
+        @keyframes flowDown {
+            0% { background-position: 0 -20px; }
+            100% { background-position: 0 0; }
+        }
+
+        /* Gauge pulse */
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(56, 189, 248, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+        }
+
+        .gauge.active {
+            animation: pulseGlow 1.5s infinite;
+            border-color: #38bdf8;
+            background-color: #f0f9ff;
+        }
+
+        /* Math equation transition */
+        .equation-highlight {
+            transition: color 0.3s, background-color 0.3s;
+        }
+        .equation-highlight.active {
+            color: #0284c7;
+            background-color: #e0f2fe;
+            border-radius: 4px;
+            padding: 0 4px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 lg:p-8">
+
+    <div class="max-w-6xl w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col lg:flex-row">
+        
+        <!-- Left Panel: Visualization -->
+        <div class="lg:w-3/5 bg-slate-50 p-8 relative flex flex-col items-center justify-center border-b lg:border-b-0 lg:border-r border-slate-200">
+            
+            <div class="absolute top-6 left-6 right-6 flex justify-between items-start">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">Time Domain</h2>
+                    <p class="text-sm text-slate-500 math-font italic">x(t) &rarr; &int; x(&tau;) d&tau;</p>
+                </div>
+                <div class="text-right">
+                    <h2 class="text-lg font-bold text-slate-800">Laplace Domain</h2>
+                    <p class="text-sm text-slate-500 math-font italic">X(s) &rarr; <span class="inline-block align-middle"><span class="border-b border-slate-500 block leading-[1.1] text-center px-1">1</span><span class="block leading-[1.1] text-center">s</span></span> X(s)</p>
+                </div>
+            </div>
+
+            <!-- The System -->
+            <div class="mt-16 relative flex items-center justify-center w-full max-w-md h-96">
+                
+                <!-- Input Signal / Pipe -->
+                <div class="absolute top-0 left-12 flex flex-col items-center">
+                    <div class="text-sm font-semibold text-slate-600 mb-1 math-font">x(t)</div>
+                    <div class="w-12 h-16 bg-slate-300 rounded-t-lg border-2 border-slate-400 relative z-10 flex items-center justify-center">
+                        <div class="w-4 h-4 rounded-full bg-red-400" id="valve-indicator"></div>
+                    </div>
+                    <!-- The falling water stream -->
+                    <div id="flow" class="w-6 h-24 flow-stream relative z-0 -mt-2"></div>
+                </div>
+
+                <!-- Integrator Tank -->
+                <div class="absolute top-24 left-4 w-28 h-48 glass-tank rounded-b-xl flex flex-col justify-end overflow-hidden relative">
+                    <div class="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                        <span class="font-bold text-slate-800/40 text-xl tracking-widest -rotate-90">INTEGRATOR</span>
+                    </div>
+                    
+                    <!-- Accumulated Fluid (Integral) -->
+                    <div id="main-fluid" class="fluid w-full z-10" style="height: 0%;"></div>
+                    <!-- Initial Area Fluid -->
+                    <div id="initial-fluid" class="initial-fluid w-full absolute bottom-0 z-0" style="height: 25%;"></div>
+                </div>
+
+                <!-- Connection Pipe to Gauge -->
+                <div class="absolute top-48 left-32 w-20 h-4 bg-slate-300 border-y-2 border-slate-400 z-0"></div>
+                <div id="output-flow-1" class="absolute top-48 left-32 w-20 h-4 bg-blue-400 opacity-0 transition-opacity z-10"></div>
+
+                <!-- 1/s Operator Gauge -->
+                <div id="gauge" class="absolute top-40 left-52 w-24 h-24 bg-white border-4 border-slate-300 rounded-full flex flex-col items-center justify-center shadow-lg transition-all duration-300 z-20">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Operator</span>
+                    <div class="math-font text-3xl font-bold text-slate-700 flex flex-col items-center leading-none">
+                        <span class="border-b-2 border-slate-700 px-2 pb-0.5 mb-0.5">1</span>
+                        <span>s</span>
+                    </div>
+                </div>
+
+                <!-- Output Signal -->
+                <div class="absolute top-48 left-[19rem] w-20 h-4 bg-slate-300 border-y-2 border-slate-400 z-0"></div>
+                <div id="output-flow-2" class="absolute top-48 left-[19rem] w-20 h-4 flow-stream -rotate-90 origin-left scale-x-[5] opacity-0 transition-opacity z-10"></div>
+                
+                <div class="absolute top-44 left-[24rem]">
+                    <div class="text-sm font-semibold text-slate-600 math-font flex flex-col items-center">
+                        <span class="border-b border-slate-600 px-1 mb-0.5">1</span>
+                        <span>s</span>
+                    </div>
+                    <div class="text-sm font-semibold text-slate-600 math-font mt-1">X(s)</div>
+                </div>
+            </div>
+
+            <!-- Graph Canvas -->
+            <div class="mt-8 w-full bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Signal Plot</span>
+                    <div class="flex gap-4 text-xs font-medium">
+                        <span class="flex items-center gap-1 text-slate-400"><div class="w-3 h-3 bg-slate-400 rounded-sm"></div> x(t) [Input]</span>
+                        <span class="flex items-center gap-1 text-blue-500"><div class="w-3 h-3 bg-blue-500 rounded-sm"></div> &int;x(&tau;)d&tau; [Level]</span>
+                    </div>
+                </div>
+                <canvas id="graphCanvas" width="600" height="150" class="w-full h-[150px]"></canvas>
+            </div>
+
+        </div>
+
+        <!-- Right Panel: Controls & Education -->
+        <div class="lg:w-2/5 p-8 flex flex-col bg-white">
+            <h1 class="text-3xl font-bold text-slate-800 mb-2">Fluid Accumulation</h1>
+            <h2 class="text-lg text-blue-600 font-medium mb-6">Integration Property of Laplace</h2>
+            
+            <p class="text-slate-600 mb-6 leading-relaxed text-sm">
+                In system dynamics, integration accumulates an input signal over time, much like a tank accumulates fluid. In the <strong>Laplace domain</strong>, this time-domain integration is elegantly represented by dividing the signal by <span class="math-font font-bold">s</span> (the <span class="math-font font-bold">1/s</span> operator).
+            </p>
+
+            <!-- Mathematical Formula -->
+            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-8 overflow-hidden">
+                <div class="math-font text-lg text-center flex items-center justify-center flex-wrap gap-2 text-slate-800">
+                    <span>&#8466;</span>
+                    <span class="text-2xl">{</span>
+                    <span class="flex flex-col items-center justify-center text-sm mr-1">
+                        <span class="relative top-1">t</span>
+                        <span class="text-2xl font-light">&int;</span>
+                        <span class="relative -top-1" id="limit-0">0<sup>-</sup></span>
+                    </span>
+                    <span>x(&tau;) d&tau;</span>
+                    <span class="text-2xl">}</span>
+                    <span class="mx-2">=</span>
+                    <div class="flex flex-col items-center leading-none" id="eq-main-term">
+                        <span class="border-b border-slate-800 px-1 pb-1 mb-1">X(s)</span>
+                        <span>s</span>
+                    </div>
+                    <span id="eq-initial-term" class="flex items-center gap-2 transition-all duration-500 overflow-hidden" style="max-width: 150px; opacity: 1;">
+                        <span>+</span>
+                        <div class="flex flex-col items-center leading-none text-slate-500">
+                            <span class="border-b border-slate-500 px-1 pb-1 mb-1 text-sm text-center">y(0<sup>-</sup>)</span>
+                            <span>s</span>
+                        </div>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="space-y-4 mb-8">
+                <div class="flex gap-3">
+                    <button id="btn-toggle" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Start Signal
+                    </button>
+                    <button id="btn-reset" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-3 px-4 rounded-lg transition-colors shadow-sm">
+                        Reset
+                    </button>
+                </div>
+                
+                <div class="bg-amber-50 border border-amber-200 p-4 rounded-lg">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-sm font-bold text-amber-800">Initial Condition Context</h3>
+                        <div class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
+                    </div>
+                    <p class="text-xs text-amber-700 mb-3">
+                        The tank currently has pre-existing fluid representing an initial condition <span class="math-font">y(0<sup>-</sup>)</span>. The strict <span class="math-font">1/s</span> property applies when the limit starts from <span class="math-font">0<sup>-</sup></span> with zero initial energy.
+                    </p>
+                    <button id="btn-clear-area" class="w-full bg-white border border-amber-300 hover:bg-amber-100 text-amber-700 font-semibold py-2 px-4 rounded text-sm transition-colors shadow-sm flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        Clear Initial Area
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status -->
+            <div class="mt-auto pt-6 border-t border-slate-100">
+                <div class="flex justify-between text-sm">
+                    <span class="text-slate-500">Current Fluid Level:</span>
+                    <span id="level-display" class="font-mono font-bold text-blue-600">25.0%</span>
+                </div>
+                <div class="flex justify-between text-sm mt-1">
+                    <span class="text-slate-500">Signal Rate <span class="math-font italic">x(t)</span>:</span>
+                    <span id="rate-display" class="font-mono font-bold text-slate-700">0.0 units/s</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const btnToggle = document.getElementById('btn-toggle');
+        const btnReset = document.getElementById('btn-reset');
+        const btnClearArea = document.getElementById('btn-clear-area');
+        
+        const flowEl = document.getElementById('flow');
+        const outputFlow1 = document.getElementById('output-flow-1');
+        const outputFlow2 = document.getElementById('output-flow-2');
+        const mainFluidEl = document.getElementById('main-fluid');
+        const initialFluidEl = document.getElementById('initial-fluid');
+        const gaugeEl = document.getElementById('gauge');
+        const valveIndicator = document.getElementById('valve-indicator');
+        
+        const levelDisplay = document.getElementById('level-display');
+        const rateDisplay = document.getElementById('rate-display');
+        
+        const eqInitialTerm = document.getElementById('eq-initial-term');
+        const limit0 = document.getElementById('limit-0');
+        
+        const canvas = document.getElementById('graphCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Simulation State
+        let isRunning = false;
+        let time = 0;
+        let initialArea = 25; // starting at 25% height
+        let accumulatedVolume = 0; // volume added by signal
+        let fillRate = 5; // % per second of simulation time
+        let maxVolume = 100;
+        let hasInitialArea = true;
+        let lastTimestamp = 0;
+        let animationFrameId;
+
+        // Graph Data History
+        const maxDataPoints = 600; // Assuming canvas width 600
+        let historyX = new Array(maxDataPoints).fill(0); // input signal x(t)
+        let historyY = new Array(maxDataPoints).fill(initialArea); // integral level
+
+        // Initialize display
+        updateVisuals(true);
+        drawGraph();
+
+        // --- Event Listeners ---
+        btnToggle.addEventListener('click', () => {
+            isRunning = !isRunning;
+            if (isRunning) {
+                btnToggle.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Pause Signal`;
+                btnToggle.classList.replace('bg-blue-600', 'bg-amber-500');
+                btnToggle.classList.replace('hover:bg-blue-700', 'hover:bg-amber-600');
+                valveIndicator.classList.replace('bg-red-400', 'bg-green-400');
+                
+                flowEl.classList.add('active');
+                outputFlow1.classList.add('active');
+                outputFlow1.style.opacity = '1';
+                outputFlow2.classList.add('active');
+                gaugeEl.classList.add('active');
+                rateDisplay.innerText = `${fillRate.toFixed(1)} units/s`;
+                
+                lastTimestamp = performance.now();
+                animationFrameId = requestAnimationFrame(simulationLoop);
+            } else {
+                pauseSimulation();
+            }
+        });
+
+        btnReset.addEventListener('click', () => {
+            pauseSimulation();
+            time = 0;
+            accumulatedVolume = 0;
+            
+            // Reset graph history
+            historyX.fill(0);
+            historyY.fill(hasInitialArea ? initialArea : 0);
+            
+            updateVisuals(true);
+            drawGraph();
+        });
+
+        btnClearArea.addEventListener('click', () => {
+            if (hasInitialArea) {
+                // Clear it
+                hasInitialArea = false;
+                initialArea = 0;
+                initialFluidEl.style.height = '0%';
+                
+                // Update button UI
+                btnClearArea.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Add Initial Area`;
+                btnClearArea.classList.replace('text-amber-700', 'text-slate-600');
+                btnClearArea.classList.replace('border-amber-300', 'border-slate-300');
+                btnClearArea.classList.replace('hover:bg-amber-100', 'hover:bg-slate-100');
+                
+                // Update Math Equation (Hide initial condition term)
+                eqInitialTerm.style.maxWidth = '0px';
+                eqInitialTerm.style.opacity = '0';
+                limit0.classList.add('text-blue-600', 'font-bold');
+                
+                // Alert Graph
+                if (!isRunning && time === 0) {
+                    historyY.fill(0);
+                    drawGraph();
+                }
+                updateVisuals();
+
+            } else {
+                // Restore it
+                hasInitialArea = true;
+                initialArea = 25;
+                initialFluidEl.style.height = '25%';
+                
+                // Update button UI
+                btnClearArea.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Clear Initial Area`;
+                btnClearArea.classList.replace('text-slate-600', 'text-amber-700');
+                btnClearArea.classList.replace('border-slate-300', 'border-amber-300');
+                btnClearArea.classList.replace('hover:bg-slate-100', 'hover:bg-amber-100');
+
+                // Update Math Equation (Show initial condition term)
+                eqInitialTerm.style.maxWidth = '150px';
+                eqInitialTerm.style.opacity = '1';
+                limit0.classList.remove('text-blue-600', 'font-bold');
+
+                if (!isRunning && time === 0) {
+                    historyY.fill(25);
+                    drawGraph();
+                }
+                updateVisuals();
+            }
+        });
+
+        // --- Core Functions ---
+        function pauseSimulation() {
+            isRunning = false;
+            cancelAnimationFrame(animationFrameId);
+            
+            btnToggle.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Resume Signal`;
+            btnToggle.classList.replace('bg-amber-500', 'bg-blue-600');
+            btnToggle.classList.replace('hover:bg-amber-600', 'hover:bg-blue-700');
+            valveIndicator.classList.replace('bg-green-400', 'bg-red-400');
+            
+            flowEl.classList.remove('active');
+            outputFlow1.style.opacity = '0';
+            outputFlow2.classList.remove('active');
+            gaugeEl.classList.remove('active');
+            rateDisplay.innerText = `0.0 units/s`;
+        }
+
+        function simulationLoop(timestamp) {
+            if (!isRunning) return;
+
+            const dt = (timestamp - lastTimestamp) / 1000; // seconds
+            lastTimestamp = timestamp;
+
+            const totalCurrentHeight = initialArea + accumulatedVolume;
+            
+            if (totalCurrentHeight < maxVolume) {
+                // Pouring logic
+                accumulatedVolume += fillRate * dt;
+                if (initialArea + accumulatedVolume > maxVolume) {
+                    accumulatedVolume = maxVolume - initialArea;
+                    pauseSimulation(); // Stop when full
+                }
+            }
+
+            // Update Time
+            time += dt;
+
+            // Shift history and add new points
+            historyX.shift();
+            historyX.push(fillRate); // Input is constant 'fillRate'
+            
+            historyY.shift();
+            historyY.push(initialArea + accumulatedVolume);
+
+            updateVisuals();
+            drawGraph();
+
+            if (isRunning) {
+                animationFrameId = requestAnimationFrame(simulationLoop);
+            }
+        }
+
+        function updateVisuals(isReset = false) {
+            // Adjust CSS heights
+            mainFluidEl.style.height = `${accumulatedVolume}%`;
+            // Note: initialFluidEl's height is handled by the toggle button for animation
+            if (isReset && hasInitialArea) {
+                initialFluidEl.style.height = '25%';
+            }
+
+            const total = initialArea + accumulatedVolume;
+            levelDisplay.innerText = `${total.toFixed(1)}%`;
+            
+            // Push up the main fluid so it sits on top of initial fluid
+            if (hasInitialArea) {
+                mainFluidEl.style.bottom = '25%'; 
+            } else {
+                mainFluidEl.style.bottom = '0%';
+            }
+        }
+
+        function drawGraph() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const w = canvas.width;
+            const h = canvas.height;
+            const padding = 20;
+            const plotW = w - padding * 2;
+            const plotH = h - padding * 2;
+
+            // Draw Axes
+            ctx.beginPath();
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 1;
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, h - padding);
+            ctx.lineTo(w - padding, h - padding);
+            ctx.stroke();
+
+            // Setup scales
+            const scaleX = plotW / maxDataPoints;
+            const scaleY = plotH / 100; // Y max is 100%
+
+            // Plot Input Signal x(t) - Gray
+            ctx.beginPath();
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < maxDataPoints; i++) {
+                const x = padding + i * scaleX;
+                // input rate is max 10 for visualization scaling
+                const y = (h - padding) - (historyX[i] * (plotH / 10)); 
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Plot Integral Result (Level) - Blue
+            ctx.beginPath();
+            ctx.strokeStyle = '#0ea5e9';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < maxDataPoints; i++) {
+                const x = padding + i * scaleX;
+                const y = (h - padding) - (historyY[i] * scaleY);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Current value dot for Integral
+            const lastY = historyY[maxDataPoints - 1];
+            ctx.beginPath();
+            ctx.fillStyle = '#0ea5e9';
+            ctx.arc(w - padding, (h - padding) - (lastY * scaleY), 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+    </script>
+</body>
+</html>

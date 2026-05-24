@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Z-Transform: ROC Time Evolution</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* slate-900 */
+            color: #f8fafc; /* slate-50 */
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #06b6d4; /* cyan-500 */
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.6);
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #334155; /* slate-700 */
+            border-radius: 2px;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+
+        .canvas-container {
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Narrative text transition */
+        #narrative-text {
+            transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
+        }
+        .fade-out {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        .fade-in {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="p-5 border-b border-slate-800 bg-slate-900 shadow-lg z-10 text-center">
+        <h1 class="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">
+            Z-Transform: Region of Convergence (ROC)
+        </h1>
+        <p class="text-slate-400 text-sm md:text-base mt-2">Interactive Time Evolution & Geometric Mapping</p>
+    </header>
+
+    <!-- Main Visuals -->
+    <main class="flex-1 flex flex-col lg:flex-row p-4 md:p-8 gap-6 w-full max-w-[1600px] mx-auto overflow-hidden relative">
+        
+        <!-- Time Domain Panel -->
+        <div class="flex-1 flex flex-col rounded-2xl border border-slate-700 shadow-2xl overflow-hidden canvas-container min-h-[300px]">
+            <div class="px-6 py-4 border-b border-slate-700/50 flex justify-between items-center z-10 bg-slate-900/60">
+                <h2 class="text-lg font-semibold text-blue-400 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                    Time Domain 
+                    <span class="text-slate-300 italic text-sm font-normal ml-2">x[n]</span>
+                </h2>
+            </div>
+            <div class="flex-1 relative w-full h-full" id="time-container">
+                <canvas id="time-canvas" class="absolute inset-0 w-full h-full"></canvas>
+            </div>
+        </div>
+        
+        <!-- Z Plane Panel -->
+        <div class="flex-1 flex flex-col rounded-2xl border border-slate-700 shadow-2xl overflow-hidden canvas-container min-h-[300px]">
+            <div class="px-6 py-4 border-b border-slate-700/50 flex justify-between items-center z-10 bg-slate-900/60">
+                <h2 class="text-lg font-semibold text-cyan-400 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path></svg>
+                    Z-Plane 
+                    <span class="text-slate-300 italic text-sm font-normal ml-2">ROC (Shaded)</span>
+                </h2>
+                <!-- Legend -->
+                <div class="flex gap-4 text-xs">
+                    <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-blue-500"></div> Right-sided pole</div>
+                    <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-pink-500"></div> Left-sided pole</div>
+                </div>
+            </div>
+            <div class="flex-1 relative w-full h-full" id="z-container">
+                <canvas id="z-canvas" class="absolute inset-0 w-full h-full"></canvas>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Controls & Narrative -->
+    <div class="glass-panel w-full shadow-[0_-10px_40px_rgba(0,0,0,0.3)] z-20">
+        <div class="max-w-5xl mx-auto w-full p-6 md:p-8 flex flex-col gap-6">
+            
+            <!-- Dynamic Narrative -->
+            <div class="min-h-[80px] flex items-center justify-center text-center">
+                <p id="narrative-text" class="text-lg md:text-xl text-slate-200 leading-relaxed max-w-4xl font-light">
+                    <!-- Text injected via JS -->
+                </p>
+            </div>
+            
+            <!-- Interactive Slider and Play -->
+            <div class="flex flex-col md:flex-row items-center gap-6 w-full">
+                <button id="play-btn" class="w-full md:w-auto bg-cyan-600 hover:bg-cyan-500 text-white rounded-full px-8 py-3 font-semibold shadow-lg shadow-cyan-500/30 transition-all active:scale-95 flex items-center justify-center gap-2">
+                    <svg id="play-icon" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                    <span id="play-text">Evolve Time</span>
+                </button>
+                
+                <div class="flex-1 w-full flex items-center gap-4 relative">
+                    <span class="text-xs font-semibold text-slate-400 tracking-wider w-16 text-right">RIGHT<br>SIDED</span>
+                    <input type="range" id="progress-slider" min="0" max="2" step="0.005" value="0">
+                    <span class="text-xs font-semibold text-slate-400 tracking-wider w-16">TWO<br>SIDED</span>
+                    
+                    <!-- Milestone Markers -->
+                    <div class="absolute w-full flex justify-between pointer-events-none px-[4.5rem] top-6 text-xs text-slate-500">
+                        <div class="flex flex-col items-center"><div class="w-1 h-2 bg-slate-600 mb-1"></div>1. Exterior</div>
+                        <div class="flex flex-col items-center"><div class="w-1 h-2 bg-slate-600 mb-1"></div>2. Interior</div>
+                        <div class="flex flex-col items-center"><div class="w-1 h-2 bg-slate-600 mb-1"></div>3. Ring</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const timeCanvas = document.getElementById('time-canvas');
+        const zCanvas = document.getElementById('z-canvas');
+        const timeCtx = timeCanvas.getContext('2d');
+        const zCtx = zCanvas.getContext('2d');
+        const slider = document.getElementById('progress-slider');
+        const playBtn = document.getElementById('play-btn');
+        const playIcon = document.getElementById('play-icon');
+        const playText = document.getElementById('play-text');
+        const narrativeText = document.getElementById('narrative-text');
+
+        // State variables
+        let progress = 0; // 0 to 2
+        let isPlaying = false;
+        let lastTime = 0;
+        let currentNarrativeState = -1;
+
+        // Constants & Geometry
+        const R_MIN = 50; // Inner pole magnitude (r1)
+        const R_MAX = 130; // Outer pole magnitude (r2)
+        const UNIT_CIRCLE = 90;
+        const R_INF = 1500; // Visualization of infinity
+
+        // Narrative texts matching the prompt constraints
+        const narratives = [
+            "Time Evolution. Right-sided signal wave transforms into an <b class='text-cyan-400'>exterior shaded region</b> on the z-plane graph (|z| > r<sub>max</sub>).",
+            "The wave moves to become left-sided, and the shading transforms into an <b class='text-cyan-400'>interior disk</b> (|z| < r<sub>min</sub>).",
+            "Finally, the wave splits into a two-sided sequence, and the shading transforms into a <b class='text-cyan-400'>geometric ring</b> (r<sub>1</sub> < |z| < r<sub>2</sub>), correcting the misconception that ROCs are limited to simple single-boundary disks."
+        ];
+
+        // Easing functions
+        function easeInOutCubic(x) {
+            return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+        }
+
+        // Handle resizing for high-DPI displays
+        function resizeCanvases() {
+            const timeContainer = document.getElementById('time-container');
+            const zContainer = document.getElementById('z-container');
+            
+            const scale = window.devicePixelRatio || 1;
+
+            timeCanvas.width = timeContainer.clientWidth * scale;
+            timeCanvas.height = timeContainer.clientHeight * scale;
+            timeCtx.scale(scale, scale);
+
+            zCanvas.width = zContainer.clientWidth * scale;
+            zCanvas.height = zContainer.clientHeight * scale;
+            zCtx.scale(scale, scale);
+
+            draw(); // Redraw immediately
+        }
+        window.addEventListener('resize', resizeCanvases);
+
+        // Drawing Functions
+        function drawTimeDomain(ctx, w, h, p) {
+            ctx.clearRect(0, 0, w, h);
+            const cx = w / 2;
+            const cy = h / 2 + 30; // Shift down slightly
+            
+            // Draw axes
+            ctx.beginPath();
+            ctx.moveTo(0, cy);
+            ctx.lineTo(w, cy);
+            ctx.strokeStyle = '#475569'; // slate-600
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(cx, 20);
+            ctx.lineTo(cx, h - 20);
+            ctx.strokeStyle = '#334155'; // slate-700
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Labels
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '14px Inter';
+            ctx.fillText('n', w - 20, cy - 10);
+            ctx.fillText('x[n]', cx + 10, 30);
+
+            // Signal parameters
+            const numSamples = 18;
+            const spacing = w * 0.025; // Dynamic spacing based on width
+            const maxAmplitude = h * 0.35;
+            const decay = 0.82;
+
+            // Math for Phase 0 to 1 (Right moves to Left)
+            // p ranges 0 to 1
+            let t1 = Math.min(Math.max(p, 0), 1);
+            let easeT1 = easeInOutCubic(t1);
+            
+            // Math for Phase 1 to 2 (Left stays, new Right emerges)
+            // p ranges 1 to 2
+            let t2 = Math.min(Math.max(p - 1, 0), 1);
+            let easeT2 = easeInOutCubic(t2);
+
+            // --- Wave A (Primary shifting wave) ---
+            // Starts right-sided, moves left, flips.
+            // shift goes from 0 to -spacing
+            // position scaling factor goes from 1 to -1 (to flip the exponential curve)
+            let baseOffsetA = - easeT1 * spacing; // Slight nudge
+            let flipA = 1 - 2 * easeT1; // 1 to -1
+            let startIdxA = easeT1 > 0.5 ? 1 : 0; // Skip zero when left sided for clarity (-1, -2...)
+
+            for (let i = 0; i < numSamples; i++) {
+                // To make a smooth slide across the axis, we map discrete stems visually
+                // We interpolate their position from positive space to negative space
+                
+                // Actual discrete math mapping for smooth visual:
+                // At t=0, stem i is at x = i * spacing
+                // At t=1, stem i is at x = -(i+1) * spacing
+                let posX = cx + (1 - easeT1) * (i * spacing) + easeT1 * (-(i + 1) * spacing);
+                let amplitude = maxAmplitude * Math.pow(decay, i);
+                
+                // Opacity fades out slightly during crossing to look like a fluid transition
+                let opacityA = 1.0; 
+                
+                // Color morph: Blue (Right-sided) -> Pink (Left-sided)
+                let r = Math.floor(59 + easeT1 * (236 - 59));
+                let g = Math.floor(130 + easeT1 * (72 - 130));
+                let b = Math.floor(246 + easeT1 * (153 - 246));
+                
+                drawStem(ctx, posX, cy, amplitude, `rgba(${r},${g},${b}, ${opacityA})`);
+            }
+
+            // --- Wave B (Emerging Right-sided wave in phase 2) ---
+            if (t2 > 0) {
+                for (let i = 0; i < numSamples; i++) {
+                    let posX = cx + (i * spacing);
+                    // It "grows" into existence
+                    let amplitude = maxAmplitude * Math.pow(decay, i) * easeT2;
+                    let opacityB = easeT2;
+                    
+                    // Color is Blue (Right-sided)
+                    drawStem(ctx, posX, cy, amplitude, `rgba(59, 130, 246, ${opacityB})`);
+                }
+            }
+        }
+
+        function drawStem(ctx, x, y0, amp, color) {
+            ctx.beginPath();
+            ctx.moveTo(x, y0);
+            ctx.lineTo(x, y0 - amp);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(x, y0 - amp, 5, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
+
+        function drawZPlane(ctx, w, h, p) {
+            ctx.clearRect(0, 0, w, h);
+            const cx = w / 2;
+            const cy = h / 2;
+
+            // Radii interpolation logic
+            let innerR, outerR;
+            let t1 = Math.min(Math.max(p, 0), 1);
+            let t2 = Math.min(Math.max(p - 1, 0), 1);
+            
+            let e1 = easeInOutCubic(t1);
+            let e2 = easeInOutCubic(t2);
+
+            // We need:
+            // State 0 (p=0): Exterior of R_MIN (|z| > r1). -> inner = R_MIN, outer = R_INF
+            // State 1 (p=1): Interior of R_MAX (|z| < r2). -> inner = 0, outer = R_MAX
+            // State 2 (p=2): Ring (r1 < |z| < r2).        -> inner = R_MIN, outer = R_MAX
+            
+            if (p <= 1.0) {
+                // Transition 1: Exterior -> Interior
+                // innerR collapses to origin
+                innerR = R_MIN * (1 - e1);
+                // outerR collapses from Infinity to R_MAX
+                outerR = R_MAX + (R_INF - R_MAX) * Math.pow(1 - e1, 4); // sharp power for visual impact
+            } else {
+                // Transition 2: Interior -> Ring
+                // innerR grows from origin to R_MIN
+                innerR = R_MIN * e2;
+                // outerR stays at R_MAX
+                outerR = R_MAX;
+            }
+
+            // Draw Background Grid
+            drawPolarGrid(ctx, cx, cy, w);
+
+            // Draw ROC Shading
+            drawROC(ctx, cx, cy, innerR, outerR);
+
+            // Draw Unit Circle
+            ctx.beginPath();
+            ctx.arc(cx, cy, UNIT_CIRCLE, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.setLineDash([5, 5]);
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Label Unit Circle
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.font = '12px Inter';
+            ctx.fillText('|z|=1', cx + UNIT_CIRCLE + 5, cy - 10);
+
+            // Draw Poles
+            // Pole 1: Right-sided boundary (r_min equivalent, Blue)
+            // It represents the boundary that is active in State 0 and State 2.
+            // Let's fade it out during state 1 when it's technically a pure left-sided wave dependent on r_max.
+            // But mathematically, poles of a system are fixed, the ROC just shifts. So keeping both poles visible is more accurate.
+            drawPole(ctx, cx + R_MIN, cy, '#3b82f6', 'r₁'); // Blue-500
+            
+            // Pole 2: Left-sided boundary (r_max equivalent, Pink)
+            drawPole(ctx, cx - R_MAX, cy, '#ec4899', 'r₂'); // Pink-500
+        }
+
+        function drawPolarGrid(ctx, cx, cy, maxDist) {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+
+            // Concentric circles
+            for (let r = 30; r < maxDist; r += 30) {
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Radiating lines
+            for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(cx + Math.cos(angle) * maxDist, cy + Math.sin(angle) * maxDist);
+                ctx.stroke();
+            }
+
+            // Main Axes
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(cx*2, cy); ctx.stroke(); // Re
+            ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, cy*2); ctx.stroke(); // Im
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.font = '12px Inter';
+            ctx.fillText('Re', cx*2 - 20, cy - 10);
+            ctx.fillText('Im', cx + 10, 20);
+        }
+
+        function drawROC(ctx, cx, cy, innerR, outerR) {
+            if (innerR >= outerR) return; // Degenerate case
+
+            ctx.save();
+            
+            // Create path with hole using winding rules
+            ctx.beginPath();
+            ctx.arc(cx, cy, outerR, 0, Math.PI * 2, false); // Outer CW
+            ctx.arc(cx, cy, innerR, 0, Math.PI * 2, true);  // Inner CCW
+            
+            // Fill with cyan gradient
+            const grad = ctx.createRadialGradient(cx, cy, innerR, cx, cy, Math.min(outerR, 1000));
+            grad.addColorStop(0, 'rgba(6, 182, 212, 0.4)');
+            grad.addColorStop(1, 'rgba(6, 182, 212, 0.1)');
+            ctx.fillStyle = grad;
+            ctx.fill();
+
+            // Draw crisp boundaries
+            ctx.lineWidth = 2;
+            
+            if (outerR < 1000) {
+                ctx.beginPath();
+                ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(6, 182, 212, 0.8)'; // Cyan border
+                ctx.stroke();
+            }
+            
+            if (innerR > 0.5) {
+                ctx.beginPath();
+                ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(6, 182, 212, 0.8)';
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+
+        function drawPole(ctx, x, y, color, label) {
+            const size = 6;
+            ctx.beginPath();
+            ctx.moveTo(x - size, y - size);
+            ctx.lineTo(x + size, y + size);
+            ctx.moveTo(x + size, y - size);
+            ctx.lineTo(x - size, y + size);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            if (label) {
+                ctx.fillStyle = color;
+                ctx.font = 'bold 14px Inter';
+                // Offset label slightly
+                ctx.fillText(label, x + 8, y + 15);
+            }
+        }
+
+        // Narrative Update Logic
+        function updateNarrative(p) {
+            let targetState;
+            if (p < 0.5) targetState = 0;
+            else if (p < 1.5) targetState = 1;
+            else targetState = 2;
+
+            if (targetState !== currentNarrativeState) {
+                // Crossfade effect
+                narrativeText.classList.add('fade-out');
+                
+                setTimeout(() => {
+                    narrativeText.innerHTML = narratives[targetState];
+                    narrativeText.classList.remove('fade-out');
+                    narrativeText.classList.add('fade-in');
+                    
+                    // Clean up classes after animation
+                    setTimeout(() => {
+                        narrativeText.classList.remove('fade-in');
+                    }, 400);
+                }, 200); // Wait for fade out
+                
+                currentNarrativeState = targetState;
+            }
+        }
+
+        // Main Render Loop
+        function draw(timestamp) {
+            if (!timestamp) timestamp = 0;
+            
+            // Animation logic
+            if (isPlaying) {
+                const dt = timestamp - lastTime;
+                // Add tiny increment based on time elapsed to ensure smooth play independent of framerate
+                // Approx 8 seconds for full sequence (2.0 units / 8000 ms)
+                progress += (dt / 4000); 
+                
+                if (progress >= 2) {
+                    progress = 2;
+                    togglePlay(); // Auto stop at end
+                }
+                slider.value = progress;
+            }
+            lastTime = timestamp;
+
+            const p = parseFloat(slider.value);
+            
+            // Get internal canvas dimensions
+            const timeW = timeCanvas.width / (window.devicePixelRatio || 1);
+            const timeH = timeCanvas.height / (window.devicePixelRatio || 1);
+            const zW = zCanvas.width / (window.devicePixelRatio || 1);
+            const zH = zCanvas.height / (window.devicePixelRatio || 1);
+
+            drawTimeDomain(timeCtx, timeW, timeH, p);
+            drawZPlane(zCtx, zW, zH, p);
+            updateNarrative(p);
+
+            if (isPlaying) {
+                requestAnimationFrame(draw);
+            }
+        }
+
+        // Controls binding
+        slider.addEventListener('input', (e) => {
+            progress = parseFloat(e.target.value);
+            if (!isPlaying) {
+                requestAnimationFrame(draw);
+            }
+        });
+
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            
+            if (isPlaying) {
+                if (progress >= 2) {
+                    progress = 0; // Restart if at the end
+                    slider.value = 0;
+                }
+                playIcon.innerHTML = `<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>`;
+                playText.innerText = "Pause";
+                playBtn.classList.replace('bg-cyan-600', 'bg-pink-600');
+                playBtn.classList.replace('shadow-cyan-500/30', 'shadow-pink-500/30');
+                playBtn.classList.replace('hover:bg-cyan-500', 'hover:bg-pink-500');
+                lastTime = performance.now();
+                requestAnimationFrame(draw);
+            } else {
+                playIcon.innerHTML = `<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>`;
+                playText.innerText = progress >= 2 ? "Replay" : "Evolve Time";
+                playBtn.classList.replace('bg-pink-600', 'bg-cyan-600');
+                playBtn.classList.replace('shadow-pink-500/30', 'shadow-cyan-500/30');
+                playBtn.classList.replace('hover:bg-pink-500', 'hover:bg-cyan-500');
+            }
+        }
+
+        playBtn.addEventListener('click', togglePlay);
+
+        // Initialization
+        window.onload = () => {
+            resizeCanvases();
+            updateNarrative(0);
+            
+            // Draw initial state
+            requestAnimationFrame(draw);
+        };
+
+    </script>
+</body>
+</html>

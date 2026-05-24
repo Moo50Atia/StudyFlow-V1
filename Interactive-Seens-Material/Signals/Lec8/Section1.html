@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laplace Transform Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #050505;
+            color: #e5e5e5;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        .math-font {
+            font-family: 'Fira Code', monospace;
+        }
+
+        /* Custom UI Styling */
+        .glass-panel {
+            background: rgba(15, 20, 30, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .slider-custom {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            outline: none;
+            transition: 0.2s;
+        }
+        .slider-custom::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #0ea5e9;
+            cursor: pointer;
+            box-shadow: 0 0 10px #0ea5e9, 0 0 20px #0ea5e9;
+            transition: transform 0.1s;
+        }
+        .slider-custom::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        /* SVG Animations */
+        @keyframes pulseGlow {
+            0%, 100% { filter: drop-shadow(0 0 5px rgba(14, 165, 233, 0.5)); }
+            50% { filter: drop-shadow(0 0 15px rgba(14, 165, 233, 0.9)); }
+        }
+
+        .signal-line {
+            fill: none;
+            stroke-width: 3;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .signal-bilateral {
+            stroke: #475569;
+            stroke-dasharray: 5, 5;
+        }
+
+        .signal-active {
+            stroke: #0ea5e9;
+            animation: pulseGlow 2s infinite;
+        }
+
+        .transform-particle {
+            fill: #c084fc;
+            filter: drop-shadow(0 0 8px #c084fc);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        /* Overlay Formula Text glow */
+        .formula-glow {
+            text-shadow: 0 0 10px rgba(192, 132, 252, 0.8), 0 0 20px rgba(192, 132, 252, 0.4);
+            color: #e9d5ff;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col items-center justify-center relative">
+
+    <!-- Header & Controls -->
+    <div class="absolute top-6 left-0 right-0 z-20 flex flex-col items-center pointer-events-none">
+        <h1 class="text-3xl font-bold tracking-wider text-white drop-shadow-md">LAPLACE TRANSFORM</h1>
+        <p class="text-gray-400 mt-2 max-w-2xl text-center text-sm px-4">
+            Visual Learning Goal: Contrast the unilateral range with the bilateral transform. Observe the lower boundary approach <span class="math-font text-cyan-400">0⁻</span>.
+        </p>
+    </div>
+
+    <!-- Main Visualizer Canvas -->
+    <div class="w-full h-full relative z-10 flex items-center justify-center">
+        <svg id="scene" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" class="absolute inset-0">
+            <defs>
+                <!-- Gradients and Filters -->
+                <linearGradient id="spotlightGrad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="rgba(192, 132, 252, 0.3)" />
+                    <stop offset="100%" stop-color="rgba(192, 132, 252, 0.0)" />
+                </linearGradient>
+
+                <linearGradient id="gateGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="rgba(14, 165, 233, 0)" />
+                    <stop offset="50%" stop-color="rgba(14, 165, 233, 1)" />
+                    <stop offset="100%" stop-color="rgba(14, 165, 233, 0)" />
+                </linearGradient>
+
+                <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="4" result="blur" />
+                    <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                </filter>
+                
+                <clipPath id="lensClip">
+                    <circle cx="0" cy="0" r="60" />
+                </clipPath>
+            </defs>
+
+            <!-- Grid & Axes -->
+            <g id="grid" stroke="rgba(255,255,255,0.05)" stroke-width="1"></g>
+            <line id="x-axis" x1="0" y1="50%" x2="100%" y2="50%" stroke="rgba(255,255,255,0.3)" stroke-width="2" />
+            <line id="y-axis" x1="30%" y1="0" x2="30%" y2="100%" stroke="rgba(255,255,255,0.3)" stroke-width="2" />
+            
+            <text x="95%" y="53%" fill="rgba(255,255,255,0.5)" class="math-font">t (time)</text>
+            <text x="31%" y="5%" fill="rgba(255,255,255,0.5)" class="math-font">x(t)</text>
+
+            <!-- Left Signal (Bilateral part) -->
+            <path id="signal-left" class="signal-line signal-bilateral" />
+
+            <!-- Right Signal (Active part) -->
+            <path id="signal-right" class="signal-line signal-active" />
+
+            <!-- Dark Curtain -->
+            <rect id="dark-curtain" x="0" y="0" width="30%" height="100%" fill="rgba(0,0,0,0.85)" />
+
+            <!-- Spotlight -->
+            <rect id="spotlight" x="30%" y="0" width="70%" height="100%" fill="url(#spotlightGrad)" />
+
+            <!-- Integral Gate -->
+            <g id="integral-gate" transform="translate(0, 0)">
+                <rect x="-2" y="10%" width="4" height="80%" fill="url(#gateGrad)" filter="url(#glow)" />
+                <text x="-15" y="5%" fill="#0ea5e9" class="math-font text-lg font-bold" filter="url(#glow)">∫</text>
+            </g>
+
+            <!-- Scanner Beam -->
+            <line id="scanner-beam" x1="0" y1="0" x2="0" y2="100%" stroke="#c084fc" stroke-width="2" opacity="0.5" filter="url(#glow)" />
+
+            <!-- Transformation Particles Container -->
+            <g id="particles"></g>
+
+            <!-- Magnifying Lens Group -->
+            <g id="magnifier" transform="translate(0, 0)" opacity="0" class="transition-opacity duration-300">
+                <line id="lens-pointer" x1="0" y1="0" x2="0" y2="0" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" stroke-dasharray="4" />
+                <g transform="translate(-100, -100)">
+                    <!-- Lens Backdrop -->
+                    <circle cx="0" cy="0" r="65" fill="#1e293b" stroke="#38bdf8" stroke-width="4" filter="url(#glow)" />
+                    <!-- Clipped Content -->
+                    <g clip-path="url(#lensClip)">
+                        <rect x="-60" y="-60" width="120" height="120" fill="#0f172a" />
+                        <!-- Scaled Grid -->
+                        <line x1="-60" y1="0" x2="60" y2="0" stroke="rgba(255,255,255,0.5)" stroke-width="2" />
+                        <line x1="0" y1="-60" x2="0" y2="60" stroke="rgba(255,255,255,0.5)" stroke-width="2" />
+                        
+                        <!-- 0- Line -->
+                        <line id="zero-minus-line" x1="-15" y1="-60" x2="-15" y2="60" stroke="#f43f5e" stroke-width="1.5" stroke-dasharray="3" />
+                        <text x="-25" y="20" fill="#f43f5e" font-size="14" font-weight="bold" class="math-font">0⁻</text>
+                        
+                        <!-- Signal segment scaled -->
+                        <path id="mag-signal" fill="none" stroke="#0ea5e9" stroke-width="4" />
+                    </g>
+                    <!-- Lens reflection -->
+                    <path d="M -40 -40 Q 0 -60 40 -40" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="4" stroke-linecap="round" />
+                </g>
+            </g>
+        </svg>
+
+        <!-- Dynamic Overlay Formula -->
+        <div class="absolute bottom-32 right-12 glass-panel p-6 rounded-2xl pointer-events-none transform transition-transform">
+            <div class="text-xs text-purple-300 uppercase tracking-widest mb-2 font-semibold">Current Transform</div>
+            <div class="text-3xl math-font formula-glow flex items-center">
+                <span id="formula-integral">∫</span>
+                <div class="flex flex-col items-center justify-center mx-1 mt-1 text-sm leading-none">
+                    <span id="formula-upper">∞</span>
+                    <span id="formula-lower" class="text-cyan-400 mt-2">-∞</span>
+                </div>
+                <span class="ml-2">x(t)e<sup class="text-lg">-st</sup> dt <span id="formula-result" class="text-purple-400 ml-2">= X_b(s)</span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interaction Panel -->
+    <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 w-11/12 max-w-3xl glass-panel p-6 rounded-2xl z-30 pointer-events-auto">
+        <div class="flex justify-between items-end mb-4">
+            <div>
+                <h2 class="text-xl font-bold text-white mb-1">Time Boundary Selection</h2>
+                <p class="text-sm text-gray-400">Slide to set the starting point of integration.</p>
+            </div>
+            <div class="text-right">
+                <span class="text-xs text-gray-400 uppercase tracking-wider block">Start Point (T)</span>
+                <span id="t-value-display" class="text-2xl font-bold math-font text-cyan-400">-∞</span>
+            </div>
+        </div>
+
+        <div class="relative w-full flex items-center">
+            <span class="text-gray-400 math-font mr-4 w-8 text-right">-∞</span>
+            <input type="range" id="time-slider" min="-10" max="0" step="0.1" value="-10" class="slider-custom flex-1">
+            <span class="text-cyan-400 math-font ml-4 w-8">0⁻</span>
+        </div>
+
+        <div class="mt-4 flex justify-between text-xs font-semibold uppercase tracking-widest text-gray-500">
+            <span id="label-bilateral" class="text-purple-400 transition-colors">Bilateral Focus</span>
+            <span id="label-unilateral" class="transition-colors">Unilateral Focus</span>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const svg = document.getElementById('scene');
+        const slider = document.getElementById('time-slider');
+        const tDisplay = document.getElementById('t-value-display');
+        const formulaLower = document.getElementById('formula-lower');
+        const formulaResult = document.getElementById('formula-result');
+        const labelBilateral = document.getElementById('label-bilateral');
+        const labelUnilateral = document.getElementById('label-unilateral');
+        
+        const pathLeft = document.getElementById('signal-left');
+        const pathRight = document.getElementById('signal-right');
+        const darkCurtain = document.getElementById('dark-curtain');
+        const spotlight = document.getElementById('spotlight');
+        const integralGate = document.getElementById('integral-gate');
+        const scannerBeam = document.getElementById('scanner-beam');
+        const particlesContainer = document.getElementById('particles');
+        
+        const magnifier = document.getElementById('magnifier');
+        const lensPointer = document.getElementById('lens-pointer');
+        const magSignal = document.getElementById('mag-signal');
+        const zeroMinusLine = document.getElementById('zero-minus-line');
+
+        // Scene configuration
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        const originXRatio = 0.3; // 30% from left
+        const originYRatio = 0.5; // 50% from top
+        const xScale = 60; // pixels per time unit
+        const yScale = 100; // pixels per amplitude unit
+        
+        const tMin = -15;
+        const tMax = 20;
+
+        // Signal Function x(t)
+        function signalFunction(t) {
+            if (t < 0) {
+                // Background signal for t < 0
+                return 0.3 * Math.sin(1.5 * t) + 0.2 * Math.cos(3 * t);
+            } else {
+                // Damped sine wave for t >= 0
+                return 1.2 * Math.exp(-0.15 * t) * Math.sin(3 * t);
+            }
+        }
+
+        // Coordinate Mapping
+        function mapX(t) { return width * originXRatio + t * xScale; }
+        function mapY(val) { return height * originYRatio - val * yScale; }
+
+        // Generate Path Data
+        function generatePathData(startT, endT, step = 0.05) {
+            let d = "";
+            for (let t = startT; t <= endT; t += step) {
+                const x = mapX(t);
+                const y = mapY(signalFunction(t));
+                if (t === startT) d += `M ${x} ${y} `;
+                else d += `L ${x} ${y} `;
+            }
+            return d;
+        }
+
+        // Particle System for Transformation Effect
+        let particles = [];
+        const MAX_PARTICLES = 30;
+
+        function spawnParticle(x, y) {
+            if(particles.length > MAX_PARTICLES) return;
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("r", Math.random() * 2 + 1);
+            circle.setAttribute("class", "transform-particle");
+            circle.setAttribute("cx", x);
+            circle.setAttribute("cy", y);
+            particlesContainer.appendChild(circle);
+
+            particles.push({
+                el: circle,
+                x: x,
+                y: y,
+                vx: Math.random() * 2 + 1,
+                vy: (Math.random() - 0.5) * 4,
+                life: 1,
+                decay: Math.random() * 0.02 + 0.01
+            });
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy -= 0.1; // gravity/float upwards
+                p.life -= p.decay;
+
+                if (p.life <= 0) {
+                    p.el.remove();
+                    particles.splice(i, 1);
+                } else {
+                    p.el.setAttribute("cx", p.x);
+                    p.el.setAttribute("cy", p.y);
+                    p.el.style.opacity = p.life;
+                }
+            }
+        }
+
+        // Animation Variables
+        let scannerT = -10;
+        let animationId;
+
+        // Resize handler
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            
+            // Re-draw static grid lines
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            for(let i = Math.floor(-width*originXRatio/xScale); i < (width*(1-originXRatio))/xScale; i++) {
+                if(i !== 0) grid.innerHTML += `<line x1="${mapX(i)}" y1="0" x2="${mapX(i)}" y2="${height}" />`;
+            }
+            for(let j = -4; j < 4; j++) {
+                if(j !== 0) grid.innerHTML += `<line x1="0" y1="${mapY(j)}" x2="${width}" y2="${mapY(j)}" />`;
+            }
+
+            updateVisuals();
+        }
+
+        // Main Update Logic
+        function updateVisuals() {
+            const sliderVal = parseFloat(slider.value);
+            
+            // 1. Update Path Split
+            // We draw the active (right) signal from sliderVal to tMax
+            // The inactive (left) signal is drawn from tMin to sliderVal
+            pathLeft.setAttribute('d', generatePathData(tMin, sliderVal));
+            pathRight.setAttribute('d', generatePathData(sliderVal, tMax));
+
+            const gateX = mapX(sliderVal);
+            
+            // 2. Update Curtain and Spotlight
+            darkCurtain.setAttribute('width', gateX);
+            spotlight.setAttribute('x', gateX);
+            spotlight.setAttribute('width', width - gateX);
+
+            // 3. Update Gate Position
+            integralGate.setAttribute('transform', `translate(${gateX}, 0)`);
+
+            // 4. UI Text Updates
+            if (sliderVal === -10) {
+                tDisplay.innerText = '-∞';
+                formulaLower.innerText = '-∞';
+                formulaResult.innerText = '= X_b(s)';
+                formulaResult.className = "text-gray-400 ml-2";
+                labelBilateral.classList.add('text-purple-400');
+                labelUnilateral.classList.remove('text-cyan-400');
+            } else if (sliderVal === 0) {
+                tDisplay.innerText = '0⁻';
+                formulaLower.innerText = '0⁻';
+                formulaResult.innerText = '= X_l(s)';
+                formulaResult.className = "text-cyan-400 ml-2 font-bold";
+                labelBilateral.classList.remove('text-purple-400');
+                labelUnilateral.classList.add('text-cyan-400');
+            } else {
+                tDisplay.innerText = sliderVal.toFixed(1);
+                formulaLower.innerText = sliderVal.toFixed(1);
+                formulaResult.innerText = '= X(s)';
+                formulaResult.className = "text-purple-400 ml-2";
+                labelBilateral.classList.remove('text-purple-400');
+                labelUnilateral.classList.remove('text-cyan-400');
+            }
+
+            // 5. Magnifier Logic
+            const originX = mapX(0);
+            const originY = mapY(0);
+            
+            // Show magnifier if slider is close to 0
+            if (sliderVal > -2) {
+                magnifier.setAttribute('opacity', 1);
+                
+                // Position magnifier above the origin
+                const magCenterX = originX + 120;
+                const magCenterY = originY - 150;
+                magnifier.setAttribute('transform', `translate(${magCenterX}, ${magCenterY})`);
+                
+                // Draw line pointing to origin
+                lensPointer.setAttribute('x1', -100);
+                lensPointer.setAttribute('y1', -100);
+                lensPointer.setAttribute('x2', originX - magCenterX);
+                lensPointer.setAttribute('y2', originY - magCenterY);
+
+                // Update contents of magnifier (Scaled version of origin)
+                const magScale = 3;
+                let magD = "";
+                for (let t = -1; t <= 1; t += 0.02) {
+                    const localX = t * xScale * magScale;
+                    const localY = -signalFunction(t) * yScale * magScale;
+                    if (t === -1) magD += `M ${localX} ${localY} `;
+                    else magD += `L ${localX} ${localY} `;
+                }
+                magSignal.setAttribute('d', magD);
+
+                // Update 0- line relative to slider
+                // If slider is exactly 0, position it slightly left
+                const zeroMinusOffset = sliderVal === 0 ? -10 : (sliderVal * xScale * magScale);
+                // Clamp within view
+                const clampedOffset = Math.max(-60, Math.min(60, zeroMinusOffset));
+                zeroMinusLine.setAttribute('x1', clampedOffset);
+                zeroMinusLine.setAttribute('x2', clampedOffset);
+                
+                const zeroMinusText = document.querySelector('#magnifier text');
+                zeroMinusText.setAttribute('x', clampedOffset - 10);
+                
+            } else {
+                magnifier.setAttribute('opacity', 0);
+            }
+        }
+
+        // Animation Loop
+        function animate() {
+            const sliderVal = parseFloat(slider.value);
+            
+            // Scanner moves from Gate to Right edge
+            scannerT += 0.1;
+            if (scannerT > tMax || scannerT < sliderVal) {
+                scannerT = sliderVal;
+            }
+
+            const scanX = mapX(scannerT);
+            scannerBeam.setAttribute('x1', scanX);
+            scannerBeam.setAttribute('x2', scanX);
+            
+            // Intensity pulses based on signal amplitude
+            const amp = Math.abs(signalFunction(scannerT));
+            scannerBeam.setAttribute('opacity', 0.3 + amp * 0.4);
+
+            // Spawn particles periodically as it scans
+            if (Math.random() > 0.6) {
+                spawnParticle(scanX, mapY(signalFunction(scannerT)));
+            }
+            
+            updateParticles();
+            
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // Event Listeners
+        slider.addEventListener('input', () => {
+            updateVisuals();
+            // Reset scanner to new gate position
+            scannerT = parseFloat(slider.value);
+        });
+        window.addEventListener('resize', resize);
+
+        // Initialization
+        resize();
+        animate();
+    </script>
+</body>
+</html>

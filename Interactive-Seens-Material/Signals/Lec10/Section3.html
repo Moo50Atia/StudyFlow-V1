@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Z-Transform: Inverse by Long Division</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            overflow-x: hidden;
+        }
+        .math-font {
+            font-family: 'Lora', serif;
+        }
+        
+        /* Division bracket styling */
+        .division-bracket {
+            border-left: 2px solid #1e293b;
+            border-top: 2px solid #1e293b;
+            border-top-left-radius: 8px;
+        }
+
+        /* Tape cell styling */
+        .tape-cell {
+            min-width: 60px;
+            height: 60px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .tape-cell.active {
+            background-color: #e0f2fe;
+            border-color: #0ea5e9;
+            transform: scale(1.1);
+            box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.2);
+            z-index: 10;
+        }
+        .tape-cell.filled {
+            background-color: #f0f9ff;
+            border-color: #7dd3fc;
+            color: #0369a1;
+            font-weight: bold;
+        }
+
+        /* Work row animations */
+        .work-row {
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .work-row.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Term highlighting */
+        .highlight-term {
+            background-color: #fef08a;
+            border-radius: 4px;
+            padding: 0 2px;
+            transition: background-color 0.3s;
+        }
+
+        /* Flying number animation element */
+        .flying-number {
+            position: fixed;
+            z-index: 100;
+            font-family: 'Lora', serif;
+            font-weight: bold;
+            color: #0284c7;
+            pointer-events: none;
+            transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        /* Toggle switch */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #68D391;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #10b981;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 lg:p-8 flex items-center justify-center">
+
+    <div class="max-w-6xl w-full bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col lg:flex-row border border-slate-200">
+        
+        <!-- Left Panel: Controls & Explanation -->
+        <div class="lg:w-1/3 bg-slate-50 p-6 lg:p-8 border-b lg:border-b-0 lg:border-r border-slate-200 flex flex-col">
+            <h1 class="text-2xl lg:text-3xl font-bold text-slate-800 mb-2">Inverse Z-Transform</h1>
+            <h2 class="text-md font-medium text-blue-600 mb-6">Polynomial Long Division</h2>
+            
+            <div class="prose prose-sm text-slate-600 mb-6 leading-relaxed">
+                <p>
+                    The inverse Z-transform can be found by expanding \(X(z)\) into a power series. The sequence values <span class="math-font font-medium">x[n]</span> emerge directly as the coefficients of this division.
+                </p>
+                <p class="font-semibold text-slate-800 mt-4">The Crucial Misconception:</p>
+                <p>
+                    Division order is <strong>not</strong> independent of the Region of Convergence (ROC). The way we order the divisor determines the direction of the resulting sequence in the time domain.
+                </p>
+            </div>
+
+            <!-- Transfer Function Display -->
+            <div class="bg-white border border-slate-200 rounded-lg p-4 mb-6 text-center shadow-sm">
+                <div class="text-sm text-slate-500 mb-2 uppercase tracking-wider font-semibold">Transfer Function</div>
+                <div class="math-font text-2xl text-slate-800 flex flex-col items-center justify-center leading-tight">
+                    <div class="border-b-2 border-slate-800 px-4 pb-1 mb-1">1</div>
+                    <div>1 - 0.5z⁻¹</div>
+                </div>
+            </div>
+
+            <!-- ROC Toggle -->
+            <div class="bg-white border border-slate-200 rounded-lg p-4 mb-6 shadow-sm">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-sm font-semibold text-slate-700">Region of Convergence</span>
+                </div>
+                
+                <div class="relative flex flex-col gap-3">
+                    <!-- Option 1: Right Sided -->
+                    <label class="flex items-center p-3 border rounded-lg cursor-pointer transition-colors" id="label-right">
+                        <input type="radio" name="roc_type" value="right" class="mr-3 w-4 h-4 text-blue-600" checked>
+                        <div>
+                            <div class="font-semibold text-slate-800 text-sm">|z| > 0.5 (Right-Sided)</div>
+                            <div class="text-xs text-slate-500 mt-1">Divisor in <strong>descending</strong> powers of z</div>
+                        </div>
+                    </label>
+                    
+                    <!-- Option 2: Left Sided -->
+                    <label class="flex items-center p-3 border rounded-lg cursor-pointer transition-colors" id="label-left">
+                        <input type="radio" name="roc_type" value="left" class="mr-3 w-4 h-4 text-blue-600">
+                        <div>
+                            <div class="font-semibold text-slate-800 text-sm">|z| < 0.5 (Left-Sided)</div>
+                            <div class="text-xs text-slate-500 mt-1">Divisor in <strong>ascending</strong> powers of z</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="mt-auto pt-4 space-y-3">
+                <div class="flex gap-2">
+                    <button id="btn-step" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition-colors shadow flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
+                        Next Step
+                    </button>
+                    <button id="btn-play" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2 px-4 rounded transition-colors shadow flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                        Auto Play
+                    </button>
+                </div>
+                <button id="btn-reset" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-4 rounded transition-colors">
+                    Reset Simulation
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Panel: Visualization -->
+        <div class="lg:w-2/3 p-6 lg:p-10 flex flex-col relative bg-white">
+            
+            <!-- Long Division Area -->
+            <div class="flex-1 min-h-[350px] overflow-auto flex justify-center items-start pt-12 pb-4">
+                
+                <div class="math-font text-2xl flex text-slate-800 whitespace-nowrap">
+                    
+                    <!-- Divisor -->
+                    <div id="ui-divisor" class="pr-3 text-right pt-8 leading-relaxed font-medium transition-all duration-300">
+                        1 - 0.5z⁻¹
+                    </div>
+
+                    <!-- Bracket Area -->
+                    <div class="flex flex-col relative">
+                        
+                        <!-- Quotient Line -->
+                        <div id="ui-quotient" class="min-h-[2rem] border-b-2 border-slate-800 pl-3 pb-1 flex gap-2 font-semibold text-blue-700">
+                            <!-- Injected by JS -->
+                        </div>
+
+                        <!-- Work Area (Dividend & Subtractions) -->
+                        <div id="ui-work" class="division-bracket pl-3 pt-2 flex flex-col relative">
+                            <!-- Dividend -->
+                            <div class="leading-relaxed font-medium" id="ui-dividend">1</div>
+                            
+                            <!-- Subtraction Rows injected by JS -->
+                            <div id="work-rows-container"></div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Ticker Tape (Discrete Time Axis) -->
+            <div class="mt-8 border-t border-slate-200 pt-6">
+                <div class="flex justify-between items-end mb-3">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Discrete-Time Sequence</h3>
+                        <p class="text-xs text-slate-500 font-medium">Coefficients map directly to <span class="math-font italic">x[n]</span></p>
+                    </div>
+                    <div class="text-sm text-slate-500 math-font">... x[-1], x[0], x[1], x[2] ...</div>
+                </div>
+
+                <div class="w-full overflow-x-auto pb-4 custom-scrollbar">
+                    <div class="flex items-center gap-2 px-4 min-w-max" id="ui-tape">
+                        <!-- Generates indices from -5 to +5 via JS -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- Data & Models ---
+        const rightSidedData = {
+            divisor: "1 - 0.5z⁻¹",
+            dividend: "1",
+            steps: [
+                { type: 'quotient', text: "1", coeff: "1", index: 0, divTerm: "1" },
+                { type: 'sub', text: "-(1 - 0.5z⁻¹)" },
+                { type: 'rem', text: "0.5z⁻¹" },
+                { type: 'quotient', text: "+ 0.5z⁻¹", coeff: "0.5", index: 1, divTerm: "0.5z⁻¹" },
+                { type: 'sub', text: "-(0.5z⁻¹ - 0.25z⁻²)" },
+                { type: 'rem', text: "0.25z⁻²" },
+                { type: 'quotient', text: "+ 0.25z⁻²", coeff: "0.25", index: 2, divTerm: "0.25z⁻²" },
+                { type: 'sub', text: "-(0.25z⁻² - 0.125z⁻³)" },
+                { type: 'rem', text: "0.125z⁻³" },
+                { type: 'quotient', text: "+ 0.125z⁻³", coeff: "0.125", index: 3, divTerm: "0.125z⁻³" },
+                { type: 'sub', text: "-(0.125z⁻³ - 0.0625z⁻⁴)" },
+                { type: 'rem', text: "0.0625z⁻⁴" },
+                { type: 'quotient', text: "+ 0.0625z⁻⁴", coeff: "0.0625", index: 4, divTerm: "0.0625z⁻⁴" },
+                { type: 'sub', text: "-(0.0625z⁻⁴ - 0.03125z⁻⁵)" },
+                { type: 'rem', text: "0.03125z⁻⁵" }
+            ]
+        };
+
+        const leftSidedData = {
+            divisor: "-0.5z⁻¹ + 1",
+            dividend: "1",
+            steps: [
+                { type: 'quotient', text: "-2z", coeff: "-2", index: -1, divTerm: "1" },
+                { type: 'sub', text: "-(1 - 2z)" },
+                { type: 'rem', text: "2z" },
+                { type: 'quotient', text: "- 4z²", coeff: "-4", index: -2, divTerm: "2z" },
+                { type: 'sub', text: "-(2z - 4z²)" },
+                { type: 'rem', text: "4z²" },
+                { type: 'quotient', text: "- 8z³", coeff: "-8", index: -3, divTerm: "4z²" },
+                { type: 'sub', text: "-(4z² - 8z³)" },
+                { type: 'rem', text: "8z³" },
+                { type: 'quotient', text: "- 16z⁴", coeff: "-16", index: -4, divTerm: "8z³" },
+                { type: 'sub', text: "-(8z³ - 16z⁴)" },
+                { type: 'rem', text: "16z⁴" },
+                { type: 'quotient', text: "- 32z⁵", coeff: "-32", index: -5, divTerm: "16z⁴" },
+                { type: 'sub', text: "-(16z⁴ - 32z⁵)" },
+                { type: 'rem', text: "32z⁵" }
+            ]
+        };
+
+        // --- State ---
+        let currentMode = 'right'; // 'right' or 'left'
+        let currentStep = 0;
+        let isAutoPlaying = false;
+        let playInterval = null;
+        let activeData = rightSidedData;
+
+        // --- DOM Elements ---
+        const radioRight = document.querySelector('input[value="right"]');
+        const radioLeft = document.querySelector('input[value="left"]');
+        const labelRight = document.getElementById('label-right');
+        const labelLeft = document.getElementById('label-left');
+        
+        const btnStep = document.getElementById('btn-step');
+        const btnPlay = document.getElementById('btn-play');
+        const btnReset = document.getElementById('btn-reset');
+        
+        const uiDivisor = document.getElementById('ui-divisor');
+        const uiQuotient = document.getElementById('ui-quotient');
+        const uiDividend = document.getElementById('ui-dividend');
+        const workRowsContainer = document.getElementById('work-rows-container');
+        const uiTape = document.getElementById('ui-tape');
+
+        // --- Initialization ---
+        function initTape() {
+            uiTape.innerHTML = '';
+            // Generate cells from -5 to +5
+            for (let i = -5; i <= 5; i++) {
+                const cellWrapper = document.createElement('div');
+                cellWrapper.className = 'flex flex-col items-center shrink-0';
+                
+                const label = document.createElement('div');
+                label.className = `text-[10px] uppercase font-bold mb-1 ${i === 0 ? 'text-blue-600' : 'text-slate-400'}`;
+                label.innerText = `n=${i}`;
+                
+                const cell = document.createElement('div');
+                cell.id = `tape-cell-${i}`;
+                cell.className = `tape-cell border-2 rounded-lg flex items-center justify-center text-lg font-mono relative bg-white border-slate-200 text-slate-300`;
+                cell.innerText = "0";
+
+                if (i === 0) cell.classList.add('border-blue-200', 'bg-blue-50/30');
+
+                cellWrapper.appendChild(label);
+                cellWrapper.appendChild(cell);
+                uiTape.appendChild(cellWrapper);
+            }
+        }
+
+        function updateRadioStyles() {
+            if (currentMode === 'right') {
+                labelRight.classList.add('border-blue-500', 'bg-blue-50');
+                labelRight.classList.remove('border-slate-200');
+                labelLeft.classList.remove('border-blue-500', 'bg-blue-50');
+                labelLeft.classList.add('border-slate-200');
+            } else {
+                labelLeft.classList.add('border-blue-500', 'bg-blue-50');
+                labelLeft.classList.remove('border-slate-200');
+                labelRight.classList.remove('border-blue-500', 'bg-blue-50');
+                labelRight.classList.add('border-slate-200');
+            }
+        }
+
+        function resetSimulation() {
+            stopAutoPlay();
+            currentStep = 0;
+            activeData = currentMode === 'right' ? rightSidedData : leftSidedData;
+            
+            // Highlight arrangement difference conceptually
+            if (currentMode === 'right') {
+                uiDivisor.innerHTML = `<span class="highlight-term bg-transparent transition-all" id="ui-divisor-lead">1</span> - 0.5z⁻¹`;
+            } else {
+                uiDivisor.innerHTML = `<span class="highlight-term bg-transparent transition-all" id="ui-divisor-lead">-0.5z⁻¹</span> + 1`;
+            }
+
+            uiQuotient.innerHTML = '';
+            workRowsContainer.innerHTML = '';
+            initTape();
+            
+            // Scroll to center of tape
+            setTimeout(() => {
+                const zeroCell = document.getElementById('tape-cell-0');
+                if (zeroCell) {
+                    uiTape.parentElement.scrollLeft = zeroCell.parentElement.offsetLeft - (uiTape.parentElement.clientWidth / 2) + 30;
+                }
+            }, 50);
+
+            btnStep.disabled = false;
+            btnStep.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+
+        // --- Core Animation Logic ---
+        function stepForward() {
+            if (currentStep >= activeData.steps.length) {
+                stopAutoPlay();
+                btnStep.disabled = true;
+                btnStep.classList.add('opacity-50', 'cursor-not-allowed');
+                return;
+            }
+
+            const stepData = activeData.steps[currentStep];
+
+            if (stepData.type === 'quotient') {
+                handleQuotientStep(stepData);
+            } else if (stepData.type === 'sub') {
+                handleSubStep(stepData);
+            } else if (stepData.type === 'rem') {
+                handleRemStep(stepData);
+            }
+
+            // Scroll the division bracket down automatically
+            const divisionArea = document.getElementById('ui-work').parentElement.parentElement.parentElement;
+            divisionArea.scrollTo({ top: divisionArea.scrollHeight, behavior: 'smooth' });
+
+            currentStep++;
+        }
+
+        function handleQuotientStep(stepData) {
+            // Flash leading divisor term
+            const leadDivisor = document.getElementById('ui-divisor-lead');
+            if (leadDivisor) {
+                leadDivisor.classList.add('bg-fef08a');
+                setTimeout(() => leadDivisor.classList.remove('bg-fef08a'), 800);
+            }
+
+            // Highlight the remainder we are dividing (or dividend)
+            let targetDivTerm;
+            if (currentStep === 0) {
+                targetDivTerm = uiDividend;
+            } else {
+                // last remainder
+                const rems = document.querySelectorAll('.rem-row');
+                targetDivTerm = rems[rems.length - 1];
+            }
+            if (targetDivTerm) {
+                 targetDivTerm.innerHTML = `<span class="highlight-term bg-fef08a">${stepData.divTerm}</span>`;
+                 setTimeout(() => {
+                     targetDivTerm.innerHTML = stepData.divTerm;
+                 }, 800);
+            }
+
+            // Append quotient term
+            const qSpan = document.createElement('span');
+            qSpan.className = "work-row font-semibold";
+            qSpan.innerText = stepData.text;
+            uiQuotient.appendChild(qSpan);
+            
+            // Trigger reflow
+            void qSpan.offsetWidth;
+            qSpan.classList.add('visible');
+
+            // Fly coefficient to tape
+            setTimeout(() => {
+                flyToTape(qSpan, stepData.index, stepData.coeff);
+            }, 300);
+        }
+
+        function handleSubStep(stepData) {
+            const row = document.createElement('div');
+            row.className = "work-row text-red-600 border-b border-slate-800 pb-1 mt-1 font-medium";
+            row.innerText = stepData.text;
+            workRowsContainer.appendChild(row);
+            
+            void row.offsetWidth;
+            row.classList.add('visible');
+        }
+
+        function handleRemStep(stepData) {
+            const row = document.createElement('div');
+            row.className = "work-row rem-row pt-1 font-medium text-slate-800";
+            row.innerText = stepData.text;
+            workRowsContainer.appendChild(row);
+            
+            void row.offsetWidth;
+            row.classList.add('visible');
+        }
+
+        // --- Visual Effects ---
+        function flyToTape(sourceElement, targetIndex, value) {
+            const targetCell = document.getElementById(`tape-cell-${targetIndex}`);
+            if (!targetCell) return;
+
+            const startRect = sourceElement.getBoundingClientRect();
+            const endRect = targetCell.getBoundingClientRect();
+
+            const flyer = document.createElement('div');
+            flyer.className = 'flying-number';
+            flyer.innerText = value;
+            
+            // Starting position
+            flyer.style.left = `${startRect.left + 10}px`;
+            flyer.style.top = `${startRect.top}px`;
+            flyer.style.fontSize = '1.25rem';
+
+            document.body.appendChild(flyer);
+
+            // Force reflow
+            void flyer.offsetWidth;
+
+            // Animate to target
+            flyer.style.left = `${endRect.left + (endRect.width/2) - 10}px`;
+            flyer.style.top = `${endRect.top + 15}px`;
+            flyer.style.fontSize = '1rem';
+            flyer.style.opacity = '0.5';
+
+            targetCell.classList.add('active');
+
+            // Cleanup after animation
+            setTimeout(() => {
+                document.body.removeChild(flyer);
+                
+                targetCell.innerText = value;
+                targetCell.classList.remove('active');
+                targetCell.classList.add('filled');
+                
+                // Scroll tape to show new cell if out of view
+                const tapeScrollArea = uiTape.parentElement;
+                const cellWrapper = targetCell.parentElement;
+                
+                const scrollLeft = tapeScrollArea.scrollLeft;
+                const areaWidth = tapeScrollArea.clientWidth;
+                const cellLeft = cellWrapper.offsetLeft;
+                
+                if (cellLeft < scrollLeft || cellLeft > scrollLeft + areaWidth - 60) {
+                    tapeScrollArea.scrollTo({ left: cellLeft - areaWidth/2 + 30, behavior: 'smooth' });
+                }
+
+            }, 800);
+        }
+
+        function toggleAutoPlay() {
+            isAutoPlaying = !isAutoPlaying;
+            if (isAutoPlaying) {
+                btnPlay.innerHTML = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg> Pause`;
+                btnPlay.classList.replace('bg-emerald-500', 'bg-amber-500');
+                btnPlay.classList.replace('hover:bg-emerald-600', 'hover:bg-amber-600');
+                
+                // Immediate step if not finished
+                if (currentStep < activeData.steps.length) stepForward();
+                playInterval = setInterval(stepForward, 1200); // 1.2s per step
+            } else {
+                stopAutoPlay();
+            }
+        }
+
+        function stopAutoPlay() {
+            isAutoPlaying = false;
+            clearInterval(playInterval);
+            btnPlay.innerHTML = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg> Auto Play`;
+            btnPlay.classList.replace('bg-amber-500', 'bg-emerald-500');
+            btnPlay.classList.replace('hover:bg-amber-600', 'hover:bg-emerald-600');
+        }
+
+        // --- Event Listeners ---
+        radioRight.addEventListener('change', (e) => {
+            if(e.target.checked) {
+                currentMode = 'right';
+                updateRadioStyles();
+                resetSimulation();
+            }
+        });
+
+        radioLeft.addEventListener('change', (e) => {
+            if(e.target.checked) {
+                currentMode = 'left';
+                updateRadioStyles();
+                resetSimulation();
+            }
+        });
+
+        btnStep.addEventListener('click', () => {
+            stopAutoPlay();
+            stepForward();
+        });
+        
+        btnPlay.addEventListener('click', toggleAutoPlay);
+        btnReset.addEventListener('click', resetSimulation);
+
+        // --- Boot ---
+        updateRadioStyles();
+        resetSimulation();
+
+    </script>
+</body>
+</html>

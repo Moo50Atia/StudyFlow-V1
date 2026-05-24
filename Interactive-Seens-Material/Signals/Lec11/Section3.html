@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Continuous-Time Fourier Transform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Lora:ital@1&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* slate-900 */
+            color: #f8fafc; /* slate-50 */
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #06b6d4; /* cyan-500 */
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.6);
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #334155; /* slate-700 */
+            border-radius: 2px;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #narrative-text {
+            transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
+        }
+        .fade-out { opacity: 0; transform: translateY(10px); }
+        .fade-in { opacity: 1; transform: translateY(0); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="p-5 border-b border-slate-800 bg-slate-900 shadow-lg z-10 text-center">
+        <h1 class="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-500">
+            Fourier Transform: Continuous Decomposition
+        </h1>
+        <p class="text-slate-400 text-sm md:text-base mt-2 font-light">
+            Mapping a single time-domain event into a full, continuous frequency specification.
+        </p>
+    </header>
+
+    <!-- Main Visuals -->
+    <main class="flex-1 flex flex-col p-4 md:p-8 gap-6 w-full max-w-[1400px] mx-auto relative justify-center">
+        
+        <!-- Seamless Flow Canvas Container -->
+        <div id="canvas-container" class="w-full relative bg-slate-900 rounded-2xl shadow-2xl overflow-hidden border border-slate-700 min-h-[300px]">
+            
+            <!-- Contextual Domain Labels Overlay -->
+            <div class="absolute inset-0 pointer-events-none flex justify-between px-[5%] text-slate-500 font-semibold text-xs tracking-widest top-4 z-10">
+                <span class="w-1/3 text-left">TIME DOMAIN</span>
+                <span class="w-1/3 text-center">TRANSFORM OPERATOR</span>
+                <span class="w-1/3 text-right">FREQUENCY DOMAIN</span>
+            </div>
+
+            <!-- Main Render Canvas -->
+            <canvas id="main-canvas" class="block w-full h-auto"></canvas>
+        </div>
+
+    </main>
+
+    <!-- Controls & Narrative -->
+    <div class="glass-panel w-full shadow-[0_-10px_40px_rgba(0,0,0,0.3)] z-20 mt-auto">
+        <div class="max-w-5xl mx-auto w-full p-6 md:p-8 flex flex-col gap-6">
+            
+            <!-- Dynamic Narrative -->
+            <div class="min-h-[80px] flex items-center justify-center text-center">
+                <p id="narrative-text" class="text-lg md:text-xl text-slate-200 leading-relaxed max-w-4xl font-light">
+                    <!-- Text injected via JS -->
+                </p>
+            </div>
+            
+            <!-- Interactive Slider and Play -->
+            <div class="flex flex-col md:flex-row items-center gap-6 w-full">
+                <button id="play-btn" class="w-full md:w-auto bg-cyan-600 hover:bg-cyan-500 text-white rounded-full px-8 py-3 font-semibold shadow-lg shadow-cyan-500/30 transition-all active:scale-95 flex items-center justify-center gap-2">
+                    <svg id="play-icon" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                    <span id="play-text">Animate Flow</span>
+                </button>
+                
+                <div class="flex-1 w-full flex items-center gap-4 relative">
+                    <span class="text-xs font-semibold text-slate-400 tracking-wider">0%</span>
+                    <input type="range" id="progress-slider" min="0" max="1" step="0.002" value="0">
+                    <span class="text-xs font-semibold text-slate-400 tracking-wider">100%</span>
+                    
+                    <!-- Milestone Markers -->
+                    <div class="absolute w-full flex justify-between pointer-events-none px-8 top-6 text-xs text-slate-500">
+                        <div class="flex flex-col items-center"><div class="w-1 h-2 bg-slate-600 mb-1"></div>Signal</div>
+                        <div class="flex flex-col items-center pl-10"><div class="w-1 h-2 bg-slate-600 mb-1"></div>Integrate</div>
+                        <div class="flex flex-col items-center pr-10"><div class="w-1 h-2 bg-slate-600 mb-1"></div>Spread</div>
+                        <div class="flex flex-col items-center"><div class="w-1 h-2 bg-slate-600 mb-1"></div>Spectra</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const canvas = document.getElementById('main-canvas');
+        const ctx = canvas.getContext('2d');
+        const slider = document.getElementById('progress-slider');
+        const playBtn = document.getElementById('play-btn');
+        const playIcon = document.getElementById('play-icon');
+        const playText = document.getElementById('play-text');
+        const narrativeText = document.getElementById('narrative-text');
+
+        // State & Timing
+        let progress = 0; // 0.0 to 1.0
+        let isPlaying = false;
+        let lastTime = 0;
+        let currentNarrativeState = -1;
+
+        // Logical Canvas Dimensions (Coordinate system independent of screen size)
+        const LOGICAL_W = 1200;
+        const LOGICAL_H = 600;
+
+        // Math Utility
+        function sinc(x) {
+            if (Math.abs(x) < 1e-6) return 1;
+            return Math.sin(x) / x;
+        }
+
+        function easeInOut(t) {
+            return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+        }
+
+        function easeOut(t) {
+            return 1 - Math.pow(1 - t, 3);
+        }
+
+        // Get Bezier Point for flowing curves
+        function getBezierPoint(t, P0, P1, P2, P3) {
+            const u = 1 - t;
+            const tt = t * t;
+            const uu = u * u;
+            const uuu = uu * u;
+            const ttt = tt * t;
+
+            let x = uuu * P0.x + 3 * uu * t * P1.x + 3 * u * tt * P2.x + ttt * P3.x;
+            let y = uuu * P0.y + 3 * uu * t * P1.y + 3 * u * tt * P2.y + ttt * P3.y;
+            return { x, y };
+        }
+
+        // Draw bezier segment up to a limit
+        function drawPartialBezier(ctx, P0, P1, P2, P3, t_limit, color, lineWidth = 2) {
+            if (t_limit <= 0) return;
+            ctx.beginPath();
+            ctx.moveTo(P0.x, P0.y);
+            const steps = Math.ceil(t_limit * 50);
+            for (let i = 1; i <= steps; i++) {
+                let pt = getBezierPoint(i / 50, P0, P1, P2, P3);
+                ctx.lineTo(pt.x, pt.y);
+            }
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.stroke();
+        }
+
+        const narratives = [
+            "A non-periodic continuous-time signal (a rectangular pulse) <b class='text-blue-400'>x(t)</b> starts in the time domain.",
+            "The wave enters the <b class='text-cyan-400'>Integral Operator</b>, where it is mapped against complex sinusoids and integrated over all time.",
+            "The operator splits the single time event into a <b class='text-purple-400'>continuous spread of component frequencies</b>.",
+            "The <b class='text-cyan-400'>Magnitude |X(ω)|</b> and <b class='text-purple-400'>Phase ϕ(ω)</b> spectra are formed. Meters highlight the peaks of the continuous frequency specification."
+        ];
+
+        // Narrative Update Logic
+        function updateNarrative(p) {
+            let targetState;
+            if (p < 0.15) targetState = 0;
+            else if (p < 0.45) targetState = 1;
+            else if (p < 0.65) targetState = 2;
+            else targetState = 3;
+
+            if (targetState !== currentNarrativeState) {
+                narrativeText.classList.add('fade-out');
+                setTimeout(() => {
+                    narrativeText.innerHTML = narratives[targetState];
+                    narrativeText.classList.remove('fade-out');
+                    narrativeText.classList.add('fade-in');
+                    setTimeout(() => narrativeText.classList.remove('fade-in'), 400);
+                }, 200);
+                currentNarrativeState = targetState;
+            }
+        }
+
+        // Handle Resizing smoothly
+        function resizeCanvas() {
+            const container = document.getElementById('canvas-container');
+            const rect = container.getBoundingClientRect();
+            
+            const scale = rect.width / LOGICAL_W;
+            const dpr = window.devicePixelRatio || 1;
+            
+            canvas.width = LOGICAL_W * scale * dpr;
+            canvas.height = LOGICAL_H * scale * dpr;
+            
+            canvas.style.width = `${rect.width}px`;
+            canvas.style.height = `${LOGICAL_H * scale}px`;
+            
+            ctx.setTransform(1, 0, 0, 1, 0, 0); // reset
+            ctx.scale(scale * dpr, scale * dpr);
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        // Sub-Draw Routines
+        function drawBackgroundGrid() {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+            ctx.lineWidth = 1;
+            for(let x = 0; x < LOGICAL_W; x += 50) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x, LOGICAL_H); ctx.stroke(); }
+            for(let y = 0; y < LOGICAL_H; y += 50) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(LOGICAL_W, y); ctx.stroke(); }
+        }
+
+        function drawTimeDomain(p) {
+            // Static Axes
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(50, 300); ctx.lineTo(350, 300); ctx.stroke(); // X
+            ctx.beginPath(); ctx.moveTo(200, 180); ctx.lineTo(200, 420); ctx.stroke(); // Y
+            
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '14px Inter';
+            ctx.fillText('0', 190, 315);
+            ctx.fillText('t', 340, 290);
+
+            // Signal Movement Logic
+            let pulseX = 200;
+            let pulseOpacity = 1;
+            let pulseWidth = 60;
+            let pulseHeight = 100;
+
+            if (p > 0.15) {
+                let t_move = Math.min(1, (p - 0.15) / 0.20);
+                pulseX = 200 + easeInOut(t_move) * 400; // moves to x=600 (center of block)
+                
+                // Fade and swallow effect as it enters the block
+                if (pulseX > 480) {
+                    let swallow = Math.min(1, (pulseX - 480) / 40);
+                    pulseOpacity = 1 - swallow;
+                    pulseWidth = 60 * (1 - swallow * 0.5);
+                    pulseHeight = 100 * (1 - swallow * 0.3);
+                }
+            }
+
+            // Draw Rectangular Pulse
+            if (pulseOpacity > 0) {
+                ctx.globalAlpha = pulseOpacity;
+                ctx.fillStyle = 'rgba(59, 130, 246, 0.2)'; // blue-500 fill
+                ctx.strokeStyle = '#3b82f6'; // blue-500 stroke
+                ctx.lineWidth = 3;
+                
+                let rectX = pulseX - pulseWidth / 2;
+                let rectY = 300 - pulseHeight;
+                
+                ctx.fillRect(rectX, rectY, pulseWidth, pulseHeight);
+                
+                ctx.beginPath();
+                ctx.moveTo(pulseX - 100, 300);
+                ctx.lineTo(rectX, 300);
+                ctx.lineTo(rectX, rectY);
+                ctx.lineTo(rectX + pulseWidth, rectY);
+                ctx.lineTo(rectX + pulseWidth, 300);
+                ctx.lineTo(pulseX + 100, 300);
+                ctx.stroke();
+
+                ctx.fillStyle = '#f8fafc';
+                ctx.textAlign = 'center';
+                ctx.font = 'bold 16px Inter';
+                ctx.fillText('x(t)', pulseX, rectY - 15);
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        function drawOperator(p) {
+            let glow = 0;
+            if (p > 0.35 && p < 0.65) {
+                glow = Math.sin((p - 0.35) / 0.3 * Math.PI) * 20;
+            }
+
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = '#06b6d4';
+            ctx.lineWidth = 2;
+            
+            ctx.shadowBlur = Math.max(0, glow);
+            ctx.shadowColor = '#06b6d4';
+            ctx.fillRect(510, 230, 180, 140);
+            ctx.strokeRect(510, 230, 180, 140);
+            ctx.shadowBlur = 0; // reset
+            
+            ctx.fillStyle = '#f8fafc';
+            ctx.textAlign = 'center';
+            ctx.font = 'bold 16px Inter';
+            ctx.fillText('Integral Operator', 600, 275);
+            
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = 'italic 16px Lora, serif';
+            ctx.fillText('X(ω) = ∫ x(t) e⁻ʲʷᵗ dt', 600, 315);
+        }
+
+        function drawFlowAndSpectra(p) {
+            // Spectra Axes
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 2;
+            ctx.textAlign = 'left';
+            
+            // Magnitude Axis
+            ctx.beginPath(); ctx.moveTo(770, 220); ctx.lineTo(1130, 220); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(950, 80); ctx.lineTo(950, 230); ctx.stroke();
+            ctx.fillStyle = '#94a3b8'; ctx.font = '14px Inter';
+            ctx.fillText('0', 935, 235); ctx.fillText('ω', 1140, 225);
+            ctx.fillStyle = '#06b6d4'; ctx.fillText('|X(ω)|', 955, 90);
+            
+            // Phase Axis
+            ctx.beginPath(); ctx.moveTo(770, 420); ctx.lineTo(1130, 420); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(950, 340); ctx.lineTo(950, 500); ctx.stroke();
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillText('0', 935, 435); ctx.fillText('ω', 1140, 425);
+            ctx.fillStyle = '#a855f7'; ctx.fillText('ϕ(ω)', 955, 350);
+
+            // 1. Flow Animation (Spreading Beziers)
+            let t_limit = Math.max(0, Math.min(1, (p - 0.45) / 0.20));
+            const N = 25; // number of lines
+
+            if (t_limit > 0) {
+                for (let i = 0; i <= N; i++) {
+                    let w = -12 + (i / N) * 24; // map to frequency domain span
+                    let targetX = 950 + w * 14;
+                    
+                    // Hue varies by frequency
+                    let hue = 260 - (i / N) * 260; // Violet to Red
+                    let colorMag = `hsla(${hue}, 80%, 60%, 0.4)`;
+                    let colorPhase = `hsla(${hue}, 80%, 60%, 0.2)`;
+
+                    // Paths out of top and bottom of block
+                    let P0_m = {x: 690, y: 260}, P1_m = {x: 800, y: 260}, P2_m = {x: 850, y: 220}, P3_m = {x: targetX, y: 220};
+                    let P0_p = {x: 690, y: 340}, P1_p = {x: 800, y: 340}, P2_p = {x: 850, y: 420}, P3_p = {x: targetX, y: 420};
+
+                    drawPartialBezier(ctx, P0_m, P1_m, P2_m, P3_m, t_limit, colorMag, 1.5);
+                    drawPartialBezier(ctx, P0_p, P1_p, P2_p, P3_p, t_limit, colorPhase, 1.5);
+
+                    // Continuous flowing particles once expanded
+                    if (p > 0.55) {
+                        let tOff = ((Date.now() / 2000) + (i * 0.05)) % 1;
+                        // Ease the flow so it's not strictly linear
+                        tOff = tOff * tOff * (3 - 2 * tOff); // smoothstep
+                        
+                        let pt_m = getBezierPoint(tOff, P0_m, P1_m, P2_m, P3_m);
+                        ctx.fillStyle = `hsla(${hue}, 100%, 70%, 0.8)`;
+                        ctx.beginPath(); ctx.arc(pt_m.x, pt_m.y, 1.5, 0, Math.PI*2); ctx.fill();
+                        
+                        let pt_p = getBezierPoint(tOff, P0_p, P1_p, P2_p, P3_p);
+                        ctx.beginPath(); ctx.arc(pt_p.x, pt_p.y, 1.5, 0, Math.PI*2); ctx.fill();
+                    }
+                }
+            }
+
+            // 2. Spectra Curves Formation
+            let scaleY = 0;
+            if (p > 0.65) scaleY = easeOut(Math.min(1, (p - 0.65) / 0.15));
+
+            if (scaleY > 0) {
+                // Magnitude Sinc Curve
+                ctx.beginPath();
+                for (let w = -12; w <= 12; w += 0.1) {
+                    let x = 950 + w * 14;
+                    let val = Math.abs(120 * sinc(w));
+                    let y = 220 - val * scaleY;
+                    if (w === -12) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.strokeStyle = '#06b6d4'; // cyan
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Phase Curve (Square Wave jumps)
+                ctx.beginPath();
+                for (let w = -12; w <= 12; w += 0.05) {
+                    let x = 950 + w * 14;
+                    // For Rectangular pulse, phase is 0 when sinc > 0, -pi when sinc < 0
+                    let sign = sinc(w) >= 0 ? 0 : 1; 
+                    let y = 420 + sign * 40 * scaleY; // Map -pi to +40px visually down
+                    
+                    if (w === -12) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y); // will draw vertical jump naturally
+                }
+                ctx.strokeStyle = '#a855f7'; // purple
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            // 3. Highlight Meters (Peaks)
+            let meterOpacity = 0;
+            if (p > 0.80) meterOpacity = Math.min(1, (p - 0.80) / 0.15);
+
+            if (meterOpacity > 0) {
+                ctx.globalAlpha = meterOpacity;
+                
+                // Specific peak locations of |sinc(w)|
+                const peaks = [
+                    { w: 0, label: 'DC / Main Lobe' },
+                    { w: -4.493, label: 'Side Lobe' },
+                    { w: 4.493, label: 'Side Lobe' },
+                    { w: -7.725, label: '' },
+                    { w: 7.725, label: '' }
+                ];
+                
+                ctx.textAlign = 'center';
+                
+                peaks.forEach(peak => {
+                    let x = 950 + peak.w * 14;
+                    let val = Math.abs(120 * sinc(peak.w));
+                    let y = 220 - val;
+                    
+                    // Vertical Drop Line
+                    ctx.beginPath();
+                    ctx.moveTo(x, 220);
+                    ctx.lineTo(x, y);
+                    ctx.strokeStyle = '#f59e0b'; // amber
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([4, 4]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    
+                    // Highlight Dot
+                    ctx.beginPath();
+                    ctx.arc(x, y, 4, 0, Math.PI*2);
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.fill();
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#f59e0b';
+                    ctx.fill(); // double fill for extra glow center
+                    ctx.shadowBlur = 0;
+                    
+                    // Label
+                    if (peak.label) {
+                        ctx.fillStyle = '#fcd34d';
+                        ctx.font = peak.w === 0 ? 'bold 12px Inter' : '11px Inter';
+                        let yOff = peak.w === 0 ? 25 : 15;
+                        ctx.fillText(peak.label, x, y - yOff);
+                    }
+                });
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // Main Render Loop
+        function render(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const dt = timestamp - lastTime;
+            lastTime = timestamp;
+
+            // Progression Logic
+            if (isPlaying) {
+                progress += dt / 8000; // 8 seconds for full sequence
+                if (progress >= 1) {
+                    progress = 1;
+                    togglePlay(); // auto pause at end
+                }
+                slider.value = progress;
+            }
+
+            // Draw Background & Clear
+            ctx.clearRect(0, 0, LOGICAL_W, LOGICAL_H);
+            drawBackgroundGrid();
+
+            // Execute layered visual segments
+            drawTimeDomain(progress);
+            drawOperator(progress);
+            drawFlowAndSpectra(progress);
+            
+            // Sync Text
+            updateNarrative(progress);
+
+            // Continuously request animation frames to keep flow particles moving even if paused
+            requestAnimationFrame(render);
+        }
+
+        // UI Binding
+        slider.addEventListener('input', (e) => {
+            progress = parseFloat(e.target.value);
+        });
+
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            
+            if (isPlaying) {
+                if (progress >= 1) {
+                    progress = 0; 
+                    slider.value = 0;
+                }
+                playIcon.innerHTML = `<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>`;
+                playText.innerText = "Pause Flow";
+                playBtn.classList.replace('bg-cyan-600', 'bg-purple-600');
+                playBtn.classList.replace('shadow-cyan-500/30', 'shadow-purple-500/30');
+                playBtn.classList.replace('hover:bg-cyan-500', 'hover:bg-purple-500');
+            } else {
+                playIcon.innerHTML = `<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>`;
+                playText.innerText = progress >= 1 ? "Restart Flow" : "Animate Flow";
+                playBtn.classList.replace('bg-purple-600', 'bg-cyan-600');
+                playBtn.classList.replace('shadow-purple-500/30', 'shadow-cyan-500/30');
+                playBtn.classList.replace('hover:bg-purple-500', 'hover:bg-cyan-500');
+            }
+        }
+
+        playBtn.addEventListener('click', togglePlay);
+
+        // Bootstrap
+        window.onload = () => {
+            resizeCanvas();
+            updateNarrative(0);
+            requestAnimationFrame(render);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Z-Plane: Causality & Stability</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body, html { margin: 0; padding: 0; overflow: hidden; background-color: #0f172a; font-family: 'Inter', sans-serif; }
+        #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
+        
+        .glass-panel { 
+            pointer-events: auto; 
+            background: rgba(30, 41, 59, 0.85); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid rgba(148, 163, 184, 0.2); 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+        
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #f87171;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 0 10px rgba(248, 113, 113, 0.6);
+            transition: background 0.3s;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #475569;
+            border-radius: 2px;
+        }
+        
+        /* Dynamic thumb color based on state */
+        input[type=range].stable-thumb::-webkit-slider-thumb {
+            background: #34d399;
+            box-shadow: 0 0 10px rgba(52, 211, 153, 0.6);
+        }
+
+        .highlight-text { text-shadow: 0 0 8px currentColor; }
+    </style>
+</head>
+<body class="text-slate-200">
+
+    <div id="canvas-container">
+        <canvas id="zplane-canvas"></canvas>
+    </div>
+
+    <div id="ui-layer" class="flex flex-col justify-between p-6">
+        
+        <!-- Header / Learning Outcome -->
+        <div class="glass-panel p-6 rounded-2xl max-w-3xl mx-auto text-center w-full mt-4">
+            <h1 class="text-2xl md:text-3xl font-bold text-white mb-3 tracking-wide">Z-Plane: Causality & BIBO Stability</h1>
+            <div id="outcome-box" class="p-4 rounded-xl transition-colors duration-500 bg-emerald-900/30 border border-emerald-500/30">
+                <p id="learning-outcome" class="text-lg md:text-xl text-slate-200 leading-relaxed">
+                    Pole |p| = <span id="pole-val-text" class="font-bold text-emerald-400">0.50</span>. The exterior ROC (|z| > |p|) <strong class="text-emerald-400">encloses</strong> the unit circle. The system is simultaneously <strong class="text-white">Causal</strong> and <strong class="text-emerald-400 highlight-text">BIBO Stable</strong>.
+                </p>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="glass-panel p-6 rounded-2xl w-full max-w-md mx-auto mb-8">
+            <div class="mb-4">
+                <div class="flex justify-between items-end mb-4">
+                    <label class="font-semibold text-slate-300">Move Pole Radius (|p|)</label>
+                    <span id="slider-val" class="text-2xl font-mono font-bold text-emerald-400">0.50</span>
+                </div>
+                <input type="range" id="pole-slider" class="stable-thumb" min="0.1" max="2.0" step="0.01" value="0.5">
+                
+                <div class="flex justify-between text-xs text-slate-400 mt-3 font-semibold px-1">
+                    <span>Inside Unit Circle</span>
+                    <span>|z| = 1</span>
+                    <span>Outside Unit Circle</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('zplane-canvas');
+        const ctx = canvas.getContext('2d');
+        const slider = document.getElementById('pole-slider');
+        const sliderValDisplay = document.getElementById('slider-val');
+        const poleValText = document.getElementById('pole-val-text');
+        const learningOutcome = document.getElementById('learning-outcome');
+        const outcomeBox = document.getElementById('outcome-box');
+
+        // State variables for smooth animation
+        let targetPoleRadius = parseFloat(slider.value);
+        let currentPoleRadius = targetPoleRadius;
+        const poleAngle = Math.PI / 4; // 45 degrees for visual clarity
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth * window.devicePixelRatio;
+            canvas.height = window.innerHeight * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function updateUI(radius) {
+            const radStr = radius.toFixed(2);
+            sliderValDisplay.innerText = radStr;
+            poleValText.innerText = radStr;
+
+            if (radius < 1.0) {
+                // Stable
+                slider.classList.add('stable-thumb');
+                sliderValDisplay.className = 'text-2xl font-mono font-bold text-emerald-400';
+                outcomeBox.className = 'p-4 rounded-xl transition-colors duration-500 bg-emerald-900/30 border border-emerald-500/30';
+                
+                learningOutcome.innerHTML = `Pole |p| = <span class="font-bold text-emerald-400">${radStr}</span>. The exterior ROC (|z| > |p|) <strong class="text-emerald-400">encloses</strong> the fixed unit circle. The system is simultaneously <strong class="text-white">Causal</strong> and <strong class="text-emerald-400 highlight-text">BIBO Stable</strong>.`;
+            } else if (radius > 1.0) {
+                // Unstable
+                slider.classList.remove('stable-thumb');
+                sliderValDisplay.className = 'text-2xl font-mono font-bold text-red-400';
+                outcomeBox.className = 'p-4 rounded-xl transition-colors duration-500 bg-red-900/30 border border-red-500/30';
+                
+                learningOutcome.innerHTML = `Pole |p| = <span class="font-bold text-red-400">${radStr}</span>. The exterior ROC (|z| > |p|) <strong class="text-red-400">does not enclose</strong> the unit circle. The system is <strong class="text-white">Causal</strong>, but <strong class="text-red-400 highlight-text">Unstable</strong>.`;
+            } else {
+                // Marginal
+                slider.classList.add('stable-thumb');
+                sliderValDisplay.className = 'text-2xl font-mono font-bold text-yellow-400';
+                outcomeBox.className = 'p-4 rounded-xl transition-colors duration-500 bg-yellow-900/30 border border-yellow-500/30';
+                
+                learningOutcome.innerHTML = `Pole |p| = <span class="font-bold text-yellow-400">${radStr}</span>. The pole is <strong class="text-yellow-400">exactly on</strong> the unit circle boundary. System is Marginally Stable.`;
+            }
+        }
+
+        slider.addEventListener('input', (e) => {
+            targetPoleRadius = parseFloat(e.target.value);
+            updateUI(targetPoleRadius);
+        });
+
+        function drawZPlane() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            const cx = width / 2;
+            const cy = height / 2;
+            
+            // 1 Unit = smaller of the two dimensions divided by 5
+            const scale = Math.min(width, height) / 5; 
+
+            ctx.clearRect(0, 0, width, height);
+
+            // Determine dynamic colors based on stability
+            const isStable = currentPoleRadius < 1.0;
+            const isMarginal = Math.abs(currentPoleRadius - 1.0) < 0.01;
+            
+            let rocColor = 'rgba(56, 189, 248, 0.15)'; // Default blueish
+            if (isStable) rocColor = 'rgba(52, 211, 153, 0.2)'; // Emerald
+            if (!isStable && !isMarginal) rocColor = 'rgba(248, 113, 113, 0.15)'; // Red
+
+            // --- 1. Draw Region of Convergence (ROC) ---
+            // ROC is |z| > |p| (Exterior shading for causal system)
+            ctx.beginPath();
+            // Outer boundary (far beyond screen)
+            ctx.arc(cx, cy, Math.max(width, height) * 2, 0, Math.PI * 2);
+            // Inner boundary (pole radius) - draw counter-clockwise to create a hole
+            ctx.arc(cx, cy, currentPoleRadius * scale, 0, Math.PI * 2, true);
+            ctx.fillStyle = rocColor;
+            ctx.fill();
+
+            // Inner boundary line
+            ctx.beginPath();
+            ctx.arc(cx, cy, currentPoleRadius * scale, 0, Math.PI * 2);
+            ctx.strokeStyle = isStable ? 'rgba(52, 211, 153, 0.5)' : 'rgba(248, 113, 113, 0.5)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // --- 2. Draw Axes and Grid ---
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.2)'; // slate-400 low opacity
+            ctx.lineWidth = 1;
+            
+            // Grid circles (0.5, 1.5, 2.0)
+            [0.5, 1.5, 2.0].forEach(r => {
+                ctx.beginPath();
+                ctx.arc(cx, cy, r * scale, 0, Math.PI * 2);
+                ctx.stroke();
+            });
+
+            // Re and Im Axes
+            ctx.beginPath();
+            ctx.moveTo(0, cy); ctx.lineTo(width, cy); // Real Axis
+            ctx.moveTo(cx, 0); ctx.lineTo(cx, height); // Imaginary Axis
+            ctx.stroke();
+
+            // Axis labels
+            ctx.fillStyle = 'rgba(148, 163, 184, 0.8)';
+            ctx.font = '14px Inter, sans-serif';
+            ctx.fillText('Re(z)', width - 50, cy - 10);
+            ctx.fillText('Im(z)', cx + 10, 30);
+
+            // --- 3. Draw Fixed Unit Circle (|z| = 1) ---
+            ctx.beginPath();
+            ctx.setLineDash([8, 8]); // Dashed line
+            // If stable, the unit circle is enclosed and safe. Highlight it.
+            if (isStable) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)'; 
+                ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+                ctx.shadowBlur = 10;
+                ctx.lineWidth = 2.5;
+            } else {
+                ctx.strokeStyle = 'rgba(148, 163, 184, 0.6)'; // Dim if not enclosed
+                ctx.shadowBlur = 0;
+                ctx.lineWidth = 2;
+            }
+            ctx.arc(cx, cy, scale, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Reset stroke settings
+            ctx.setLineDash([]);
+            ctx.shadowBlur = 0;
+
+            // Unit circle label
+            ctx.fillStyle = isStable ? 'rgba(255, 255, 255, 0.9)' : 'rgba(148, 163, 184, 0.8)';
+            ctx.font = 'bold 14px Inter, sans-serif';
+            ctx.fillText('|z| = 1', cx + scale + 10, cy + 20);
+
+            // --- 4. Draw the Pole 'X' ---
+            // Calculate pole coordinates (using standard math: y is negative going up in canvas)
+            const px = cx + currentPoleRadius * scale * Math.cos(poleAngle);
+            const py = cy - currentPoleRadius * scale * Math.sin(poleAngle);
+            
+            const xSize = 10;
+            ctx.beginPath();
+            ctx.strokeStyle = isStable ? '#34d399' : '#f87171'; // Green or Red X
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            // Draw X
+            ctx.moveTo(px - xSize, py - xSize); ctx.lineTo(px + xSize, py + xSize);
+            ctx.moveTo(px + xSize, py - xSize); ctx.lineTo(px - xSize, py + xSize);
+            ctx.stroke();
+
+            // Draw conjugate pole (to make it mathematically realistic for real systems)
+            const py_conj = cy + currentPoleRadius * scale * Math.sin(poleAngle);
+            ctx.beginPath();
+            ctx.moveTo(px - xSize, py_conj - xSize); ctx.lineTo(px + xSize, py_conj + xSize);
+            ctx.moveTo(px + xSize, py_conj - xSize); ctx.lineTo(px - xSize, py_conj + xSize);
+            ctx.stroke();
+        }
+
+        // Animation loop for smooth slider tracking
+        function animate() {
+            // Lerp (Linear Interpolation) for smooth movement
+            currentPoleRadius += (targetPoleRadius - currentPoleRadius) * 0.15;
+            
+            drawZPlane();
+            requestAnimationFrame(animate);
+        }
+
+        // Initialization
+        updateUI(targetPoleRadius);
+        animate();
+
+    </script>
+</body>
+</html>

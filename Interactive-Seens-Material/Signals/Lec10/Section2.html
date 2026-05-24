@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inverse Z-Transform Laboratory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: rgba(30, 41, 59, 0.7);
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-purple: #8b5cf6;
+            --accent-orange: #f59e0b;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: #e2e8f0;
+            overflow: hidden;
+        }
+
+        .math-font { font-family: 'Fira Code', monospace; }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Math Fraction Styling */
+        .frac {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            vertical-align: middle;
+            margin: 0 0.5rem;
+        }
+        .frac > span:first-child {
+            border-bottom: 2px solid currentColor;
+            padding: 0 0.25rem 0.1rem;
+        }
+        .frac > span:last-child {
+            padding: 0.1rem 0.25rem 0;
+        }
+
+        /* Animation Steps */
+        .step-container {
+            position: relative;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        .eq-step {
+            position: absolute;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+            pointer-events: none;
+        }
+        .eq-step.active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        /* Draggable Blocks */
+        .drag-block {
+            cursor: grab;
+            display: inline-flex;
+            align-items: center;
+            background: linear-gradient(135deg, var(--accent-purple), #6d28d9);
+            border: 2px solid #a78bfa;
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .drag-block:active { cursor: grabbing; transform: scale(0.95); }
+        .drag-block.dragging { opacity: 0.5; }
+
+        /* Reference Table Drop Zone */
+        .drop-zone {
+            transition: all 0.3s ease;
+            border: 2px dashed rgba(255,255,255,0.2);
+        }
+        .drop-zone.drag-over {
+            background-color: rgba(16, 185, 129, 0.2);
+            border-color: var(--accent-green);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3) inset;
+        }
+
+        /* Popups / Tooltips */
+        .residue-popup {
+            position: absolute;
+            background: #1e293b;
+            border: 1px solid var(--accent-orange);
+            color: #fcd34d;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+            z-index: 50;
+        }
+        .residue-popup.show {
+            opacity: 1;
+            transform: translateY(-40px); /* Above the equation */
+        }
+
+        /* Time Axis Blocks */
+        .time-block {
+            display: inline-flex;
+            align-items: center;
+            background: linear-gradient(135deg, #059669, #047857);
+            border: 1px solid #34d399;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 1.25rem;
+            font-weight: bold;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.5) translateY(20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* Visual Sugar */
+        .grid-bg {
+            background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen items-center justify-center p-4">
+
+    <!-- Header & Narrative -->
+    <div class="w-full max-w-6xl text-center mb-6 relative">
+        <h1 class="text-4xl font-bold tracking-tight text-white mb-2 drop-shadow-md">Inverse <span class="math-font text-blue-400 text-5xl italic">Z</span>-Transform Laboratory</h1>
+        <div class="glass-panel inline-block px-8 py-3 rounded-full border-blue-500/30 border text-blue-200 mt-2 shadow-lg">
+            <p id="narrative-text" class="text-lg font-medium transition-opacity duration-300">
+                Observe the complex signal <span class="math-font">X(z)</span>. Click Next to begin the expansion process.
+            </p>
+        </div>
+        
+        <!-- Misconception Warning Box (Hidden initially) -->
+        <div id="warning-box" class="absolute right-0 top-0 w-64 glass-panel border-orange-500/50 p-4 rounded-xl text-left opacity-0 transition-opacity duration-500 hidden">
+            <div class="text-orange-400 font-bold mb-1 flex items-center text-sm"><span class="mr-2">⚠️</span> Core Concept</div>
+            <p class="text-xs text-slate-300">Always divide by <span class="math-font italic">z</span> first! Direct expansion misses the standard <span class="math-font text-blue-300">z/(z-a)</span> form needed for the reference table.</p>
+        </div>
+    </div>
+
+    <!-- Main Workspace -->
+    <div class="w-full max-w-6xl grid grid-cols-2 gap-6 mb-6">
+        
+        <!-- Left: Z-Domain Processing Stage -->
+        <div class="glass-panel rounded-2xl p-6 relative grid-bg flex flex-col shadow-2xl h-[320px]">
+            <h2 class="text-slate-400 uppercase tracking-widest text-sm font-bold mb-4 border-b border-slate-700 pb-2">Z-Domain Process Stage</h2>
+            
+            <div class="step-container math-font text-blue-100 flex-grow relative">
+                
+                <!-- Step 0: Initial -->
+                <div id="step-0" class="eq-step active">
+                    X(z) = 
+                    <div class="frac">
+                        <span>z</span>
+                        <span>(z - 1)(z - 0.5)</span>
+                    </div>
+                </div>
+
+                <!-- Step 1: Divide by z -->
+                <div id="step-1" class="eq-step">
+                    <div class="frac text-orange-300">
+                        <span>X(z)</span>
+                        <span>z</span>
+                    </div>
+                    = 
+                    <div class="frac">
+                        <span>1</span>
+                        <span>(z - 1)(z - 0.5)</span>
+                    </div>
+                </div>
+
+                <!-- Step 2: Partial Fractions Structure -->
+                <div id="step-2" class="eq-step">
+                    <div class="frac text-orange-300">
+                        <span>X(z)</span>
+                        <span>z</span>
+                    </div>
+                    = 
+                    <div class="frac text-pink-300">
+                        <span id="c1-target">c₁</span>
+                        <span>z - 1</span>
+                    </div>
+                    + 
+                    <div class="frac text-pink-300">
+                        <span id="c2-target">c₂</span>
+                        <span>z - 0.5</span>
+                    </div>
+                </div>
+
+                <!-- Step 3: Residue Results -->
+                <div id="step-3" class="eq-step relative">
+                    <div class="frac text-orange-300">
+                        <span>X(z)</span>
+                        <span>z</span>
+                    </div>
+                    = 
+                    <div class="frac text-green-300">
+                        <span>2</span>
+                        <span>z - 1</span>
+                    </div>
+                    <span class="mx-2 text-slate-400">-</span> 
+                    <div class="frac text-green-300">
+                        <span>2</span>
+                        <span>z - 0.5</span>
+                    </div>
+                    
+                    <!-- Popups -->
+                    <div id="popup-1" class="residue-popup" style="left: 20%;">
+                        c₁ = [1 / (z-0.5)]<sub class="text-xs">z=1</sub> = 2
+                    </div>
+                    <div id="popup-2" class="residue-popup" style="right: -5%;">
+                        c₂ = [1 / (z-1)]<sub class="text-xs">z=0.5</sub> = -2
+                    </div>
+                </div>
+
+                <!-- Step 4: Multiply by Z (Draggable) -->
+                <div id="step-4" class="eq-step w-full flex items-center justify-center space-x-6">
+                    <span>X(z) = </span>
+                    <div id="block-1" class="drag-block" draggable="true">
+                        <div class="frac font-bold">
+                            <span>2z</span>
+                            <span>z - 1</span>
+                        </div>
+                    </div>
+                    <span class="text-3xl text-slate-500">+</span>
+                    <div id="block-2" class="drag-block" draggable="true">
+                        <div class="frac font-bold">
+                            <span>-2z</span>
+                            <span>z - 0.5</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Controls -->
+            <div class="flex justify-between items-center mt-auto">
+                <button id="btn-reset" onclick="resetLab()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition border border-slate-600">Reset</button>
+                <button id="btn-next" onclick="nextStep()" class="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-all transform hover:scale-105">Next: Divide by z</button>
+            </div>
+        </div>
+
+        <!-- Right: Reference Table -->
+        <div class="glass-panel rounded-2xl p-6 flex flex-col shadow-2xl h-[320px]">
+            <h2 class="text-slate-400 uppercase tracking-widest text-sm font-bold mb-4 border-b border-slate-700 pb-2">Z-Transform Reference Table</h2>
+            
+            <div class="flex flex-col space-y-3 math-font text-lg">
+                <!-- Table Row 1 -->
+                <div class="flex items-center justify-between p-3 bg-slate-800/50 rounded border border-slate-700/50">
+                    <span class="text-emerald-400">δ[n]</span>
+                    <span class="text-slate-500">⟷</span>
+                    <span>1</span>
+                </div>
+                
+                <!-- Table Row 2 (Target) -->
+                <div id="drop-target" class="drop-zone flex items-center justify-between p-3 rounded relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-blue-900/20 z-0"></div>
+                    <span class="text-emerald-400 z-10 relative">aⁿ u[n]</span>
+                    <span class="text-slate-500 z-10 relative text-2xl font-bold">⟷</span>
+                    <div class="frac z-10 relative text-blue-300">
+                        <span>z</span>
+                        <span>z - a</span>
+                    </div>
+                    <div class="absolute inset-0 flex items-center justify-center opacity-0 group-[.drag-over]:opacity-100 bg-emerald-900/80 backdrop-blur-sm z-20 transition duration-300">
+                        <span class="text-emerald-300 font-bold uppercase tracking-widest animate-pulse">Match Found! Release to Transform</span>
+                    </div>
+                </div>
+
+                <!-- Table Row 3 -->
+                <div class="flex items-center justify-between p-3 bg-slate-800/50 rounded border border-slate-700/50">
+                    <span class="text-emerald-400">n aⁿ u[n]</span>
+                    <span class="text-slate-500">⟷</span>
+                    <div class="frac">
+                        <span>az</span>
+                        <span>(z - a)²</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bottom: Time Domain Accumulation -->
+    <div class="w-full max-w-6xl glass-panel rounded-2xl p-6 shadow-2xl relative min-h-[160px]">
+        <h2 class="text-emerald-400 uppercase tracking-widest text-sm font-bold mb-4 border-b border-emerald-900 pb-2 flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+            Time-Domain Accumulation Axis
+        </h2>
+        
+        <!-- Axis Line -->
+        <div class="absolute top-[100px] left-10 right-10 h-1 bg-slate-700 rounded z-0"></div>
+
+        <div class="flex items-center justify-center space-x-4 math-font z-10 relative min-h-[60px]">
+            <div id="final-x" class="text-2xl text-emerald-300 font-bold opacity-0 transition-opacity duration-500 mr-4">
+                x[n] = 
+            </div>
+            
+            <div id="time-blocks-container" class="flex items-center space-x-3">
+                <!-- Time blocks injected here dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State Management
+        let currentStep = 0;
+        let blocksDropped = 0;
+        
+        // DOM Elements
+        const btnNext = document.getElementById('btn-next');
+        const narrativeText = document.getElementById('narrative-text');
+        const warningBox = document.getElementById('warning-box');
+        const dropTarget = document.getElementById('drop-target');
+        const timeContainer = document.getElementById('time-blocks-container');
+        const finalX = document.getElementById('final-x');
+
+        // Step Data definitions
+        const steps = [
+            {
+                btn: "Next: Divide by z",
+                text: "Observe the complex signal X(z). First, we must isolate the poles."
+            },
+            {
+                btn: "Next: Partial Fractions",
+                text: "Process Step 1: Divide by z. This ensures we can later restore the standard z/(z-a) form.",
+                showWarning: true
+            },
+            {
+                btn: "Next: Highlight & Solve Residues",
+                text: "Process Step 2: The denominator is factored into simple pole blocks. We set up partial fractions."
+            },
+            {
+                btn: "Next: Restore Form (*z)",
+                text: "Process Step 3: Highlight-and-Solve! We evaluate the residues c₁ and c₂ at the poles z=1 and z=0.5."
+            },
+            {
+                btn: null, // Button hides
+                text: "Process Step 4: Multiply by z to restore the blocks. Now, DRAG the blocks to the matching Table Reference!"
+            }
+        ];
+
+        // --- Controller Logic ---
+        
+        function updateNarrative(text) {
+            narrativeText.style.opacity = 0;
+            setTimeout(() => {
+                narrativeText.innerHTML = text;
+                narrativeText.style.opacity = 1;
+            }, 300);
+        }
+
+        function nextStep() {
+            if (currentStep >= steps.length - 1) return;
+            
+            // Hide current
+            document.getElementById(`step-${currentStep}`).classList.remove('active');
+            
+            currentStep++;
+            
+            // Show new
+            document.getElementById(`step-${currentStep}`).classList.add('active');
+            
+            // Update UI based on step
+            updateNarrative(steps[currentStep].text);
+            
+            if (steps[currentStep].showWarning) {
+                warningBox.classList.remove('hidden');
+                setTimeout(() => warningBox.classList.remove('opacity-0'), 50);
+            }
+
+            if (steps[currentStep].btn) {
+                btnNext.innerText = steps[currentStep].btn;
+            } else {
+                // Final interactive step reached
+                btnNext.style.display = 'none';
+                dropTarget.classList.add('animate-pulse', 'border-emerald-500');
+            }
+
+            // Step 3 specific animations (Popups)
+            if (currentStep === 3) {
+                setTimeout(() => document.getElementById('popup-1').classList.add('show'), 400);
+                setTimeout(() => document.getElementById('popup-2').classList.add('show'), 1200);
+            }
+        }
+
+        function resetLab() {
+            currentStep = 0;
+            blocksDropped = 0;
+            
+            // Reset Steps CSS
+            document.querySelectorAll('.eq-step').forEach(el => el.classList.remove('active'));
+            document.getElementById('step-0').classList.add('active');
+            
+            // Hide warnings & popups
+            warningBox.classList.add('opacity-0');
+            setTimeout(() => warningBox.classList.add('hidden'), 500);
+            document.querySelectorAll('.residue-popup').forEach(el => el.classList.remove('show'));
+            
+            // Reset Draggables
+            const b1 = document.getElementById('block-1');
+            const b2 = document.getElementById('block-2');
+            b1.style.display = 'inline-flex';
+            b2.style.display = 'inline-flex';
+            
+            // Reset Drop Target
+            dropTarget.classList.remove('animate-pulse', 'border-emerald-500');
+            
+            // Reset Time Axis
+            timeContainer.innerHTML = '';
+            finalX.classList.remove('opacity-100');
+            
+            // Reset Button & Text
+            btnNext.style.display = 'block';
+            btnNext.innerText = steps[0].btn;
+            updateNarrative(steps[0].text);
+        }
+
+        // --- Drag and Drop Interaction Logic ---
+
+        const draggables = document.querySelectorAll('.drag-block');
+        
+        draggables.forEach(draggable => {
+            draggable.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', draggable.id);
+                draggable.classList.add('dragging');
+            });
+            
+            draggable.addEventListener('dragend', () => {
+                draggable.classList.remove('dragging');
+            });
+        });
+
+        dropTarget.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropTarget.classList.add('drag-over');
+        });
+
+        dropTarget.addEventListener('dragleave', () => {
+            dropTarget.classList.remove('drag-over');
+        });
+
+        dropTarget.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropTarget.classList.remove('drag-over');
+            
+            const draggableId = e.dataTransfer.getData('text/plain');
+            const draggableElement = document.getElementById(draggableId);
+            
+            if (!draggableElement || draggableElement.style.display === 'none') return;
+            
+            // Hide dragged block
+            draggableElement.style.display = 'none';
+            blocksDropped++;
+            
+            // Accumulate in Time Domain
+            addToTimeAxis(draggableId);
+            
+            // Check Completion
+            if (blocksDropped === 2) {
+                dropTarget.classList.remove('animate-pulse', 'border-emerald-500');
+                updateNarrative("<span class='text-emerald-400 font-bold'>Success!</span> The complex transform is fully resolved into an accumulated time-domain signal.");
+            }
+        });
+
+        function addToTimeAxis(blockId) {
+            finalX.classList.add('opacity-100');
+            
+            // Create time block
+            const timeBlock = document.createElement('div');
+            timeBlock.className = 'time-block';
+            
+            if (blockId === 'block-1') {
+                // Corresponds to 2z/(z-1). Pole a=1. Sequence: 2(1)^n u[n] = 2u[n]
+                timeBlock.innerHTML = `2 <span class="text-emerald-200 mx-1">u[n]</span>`;
+            } else if (blockId === 'block-2') {
+                // Corresponds to -2z/(z-0.5). Pole a=0.5. Sequence: -2(0.5)^n u[n]
+                // Add a plus/minus separator if it's the second block
+                if (blocksDropped > 1) {
+                    const separator = document.createElement('span');
+                    separator.className = 'text-2xl text-slate-400 mx-2 font-bold animate-[popIn_0.5s]';
+                    separator.innerText = '-';
+                    timeContainer.appendChild(separator);
+                }
+                timeBlock.innerHTML = `2(0.5)ⁿ <span class="text-emerald-200 mx-1">u[n]</span>`;
+                timeBlock.style.background = 'linear-gradient(135deg, #0f766e, #115e59)'; // slightly different teal
+                timeBlock.style.borderColor = '#2dd4bf';
+            }
+            
+            timeContainer.appendChild(timeBlock);
+        }
+
+    </script>
+</body>
+</html>

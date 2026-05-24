@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laplace Transform: Differentiation Laboratory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --machine-color: #3b82f6; /* blue-500 */
+            --input-color: #10b981;  /* emerald-500 */
+            --main-term-color: #8b5cf6; /* violet-500 */
+            --tax-color: #ef4444;    /* red-500 */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* slate-900 */
+            color: #e2e8f0; /* slate-200 */
+            overflow: hidden; /* Prevent scrollbars during animation */
+        }
+
+        .math-font {
+            font-family: 'Fira Code', monospace;
+        }
+
+        /* --- UI Elements --- */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* --- Stage & Objects --- */
+        #stage {
+            position: relative;
+            width: 800px;
+            height: 400px;
+            margin: 0 auto;
+            perspective: 1000px;
+        }
+
+        .visual-block {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            font-size: 1.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        /* Input Block */
+        #input-block {
+            left: 50px;
+            top: 150px;
+            width: 160px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--input-color), #059669);
+            color: white;
+            z-index: 10;
+        }
+
+        /* The Machine */
+        #machine {
+            left: 300px;
+            top: 120px;
+            width: 140px;
+            height: 140px;
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 4px solid var(--machine-color);
+            border-radius: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 1; /* Always visible */
+            transform: scale(1);
+            z-index: 5;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+        }
+        
+        #machine.processing {
+            animation: machinePulse 1s infinite alternate, glow 1s infinite alternate;
+        }
+
+        /* Output Main Term */
+        #main-output {
+            left: 520px;
+            top: 150px;
+            width: 160px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--main-term-color), #7c3aed);
+            color: white;
+            z-index: 10;
+        }
+
+        /* Tax Blocks (Initial Conditions) */
+        .tax-block {
+            width: 140px;
+            height: 60px;
+            background: linear-gradient(135deg, #334155, #1e293b);
+            border: 2px solid var(--tax-color);
+            color: #fca5a5;
+            font-size: 1.25rem;
+            z-index: 8;
+        }
+        
+        /* The minus sign connector */
+        .minus-connector {
+            position: absolute;
+            left: -30px;
+            color: var(--tax-color);
+            font-weight: bold;
+            font-size: 2rem;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        /* Specific Tax Positions */
+        #tax-1 { left: 540px; top: 150px; } /* Starts hidden behind main output */
+        #tax-2 { left: 540px; top: 150px; }
+
+        /* --- Animation States (Applied via JS) --- */
+
+        /* Step 1: Show Input */
+        .stage-init #input-block {
+            opacity: 1;
+            transform: scale(1);
+            left: 50px;
+        }
+
+        /* Step 2: Input enters machine */
+        .stage-enter #input-block {
+            opacity: 1;
+            transform: scale(0.5);
+            left: 340px; /* Inside machine */
+            top: 160px;
+            z-index: 4;
+        }
+
+        /* Step 3: Input absorbed */
+        .stage-process #input-block {
+            opacity: 0;
+            left: 340px;
+            transform: scale(0);
+        }
+
+        /* Step 4: Output main term */
+        .stage-output #main-output {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Step 5: Tax 1 Slides out */
+        .stage-tax1 #tax-1 {
+            opacity: 1;
+            transform: scale(1) translateY(100px); /* Slide down */
+        }
+        .stage-tax1 #tax-1 .minus-connector { opacity: 1; }
+
+        /* Step 6: Tax 2 Slides out (for 2nd order) */
+        .stage-tax2 #tax-2 {
+            opacity: 1;
+            transform: scale(1) translateY(180px); /* Slide further down */
+        }
+        .stage-tax2 #tax-2 .minus-connector { opacity: 1; }
+
+
+        /* --- Keyframes --- */
+        @keyframes machinePulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+
+        @keyframes glow {
+            0% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); border-color: var(--machine-color); }
+            100% { box-shadow: 0 0 40px rgba(16, 185, 129, 0.8); border-color: var(--input-color); }
+        }
+
+        /* Dynamic Equation Display styles */
+        .eq-part {
+            display: inline-block;
+            transition: all 0.5s ease;
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        .eq-show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .eq-operator { color: #94a3b8; margin: 0 8px; }
+        .eq-s { color: #a78bfa; }
+        .eq-x { color: #34d399; }
+        .eq-tax { color: #f87171; }
+
+    </style>
+</head>
+<body class="flex flex-col h-screen items-center justify-center">
+
+    <!-- Main Container -->
+    <div class="w-full max-w-5xl p-6 glass-panel rounded-2xl flex flex-col items-center shadow-2xl">
+        
+        <!-- Header -->
+        <header class="text-center mb-6 w-full relative">
+            <h1 class="text-3xl font-bold tracking-wider text-slate-100 mb-2">DIFFERENTIATION LAB</h1>
+            <p class="text-slate-400 text-sm">Observe how the <span class="math-font text-blue-400">ℒ</span> operator extracts the initial conditions as a "tax".</p>
+            
+            <!-- Controls (Top Right) -->
+            <div class="absolute right-0 top-0 flex gap-2">
+                <button id="btn-1st" onclick="setOrder(1)" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-colors shadow-lg border border-blue-400 focus:ring-2 focus:ring-blue-300">1st Deriv</button>
+                <button id="btn-2nd" onclick="setOrder(2)" class="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-semibold transition-colors shadow-lg border border-slate-500">2nd Deriv</button>
+            </div>
+        </header>
+
+        <!-- Final Equation Display -->
+        <div class="h-16 flex items-center justify-center bg-slate-800/50 w-full rounded-lg mb-6 border border-slate-700 math-font text-2xl">
+            <span id="eq-display" class="tracking-wide">
+                <!-- Equation injected by JS -->
+            </span>
+        </div>
+
+        <!-- Animation Stage -->
+        <div id="stage" class="glass-panel rounded-xl overflow-visible">
+            
+            <!-- Background Grid (Visual Sugar) -->
+            <div class="absolute inset-0 opacity-10" style="background-image: linear-gradient(#334155 1px, transparent 1px), linear-gradient(90deg, #334155 1px, transparent 1px); background-size: 40px 40px;"></div>
+
+            <!-- 1. Input Variable -->
+            <div id="input-block" class="visual-block math-font">
+                <span id="input-text">d/dt [x(t)]</span>
+            </div>
+
+            <!-- 2. The Machine -->
+            <div id="machine" class="math-font text-5xl font-bold text-slate-200">
+                ℒ
+                <span class="text-xs font-normal text-blue-400 mt-2 tracking-widest block uppercase text-center">Transform</span>
+            </div>
+
+            <!-- 3. Output Term (sX(s) or s^2X(s)) -->
+            <div id="main-output" class="visual-block math-font">
+                <span id="output-text">s X(s)</span>
+            </div>
+
+            <!-- 4. Tax Block 1 -->
+            <div id="tax-1" class="visual-block tax-block math-font flex items-center pl-8">
+                <span class="minus-connector">-</span>
+                <span id="tax1-text">x(0⁻)</span>
+                <div class="absolute -top-6 left-0 text-[10px] text-red-400 uppercase tracking-widest opacity-80 whitespace-nowrap">Initial State Tax</div>
+            </div>
+
+            <!-- 5. Tax Block 2 (Only for 2nd order) -->
+            <div id="tax-2" class="visual-block tax-block math-font flex items-center pl-8">
+                <span class="minus-connector">-</span>
+                <span id="tax2-text">x'(0⁻)</span>
+                 <div class="absolute -top-6 left-0 text-[10px] text-red-400 uppercase tracking-widest opacity-80 whitespace-nowrap">Initial Velocity Tax</div>
+            </div>
+
+            <!-- Explanation Text Overlay -->
+            <div id="narrative-text" class="absolute bottom-6 left-0 right-0 text-center text-slate-300 font-medium h-6 transition-opacity duration-300">
+                Select an order and run the simulation.
+            </div>
+
+        </div>
+
+        <!-- Action Button -->
+        <button id="btn-run" onclick="runSimulation()" class="mt-8 px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all transform hover:scale-105">
+            Run Transformation
+        </button>
+
+    </div>
+
+    <script>
+        let currentOrder = 1;
+        let isAnimating = false;
+        const stage = document.getElementById('stage');
+        const machine = document.getElementById('machine');
+        const narrative = document.getElementById('narrative-text');
+        const eqDisplay = document.getElementById('eq-display');
+        const btnRun = document.getElementById('btn-run');
+
+        // Text Content Definitions based on order
+        const content = {
+            1: {
+                input: "x'(t)",
+                output: "s X(s)",
+                tax1: "x(0⁻)",
+                equationHTML: `
+                    <span class="eq-part eq-s" id="eq-main">s X(s)</span> 
+                    <span class="eq-part eq-operator" id="eq-op1">-</span> 
+                    <span class="eq-part eq-tax" id="eq-t1">x(0⁻)</span>
+                `
+            },
+            2: {
+                input: "x''(t)",
+                output: "s² X(s)",
+                tax1: "s x(0⁻)",
+                tax2: "x'(0⁻)",
+                equationHTML: `
+                    <span class="eq-part eq-s" id="eq-main">s² X(s)</span> 
+                    <span class="eq-part eq-operator" id="eq-op1">-</span> 
+                    <span class="eq-part eq-tax" id="eq-t1">s x(0⁻)</span>
+                    <span class="eq-part eq-operator" id="eq-op2">-</span> 
+                    <span class="eq-part eq-tax" id="eq-t2">x'(0⁻)</span>
+                `
+            }
+        };
+
+        function setNarrative(text) {
+            narrative.style.opacity = 0;
+            setTimeout(() => {
+                narrative.innerText = text;
+                narrative.style.opacity = 1;
+            }, 300);
+        }
+
+        function resetStage() {
+            // Remove all animation classes
+            stage.className = 'glass-panel rounded-xl overflow-visible';
+            machine.classList.remove('processing');
+            
+            // Set text based on order
+            document.getElementById('input-text').innerHTML = content[currentOrder].input;
+            document.getElementById('output-text').innerHTML = content[currentOrder].output;
+            document.getElementById('tax1-text').innerHTML = content[currentOrder].tax1;
+            if (currentOrder === 2) {
+                document.getElementById('tax2-text').innerHTML = content[currentOrder].tax2;
+            }
+
+            // Reset Equation Display
+            eqDisplay.innerHTML = content[currentOrder].equationHTML;
+
+            // Trigger reflow to ensure animations restart
+            void stage.offsetWidth;
+            
+            // Set initial state
+            stage.classList.add('stage-init');
+            setNarrative(`Ready to transform ${currentOrder === 1 ? '1st' : '2nd'} order derivative.`);
+            btnRun.innerText = "Run Transformation";
+            btnRun.classList.remove('bg-slate-600', 'cursor-not-allowed');
+            btnRun.classList.add('bg-emerald-600', 'hover:bg-emerald-500');
+            btnRun.disabled = false;
+        }
+
+        function setOrder(order) {
+            if (isAnimating) return;
+            currentOrder = order;
+            
+            // Update UI buttons
+            const btn1 = document.getElementById('btn-1st');
+            const btn2 = document.getElementById('btn-2nd');
+            
+            if (order === 1) {
+                btn1.className = "px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold shadow-lg border border-blue-400";
+                btn2.className = "px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-semibold transition-colors border border-slate-500";
+            } else {
+                btn2.className = "px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold shadow-lg border border-blue-400";
+                btn1.className = "px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-semibold transition-colors border border-slate-500";
+            }
+            
+            resetStage();
+        }
+
+        function runSimulation() {
+            if (isAnimating) {
+                resetStage();
+                return;
+            }
+            
+            isAnimating = true;
+            btnRun.innerText = "Reset";
+            btnRun.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
+            btnRun.classList.add('bg-slate-600', 'hover:bg-slate-500');
+
+            let delay = 0;
+
+            // Step 1: Input enters machine
+            setNarrative("Feeding time-domain derivative into the Laplace Machine...");
+            stage.classList.add('stage-enter');
+            
+            // Step 2: Machine Processes
+            delay += 800;
+            setTimeout(() => {
+                machine.classList.add('processing');
+                stage.classList.add('stage-process');
+                setNarrative("Transforming to s-domain. Multiplying by 's'...");
+            }, delay);
+
+            // Step 3: Main Output emerges
+            delay += 1200;
+            setTimeout(() => {
+                machine.classList.remove('processing');
+                stage.classList.add('stage-output');
+                document.getElementById('eq-main').classList.add('eq-show');
+                setNarrative(`Generated base term: ${content[currentOrder].output}`);
+            }, delay);
+
+            // Step 4: Tax 1 drops
+            delay += 1000;
+            setTimeout(() => {
+                stage.classList.add('stage-tax1');
+                document.getElementById('eq-op1').classList.add('eq-show');
+                document.getElementById('eq-t1').classList.add('eq-show');
+                setNarrative("Subtracting the initial state evaluated at t=0⁻...");
+            }, delay);
+
+            // Step 5: Tax 2 drops (if order 2)
+            if (currentOrder === 2) {
+                delay += 1200;
+                setTimeout(() => {
+                    stage.classList.add('stage-tax2');
+                    document.getElementById('eq-op2').classList.add('eq-show');
+                    document.getElementById('eq-t2').classList.add('eq-show');
+                    setNarrative("Subtracting the initial velocity evaluated at t=0⁻...");
+                }, delay);
+            }
+
+            // Finish
+            delay += 1000;
+            setTimeout(() => {
+                setNarrative("Transformation complete. Initial conditions are fully accounted for.");
+                isAnimating = false;
+            }, delay);
+        }
+
+        // Initialize on load
+        window.onload = () => {
+            setOrder(1);
+        };
+
+    </script>
+</body>
+</html>

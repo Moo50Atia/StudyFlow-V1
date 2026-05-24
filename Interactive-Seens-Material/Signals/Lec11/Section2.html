@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Difference Equation to Transfer Function</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Tailwind slate-900 */
+            color: #f8fafc;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Math font class */
+        .math-text {
+            font-family: 'Fira Code', monospace;
+            white-space: nowrap;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+        
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(12px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Step Indicators */
+        .step-dot {
+            transition: all 0.3s ease;
+        }
+        .step-active .step-dot {
+            background-color: #3b82f6;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.8);
+            border-color: #3b82f6;
+        }
+        .step-active .step-text {
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .step-completed .step-dot {
+            background-color: #10b981;
+            border-color: #10b981;
+        }
+    </style>
+</head>
+<body class="flex h-screen w-screen bg-[#0b1121]">
+
+    <!-- Sidebar / Controls -->
+    <aside class="glass-panel w-96 flex-shrink-0 flex flex-col h-full z-20 shadow-2xl overflow-y-auto">
+        <div class="p-8 flex flex-col h-full">
+            
+            <h1 class="text-2xl font-bold mb-2 text-cyan-400">Transfer Function H(z)</h1>
+            <p class="text-sm text-slate-400 mb-6 border-b border-slate-700 pb-4">
+                Visualizing the transformation from a discrete Time-Domain Difference Equation to a Z-Domain Transfer Function.
+            </p>
+
+            <!-- Steps Tracker -->
+            <div class="flex-1 space-y-6 relative" id="steps-container">
+                <!-- Vertical connection line -->
+                <div class="absolute left-[11px] top-2 bottom-6 w-0.5 bg-slate-700 -z-10"></div>
+
+                <!-- Step 1 -->
+                <div class="flex gap-4 step-item" data-step="1">
+                    <div class="w-6 h-6 rounded-full border-2 border-slate-500 bg-slate-900 mt-0.5 flex-shrink-0 step-dot"></div>
+                    <div>
+                        <h3 class="text-slate-400 step-text transition-colors">1. Time Domain</h3>
+                        <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                            Start with the recursion difference equation representing the discrete-time system.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="flex gap-4 step-item" data-step="2">
+                    <div class="w-6 h-6 rounded-full border-2 border-slate-500 bg-slate-900 mt-0.5 flex-shrink-0 step-dot"></div>
+                    <div>
+                        <h3 class="text-slate-400 step-text transition-colors">2. Apply Z-Transform</h3>
+                        <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                            Time-delay operators (<span class="text-amber-400 font-mono">y[n-k]</span>) directly transform into algebraic delay blocks (<span class="text-emerald-400 font-mono">z<sup>-k</sup></span>) attached to <span class="text-cyan-400 font-mono">Y(z)</span>.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="flex gap-4 step-item" data-step="3">
+                    <div class="w-6 h-6 rounded-full border-2 border-slate-500 bg-slate-900 mt-0.5 flex-shrink-0 step-dot"></div>
+                    <div>
+                        <h3 class="text-slate-400 step-text transition-colors">3. Factor Outputs & Inputs</h3>
+                        <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                            Factor out the common <span class="text-cyan-400 font-mono">Y(z)</span> terms on the left, and <span class="text-cyan-400 font-mono">X(z)</span> terms on the right.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="flex gap-4 step-item" data-step="4">
+                    <div class="w-6 h-6 rounded-full border-2 border-slate-500 bg-slate-900 mt-0.5 flex-shrink-0 step-dot"></div>
+                    <div>
+                        <h3 class="text-slate-400 step-text transition-colors">4. Isolate H(z)</h3>
+                        <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                            Rearrange the algebraic blocks to solve for the ratio <span class="text-pink-400 font-mono">Y(z) / X(z)</span>, resulting in the rational Transfer Function <span class="text-pink-400 font-mono font-bold">H(z)</span>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="mt-auto pt-6 border-t border-slate-700 space-y-3">
+                <div class="flex gap-3">
+                    <button onclick="changeStep(-1)" id="btn-prev" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-lg font-semibold text-sm">
+                        Previous
+                    </button>
+                    <button onclick="changeStep(1)" id="btn-next" class="flex-1 py-3 bg-blue-600 hover:bg-blue-500 transition-colors rounded-lg font-semibold shadow-lg shadow-blue-500/30 text-sm">
+                        Next Step
+                    </button>
+                </div>
+                <button onclick="playAll()" id="btn-play" class="w-full py-2 border border-slate-600 hover:bg-slate-800 transition-colors rounded-lg font-semibold text-slate-300 text-sm flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    Play Process
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Animation Area -->
+    <main class="flex-1 relative overflow-hidden bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#1e293b] to-[#0b1121]">
+        
+        <!-- Grid Background -->
+        <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 32px 32px;"></div>
+
+        <!-- Hidden Target Layouts (used for positioning calculations) -->
+        <div id="target-layouts" class="absolute inset-0 w-full h-full pointer-events-none opacity-0 flex items-center justify-center -z-10 math-text text-[2.5rem] tracking-tight">
+            <!-- Dynamically injected target HTML goes here -->
+        </div>
+
+        <!-- Visible Animated Container -->
+        <div id="anim-container" class="absolute inset-0 w-full h-full pointer-events-none math-text text-[2.5rem] tracking-tight drop-shadow-xl font-semibold">
+            <!-- Animated spans injected here via JS -->
+        </div>
+
+    </main>
+
+    <!-- HTML Blueprints for each step -->
+    <template id="tpl-step-1">
+        <div class="flex items-center gap-2">
+            <span data-id="y_main" class="text-amber-400">y[n]</span>
+            <span data-id="minus1" class="text-slate-400">-</span>
+            <span data-id="a1" class="text-slate-200">a<sub>1</sub></span>
+            <span data-id="z1" class="text-amber-400">y[n-1]</span>
+            <span data-id="minus2" class="text-slate-400">-</span>
+            <span data-id="a2" class="text-slate-200">a<sub>2</sub></span>
+            <span data-id="z_y2" class="text-amber-400">y[n-2]</span>
+            
+            <span data-id="eq" class="text-slate-400 mx-4">=</span>
+            
+            <span data-id="b0" class="text-slate-200">b<sub>0</sub></span>
+            <span data-id="x_sub0" class="text-amber-400">x[n]</span>
+            <span data-id="plus1" class="text-slate-400">+</span>
+            <span data-id="b1" class="text-slate-200">b<sub>1</sub></span>
+            <span data-id="z2" class="text-amber-400">x[n-1]</span>
+        </div>
+    </template>
+
+    <template id="tpl-step-2">
+        <div class="flex items-center gap-1">
+            <span data-id="y_main" class="text-cyan-400">Y(z)</span>
+            <span data-id="minus1" class="text-slate-400 mx-2">-</span>
+            <span data-id="a1" class="text-slate-200">a<sub>1</sub></span>
+            <span data-id="z1" class="text-emerald-400">z<sup>-1</sup></span>
+            <span data-id="y_sub1" class="text-cyan-400">Y(z)</span>
+            <span data-id="minus2" class="text-slate-400 mx-2">-</span>
+            <span data-id="a2" class="text-slate-200">a<sub>2</sub></span>
+            <span data-id="z_y2" class="text-emerald-400">z<sup>-2</sup></span>
+            <span data-id="y_sub2" class="text-cyan-400">Y(z)</span>
+            
+            <span data-id="eq" class="text-slate-400 mx-4">=</span>
+            
+            <span data-id="b0" class="text-slate-200">b<sub>0</sub></span>
+            <span data-id="x_sub0" class="text-cyan-400">X(z)</span>
+            <span data-id="plus1" class="text-slate-400 mx-2">+</span>
+            <span data-id="b1" class="text-slate-200">b<sub>1</sub></span>
+            <span data-id="z2" class="text-emerald-400">z<sup>-1</sup></span>
+            <span data-id="x_sub1" class="text-cyan-400">X(z)</span>
+        </div>
+    </template>
+
+    <template id="tpl-step-3">
+        <div class="flex items-center gap-1">
+            <span data-id="y_main" class="text-cyan-400 mr-2">Y(z)</span>
+            <span data-id="bracket_L1" class="text-slate-500 font-light">[</span>
+            <span data-id="one" class="text-slate-200">1</span>
+            <span data-id="minus1" class="text-slate-400 mx-2">-</span>
+            <span data-id="a1" class="text-slate-200">a<sub>1</sub></span>
+            <span data-id="z1" class="text-emerald-400">z<sup>-1</sup></span>
+            <span data-id="minus2" class="text-slate-400 mx-2">-</span>
+            <span data-id="a2" class="text-slate-200">a<sub>2</sub></span>
+            <span data-id="z_y2" class="text-emerald-400">z<sup>-2</sup></span>
+            <span data-id="bracket_R1" class="text-slate-500 font-light">]</span>
+            
+            <span data-id="eq" class="text-slate-400 mx-4">=</span>
+            
+            <span data-id="x_main" class="text-cyan-400 mr-2">X(z)</span>
+            <span data-id="bracket_L2" class="text-slate-500 font-light">[</span>
+            <span data-id="b0" class="text-slate-200">b<sub>0</sub></span>
+            <span data-id="plus1" class="text-slate-400 mx-2">+</span>
+            <span data-id="b1" class="text-slate-200">b<sub>1</sub></span>
+            <span data-id="z2" class="text-emerald-400">z<sup>-1</sup></span>
+            <span data-id="bracket_R2" class="text-slate-500 font-light">]</span>
+        </div>
+    </template>
+
+    <template id="tpl-step-4">
+        <div class="flex items-center gap-8">
+            <!-- Left Side H(z) = Y(z)/X(z) -->
+            <div class="flex items-center gap-4">
+                <span data-id="hz" class="text-pink-400 font-bold drop-shadow-[0_0_12px_rgba(244,114,182,0.6)]">H(z)</span>
+                <span data-id="eq_hz" class="text-slate-400 mx-2">=</span>
+                <div class="flex flex-col items-center">
+                    <div class="border-b-[3px] border-slate-400 pb-3 mb-3 w-full flex justify-center">
+                        <span data-id="y_main" class="text-cyan-400">Y(z)</span>
+                    </div>
+                    <div class="w-full flex justify-center">
+                        <span data-id="x_main" class="text-cyan-400">X(z)</span>
+                    </div>
+                </div>
+            </div>
+            
+            <span data-id="eq" class="text-slate-400">=</span>
+            
+            <!-- Right Side (Transfer Function blocks) -->
+            <div class="flex flex-col items-center px-4">
+                <div class="border-b-[3px] border-slate-400 pb-3 mb-3 flex items-center gap-1 w-full justify-center">
+                    <span data-id="b0" class="text-slate-200">b<sub>0</sub></span>
+                    <span data-id="plus1" class="text-slate-400 mx-3">+</span>
+                    <span data-id="b1" class="text-slate-200">b<sub>1</sub></span>
+                    <span data-id="z2" class="text-emerald-400">z<sup>-1</sup></span>
+                </div>
+                <div class="flex items-center gap-1 w-full justify-center">
+                    <span data-id="one" class="text-slate-200">1</span>
+                    <span data-id="minus1" class="text-slate-400 mx-3">-</span>
+                    <span data-id="a1" class="text-slate-200">a<sub>1</sub></span>
+                    <span data-id="z1" class="text-emerald-400">z<sup>-1</sup></span>
+                    <span data-id="minus2" class="text-slate-400 mx-3">-</span>
+                    <span data-id="a2" class="text-slate-200">a<sub>2</sub></span>
+                    <span data-id="z_y2" class="text-emerald-400">z<sup>-2</sup></span>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        const targetContainer = document.getElementById('target-layouts');
+        const animContainer = document.getElementById('anim-container');
+        
+        let currentStep = 1;
+        const totalSteps = 4;
+        let isPlaying = false;
+        let playInterval;
+
+        // Initialize engine on load
+        window.addEventListener('DOMContentLoaded', () => {
+            renderStep(currentStep);
+            updateSidebar(currentStep);
+            
+            // Recalculate layout smoothly on resize
+            window.addEventListener('resize', () => {
+                // Debounce resize to prevent jitter
+                clearTimeout(window.resizeTimer);
+                window.resizeTimer = setTimeout(() => {
+                    renderStep(currentStep, true); // true = instant transition
+                }, 100);
+            });
+        });
+
+        function changeStep(dir) {
+            if (isPlaying) stopPlay();
+            
+            let newStep = currentStep + dir;
+            if (newStep >= 1 && newStep <= totalSteps) {
+                currentStep = newStep;
+                renderStep(currentStep);
+                updateSidebar(currentStep);
+            }
+        }
+
+        function playAll() {
+            if (isPlaying) {
+                stopPlay();
+                return;
+            }
+            
+            isPlaying = true;
+            document.getElementById('btn-play').innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                Pause
+            `;
+            
+            // Start from beginning if at the end
+            if (currentStep === totalSteps) {
+                currentStep = 1;
+                renderStep(currentStep);
+                updateSidebar(currentStep);
+            }
+
+            playInterval = setInterval(() => {
+                if (currentStep < totalSteps) {
+                    currentStep++;
+                    renderStep(currentStep);
+                    updateSidebar(currentStep);
+                } else {
+                    stopPlay();
+                }
+            }, 3500); // 3.5 seconds per step for comfortable viewing
+        }
+
+        function stopPlay() {
+            isPlaying = false;
+            clearInterval(playInterval);
+            document.getElementById('btn-play').innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                Play Process
+            `;
+        }
+
+        function updateSidebar(step) {
+            document.getElementById('btn-prev').disabled = step === 1;
+            
+            const btnNext = document.getElementById('btn-next');
+            if (step === totalSteps) {
+                btnNext.disabled = true;
+                btnNext.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                btnNext.disabled = false;
+                btnNext.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+
+            document.querySelectorAll('.step-item').forEach((el, index) => {
+                const itemStep = index + 1;
+                el.classList.remove('step-active', 'step-completed', 'opacity-50');
+                
+                if (itemStep === step) {
+                    el.classList.add('step-active');
+                } else if (itemStep < step) {
+                    el.classList.add('step-completed');
+                } else {
+                    el.classList.add('opacity-50');
+                }
+            });
+        }
+
+        // The core animation engine (FLIP-style DOM element routing)
+        function renderStep(step, instant = false) {
+            // 1. Inject blueprint into hidden layout container to calculate destination bounds
+            const template = document.getElementById(`tpl-step-${step}`);
+            targetContainer.innerHTML = template.innerHTML;
+
+            // Wait one frame to ensure DOM layout calculations are correct
+            requestAnimationFrame(() => {
+                const targetNodes = targetContainer.querySelectorAll('[data-id]');
+                const containerRect = animContainer.getBoundingClientRect();
+                const targetDataMap = {};
+
+                // Map ideal layout positions based on the flex grid
+                targetNodes.forEach(node => {
+                    const rect = node.getBoundingClientRect();
+                    targetDataMap[node.dataset.id] = {
+                        x: rect.left - containerRect.left,
+                        y: rect.top - containerRect.top,
+                        text: node.innerHTML,
+                        className: node.className
+                    };
+                });
+
+                const visibleElements = animContainer.querySelectorAll('[data-id]');
+                const currentIds = new Set(Array.from(visibleElements).map(el => el.dataset.id));
+                const transitionDuration = instant ? '0ms' : '900ms';
+                const transitionTiming = 'cubic-bezier(0.34, 1.56, 0.64, 1)'; // slight elastic bounce
+
+                // 2. Add or Move elements
+                for (const id in targetDataMap) {
+                    const data = targetDataMap[id];
+                    let el = animContainer.querySelector(`[data-id="${id}"]`);
+                    
+                    if (!el) {
+                        // Create newly entering block
+                        el = document.createElement('div');
+                        el.dataset.id = id;
+                        // Use base styling plus dynamic destination classes
+                        el.className = `absolute top-0 left-0 flex items-center justify-center opacity-0 ${data.className}`;
+                        el.style.transform = `translate(${data.x}px, ${data.y}px) scale(0.5)`;
+                        el.style.transition = `all ${transitionDuration} ${transitionTiming}`;
+                        el.innerHTML = data.text;
+                        animContainer.appendChild(el);
+                        
+                        // Trigger reflow to ensure transition runs
+                        el.offsetHeight;
+                        
+                        // Fade & scale in
+                        el.style.opacity = '1';
+                        el.style.transform = `translate(${data.x}px, ${data.y}px) scale(1)`;
+                    } else {
+                        // Move existing block smoothly
+                        el.className = `absolute top-0 left-0 flex items-center justify-center ${data.className}`;
+                        el.style.transition = `all ${transitionDuration} ${transitionTiming}, opacity 0.5s ease`;
+                        el.style.transform = `translate(${data.x}px, ${data.y}px) scale(1)`;
+                        el.style.opacity = '1';
+                        
+                        // Handle internal text morphing (e.g. y[n] -> Y(z))
+                        if (el.innerHTML !== data.text && !instant) {
+                            // Flash effect for transformation
+                            el.style.filter = 'brightness(2) drop-shadow(0 0 8px currentColor)';
+                            
+                            setTimeout(() => {
+                                el.innerHTML = data.text;
+                                el.style.filter = 'none';
+                            }, 300); // Change text halfway through movement
+                        } else if (instant) {
+                            el.innerHTML = data.text;
+                        }
+                    }
+                    currentIds.delete(id);
+                }
+
+                // 3. Remove exiting blocks smoothly
+                currentIds.forEach(id => {
+                    const el = animContainer.querySelector(`[data-id="${id}"]`);
+                    el.style.transition = `all ${transitionDuration} ease-out`;
+                    el.style.opacity = '0';
+                    el.style.transform = el.style.transform.replace(/scale\([^)]*\)/, '') + ' scale(0.5)';
+                    
+                    if (!instant) {
+                        setTimeout(() => el.remove(), 900);
+                    } else {
+                        el.remove();
+                    }
+                });
+            });
+        }
+    </script>
+</body>
+</html>

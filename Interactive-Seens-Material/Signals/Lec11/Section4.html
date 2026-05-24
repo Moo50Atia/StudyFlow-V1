@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fourier Transform Inverse Scaling Law</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+            color: #f8fafc; /* Slate 50 */
+            overflow-x: hidden;
+        }
+
+        .math-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Custom Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            margin-top: -10px;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+            transition: transform 0.1s;
+        }
+        
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 2px;
+        }
+        
+        input[type=range]:focus {
+            outline: none;
+        }
+
+        /* Canvas Containers */
+        .canvas-container {
+            background-color: #1e293b; /* Slate 800 */
+            border: 1px solid #334155; /* Slate 700 */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center py-10 px-4">
+
+    <!-- Header Section -->
+    <header class="text-center max-w-5xl mb-8">
+        <h1 class="text-3xl md:text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-rose-400">
+            Inverse Scaling Law: Pulse & Sinc Function
+        </h1>
+        <p class="text-slate-400 text-sm md:text-base leading-relaxed max-w-3xl mx-auto">
+            Observe the dual-synchronized graphs below. In the time domain, we have a rectangular pulse <span class="math-font text-cyan-300">p<sub>a</sub>(t)</span> of width <span class="math-font text-cyan-300">2a</span>. 
+            In the frequency domain, its Fourier Transform is a Sinc function <span class="math-font text-rose-300">2a&middot;sinc(&omega;a)</span>. 
+            <br><br>
+            <span class="text-yellow-400 font-semibold">Visual Learning Outcome:</span> Use the slider to decrease the pulse width 'a'. Notice how a narrow time duration necessitates a wider frequency bandwidth (expanding Sinc sidelobes), and vice versa!
+        </p>
+    </header>
+
+    <!-- Controls Section -->
+    <section class="w-full max-w-2xl mb-10 bg-slate-800/80 p-6 rounded-2xl border border-slate-700 backdrop-blur-sm shadow-xl">
+        <div class="flex justify-between items-center mb-4">
+            <label for="width-slider" class="text-lg font-semibold text-slate-200">
+                Pulse Width Parameter (<span class="math-font text-cyan-400">a</span>)
+            </label>
+            <span id="a-value" class="math-font text-2xl font-bold text-cyan-400 bg-slate-900 px-4 py-1 rounded-lg border border-slate-700">2.00</span>
+        </div>
+        <input type="range" id="width-slider" min="0.2" max="5.0" step="0.05" value="2.0">
+        <div class="flex justify-between text-xs text-slate-500 mt-2 font-mono">
+            <span>0.2 (Narrow Pulse)</span>
+            <span>5.0 (Wide Pulse)</span>
+        </div>
+    </section>
+
+    <!-- Main Visualizer Area -->
+    <main class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <!-- Left: Time Domain (Rectangular Pulse) -->
+        <div class="relative flex flex-col items-center">
+            <h2 class="text-xl font-bold mb-4 text-cyan-300 flex items-center gap-2">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Time Domain: p<sub>a</sub>(t)
+            </h2>
+            <div class="w-full relative pt-[75%] canvas-container rounded-2xl overflow-hidden group">
+                <canvas id="time-canvas" class="absolute top-0 left-0 w-full h-full"></canvas>
+            </div>
+            
+            <!-- Dynamic Stats overlay -->
+            <div class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/90 border border-cyan-900/50 px-4 py-2 rounded-xl backdrop-blur text-center w-3/4 shadow-lg shadow-cyan-900/20">
+                <p class="text-sm text-slate-400 mb-1">Time Duration (Width)</p>
+                <p class="math-font text-cyan-400 text-lg font-bold">&Delta;t = <span id="stat-dt">4.00</span></p>
+            </div>
+        </div>
+
+        <!-- Right: Frequency Domain (Sinc Function) -->
+        <div class="relative flex flex-col items-center">
+            <h2 class="text-xl font-bold mb-4 text-rose-300 flex items-center gap-2">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                Frequency Domain: P(&omega;)
+            </h2>
+            <div class="w-full relative pt-[75%] canvas-container rounded-2xl overflow-hidden group">
+                <canvas id="freq-canvas" class="absolute top-0 left-0 w-full h-full"></canvas>
+            </div>
+
+            <!-- Dynamic Stats overlay -->
+            <div class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/90 border border-rose-900/50 px-4 py-2 rounded-xl backdrop-blur text-center w-3/4 shadow-lg shadow-rose-900/20">
+                <p class="text-sm text-slate-400 mb-1">Main Lobe Bandwidth</p>
+                <p class="math-font text-rose-400 text-lg font-bold">&Delta;&omega; = <span id="stat-dw">3.14</span></p>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // DOM Elements
+        const slider = document.getElementById('width-slider');
+        const aValueDisplay = document.getElementById('a-value');
+        const statDt = document.getElementById('stat-dt');
+        const statDw = document.getElementById('stat-dw');
+        
+        const timeCanvas = document.getElementById('time-canvas');
+        const freqCanvas = document.getElementById('freq-canvas');
+        const timeCtx = timeCanvas.getContext('2d');
+        const freqCtx = freqCanvas.getContext('2d');
+
+        // State
+        let a = parseFloat(slider.value);
+
+        // Resize handler for crisp canvas rendering
+        function resizeCanvases() {
+            const timeRect = timeCanvas.parentElement.getBoundingClientRect();
+            const freqRect = freqCanvas.parentElement.getBoundingClientRect();
+
+            // Set actual internal dimensions based on CSS display size * DPR
+            const dpr = window.devicePixelRatio || 1;
+            
+            timeCanvas.width = timeRect.width * dpr;
+            timeCanvas.height = timeRect.height * dpr;
+            freqCanvas.width = freqRect.width * dpr;
+            freqCanvas.height = freqRect.height * dpr;
+            
+            timeCtx.scale(dpr, dpr);
+            freqCtx.scale(dpr, dpr);
+            
+            draw();
+        }
+
+        window.addEventListener('resize', resizeCanvases);
+
+        // Drawing Utilities
+        function drawAxes(ctx, width, height, originX, originY, labelX, labelY, color = '#64748b') {
+            ctx.beginPath();
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 1.5;
+            
+            // X axis
+            ctx.moveTo(0, originY);
+            ctx.lineTo(width, originY);
+            
+            // Y axis
+            ctx.moveTo(originX, 0);
+            ctx.lineTo(originX, height);
+            ctx.stroke();
+
+            // Arrow heads
+            ctx.fillStyle = '#475569';
+            ctx.beginPath();
+            ctx.moveTo(width, originY);
+            ctx.lineTo(width - 8, originY - 4);
+            ctx.lineTo(width - 8, originY + 4);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(originX, 0);
+            ctx.lineTo(originX - 4, 8);
+            ctx.lineTo(originX + 4, 8);
+            ctx.fill();
+
+            // Labels
+            ctx.fillStyle = color;
+            ctx.font = 'bold 14px "JetBrains Mono"';
+            ctx.textAlign = 'right';
+            ctx.fillText(labelX, width - 10, originY - 10);
+            ctx.textAlign = 'left';
+            ctx.fillText(labelY, originX + 10, 20);
+        }
+
+        function drawDimensionArrow(ctx, x1, x2, y, label, color) {
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            
+            // Draw lines dropping down
+            ctx.setLineDash([4, 4]);
+            ctx.moveTo(x1, y - 20);
+            ctx.lineTo(x1, y + 10);
+            ctx.moveTo(x2, y - 20);
+            ctx.lineTo(x2, y + 10);
+            ctx.stroke();
+            
+            // Draw horizontal arrow
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(x1, y);
+            ctx.lineTo(x2, y);
+            ctx.stroke();
+
+            // Arrow heads
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(x1, y);
+            ctx.lineTo(x1 + 6, y - 4);
+            ctx.lineTo(x1 + 6, y + 4);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(x2, y);
+            ctx.lineTo(x2 - 6, y - 4);
+            ctx.lineTo(x2 - 6, y + 4);
+            ctx.fill();
+
+            // Label
+            ctx.fillStyle = color;
+            ctx.font = 'bold 14px "JetBrains Mono"';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, (x1 + x2) / 2, y + 20);
+        }
+
+        // Draw Time Domain (Rectangular Pulse)
+        function drawTimeDomain(width, height) {
+            timeCtx.clearRect(0, 0, width, height);
+            
+            const originX = width / 2;
+            const originY = height * 0.65; // Y=0 line
+            
+            // Fixed scales
+            const scaleX = width / 20; // x domain: -10 to 10
+            const scaleY = height / 3; // y domain: amplitude 1 fits nicely
+            
+            drawAxes(timeCtx, width, height, originX, originY, 't', 'p(t)', '#38bdf8');
+
+            // Draw Pulse
+            const rectX = originX - a * scaleX;
+            const rectY = originY - 1 * scaleY;
+            const rectW = 2 * a * scaleX;
+            
+            timeCtx.fillStyle = 'rgba(6, 182, 212, 0.2)'; // Cyan transparent
+            timeCtx.strokeStyle = '#06b6d4'; // Solid cyan
+            timeCtx.lineWidth = 3;
+            
+            // Pulse path
+            timeCtx.beginPath();
+            timeCtx.moveTo(0, originY);
+            timeCtx.lineTo(rectX, originY);
+            timeCtx.lineTo(rectX, rectY);
+            timeCtx.lineTo(rectX + rectW, rectY);
+            timeCtx.lineTo(rectX + rectW, originY);
+            timeCtx.lineTo(width, originY);
+            timeCtx.stroke();
+            
+            timeCtx.fillRect(rectX, rectY, rectW, scaleY); // Fill just the rectangle
+
+            // Draw Dimension Arrow
+            const arrowY = originY + height * 0.15;
+            drawDimensionArrow(timeCtx, rectX, rectX + rectW, arrowY, `Width = 2a = ${(2*a).toFixed(2)}`, '#38bdf8');
+        }
+
+        // Draw Frequency Domain (Sinc Function)
+        function drawFreqDomain(width, height) {
+            freqCtx.clearRect(0, 0, width, height);
+            
+            const originX = width / 2;
+            const originY = height * 0.8; // Y=0 line is lower since amplitude goes up to 10
+            
+            // Fixed scales
+            const scaleX = width / 40; // omega domain: -20 to +20
+            const scaleY = height / 14; // y domain: amplitude ~10 fits
+            
+            drawAxes(freqCtx, width, height, originX, originY, 'ω', 'P(ω)', '#f43f5e');
+
+            // Draw Sinc Curve
+            freqCtx.beginPath();
+            freqCtx.strokeStyle = '#f43f5e'; // Rose
+            freqCtx.lineWidth = 3;
+            
+            for (let px = 0; px <= width; px++) {
+                const omega = (px - originX) / scaleX;
+                
+                let val;
+                // Handle division by zero at omega = 0
+                if (Math.abs(omega) < 1e-6) {
+                    val = 2 * a;
+                } else {
+                    val = 2 * a * Math.sin(omega * a) / (omega * a);
+                }
+                
+                const py = originY - val * scaleY;
+                
+                if (px === 0) {
+                    freqCtx.moveTo(px, py);
+                } else {
+                    freqCtx.lineTo(px, py);
+                }
+            }
+            freqCtx.stroke();
+
+            // Fill area under main lobe
+            const zeroCrossingX = Math.PI / a;
+            const x1 = originX - zeroCrossingX * scaleX;
+            const x2 = originX + zeroCrossingX * scaleX;
+            
+            freqCtx.beginPath();
+            freqCtx.moveTo(x1, originY);
+            for (let px = x1; px <= x2; px++) {
+                const omega = (px - originX) / scaleX;
+                let val = (Math.abs(omega) < 1e-6) ? (2 * a) : (2 * a * Math.sin(omega * a) / (omega * a));
+                const py = originY - val * scaleY;
+                freqCtx.lineTo(px, py);
+            }
+            freqCtx.lineTo(x2, originY);
+            freqCtx.fillStyle = 'rgba(244, 63, 94, 0.2)';
+            freqCtx.fill();
+
+            // Draw Dimension Arrow for Main Lobe
+            const arrowY = originY + height * 0.1;
+            drawDimensionArrow(freqCtx, x1, x2, arrowY, `Lobe = 2π/a = ${(2 * Math.PI / a).toFixed(2)}`, '#f43f5e');
+        }
+
+        // Main Draw Loop
+        function draw() {
+            // Get logical widths based on DOM element (ignore DPR for coordinate logic, pass logical sizes)
+            const timeW = timeCanvas.parentElement.clientWidth;
+            const timeH = timeCanvas.parentElement.clientHeight;
+            const freqW = freqCanvas.parentElement.clientWidth;
+            const freqH = freqCanvas.parentElement.clientHeight;
+            
+            drawTimeDomain(timeW, timeH);
+            drawFreqDomain(freqW, freqH);
+            
+            // Update Text Overlays
+            aValueDisplay.innerText = a.toFixed(2);
+            statDt.innerText = (2 * a).toFixed(2);
+            statDw.innerText = (2 * Math.PI / a).toFixed(2);
+        }
+
+        // Interactivity
+        slider.addEventListener('input', (e) => {
+            a = parseFloat(e.target.value);
+            // Use requestAnimationFrame for smooth drawing
+            requestAnimationFrame(draw);
+        });
+
+        // Initialize
+        // slight delay to ensure fonts/CSS are loaded and elements have dimensions
+        setTimeout(() => {
+            resizeCanvases();
+        }, 100);
+        
+    </script>
+</body>
+</html>

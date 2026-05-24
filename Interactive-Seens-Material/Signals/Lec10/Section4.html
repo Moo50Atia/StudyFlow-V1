@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Z-Domain LTI System: Parallel Flow Map</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    
+    <style>
+        /* Custom Animations and Transitions */
+        .math-box {
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            border-width: 2px;
+            background-color: rgba(30, 41, 59, 0.9); /* slate-800 */
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        .hidden-box {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+            pointer-events: none;
+        }
+
+        .active-box {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        .dimmed-box {
+            opacity: 0.4;
+            transform: translateY(0) scale(0.98);
+            filter: grayscale(60%);
+            pointer-events: none;
+        }
+        
+        .highlight-box {
+            box-shadow: 0 0 25px rgba(234, 179, 8, 0.6);
+            border-color: rgba(234, 179, 8, 1);
+            transform: scale(1.05);
+            z-index: 50;
+        }
+
+        /* SVG Arrow Animations */
+        .svg-arrow-path {
+            stroke-dasharray: 10;
+            animation: dash 1s linear infinite;
+        }
+        @keyframes dash {
+            to { stroke-dashoffset: -20; }
+        }
+
+        .fade-in {
+            transition: opacity 0.6s ease-in-out;
+        }
+
+        /* Operator specific styles */
+        .complex-op {
+            background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(185,28,28,0.4));
+            border-color: #ef4444; /* red-500 */
+            animation: slightShake 3s ease-in-out infinite;
+        }
+        @keyframes slightShake {
+            0%, 100% { transform: rotate(-1deg); }
+            50% { transform: rotate(1deg); }
+        }
+
+        .simple-op {
+            background: linear-gradient(135deg, rgba(34,197,94,0.2), rgba(21,128,61,0.4));
+            border-color: #22c55e; /* green-500 */
+        }
+
+        /* KaTeX Overrides for dark mode readability */
+        .katex { font-size: 1.25em; }
+        @media (min-width: 1024px) { .katex { font-size: 1.45em; } }
+        
+        .operator-text {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans h-screen w-screen overflow-hidden flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-slate-800 border-b border-slate-700 p-4 text-center z-20 shadow-md">
+        <h1 class="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-green-400">
+            LTI Systems: Time Domain vs Z-Domain
+        </h1>
+        <p id="instruction-text" class="text-lg mt-2 text-slate-300 min-h-[1.75rem] transition-opacity duration-300 font-medium"></p>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 relative flex flex-col p-4 md:p-8 w-full max-w-6xl mx-auto overflow-hidden">
+        
+        <!-- Background Panels -->
+        <div class="absolute top-8 left-4 right-4 h-[35%] border-2 border-blue-500/20 bg-blue-900/10 rounded-2xl z-0 flex flex-col pt-2 pl-4">
+            <h2 class="text-blue-400 font-bold text-lg tracking-wide opacity-70">Time Domain (Discrete)</h2>
+        </div>
+        <div class="absolute bottom-12 left-4 right-4 h-[35%] border-2 border-green-500/20 bg-green-900/10 rounded-2xl z-0 flex flex-col justify-end pb-2 pl-4">
+            <h2 class="text-green-400 font-bold text-lg tracking-wide opacity-70">Z-Domain (Algebraic)</h2>
+        </div>
+
+        <!-- Flow Diagram Container -->
+        <div class="w-full h-full flex flex-col justify-between z-10 relative py-8">
+            
+            <!-- ROW 1: TIME DOMAIN -->
+            <div class="flex justify-between items-center w-full px-8 h-1/3 relative">
+                <!-- Input x[n] -->
+                <div id="box-xn" class="math-box border-blue-400 hidden-box w-1/4">
+                    <div class="text-blue-300 text-xs font-bold uppercase mb-1">Input Signal</div>
+                    <div id="math-xn"></div>
+                </div>
+
+                <!-- Horizontal Arrow 1 -->
+                <div id="arrow-t1" class="flex-1 flex justify-center items-center opacity-0 fade-in">
+                    <svg width="100%" height="24" preserveAspectRatio="none">
+                        <defs>
+                            <marker id="arrowhead-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                <polygon points="0 0, 10 3.5, 0 7" fill="#60a5fa" />
+                            </marker>
+                        </defs>
+                        <line x1="10" y1="12" x2="calc(100% - 15px)" y2="12" stroke="#60a5fa" stroke-width="3" marker-end="url(#arrowhead-blue)" />
+                    </svg>
+                </div>
+
+                <!-- Convolution System Block -->
+                <div id="box-conv" class="math-box complex-op hidden-box w-2/5">
+                    <div class="operator-text text-red-300">Complex Convolution ( $\ast$ )</div>
+                    <div class="text-sm text-slate-300 mb-2">System Impulse Response: <span id="math-hn" class="inline-block"></span></div>
+                    <div id="math-conv-op" class="text-red-100"></div>
+                </div>
+
+                <!-- Horizontal Arrow 2 -->
+                <div id="arrow-t2" class="flex-1 flex justify-center items-center opacity-0 fade-in">
+                    <svg width="100%" height="24" preserveAspectRatio="none">
+                        <line x1="10" y1="12" x2="calc(100% - 15px)" y2="12" stroke="#60a5fa" stroke-width="3" marker-end="url(#arrowhead-blue)" />
+                    </svg>
+                </div>
+
+                <!-- Output y[n] -->
+                <div id="box-yn" class="math-box border-blue-400 hidden-box w-1/4">
+                    <div class="text-blue-300 text-xs font-bold uppercase mb-1">Output Signal</div>
+                    <div id="math-yn"></div>
+                </div>
+            </div>
+
+            <!-- ROW 2: VERTICAL TRANSFORMS -->
+            <div class="flex justify-between items-center w-full px-8 h-1/6 relative my-2">
+                <!-- Z transform arrows mapped to the center of the boxes above -->
+                <div class="w-1/4 flex justify-center">
+                    <div id="z-arrow-1" class="h-full opacity-0 fade-in flex flex-col items-center">
+                        <span class="text-yellow-400 font-bold mb-1 text-sm bg-slate-900 px-2 rounded z-10 border border-yellow-500/30">$\mathcal{Z}$</span>
+                        <div class="w-[2px] h-[60px] bg-yellow-500/70 relative -mt-3">
+                            <div class="absolute bottom-0 left-[-4px] w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[8px] border-t-yellow-500/70"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex-1"></div>
+                <div class="w-2/5 flex justify-center">
+                    <div id="z-arrow-2" class="h-full opacity-0 fade-in flex flex-col items-center">
+                        <span class="text-yellow-400 font-bold mb-1 text-sm bg-slate-900 px-2 rounded z-10 border border-yellow-500/30">$\mathcal{Z}$</span>
+                        <div class="w-[2px] h-[60px] bg-yellow-500/70 relative -mt-3">
+                            <div class="absolute bottom-0 left-[-4px] w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[8px] border-t-yellow-500/70"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex-1"></div>
+                <div class="w-1/4 flex justify-center">
+                    <div id="z-arrow-3" class="h-full opacity-0 fade-in flex flex-col items-center">
+                        <span class="text-yellow-400 font-bold mb-1 text-sm bg-slate-900 px-2 rounded z-10 border border-yellow-500/30">$\mathcal{Z}$</span>
+                        <div class="w-[2px] h-[60px] bg-yellow-500/70 relative -mt-3">
+                            <div class="absolute bottom-0 left-[-4px] w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[8px] border-t-yellow-500/70"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ROW 3: Z-DOMAIN -->
+            <div class="flex justify-between items-center w-full px-8 h-1/3 relative">
+                <!-- Input X(z) -->
+                <div id="box-xz" class="math-box border-green-400 hidden-box w-1/4">
+                    <div class="text-green-300 text-xs font-bold uppercase mb-1">Z-Domain Input</div>
+                    <div id="math-xz"></div>
+                </div>
+
+                <!-- Horizontal Arrow 3 -->
+                <div id="arrow-z1" class="flex-1 flex justify-center items-center opacity-0 fade-in">
+                    <svg width="100%" height="24" preserveAspectRatio="none">
+                        <defs>
+                            <marker id="arrowhead-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                <polygon points="0 0, 10 3.5, 0 7" fill="#4ade80" />
+                            </marker>
+                        </defs>
+                        <line x1="10" y1="12" x2="calc(100% - 15px)" y2="12" stroke="#4ade80" stroke-width="3" marker-end="url(#arrowhead-green)" />
+                    </svg>
+                </div>
+
+                <!-- Multiplication System Block -->
+                <div id="box-mult" class="math-box simple-op hidden-box w-2/5">
+                    <div class="operator-text text-green-200">Simple Multiplication ( $\cdot$ )</div>
+                    <div class="text-sm text-slate-300 mb-2">System Transfer Function: <span id="math-hz" class="inline-block"></span></div>
+                    <div id="math-mult-op" class="text-green-100"></div>
+                </div>
+
+                <!-- Horizontal Arrow 4 -->
+                <div id="arrow-z2" class="flex-1 flex justify-center items-center opacity-0 fade-in">
+                    <svg width="100%" height="24" preserveAspectRatio="none">
+                        <line x1="10" y1="12" x2="calc(100% - 15px)" y2="12" stroke="#4ade80" stroke-width="3" marker-end="url(#arrowhead-green)" />
+                    </svg>
+                </div>
+
+                <!-- Output Y(z) -->
+                <div id="box-yz" class="math-box border-green-400 hidden-box w-1/4">
+                    <div class="text-green-300 text-xs font-bold uppercase mb-1">Z-Domain Output</div>
+                    <div id="math-yz"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Visual Learning Outcome Overlay -->
+        <div id="outcome-overlay" class="absolute inset-0 z-40 bg-slate-900/80 backdrop-blur-sm hidden flex-col justify-center items-center opacity-0 transition-opacity duration-700">
+            <h3 class="text-2xl font-bold text-yellow-400 mb-6 drop-shadow-md">Visual Learning Outcome</h3>
+            <div class="math-box highlight-box p-8 w-2/3 max-w-xl text-center">
+                <p class="text-lg text-slate-200 mb-6">The complex convolution operation simplifies to pure algebra. This allows us to define the system completely by its Transfer Function:</p>
+                <div id="math-final-outcome" class="text-2xl"></div>
+                <p class="text-sm text-green-300 mt-6 font-semibold tracking-wide uppercase">Algebraic Characterization of an LTI System</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Controls -->
+    <footer class="bg-slate-800 p-4 border-t border-slate-700 flex justify-between items-center z-50 relative">
+        <button id="btn-prev" class="px-6 py-2 bg-slate-700 text-white font-semibold rounded hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition" onclick="goPrev()">
+            Previous
+        </button>
+
+        <div class="flex gap-3" id="progress-dots">
+            <!-- Populated by JS -->
+        </div>
+
+        <button id="btn-next" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed transition shadow-lg shadow-blue-500/30" onclick="goNext()">
+            Next Step
+        </button>
+    </footer>
+
+    <script>
+        // --- Equations & Data ---
+        const equations = {
+            xn: "x[n]",
+            hn: "h[n]",
+            yn: "y[n]",
+            conv_op: "y[n] = \\sum_{k=-\\infty}^{\\infty} x[k]h[n-k]",
+            xz: "X(z)",
+            hz: "H(z)",
+            yz: "Y(z)",
+            mult_op: "Y(z) = X(z) \\cdot H(z)",
+            outcome: "H(z) = \\frac{Y(z)}{X(z)}"
+        };
+
+        const stepsInfo = [
+            { id: 0, text: "Step 1: In the Time Domain, a system processes an input signal x[n]..." },
+            { id: 1, text: "Step 2: ...to produce output y[n] via Convolution (∗), a complex sliding sum." },
+            { id: 2, text: "Step 3: A common misconception is that calculating the output must be this complex. Let's apply the Z-Transform." },
+            { id: 3, text: "Step 4: In the Z-Domain, complex Convolution becomes simple Algebraic Multiplication (⋅)!" },
+            { id: 4, text: "Step 5: Rearranging this relationship reveals the fundamental transfer function of the system." }
+        ];
+
+        let currentStep = 0;
+        const totalSteps = stepsInfo.length;
+
+        // --- Initialization ---
+        document.addEventListener("DOMContentLoaded", () => {
+            // Render Math using KaTeX
+            const render = (id, tex) => {
+                const el = document.getElementById(id);
+                if(el) {
+                    katex.render(tex, el, { throwOnError: false, displayMode: true });
+                }
+            };
+            
+            // Time Domain
+            render('math-xn', equations.xn);
+            katex.render(equations.hn, document.getElementById('math-hn'), { throwOnError: false });
+            render('math-yn', equations.yn);
+            render('math-conv-op', equations.conv_op);
+            
+            // Z Domain
+            render('math-xz', equations.xz);
+            katex.render(equations.hz, document.getElementById('math-hz'), { throwOnError: false });
+            render('math-yz', equations.yz);
+            render('math-mult-op', equations.mult_op);
+            
+            // Outcome
+            render('math-final-outcome', equations.outcome);
+
+            // Render extra math elements inside text spans
+            document.querySelectorAll('.inline-math').forEach(el => {
+                katex.render(el.getAttribute('data-tex'), el, { throwOnError: false });
+            });
+
+            // Setup Progress Dots
+            const dotsContainer = document.getElementById('progress-dots');
+            for(let i=0; i<totalSteps; i++) {
+                const dot = document.createElement('div');
+                dot.className = `w-3 h-3 rounded-full transition-colors duration-300 ${i === 0 ? 'bg-blue-400 shadow-[0_0_8px_#60a5fa]' : 'bg-slate-600'}`;
+                dot.id = `dot-${i}`;
+                dotsContainer.appendChild(dot);
+            }
+
+            // Init State
+            applyState(0);
+        });
+
+        // --- State Management ---
+        function applyState(step) {
+            // Update Text
+            document.getElementById('instruction-text').innerText = stepsInfo[step].text;
+            
+            // Update Dots
+            for(let i=0; i<totalSteps; i++) {
+                const dot = document.getElementById(`dot-${i}`);
+                if (i === step) {
+                    dot.className = `w-3 h-3 rounded-full transition-colors duration-300 bg-blue-400 shadow-[0_0_8px_#60a5fa]`;
+                } else if (i < step) {
+                    dot.className = `w-3 h-3 rounded-full transition-colors duration-300 bg-slate-400`;
+                } else {
+                    dot.className = `w-3 h-3 rounded-full transition-colors duration-300 bg-slate-600`;
+                }
+            }
+
+            // Reset Box Visibility
+            const setBox = (id, state) => {
+                const el = document.getElementById(id);
+                el.classList.remove('active-box', 'dimmed-box', 'hidden-box');
+                el.classList.add(state);
+            };
+
+            const toggleOpacity = (id, isVisible) => {
+                const el = document.getElementById(id);
+                el.style.opacity = isVisible ? '1' : '0';
+            };
+
+            // Overlay reset
+            const overlay = document.getElementById('outcome-overlay');
+            overlay.classList.remove('flex');
+            overlay.classList.add('hidden');
+            overlay.style.opacity = '0';
+
+            // Step Logic
+            switch(step) {
+                case 0:
+                    setBox('box-xn', 'active-box');
+                    setBox('box-conv', 'hidden-box');
+                    setBox('box-yn', 'hidden-box');
+                    setBox('box-xz', 'hidden-box');
+                    setBox('box-mult', 'hidden-box');
+                    setBox('box-yz', 'hidden-box');
+                    
+                    toggleOpacity('arrow-t1', false);
+                    toggleOpacity('arrow-t2', false);
+                    toggleOpacity('z-arrow-1', false);
+                    toggleOpacity('z-arrow-2', false);
+                    toggleOpacity('z-arrow-3', false);
+                    toggleOpacity('arrow-z1', false);
+                    toggleOpacity('arrow-z2', false);
+                    break;
+
+                case 1:
+                    setBox('box-xn', 'active-box');
+                    setBox('box-conv', 'active-box');
+                    setBox('box-yn', 'active-box');
+                    setBox('box-xz', 'hidden-box');
+                    setBox('box-mult', 'hidden-box');
+                    setBox('box-yz', 'hidden-box');
+                    
+                    toggleOpacity('arrow-t1', true);
+                    toggleOpacity('arrow-t2', true);
+                    toggleOpacity('z-arrow-1', false);
+                    toggleOpacity('z-arrow-2', false);
+                    toggleOpacity('z-arrow-3', false);
+                    toggleOpacity('arrow-z1', false);
+                    toggleOpacity('arrow-z2', false);
+                    break;
+
+                case 2:
+                    setBox('box-xn', 'dimmed-box');
+                    setBox('box-conv', 'dimmed-box');
+                    setBox('box-yn', 'dimmed-box');
+                    setBox('box-xz', 'hidden-box');
+                    setBox('box-mult', 'hidden-box');
+                    setBox('box-yz', 'hidden-box');
+
+                    toggleOpacity('arrow-t1', true);
+                    toggleOpacity('arrow-t2', true);
+                    toggleOpacity('z-arrow-1', true);
+                    toggleOpacity('z-arrow-2', true);
+                    toggleOpacity('z-arrow-3', true);
+                    toggleOpacity('arrow-z1', false);
+                    toggleOpacity('arrow-z2', false);
+                    break;
+
+                case 3:
+                    setBox('box-xn', 'dimmed-box');
+                    setBox('box-conv', 'dimmed-box');
+                    setBox('box-yn', 'dimmed-box');
+                    setBox('box-xz', 'active-box');
+                    setBox('box-mult', 'active-box');
+                    setBox('box-yz', 'active-box');
+
+                    toggleOpacity('arrow-t1', true);
+                    toggleOpacity('arrow-t2', true);
+                    toggleOpacity('z-arrow-1', true);
+                    toggleOpacity('z-arrow-2', true);
+                    toggleOpacity('z-arrow-3', true);
+                    toggleOpacity('arrow-z1', true);
+                    toggleOpacity('arrow-z2', true);
+                    break;
+
+                case 4:
+                    // Show final outcome overlay
+                    setBox('box-xn', 'dimmed-box');
+                    setBox('box-conv', 'dimmed-box');
+                    setBox('box-yn', 'dimmed-box');
+                    setBox('box-xz', 'dimmed-box');
+                    setBox('box-mult', 'dimmed-box');
+                    setBox('box-yz', 'dimmed-box');
+                    
+                    overlay.classList.remove('hidden');
+                    overlay.classList.add('flex');
+                    // Slight delay for smooth fade-in
+                    setTimeout(() => {
+                        overlay.style.opacity = '1';
+                    }, 50);
+                    break;
+            }
+
+            // Buttons state
+            document.getElementById('btn-prev').disabled = (step === 0);
+            
+            const btnNext = document.getElementById('btn-next');
+            if (step === totalSteps - 1) {
+                btnNext.disabled = true;
+                btnNext.classList.remove('bg-blue-600', 'shadow-blue-500/30');
+                btnNext.classList.add('bg-slate-600');
+            } else {
+                btnNext.disabled = false;
+                btnNext.classList.add('bg-blue-600', 'shadow-blue-500/30');
+                btnNext.classList.remove('bg-slate-600');
+            }
+        }
+
+        // --- Controls ---
+        function goNext() {
+            if (currentStep < totalSteps - 1) {
+                currentStep++;
+                applyState(currentStep);
+            }
+        }
+
+        function goPrev() {
+            if (currentStep > 0) {
+                currentStep--;
+                applyState(currentStep);
+            }
+        }
+    </script>
+</body>
+</html>

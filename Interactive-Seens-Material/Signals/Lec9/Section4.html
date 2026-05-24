@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Z-Transform ROC System Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+            color: #f8fafc; /* Slate 50 */
+            overflow-x: hidden;
+        }
+
+        .math-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Flow Diagram Lines & Dots */
+        .flow-line {
+            stroke: #475569;
+            stroke-width: 2;
+            fill: none;
+            stroke-dasharray: 4, 4;
+        }
+        
+        .flow-dot {
+            fill: #38bdf8;
+            r: 4;
+            opacity: 0;
+        }
+
+        .flowing .flow-dot {
+            animation: moveDot 2s linear forwards;
+            opacity: 1;
+        }
+
+        @keyframes moveDot {
+            0% { offset-distance: 0%; }
+            100% { offset-distance: 100%; opacity: 0; }
+        }
+
+        /* System Blocks */
+        .sys-block {
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+        }
+        
+        .sys-block.active {
+            box-shadow: 0 0 25px #38bdf8;
+            border-color: #38bdf8;
+            transform: scale(1.05);
+        }
+
+        .sys-block.active-op {
+            box-shadow: 0 0 30px #f43f5e; /* Rose for operations */
+            border-color: #f43f5e;
+            transform: scale(1.1);
+        }
+
+        /* ROC Graph Animations */
+        .roc-container {
+            transition: transform 2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: absolute;
+            top: 0;
+            width: 300px;
+            height: 300px;
+        }
+
+        #roc-left {
+            left: 10%;
+        }
+
+        #roc-right {
+            right: 10%;
+        }
+
+        /* Classes added via JS for moving to center */
+        .merge-center-left {
+            transform: translateX(calc(40vw - 150px)); /* Move to center */
+        }
+        
+        .merge-center-right {
+            transform: translateX(calc(-40vw + 150px)); /* Move to center */
+        }
+
+        .roc-fill {
+            transition: fill-opacity 1s ease-in-out, fill 1s ease-in-out;
+        }
+
+        /* Narrative Text Animations */
+        .fade-in-up {
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Custom paths for dot animation requiring offset-path */
+        #path-x1 { offset-path: path('M 0 20 L 150 20 L 150 80'); }
+        #path-x2 { offset-path: path('M 0 180 L 150 180 L 150 120'); }
+        #path-y  { offset-path: path('M 150 100 L 250 100'); }
+        
+        #path-X1 { offset-path: path('M 0 20 L 150 20 L 150 80'); }
+        #path-X2 { offset-path: path('M 0 180 L 150 180 L 150 120'); }
+        #path-Y  { offset-path: path('M 150 100 L 250 100'); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center py-10 px-4">
+
+    <!-- Header Section -->
+    <header class="text-center max-w-4xl mb-12">
+        <h1 class="text-3xl md:text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">
+            Z-Transform System & ROC Intersection
+        </h1>
+        <p class="text-slate-400 text-sm md:text-base leading-relaxed">
+            Observe the parallel flows. Two signals <span class="math-font text-cyan-300">x<sub>1</sub>[n]</span> and <span class="math-font text-cyan-300">x<sub>2</sub>[n]</span> undergo convolution in the time domain, 
+            while their transforms <span class="math-font text-rose-300">X<sub>1</sub>(z)</span> and <span class="math-font text-rose-300">X<sub>2</sub>(z)</span> multiply in the frequency domain. 
+            Watch their Regions of Convergence (ROC) combine.
+        </p>
+        <button id="start-btn" onclick="runSimulation()" class="mt-6 px-8 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 rounded-full font-semibold shadow-lg shadow-blue-500/30 transition-all hover:scale-105 active:scale-95">
+            Initialize Flow Simulation
+        </button>
+    </header>
+
+    <!-- Main Simulator Area -->
+    <main class="w-full max-w-5xl relative flex flex-col gap-12">
+        
+        <!-- Top Half: Parallel Flows -->
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
+            
+            <!-- Left: Time Domain -->
+            <div class="relative bg-slate-800/50 rounded-2xl p-6 border border-slate-700 h-[300px]">
+                <h2 class="absolute top-4 left-6 text-slate-500 font-semibold tracking-wider text-sm uppercase">Time Domain</h2>
+                
+                <!-- Flow SVGs -->
+                <svg class="absolute top-[50px] left-[120px] w-[250px] h-[200px] pointer-events-none z-0">
+                    <path d="M 0 20 C 50 20, 100 20, 150 80" class="flow-line"/>
+                    <path d="M 0 180 C 50 180, 100 180, 150 120" class="flow-line"/>
+                    <path d="M 150 100 L 250 100" class="flow-line"/>
+                    
+                    <circle id="dot-x1" class="flow-dot" cx="0" cy="0" />
+                    <circle id="dot-x2" class="flow-dot" cx="0" cy="0" />
+                    <circle id="dot-y" class="flow-dot" cx="0" cy="0" />
+                </svg>
+
+                <div class="absolute inset-0 p-6 flex flex-col justify-between pointer-events-none z-10">
+                    <!-- Signals -->
+                    <div class="flex justify-between items-center w-[120px]">
+                        <div id="block-x1" class="sys-block bg-slate-900 border-2 border-slate-600 rounded-lg px-4 py-2 math-font text-cyan-300">x<sub>1</sub>[n]</div>
+                    </div>
+                    <!-- Operation -->
+                    <div class="flex justify-center w-[350px]">
+                        <div id="block-conv" class="sys-block bg-slate-900 border-2 border-slate-600 rounded-full w-16 h-16 flex items-center justify-center text-3xl font-bold text-rose-400">
+                            *
+                        </div>
+                    </div>
+                    <!-- Signals -->
+                    <div class="flex justify-between items-center w-[120px]">
+                        <div id="block-x2" class="sys-block bg-slate-900 border-2 border-slate-600 rounded-lg px-4 py-2 math-font text-cyan-300">x<sub>2</sub>[n]</div>
+                    </div>
+                </div>
+                <!-- Output block (positioned absolutely) -->
+                <div id="block-y" class="absolute top-[130px] right-6 sys-block bg-slate-900 border-2 border-slate-600 rounded-lg px-4 py-2 math-font text-green-400 opacity-50 transition-opacity duration-500">
+                    y[n]
+                </div>
+            </div>
+
+            <!-- Right: Z Domain -->
+            <div class="relative bg-slate-800/50 rounded-2xl p-6 border border-slate-700 h-[300px]">
+                <h2 class="absolute top-4 right-6 text-slate-500 font-semibold tracking-wider text-sm uppercase">Z-Domain</h2>
+                
+                <!-- Flow SVGs -->
+                <svg class="absolute top-[50px] left-[120px] w-[250px] h-[200px] pointer-events-none z-0">
+                    <path d="M 0 20 C 50 20, 100 20, 150 80" class="flow-line"/>
+                    <path d="M 0 180 C 50 180, 100 180, 150 120" class="flow-line"/>
+                    <path d="M 150 100 L 250 100" class="flow-line"/>
+                    
+                    <circle id="dot-X1" class="flow-dot" cx="0" cy="0" />
+                    <circle id="dot-X2" class="flow-dot" cx="0" cy="0" />
+                    <circle id="dot-Y" class="flow-dot" cx="0" cy="0" />
+                </svg>
+
+                <div class="absolute inset-0 p-6 flex flex-col justify-between pointer-events-none z-10">
+                    <!-- Signals -->
+                    <div class="flex justify-between items-center w-[120px]">
+                        <div id="block-X1" class="sys-block bg-slate-900 border-2 border-slate-600 rounded-lg px-4 py-2 math-font text-rose-300">X<sub>1</sub>(z)</div>
+                    </div>
+                    <!-- Operation -->
+                    <div class="flex justify-center w-[350px]">
+                        <div id="block-mult" class="sys-block bg-slate-900 border-2 border-slate-600 rounded-full w-16 h-16 flex items-center justify-center text-3xl font-bold text-rose-400 pb-1">
+                            &times;
+                        </div>
+                    </div>
+                    <!-- Signals -->
+                    <div class="flex justify-between items-center w-[120px]">
+                        <div id="block-X2" class="sys-block bg-slate-900 border-2 border-slate-600 rounded-lg px-4 py-2 math-font text-rose-300">X<sub>2</sub>(z)</div>
+                    </div>
+                </div>
+                 <!-- Output block -->
+                 <div id="block-Y" class="absolute top-[130px] right-6 sys-block bg-slate-900 border-2 border-slate-600 rounded-lg px-4 py-2 math-font text-green-400 opacity-50 transition-opacity duration-500">
+                    Y(z)
+                </div>
+            </div>
+        </section>
+
+        <!-- Dynamic Narrative Overlay (between flows and ROC) -->
+        <div id="narrative-box" class="text-center h-16 flex items-center justify-center -my-4 z-20">
+            <p id="narrative-text" class="text-lg md:text-xl font-semibold text-yellow-400 opacity-0 transition-opacity duration-500"></p>
+        </div>
+
+        <!-- Bottom Half: ROC Merging -->
+        <section class="relative w-full h-[400px] bg-slate-800/30 rounded-2xl border border-slate-700/50 overflow-hidden flex justify-center items-center mt-4">
+            
+            <!-- ROC 1 (Left-sided / Exterior) -->
+            <div id="roc-left" class="roc-container">
+                <svg viewBox="0 0 400 400" class="w-full h-full drop-shadow-lg">
+                    <!-- Axes -->
+                    <line x1="0" y1="200" x2="400" y2="200" stroke="#475569" stroke-width="1.5"/>
+                    <line x1="200" y1="0" x2="200" y2="400" stroke="#475569" stroke-width="1.5"/>
+                    <!-- Unit Circle -->
+                    <circle cx="200" cy="200" r="100" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4,4"/>
+                    
+                    <!-- Shading: |z| > 0.5 (Radius = 50) -->
+                    <!-- Path shading everything outside inner circle -->
+                    <path id="area-roc1" d="M0,0 h400 v400 h-400 Z M200,200 m-50,0 a50,50 0 1,0 100,0 a50,50 0 1,0 -100,0 Z" 
+                          fill="#3b82f6" fill-opacity="0.3" fill-rule="evenodd" class="roc-fill"/>
+                    
+                    <!-- Labels -->
+                    <text x="210" y="30" fill="#94a3b8" font-size="14" font-family="monospace">Im</text>
+                    <text x="370" y="190" fill="#94a3b8" font-size="14" font-family="monospace">Re</text>
+                    <text x="50" y="50" fill="#60a5fa" font-size="18" font-weight="bold" class="math-font">R1: |z| > 0.5</text>
+                    <!-- Pole -->
+                    <path d="M245,195 L255,205 M255,195 L245,205" stroke="#ef4444" stroke-width="2"/>
+                </svg>
+            </div>
+
+            <!-- ROC 2 (Right-sided / Interior) -->
+            <div id="roc-right" class="roc-container">
+                <svg viewBox="0 0 400 400" class="w-full h-full drop-shadow-lg">
+                    <!-- Axes -->
+                    <line x1="0" y1="200" x2="400" y2="200" stroke="#475569" stroke-width="1.5"/>
+                    <line x1="200" y1="0" x2="200" y2="400" stroke="#475569" stroke-width="1.5"/>
+                    <!-- Unit Circle -->
+                    <circle cx="200" cy="200" r="100" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4,4"/>
+                    
+                    <!-- Shading: |z| < 1.5 (Radius = 150) -->
+                    <circle id="area-roc2" cx="200" cy="200" r="150" 
+                            fill="#eab308" fill-opacity="0.3" class="roc-fill"/>
+                    
+                    <!-- Labels -->
+                    <text x="210" y="30" fill="#94a3b8" font-size="14" font-family="monospace">Im</text>
+                    <text x="370" y="190" fill="#94a3b8" font-size="14" font-family="monospace">Re</text>
+                    <text x="230" y="50" fill="#facc15" font-size="18" font-weight="bold" class="math-font">R2: |z| < 1.5</text>
+                    <!-- Pole -->
+                    <path d="M345,195 L355,205 M355,195 L345,205" stroke="#ef4444" stroke-width="2"/>
+                </svg>
+            </div>
+
+            <!-- Perfect Intersection Overlay (Hidden Initially) -->
+            <div id="roc-intersection" class="absolute top-0 left-1/2 -translate-x-1/2 w-[300px] h-[300px] pointer-events-none opacity-0 transition-opacity duration-1000 z-10">
+                 <svg viewBox="0 0 400 400" class="w-full h-full drop-shadow-[0_0_15px_rgba(34,197,94,0.6)]">
+                    <!-- Intersection Shading: 0.5 < |z| < 1.5 -->
+                    <path d="M200,200 m-150,0 a150,150 0 1,0 300,0 a150,150 0 1,0 -300,0 Z M200,200 m-50,0 a50,50 0 1,1 100,0 a50,50 0 1,1 -100,0 Z" 
+                          fill="#22c55e" fill-opacity="0.6" fill-rule="evenodd"/>
+                    
+                    <!-- Final Text Overlay inside graph -->
+                    <text x="200" y="380" fill="#4ade80" font-size="20" font-weight="bold" text-anchor="middle" class="math-font">R1 ∩ R2</text>
+                </svg>
+            </div>
+            
+        </section>
+    </main>
+
+    <script>
+        const delay = ms => new Promise(res => setTimeout(res, ms));
+
+        async function runSimulation() {
+            // Disable button
+            const btn = document.getElementById('start-btn');
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            
+            // Reset state if running again
+            resetState();
+            await delay(100);
+
+            // 1. Activate Input Blocks
+            document.getElementById('block-x1').classList.add('active');
+            document.getElementById('block-x2').classList.add('active');
+            document.getElementById('block-X1').classList.add('active');
+            document.getElementById('block-X2').classList.add('active');
+            
+            // 2. Start Flow dots from inputs to operations
+            const svgs = document.querySelectorAll('svg');
+            svgs.forEach(svg => svg.classList.add('flowing'));
+
+            setNarrative("Signals enter the processing devices...", "text-cyan-300");
+
+            // Wait for dots to reach the center (roughly 1s in the CSS animation, wait 1.2s)
+            await delay(1200);
+
+            // 3. Activate Operations
+            document.getElementById('block-conv').classList.add('active-op');
+            document.getElementById('block-mult').classList.add('active-op');
+            
+            // 4. Output blocks light up
+            await delay(800);
+            document.getElementById('block-y').classList.remove('opacity-50');
+            document.getElementById('block-y').classList.add('active');
+            document.getElementById('block-Y').classList.remove('opacity-50');
+            document.getElementById('block-Y').classList.add('active');
+
+            setNarrative("Time domain convolution = Z-domain multiplication. But what happens to the ROC?", "text-yellow-400");
+            
+            // 5. Merge the ROCs
+            await delay(3000);
+            setNarrative("Merging the individual Regions of Convergence (R1 and R2)...", "text-slate-300");
+            
+            const rocLeft = document.getElementById('roc-left');
+            const rocRight = document.getElementById('roc-right');
+            
+            rocLeft.classList.add('merge-center-left');
+            rocRight.classList.add('merge-center-right');
+
+            // Wait for merge animation
+            await delay(2200);
+            
+            setNarrative("Is the resulting ROC the UNION (Blue + Yellow)?", "text-rose-400");
+            
+            // 6. The Misconception Correction
+            await delay(3500);
+            setNarrative("NO! The system ROC is strictly the INTERSECTION.", "text-green-400");
+            
+            // Fade out the union (the individual shadings)
+            document.getElementById('area-roc1').style.fillOpacity = '0';
+            document.getElementById('area-roc2').style.fillOpacity = '0';
+            
+            // Fade in the perfect intersection ring
+            document.getElementById('roc-intersection').style.opacity = '1';
+
+            await delay(1000);
+            
+            // Emphasize the text
+            const textElement = document.getElementById('narrative-text');
+            textElement.innerHTML = "Valid System ROC: <span class='math-font text-white bg-green-600/50 px-2 py-1 rounded'>R<sub>1</sub> ∩ R<sub>2</sub></span>";
+            textElement.classList.replace('text-green-400', 'text-green-300');
+            textElement.classList.add('scale-110');
+
+            // Re-enable button for reset
+            btn.innerText = "Restart Simulation";
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+
+        function setNarrative(text, colorClass) {
+            const el = document.getElementById('narrative-text');
+            el.className = `text-lg md:text-xl font-semibold transition-all duration-500 opacity-0`; // reset
+            setTimeout(() => {
+                el.innerHTML = text;
+                el.className = `text-lg md:text-xl font-semibold transition-all duration-500 opacity-100 ${colorClass}`;
+            }, 300);
+        }
+
+        function resetState() {
+            // Remove active classes
+            document.querySelectorAll('.sys-block').forEach(el => {
+                el.classList.remove('active', 'active-op');
+            });
+            document.getElementById('block-y').classList.add('opacity-50');
+            document.getElementById('block-Y').classList.add('opacity-50');
+
+            // Remove flowing animation (hack to restart css animation)
+            const svgs = document.querySelectorAll('svg');
+            svgs.forEach(svg => {
+                svg.classList.remove('flowing');
+                void svg.offsetWidth; // trigger reflow
+            });
+
+            // Reset ROCs
+            const rocLeft = document.getElementById('roc-left');
+            const rocRight = document.getElementById('roc-right');
+            rocLeft.classList.remove('merge-center-left');
+            rocRight.classList.remove('merge-center-right');
+
+            document.getElementById('area-roc1').style.fillOpacity = '0.3';
+            document.getElementById('area-roc2').style.fillOpacity = '0.3';
+            document.getElementById('roc-intersection').style.opacity = '0';
+
+            const textElement = document.getElementById('narrative-text');
+            textElement.classList.remove('scale-110');
+            textElement.style.opacity = '0';
+        }
+    </script>
+</body>
+</html>
