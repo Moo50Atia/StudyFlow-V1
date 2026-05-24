@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Matrix Operations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        dark: '#0f172a',
+                        card: '#1e293b',
+                        accent: '#06b6d4', // Cyan
+                        accentHover: '#0891b2',
+                        glow: 'rgba(6, 182, 212, 0.5)',
+                        aiPurple: '#8b5cf6'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom styles for range sliders */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #06b6d4;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.8);
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 2px;
+        }
+        /* Grid background for the visualization area */
+        .bg-grid {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-position: center center;
+        }
+        
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* SVG Image default styling */
+        #transform-target {
+            /* Hardware acceleration hint */
+            will-change: transform;
+            /* Smooth transitions for preset buttons, instantly removed during slider drag */
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .no-transition {
+            transition: none !important;
+        }
+    </style>
+</head>
+<body class="bg-dark text-white h-screen w-screen overflow-hidden flex flex-col md:flex-row font-sans">
+
+    <!-- Left Panel: Controls -->
+    <aside class="w-full md:w-1/3 lg:w-1/4 bg-card border-b md:border-b-0 md:border-r border-gray-700 flex flex-col h-1/2 md:h-full z-20 shadow-2xl overflow-y-auto">
+        <div class="p-6 flex-grow flex flex-col gap-6">
+            
+            <header>
+                <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-accent to-aiPurple">
+                    Linear Transformations
+                </h1>
+                <p class="text-gray-400 text-sm mt-2">Adjust the 2x2 matrix to transform the digital input vector space.</p>
+            </header>
+
+            <!-- Matrix Representation -->
+            <div class="bg-dark p-4 rounded-xl border border-gray-700 shadow-inner flex justify-center items-center relative">
+                <!-- Large Matrix Brackets -->
+                <div class="absolute left-2 top-2 bottom-2 w-4 border-l-2 border-t-2 border-b-2 border-gray-500 rounded-l-md"></div>
+                <div class="absolute right-2 top-2 bottom-2 w-4 border-r-2 border-t-2 border-b-2 border-gray-500 rounded-r-md"></div>
+                
+                <div class="grid grid-cols-2 gap-x-8 gap-y-4 text-center font-mono text-xl z-10 w-full px-6">
+                    <div class="flex flex-col items-center">
+                        <span class="text-xs text-gray-500 mb-1">m₁₁ (Scale X)</span>
+                        <span id="val-m11" class="text-accent font-bold w-12 text-center">1.00</span>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <span class="text-xs text-gray-500 mb-1">m₁₂ (Shear X)</span>
+                        <span id="val-m12" class="text-aiPurple font-bold w-12 text-center">0.00</span>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <span class="text-xs text-gray-500 mb-1">m₂₁ (Shear Y)</span>
+                        <span id="val-m21" class="text-aiPurple font-bold w-12 text-center">0.00</span>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <span class="text-xs text-gray-500 mb-1">m₂₂ (Scale Y)</span>
+                        <span id="val-m22" class="text-accent font-bold w-12 text-center">1.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sliders -->
+            <div class="flex flex-col gap-5">
+                <div class="space-y-1">
+                    <div class="flex justify-between text-sm">
+                        <label for="m11" class="text-gray-300">Scale X (m₁₁)</label>
+                    </div>
+                    <input type="range" id="m11" min="-2" max="2" step="0.05" value="1">
+                </div>
+                
+                <div class="space-y-1">
+                    <div class="flex justify-between text-sm">
+                        <label for="m12" class="text-gray-300">Shear X (m₁₂)</label>
+                    </div>
+                    <input type="range" id="m12" min="-2" max="2" step="0.05" value="0">
+                </div>
+
+                <div class="space-y-1">
+                    <div class="flex justify-between text-sm">
+                        <label for="m21" class="text-gray-300">Shear Y (m₂₁)</label>
+                    </div>
+                    <input type="range" id="m21" min="-2" max="2" step="0.05" value="0">
+                </div>
+
+                <div class="space-y-1">
+                    <div class="flex justify-between text-sm">
+                        <label for="m22" class="text-gray-300">Scale Y (m₂₂)</label>
+                    </div>
+                    <input type="range" id="m22" min="-2" max="2" step="0.05" value="1">
+                </div>
+            </div>
+
+            <!-- Presets -->
+            <div class="mt-auto pt-4 border-t border-gray-700">
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Quick Presets</h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="setMatrix(1, 0, 0, 1)" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded text-sm transition-colors border border-gray-700 hover:border-accent text-gray-300 hover:text-white">Identity</button>
+                    <button onclick="setMatrix(0, -1, 1, 0)" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded text-sm transition-colors border border-gray-700 hover:border-accent text-gray-300 hover:text-white">Rotate 90°</button>
+                    <button onclick="setMatrix(1, 1, 0, 1)" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded text-sm transition-colors border border-gray-700 hover:border-accent text-gray-300 hover:text-white">Shear X</button>
+                    <button onclick="setMatrix(0.7, -0.7, 0.7, 0.7)" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded text-sm transition-colors border border-gray-700 hover:border-accent text-gray-300 hover:text-white">Rotate & Scale</button>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Right Panel: Visualization -->
+    <main class="flex-grow relative flex items-center justify-center bg-dark bg-grid overflow-hidden h-1/2 md:h-full">
+        
+        <!-- Axis Lines -->
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-40">
+            <div class="w-full h-px bg-white absolute"></div> <!-- X Axis -->
+            <div class="h-full w-px bg-white absolute"></div> <!-- Y Axis -->
+            
+            <!-- Origin point -->
+            <div class="w-2 h-2 bg-white rounded-full absolute z-10 shadow-[0_0_10px_white]"></div>
+        </div>
+
+        <!-- Transform Target (AI Digital Image) -->
+        <div id="transform-target" class="relative z-10 origin-center flex items-center justify-center filter drop-shadow-[0_0_15px_rgba(6,182,212,0.4)]">
+            
+            <!-- We'll draw an 8x8 pixel-art representation of the digit "3" to represent image data -->
+            <svg viewBox="0 0 160 160" width="240" height="240" xmlns="http://www.w3.org/2000/svg" class="overflow-visible">
+                <!-- Background plate for contrast -->
+                <rect x="0" y="0" width="160" height="160" fill="rgba(30, 41, 59, 0.9)" stroke="#334155" stroke-width="2" rx="12" />
+                
+                <!-- Internal Grid lines -->
+                <g stroke="rgba(255,255,255,0.1)" stroke-width="1">
+                    <line x1="20" y1="0" x2="20" y2="160" /> <line x1="40" y1="0" x2="40" y2="160" />
+                    <line x1="60" y1="0" x2="60" y2="160" /> <line x1="80" y1="0" x2="80" y2="160" />
+                    <line x1="100" y1="0" x2="100" y2="160" /> <line x1="120" y1="0" x2="120" y2="160" />
+                    <line x1="140" y1="0" x2="140" y2="160" /> 
+                    
+                    <line y1="20" x1="0" y2="20" x2="160" /> <line y1="40" x1="0" y2="40" x2="160" />
+                    <line y1="60" x1="0" y2="60" x2="160" /> <line y1="80" x1="0" y2="80" x2="160" />
+                    <line y1="100" x1="0" y2="100" x2="160" /> <line y1="120" x1="0" y2="120" x2="160" />
+                    <line y1="140" x1="0" y2="140" x2="160" />
+                </g>
+
+                <!-- Pixels forming the digit '3' -->
+                <g fill="#06b6d4">
+                    <!-- Top bar -->
+                    <rect x="40" y="20" width="80" height="20" />
+                    <rect x="120" y="20" width="20" height="20" opacity="0.5" />
+                    
+                    <!-- Right edge top -->
+                    <rect x="100" y="40" width="20" height="20" />
+                    <rect x="100" y="60" width="20" height="20" />
+                    
+                    <!-- Middle bar -->
+                    <rect x="60" y="60" width="40" height="20" />
+                    <rect x="80" y="80" width="20" height="20" />
+                    
+                    <!-- Right edge bottom -->
+                    <rect x="100" y="100" width="20" height="20" />
+                    <rect x="100" y="120" width="20" height="20" />
+                    
+                    <!-- Bottom bar -->
+                    <rect x="40" y="120" width="60" height="20" />
+                    <rect x="20" y="100" width="20" height="20" />
+                </g>
+
+                <!-- Axis indicators inside the object space -->
+                <g stroke-width="4" fill="none">
+                    <!-- X Vector (i-hat) -->
+                    <path d="M 80 80 L 140 80" stroke="#f43f5e" />
+                    <polygon points="140,75 150,80 140,85" fill="#f43f5e" />
+                    
+                    <!-- Y Vector (j-hat) -->
+                    <path d="M 80 80 L 80 140" stroke="#10b981" />
+                    <polygon points="75,140 80,150 85,140" fill="#10b981" />
+                </g>
+                
+                <!-- Center dot of the object -->
+                <circle cx="80" cy="80" r="6" fill="white" />
+            </svg>
+        </div>
+
+        <!-- Floating Tooltip -->
+        <div class="absolute bottom-6 left-6 right-6 md:left-1/2 md:-translate-x-1/2 md:right-auto md:w-[28rem] glass-panel rounded-xl p-5 shadow-2xl z-30">
+            <div class="flex items-start gap-4">
+                <div class="w-10 h-10 rounded-full bg-aiPurple/20 flex items-center justify-center flex-shrink-0 border border-aiPurple/50">
+                    <svg class="w-5 h-5 text-aiPurple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h4 class="font-bold text-white mb-1">AI Data Representation</h4>
+                    <p class="text-sm text-gray-300 leading-relaxed">
+                        <strong class="text-white">This is how AI Neural Networks manipulate image data using matrix multiplication to learn patterns!</strong> 
+                        <br><br>
+                        By applying weights to input coordinates, layers stretch, shear, and rotate multidimensional space to separate and classify different types of data (like distinguishing a '3' from an '8').
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // DOM Elements
+        const inputs = {
+            m11: document.getElementById('m11'),
+            m12: document.getElementById('m12'),
+            m21: document.getElementById('m21'),
+            m22: document.getElementById('m22')
+        };
+        
+        const displays = {
+            m11: document.getElementById('val-m11'),
+            m12: document.getElementById('val-m12'),
+            m21: document.getElementById('val-m21'),
+            m22: document.getElementById('val-m22')
+        };
+
+        const target = document.getElementById('transform-target');
+
+        // Function to apply the matrix transform
+        // 'animate' boolean determines if CSS transition is used (for presets)
+        function updateTransform(animate = false) {
+            // Get values from sliders
+            const a = parseFloat(inputs.m11.value);
+            const c = parseFloat(inputs.m12.value);
+            const b = parseFloat(inputs.m21.value);
+            const d = parseFloat(inputs.m22.value);
+
+            // Update numerical text displays
+            displays.m11.textContent = a.toFixed(2);
+            displays.m12.textContent = c.toFixed(2);
+            displays.m21.textContent = b.toFixed(2);
+            displays.m22.textContent = d.toFixed(2);
+
+            // Toggle animation class based on interaction type
+            if (animate) {
+                target.classList.remove('no-transition');
+            } else {
+                target.classList.add('no-transition');
+            }
+
+            /* 
+             * CSS Matrix mapping:
+             * transform: matrix(a, b, c, d, tx, ty)
+             * a: Scale X (m11)
+             * b: Shear Y (m21)
+             * c: Shear X (m12)
+             * d: Scale Y (m22)
+             * tx: Translate X (0)
+             * ty: Translate Y (0)
+             */
+            target.style.transform = `matrix(${a}, ${b}, ${c}, ${d}, 0, 0)`;
+        }
+
+        // Attach event listeners to all range inputs for real-time manipulation
+        Object.values(inputs).forEach(input => {
+            input.addEventListener('input', () => updateTransform(false));
+        });
+
+        // Function used by the quick preset buttons
+        window.setMatrix = function(m11, m12, m21, m22) {
+            inputs.m11.value = m11;
+            inputs.m12.value = m12;
+            inputs.m21.value = m21;
+            inputs.m22.value = m22;
+            
+            // Force a small delay to allow UI to register the transition class removal/addition if needed
+            requestAnimationFrame(() => {
+                updateTransform(true);
+            });
+        }
+
+        // Initialize state on load
+        window.onload = () => {
+            updateTransform(false);
+        };
+    </script>
+</body>
+</html>

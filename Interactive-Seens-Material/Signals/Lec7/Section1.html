@@ -1,0 +1,244 @@
+import React, { useState, useEffect } from 'react';
+import { ArrowRight, Activity, RefreshCw, Zap, Layers, Cpu, CheckCircle } from 'lucide-react';
+
+export default function ConvolutionVsLaplace() {
+  const [domain, setDomain] = useState('time'); // 'time' or 's'
+  const [isAnimatingTransition, setIsAnimatingTransition] = useState(false);
+
+  // Handle domain toggle with a Laplace transformation overlay effect
+  const toggleDomain = () => {
+    if (isAnimatingTransition) return;
+    setIsAnimatingTransition(true);
+    
+    // Halfway through the overlay animation, swap the actual domain data
+    setTimeout(() => {
+      setDomain(prev => (prev === 'time' ? 's' : 'time'));
+    }, 600);
+
+    // End transition
+    setTimeout(() => {
+      setIsAnimatingTransition(false);
+    }, 1200);
+  };
+
+  const isTime = domain === 'time';
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans p-6 flex flex-col items-center justify-center overflow-hidden">
+      
+      {/* Dynamic Background Gradients */}
+      <div className={`absolute inset-0 opacity-20 transition-colors duration-1000 ${isTime ? 'bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-900 via-slate-950 to-slate-950' : 'bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-900 via-slate-950 to-slate-950'}`}></div>
+
+      {/* Embedded CSS for custom path animations */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes flowRight {
+          0% { transform: translateX(-20px); opacity: 0; }
+          20% { opacity: 1; }
+          80% { opacity: 1; }
+          100% { transform: translateX(80px); opacity: 0; }
+        }
+        @keyframes flowUp {
+          0% { transform: translateY(20px); opacity: 0; }
+          20% { opacity: 1; }
+          80% { opacity: 1; }
+          100% { transform: translateY(-40px); opacity: 0; }
+        }
+        @keyframes pulseGlow {
+          0%, 100% { filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.5)); }
+          50% { filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.9)); }
+        }
+        @keyframes pulsePurple {
+          0%, 100% { filter: drop-shadow(0 0 5px rgba(192, 132, 252, 0.5)); }
+          50% { filter: drop-shadow(0 0 20px rgba(192, 132, 252, 0.9)); }
+        }
+        @keyframes laplaceFlash {
+          0% { opacity: 0; backdrop-filter: blur(0px); }
+          50% { opacity: 1; backdrop-filter: blur(10px); }
+          100% { opacity: 0; backdrop-filter: blur(0px); }
+        }
+        .signal-flow-x { animation: flowRight 3s infinite linear; }
+        .signal-flow-y { animation: flowUp 3s infinite linear; }
+        .glow-time { animation: pulseGlow 2s infinite; }
+        .glow-s { animation: pulsePurple 2s infinite; }
+        .overlay-flash { animation: laplaceFlash 1.2s ease-in-out forwards; z-index: 50; }
+      `}} />
+
+      {/* --- Laplace Transformation Overlay --- */}
+      {isAnimatingTransition && (
+        <div className="absolute inset-0 bg-indigo-900/40 flex flex-col items-center justify-center overlay-flash pointer-events-none">
+          <div className="text-8xl font-serif text-white opacity-90 drop-shadow-[0_0_30px_rgba(255,255,255,1)]">
+            ℒ
+          </div>
+          <div className="mt-4 text-2xl font-light text-indigo-100 tracking-widest uppercase">
+            Transforming Domain
+          </div>
+        </div>
+      )}
+
+      {/* --- Header --- */}
+      <header className="z-10 text-center mb-10 w-full max-w-4xl">
+        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-transparent bg-clip-text bg-gradient-to-r from-slate-100 to-slate-400">
+          Domain Transformation
+        </h1>
+        <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+          Contrast continuous time-domain convolution with algebraic s-domain multiplication using the Laplace Transform.
+        </p>
+      </header>
+
+      {/* --- Controls --- */}
+      <div className="z-10 flex flex-col items-center mb-12">
+        <div className="flex items-center gap-4 bg-slate-900/80 p-2 rounded-full border border-slate-700/50 shadow-xl backdrop-blur-sm">
+          <span className={`px-4 py-2 font-semibold text-sm transition-colors ${isTime ? 'text-sky-400' : 'text-slate-500'}`}>Time Domain t</span>
+          
+          <button 
+            onClick={toggleDomain}
+            className={`relative w-20 h-10 rounded-full transition-colors duration-500 flex items-center p-1 focus:outline-none ring-2 ring-offset-2 ring-offset-slate-950 ${isTime ? 'bg-sky-600 ring-sky-900' : 'bg-purple-600 ring-purple-900'}`}
+          >
+            <div className={`w-8 h-8 rounded-full bg-white shadow-md transform transition-transform duration-500 flex items-center justify-center ${isTime ? 'translate-x-0' : 'translate-x-10'}`}>
+              {isTime ? <Activity className="w-4 h-4 text-sky-600" /> : <Layers className="w-4 h-4 text-purple-600" />}
+            </div>
+          </button>
+          
+          <span className={`px-4 py-2 font-semibold text-sm transition-colors ${!isTime ? 'text-purple-400' : 'text-slate-500'}`}>s-Domain (Laplace)</span>
+        </div>
+      </div>
+
+      {/* --- Main Visual Scene --- */}
+      <main className="z-10 relative w-full max-w-5xl flex flex-col md:flex-row items-center justify-between gap-8 mb-16 p-8 rounded-3xl bg-slate-900/40 border border-slate-800/60 shadow-2xl backdrop-blur-md">
+        
+        {/* Connection Lines (Background) */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20 hidden md:flex">
+          <div className="w-full h-[2px] bg-gradient-to-r from-transparent via-slate-500 to-transparent"></div>
+        </div>
+
+        {/* 1. INPUT SIGNAL / BLOCK */}
+        <div className="relative flex flex-col items-center z-10 w-full md:w-1/3">
+          <div className="text-xs font-bold tracking-widest uppercase mb-3 text-slate-500">Input</div>
+          <div className={`w-32 h-32 rounded-2xl flex items-center justify-center border-2 transition-all duration-700 ${isTime ? 'bg-sky-900/20 border-sky-500/50 glow-time' : 'bg-purple-900/20 border-purple-500/50 glow-s'}`}>
+            {isTime ? (
+              <div className="flex flex-col items-center">
+                <svg width="60" height="40" viewBox="0 0 100 50" className="stroke-sky-400 stroke-2 fill-none mb-2">
+                  <path d="M 10 40 L 30 40 L 30 10 L 70 10 L 70 40 L 90 40" strokeLinejoin="round" />
+                </svg>
+                <span className="font-serif text-xl text-sky-200">x(t)</span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center">
+                <div className="text-3xl font-serif text-purple-200 font-bold mb-1">X(s)</div>
+              </div>
+            )}
+          </div>
+          
+          {/* Flowing Animation (Input -> Operator) */}
+          <div className="absolute top-1/2 -right-8 transform -translate-y-1/2 signal-flow-x hidden md:block">
+            {isTime ? <Activity className="text-sky-400 w-6 h-6" /> : <div className="text-purple-400 font-serif font-bold text-lg">X</div>}
+          </div>
+        </div>
+
+        {/* 2. OPERATOR & SYSTEM (MIDDLE SECTION) */}
+        <div className="relative flex flex-col items-center z-10 w-full md:w-1/3 mt-12 md:mt-0">
+          
+          {/* Operator Node */}
+          <div className="text-xs font-bold tracking-widest uppercase mb-3 text-slate-500">Operator</div>
+          <div className={`w-20 h-20 rounded-full flex items-center justify-center border-4 shadow-2xl z-20 transition-all duration-700 ${isTime ? 'bg-slate-800 border-sky-500 text-sky-400' : 'bg-slate-800 border-purple-500 text-purple-400 scale-110'}`}>
+            {isTime ? (
+              <div className="text-5xl font-mono mt-3 animate-[spin_10s_linear_infinite]">∗</div>
+            ) : (
+              <div className="text-4xl font-mono">×</div>
+            )}
+          </div>
+
+          {/* Connection Line from System to Operator */}
+          <div className="h-16 w-[2px] border-l-2 border-dashed border-slate-600 my-2 relative">
+             <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 signal-flow-y">
+               {isTime ? <ArrowRight className="text-emerald-400 w-4 h-4 -rotate-90" /> : <div className="text-pink-400 font-serif font-bold text-sm">H</div>}
+             </div>
+          </div>
+
+          {/* System Block */}
+          <div className={`w-32 h-24 rounded-xl flex items-center justify-center border-2 transition-all duration-700 ${isTime ? 'bg-emerald-900/20 border-emerald-500/50 glow-time' : 'bg-pink-900/20 border-pink-500/50 glow-s'}`}>
+            {isTime ? (
+               <div className="flex flex-col items-center">
+                 <svg width="60" height="30" viewBox="0 0 100 50" className="stroke-emerald-400 stroke-2 fill-none mb-1">
+                   <path d="M 10 40 Q 30 10 90 40" strokeLinecap="round" />
+                 </svg>
+                 <span className="font-serif text-lg text-emerald-200">h(t)</span>
+               </div>
+            ) : (
+               <div className="flex flex-col items-center">
+                 <div className="text-2xl font-serif text-pink-200 font-bold mb-1">H(s)</div>
+               </div>
+            )}
+          </div>
+          <div className="text-xs font-bold tracking-widest uppercase mt-3 text-slate-500">System</div>
+          
+          {/* Flowing Animation (Operator -> Output) */}
+          <div className="absolute top-1/2 -right-8 transform -translate-y-1/2 signal-flow-x hidden md:block" style={{animationDelay: '1.5s'}}>
+            {isTime ? <Activity className="text-sky-300 w-6 h-6" /> : <div className="text-purple-300 font-serif font-bold text-lg">Y</div>}
+          </div>
+        </div>
+
+        {/* 3. OUTPUT SIGNAL / BLOCK */}
+        <div className="relative flex flex-col items-center z-10 w-full md:w-1/3">
+          <div className="text-xs font-bold tracking-widest uppercase mb-3 text-slate-500">Output</div>
+          <div className={`w-32 h-32 rounded-2xl flex items-center justify-center border-2 transition-all duration-700 ${isTime ? 'bg-indigo-900/20 border-indigo-500/50 glow-time' : 'bg-fuchsia-900/20 border-fuchsia-500/50 glow-s'}`}>
+            {isTime ? (
+              <div className="flex flex-col items-center">
+                <svg width="60" height="40" viewBox="0 0 100 50" className="stroke-indigo-400 stroke-2 fill-none mb-2">
+                  <path d="M 10 40 C 30 40, 40 10, 50 10 C 60 10, 70 40, 90 40" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span className="font-serif text-xl text-indigo-200">y(t)</span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center">
+                <div className="text-3xl font-serif text-fuchsia-200 font-bold mb-1">Y(s)</div>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+
+      {/* --- Bottom Section: The Ratio Meter (Unique Identity) --- */}
+      <section className={`z-10 w-full max-w-2xl transform transition-all duration-1000 ${isTime ? 'opacity-50 scale-95 grayscale' : 'opacity-100 scale-100 grayscale-0'}`}>
+        <div className="bg-slate-900/80 border border-slate-700 rounded-2xl p-6 relative overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+          {/* Identity Glowing Background when in s-domain */}
+          {!isTime && <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-fuchsia-500/10 to-pink-500/10 animate-pulse"></div>}
+          
+          <div className="relative flex flex-col items-center">
+            <div className="flex items-center gap-2 mb-4">
+              <Cpu className={`w-5 h-5 ${!isTime ? 'text-fuchsia-400' : 'text-slate-500'}`} />
+              <h3 className="text-sm font-bold tracking-widest uppercase text-slate-300">System Unique Identity</h3>
+            </div>
+            
+            <div className="flex items-center gap-6 my-2">
+              {/* Math Display */}
+              <div className={`text-4xl md:text-5xl font-serif tracking-wider transition-colors duration-500 flex items-center gap-4 ${!isTime ? 'text-white' : 'text-slate-600'}`}>
+                <span>H(s)</span>
+                <span className="text-3xl">=</span>
+                <div className="flex flex-col items-center pb-1">
+                  <span className="border-b-2 border-current px-2 pb-1">Y(s)</span>
+                  <span className="pt-1 px-2">X(s)</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-center gap-2 text-xs font-medium text-slate-400 bg-slate-950/50 px-4 py-2 rounded-full border border-slate-800">
+              {isTime ? (
+                <>
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  <span>Switch to s-Domain to reveal algebraic ratio</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                  <span className="text-emerald-100">Identity Established: Convolution reduced to Multiplication</span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  );
+}
