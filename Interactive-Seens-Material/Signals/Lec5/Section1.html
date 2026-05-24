@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laplace s-Plane Explorer: 3D Surface & Convergence Visualizer</title>
+    <!-- Tailwind CSS for modern responsive dashboard styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for academic & system styling -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Three.js for 3D graphics rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls for easy 3D navigation -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+        /* Glowing effects */
+        .glow-cyan {
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
+        }
+        .glow-indigo {
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+        }
+        /* Custom scrollbar for theoretical panel */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(51, 65, 85, 0.8);
+            border-radius: 4px;
+        }
+        /* Pulse for warning indicators */
+        @keyframes subtlePulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(0.98); }
+        }
+        .animate-pulse-subtle {
+            animation: subtlePulse 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col overflow-x-hidden selection:bg-indigo-500 selection:text-slate-950">
+
+    <!-- Premium Interactive Header -->
+    <header class="border-b border-slate-900 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-slate-950 font-black text-2xl shadow-lg shadow-indigo-500/20">
+                    ∫
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400 bg-clip-text text-transparent">
+                        Laplace s-Plane Explorer
+                    </h1>
+                    <p class="text-xs text-slate-400">Demystifying Complex Frequency Surface Mechanics & Convergence Bounds</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 text-xs bg-slate-950 border border-slate-800 rounded-full px-4 py-1.5 text-slate-300">
+                <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-ping"></span>
+                <span class="font-medium">Continuous Transform Engine Active</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Interactive Dashboard Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Column: Signal Controls, Limits, & Mathematical Modular Analysis (Col span 5) -->
+        <section class="lg:col-span-5 flex flex-col gap-6">
+            
+            <!-- 1. Signal & Transform Parameter Switchboard -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-sm">
+                <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2 mb-4">
+                    <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                    1. Signal & Domain Controls
+                </h2>
+
+                <!-- Select Input Signal x(t) -->
+                <div class="mb-4">
+                    <label class="block text-xs font-medium text-slate-300 mb-1.5">Input Waveform $x(t)$</label>
+                    <select id="selectSignal" onchange="handleSignalChange()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition">
+                        <option value="double_exp">Bilateral Decay: e^{-|t|}</option>
+                        <option value="causal_cos">Causal Damped Cosine: e^{-0.5t} cos(3t) u(t)</option>
+                        <option value="growing_exp">Unstable Causal Exponential: e^{0.5t} u(t)</option>
+                    </select>
+                </div>
+
+                <!-- Toggle Integration Lower Limit -->
+                <div class="mb-5">
+                    <label class="block text-xs font-medium text-slate-300 mb-2">Integration Boundaries (Lower Limit)</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="btnUnilateral" onclick="setLimitMode('unilateral')" class="py-2.5 px-3 rounded-xl font-semibold text-xs border transition-all duration-300 flex flex-col items-center justify-center gap-1 bg-indigo-600/20 border-indigo-500 text-indigo-200 shadow-md">
+                            <span class="text-sm font-mono">0⁻ to +∞</span>
+                            <span>Unilateral Laplace</span>
+                        </button>
+                        <button id="btnBilateral" onclick="setLimitMode('bilateral')" class="py-2.5 px-3 rounded-xl font-semibold text-xs border transition-all duration-300 flex flex-col items-center justify-center gap-1 bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200">
+                            <span class="text-sm font-mono">-∞ to +∞</span>
+                            <span>Bilateral Laplace</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Complex Frequency s Probe Selection -->
+                <div class="border-t border-slate-800 pt-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Complex Probe: s = σ + jω</span>
+                        <span id="complexValLabel" class="code-font text-xs text-indigo-400 font-bold bg-indigo-500/10 px-2 py-0.5 rounded">-0.50 + j3.00</span>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- Real Part Slider (sigma) -->
+                        <div>
+                            <div class="flex justify-between text-[11px] text-slate-300 mb-1">
+                                <span>Real Damping Factor (σ)</span>
+                                <span id="valSigma" class="font-mono text-cyan-400">-0.50</span>
+                            </div>
+                            <input id="sliderSigma" type="range" min="-20" max="20" value="-5" oninput="updateProbe()" class="w-full accent-cyan-400 h-1 bg-slate-800 rounded-lg cursor-pointer">
+                            <div class="flex justify-between text-[9px] text-slate-500 font-mono">
+                                <span>Left-Half Plane (-2.0)</span>
+                                <span>Right-Half Plane (+2.0)</span>
+                            </div>
+                        </div>
+
+                        <!-- Imaginary Part Slider (omega) -->
+                        <div>
+                            <div class="flex justify-between text-[11px] text-slate-300 mb-1">
+                                <span>Imaginary Angular Frequency (ω)</span>
+                                <span id="valOmega" class="font-mono text-pink-400">3.00</span>
+                            </div>
+                            <input id="sliderOmega" type="range" min="-50" max="50" value="30" oninput="updateProbe()" class="w-full accent-pink-400 h-1 bg-slate-800 rounded-lg cursor-pointer">
+                            <div class="flex justify-between text-[9px] text-slate-500 font-mono">
+                                <span>Negative Oscillation</span>
+                                <span>Positive Oscillation</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 2. The Projection Engine: Visualizing x(t) * e^(-st) -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-sm relative overflow-hidden">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2"></path></svg>
+                        2. Integrand Time-Domain Modulation
+                    </h2>
+                    <span class="text-[10px] bg-slate-950 px-2 py-0.5 rounded border border-slate-800 font-mono text-slate-400">x(t) · e^(-σt) cos(ωt)</span>
+                </div>
+
+                <div class="bg-slate-950 rounded-xl p-3 border border-slate-850 relative">
+                    <canvas id="canvasIntegrand" class="w-full h-[150px] block"></canvas>
+                    
+                    <!-- Area accumulation animation indicator -->
+                    <div id="accumulationIndicator" class="absolute inset-0 bg-indigo-500/5 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+                        <span class="bg-slate-900/95 border border-indigo-500/30 text-indigo-400 text-[10px] py-1 px-3 rounded-full font-mono shadow-lg shadow-indigo-500/10">
+                            Accumulating Area to single s-plane point...
+                        </span>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between mt-3 text-[10px] text-slate-400">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+                        <span>x(t) Signal</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-cyan-500"></span>
+                        <span>Real Part of e^{-st}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                        <span>Product Envelope</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Dynamic Convergence Warning & Explanation Buster -->
+            <div id="panelROCWarning" class="bg-gradient-to-br from-slate-900 via-emerald-950/10 to-slate-900 border border-emerald-900/40 rounded-2xl p-5 shadow-2xl relative transition-all duration-300">
+                <div class="flex items-center gap-2 mb-2">
+                    <span id="rocStatusIcon" class="p-1 rounded bg-emerald-500/20 text-emerald-400 text-xs">✓</span>
+                    <h3 id="rocStatusHeader" class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Region of Convergence Status</h3>
+                </div>
+
+                <div class="space-y-2">
+                    <p id="rocStatusDesc" class="text-xs text-slate-300 leading-relaxed">
+                        Currently probing inside the ROC (<span class="code-font text-cyan-400">σ > -1.0</span>). The exponential modulator $e^{-\sigma t}$ decays quickly enough to force the infinite integral to converge to a stable value.
+                    </p>
+                    <div id="rocMathDetail" class="bg-slate-950/80 rounded-xl p-3 border border-slate-800 text-[11px] font-mono text-indigo-300">
+                        X(s) = 1 / (s + 1) = -0.50 + j3.00
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Right Column: Interactive s-Plane & 3D Laplace Surface (Col span 7) -->
+        <section class="lg:col-span-7 flex flex-col gap-6">
+            
+            <!-- Three.js 3D Frequency Surface Canvas -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col gap-4 relative">
+                
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                    <div>
+                        <h2 class="text-sm font-bold text-slate-100 flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                            3D s-Plane Frequency Surface |X(s)|
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Observe poles (peaks to ∞) and convergence boundaries as a complex surface</p>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <button id="btnResetView" onclick="reset3DCamera()" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-xs rounded-lg text-slate-300 font-semibold transition">
+                            ↺ Reset Camera
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3D Scene Wrapper with high absolute elements -->
+                <div class="relative bg-slate-950 rounded-xl border border-slate-850 overflow-hidden min-h-[400px] flex items-center justify-center">
+                    
+                    <div id="threeContainer" class="absolute inset-0 cursor-grab active:cursor-grabbing"></div>
+                    
+                    <!-- s-Plane dynamic overlays for 3D coordinate guidance -->
+                    <div class="absolute bottom-4 left-4 pointer-events-none bg-slate-900/90 border border-slate-800 p-3 rounded-xl text-[10px] space-y-1 z-10 font-mono">
+                        <div class="text-indigo-400 font-bold">3D Axis Legend:</div>
+                        <div class="flex items-center gap-1.5 text-cyan-400">
+                            <span class="w-2 h-0.5 bg-cyan-400 block"></span> X-Axis: σ (Real Damping)
+                        </div>
+                        <div class="flex items-center gap-1.5 text-pink-400">
+                            <span class="w-2 h-0.5 bg-pink-400 block"></span> Z-Axis: jω (Imaginary Freq)
+                        </div>
+                        <div class="flex items-center gap-1.5 text-purple-400">
+                            <span class="w-2 h-0.5 bg-purple-400 block"></span> Y-Axis: |X(s)| Magnitude
+                        </div>
+                    </div>
+
+                    <!-- Overlay showing ROC boundary warning when inside three.js container -->
+                    <div id="threeDivergeOverlay" class="absolute top-4 right-4 pointer-events-none bg-rose-950/90 border border-rose-500/30 py-1.5 px-3 rounded-lg text-[10px] font-bold text-rose-300 hidden flex items-center gap-1.5 z-10 shadow-lg">
+                        <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                        <span>OUTSIDE REGION OF CONVERGENCE (Diverges)</span>
+                    </div>
+
+                </div>
+
+                <!-- Learning Insight block below s-plane -->
+                <div class="bg-slate-950 border border-slate-850 rounded-xl p-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
+                    <div class="flex items-center gap-2.5">
+                        <span class="text-cyan-400 font-bold code-font">Active Pole(s):</span>
+                        <div id="poleList" class="flex items-center gap-1.5 text-rose-400 font-mono font-bold bg-rose-500/5 px-2.5 py-0.5 border border-rose-500/10 rounded">
+                            s = -1.0
+                        </div>
+                    </div>
+                    <div class="text-slate-400 text-right">
+                        <span>Drag 3D scene to rotate camera, scroll to zoom</span>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Detailed Mathematical Underpinnings Panel -->
+    <section class="max-w-7xl w-full mx-auto px-4 pb-12">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl">
+            <h3 class="text-sm font-bold text-slate-200 uppercase tracking-wider border-b border-slate-800 pb-3 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                The Anatomy of the Complex s-Plane
+            </h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm text-slate-300 leading-relaxed">
+                <!-- Concept 1: Complex Frequency vs. Real Frequency -->
+                <div class="bg-slate-950/70 rounded-xl p-4 border border-slate-800/80">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                        <h4 class="font-bold text-slate-100">s is a Complex Variable</h4>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-3 leading-relaxed">
+                        A common misconception is that frequency is only real-valued (represented by $\omega$). In Laplace analysis, the complex variable <span class="text-cyan-400 font-bold">$s = \sigma + j\omega$</span> represents generalized frequency:
+                    </p>
+                    <div class="bg-slate-900 p-3 rounded-lg border border-slate-800/60 font-mono text-xs text-cyan-300 mb-3 space-y-1">
+                        <div>e^{-st} = e^{-(\sigma + j\omega)t}</div>
+                        <div>e^{-st} = e^{-\sigma t} e^{-j\omega t}</div>
+                        <div class="text-slate-400 text-[10px] mt-1">// Real Decay (σ) × Complex Oscillation (jω)</div>
+                    </div>
+                    <p class="text-xs text-slate-400">
+                        This forms the basis for stability analysis. If $\sigma < 0$, the signal decays. If $\sigma > 0$, it grows unboundedly.
+                    </p>
+                </div>
+
+                <!-- Concept 2: Unilateral vs. Bilateral Convergence -->
+                <div class="bg-slate-950/70 rounded-xl p-4 border border-slate-800/80">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
+                        <h4 class="font-bold text-slate-100">Bilateral Split vs. Unilateral</h4>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-3 leading-relaxed">
+                        Toggling the boundaries changes how the system calculates the frequency spectrum:
+                    </p>
+                    <div class="space-y-2 text-xs">
+                        <div class="bg-slate-900 p-2.5 rounded border border-slate-800/60 font-mono">
+                            <span class="text-purple-300 block font-bold">Unilateral (0⁻ to ∞)</span>
+                            <span class="text-slate-400 text-[11px]">Computes causal waveforms starting at zero. Only cares about right-sided behavior. ROC is always a right-half plane.</span>
+                        </div>
+                        <div class="bg-slate-900 p-2.5 rounded border border-slate-800/60 font-mono">
+                            <span class="text-purple-300 block font-bold">Bilateral (-&infin; to &infin;)</span>
+                            <span class="text-slate-400 text-[11px]">Considers past signal history ($t < 0$). This creates convergence strips, causing the 3D surface to "split" because it must decay in both directions.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Concept 3: The Region of Convergence (ROC) -->
+                <div class="bg-slate-950/70 rounded-xl p-4 border border-slate-800/80">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-pink-400"></span>
+                        <h4 class="font-bold text-slate-100">The Region of Convergence (ROC)</h4>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-2 leading-relaxed">
+                        The integral representing $X(s)$ only exists where it converges. Outside of the ROC boundary:
+                    </p>
+                    <div class="bg-slate-900 p-3 rounded-lg border border-slate-800/60 font-mono text-xs text-pink-300 mb-3">
+                        &int; |x(t) e^{-st}| dt = &infin;
+                    </div>
+                    <p class="text-xs text-slate-400">
+                        Without an ROC, a Laplace transform is mathematically incomplete. As you adjust $\sigma$ beyond poles, the integrand plot on the left becomes unstable, exploding outwards—a visual proof of divergence.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // Core state model
+        let signalMode = 'double_exp'; // 'double_exp', 'causal_cos', 'growing_exp'
+        let limitMode = 'unilateral';   // 'unilateral', 'bilateral'
+        let probeSigma = -0.5;         // Real component
+        let probeOmega = 3.0;          // Imaginary component
+
+        // 2D Canvas Integrand Config
+        const canvasInt = document.getElementById('canvasIntegrand');
+        const ctxInt = canvasInt.getContext('2d');
+        const arraySize = 300;
+        const timeLimit = 5.0; // range from -timeLimit to +timeLimit
+        const timeStep = (timeLimit * 2) / arraySize;
+        const timeAxis = new Float32Array(arraySize);
+        for(let i=0; i<arraySize; i++) {
+            timeAxis[i] = -timeLimit + i * timeStep;
+        }
+
+        // Three.js 3D variables
+        let scene, camera, renderer, controls;
+        let surfaceGeometry, surfaceMesh;
+        let probeMesh, poleMeshes = [];
+        let rocBoundaryMesh;
+        const gridResSigma = 45;
+        const gridResOmega = 45;
+        const sigmaMin = -2.0, sigmaMax = 2.0;
+        const omegaMin = -5.0, omegaMax = 5.0;
+
+        // Evaluates target input wave x(t)
+        function evalX(t, mode) {
+            if (mode === 'double_exp') {
+                // e^(-|t|)
+                return Math.exp(-Math.abs(t));
+            } else if (mode === 'causal_cos') {
+                // e^(-0.5t) * cos(3t) * u(t)
+                if (t < 0) return 0;
+                return Math.exp(-0.5 * t) * Math.cos(3 * t);
+            } else if (mode === 'growing_exp') {
+                // e^(0.5t) * u(t)
+                if (t < 0) return 0;
+                return Math.exp(0.5 * t);
+            }
+            return 0;
+        }
+
+        // Computes Laplace Transform analytical result
+        function evalLaplaceAnalytical(s_sigma, s_omega, mode, limits) {
+            // Evaluates real and imaginary components of X(s)
+            // Returns {real, imag, mag, converges}
+            let converges = true;
+
+            if (mode === 'double_exp') {
+                if (limits === 'unilateral') {
+                    // Causal part: x(t) = e^(-t) u(t)
+                    // X(s) = 1/(s+1)
+                    // Pole at s = -1. ROC: sigma > -1
+                    converges = (s_sigma > -1.0);
+                    if (!converges) return { real: 0, imag: 0, mag: 0, converges: false };
+                    
+                    const denomReal = s_sigma + 1;
+                    const denomImag = s_omega;
+                    const denomSq = denomReal*denomReal + denomImag*denomImag;
+                    return {
+                        real: denomReal / denomSq,
+                        imag: -denomImag / denomSq,
+                        mag: 1.0 / Math.sqrt(denomSq),
+                        converges: true
+                    };
+                } else {
+                    // Bilateral: x(t) = e^(-|t|)
+                    // X(s) = 1/(s+1) + 1/(1-s) = 2 / (1 - s^2)
+                    // Poles at s = -1 and s = 1. ROC: -1 < sigma < 1
+                    converges = (s_sigma > -1.0 && s_sigma < 1.0);
+                    if (!converges) return { real: 0, imag: 0, mag: 0, converges: false };
+
+                    // s = sig + j*om => s^2 = (sig^2 - om^2) + j*(2*sig*om)
+                    // Denominator = 1 - s^2 = (1 - sig^2 + om^2) - j*(2*sig*om)
+                    const dReal = 1.0 - (s_sigma*s_sigma - s_omega*s_omega);
+                    const dImag = -2.0 * s_sigma * s_omega;
+                    const dSq = dReal*dReal + dImag*dImag;
+                    return {
+                        real: (2.0 * dReal) / dSq,
+                        imag: (2.0 * dImag) / dSq,
+                        mag: 2.0 / Math.sqrt(dSq),
+                        converges: true
+                    };
+                }
+            } else if (mode === 'causal_cos') {
+                // e^(-0.5t) * cos(3t) u(t). Since it's causal, unilateral & bilateral are identical.
+                // X(s) = (s + 0.5) / ((s + 0.5)^2 + 9)
+                // Poles at s = -0.5 +/- j3. ROC: sigma > -0.5
+                converges = (s_sigma > -0.5);
+                if (!converges) return { real: 0, imag: 0, mag: 0, converges: false };
+
+                // Numerator: (sig + 0.5) + j*om
+                // Denominator: (sig + 0.5)^2 - om^2 + 9 + j*2*(sig+0.5)*om
+                const numReal = s_sigma + 0.5;
+                const numImag = s_omega;
+
+                const dReal = (s_sigma + 0.5)*(s_sigma + 0.5) - s_omega*s_omega + 9.0;
+                const dImag = 2.0 * (s_sigma + 0.5) * s_omega;
+                const dSq = dReal*dReal + dImag*dImag;
+
+                const r = (numReal * dReal + numImag * dImag) / dSq;
+                const i = (numImag * dReal - numReal * dImag) / dSq;
+                return {
+                    real: r,
+                    imag: i,
+                    mag: Math.sqrt(r*r + i*i),
+                    converges: true
+                };
+            } else if (mode === 'growing_exp') {
+                // e^(0.5t) u(t). Causal.
+                // X(s) = 1 / (s - 0.5)
+                // Pole at s = 0.5. ROC: sigma > 0.5
+                converges = (s_sigma > 0.5);
+                if (!converges) return { real: 0, imag: 0, mag: 0, converges: false };
+
+                const denomReal = s_sigma - 0.5;
+                const denomImag = s_omega;
+                const denomSq = denomReal*denomReal + denomImag*denomImag;
+                return {
+                    real: denomReal / denomSq,
+                    imag: -denomImag / denomSq,
+                    mag: 1.0 / Math.sqrt(denomSq),
+                    converges: true
+                };
+            }
+            return { real: 0, imag: 0, mag: 0, converges: false };
+        }
+
+        // Setup Three.js 3D Scene
+        function initThree() {
+            const container = document.getElementById('threeContainer');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            scene = new THREE.Scene();
+            scene.background = null; // transparent to inherit Slate dark background
+
+            // Add subtle ambient and directional lighting
+            const ambientLight = new THREE.AmbientLight(0x0f172a, 3.0);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0x6366f1, 2.5);
+            dirLight.position.set(5, 10, 3);
+            scene.add(dirLight);
+
+            // Add helper point lights to make poles look glowing
+            const cyanLight = new THREE.PointLight(0x06b6d4, 2, 8);
+            cyanLight.position.set(0, 3, 0);
+            scene.add(cyanLight);
+
+            // Camera Setup
+            camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+            camera.position.set(4, 5, 4);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(width, height);
+            container.appendChild(renderer.domElement);
+
+            // OrbitControls for interaction
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2 - 0.05; // don't go below ground plane
+            controls.minDistance = 2;
+            controls.maxDistance = 15;
+
+            // Coordinate plane grids and labels
+            buildAxesGrid();
+
+            // Setup custom geometry for Laplace surface
+            buildSurface();
+
+            // Set dynamic pole mesh locations
+            buildPolesAndZeros();
+
+            // Setup the probe indicator (vertical line and sphere)
+            buildProbeMesh();
+
+            // Run render loop
+            animateThree();
+        }
+
+        function buildAxesGrid() {
+            // Grid floor representing s-plane
+            const gridHelper = new THREE.GridHelper(6, 12, 0x475569, 0x1e293b);
+            gridHelper.position.y = 0;
+            scene.add(gridHelper);
+
+            // Custom colored axis lines for axes of s-plane
+            const lineMatX = new THREE.LineBasicMaterial({ color: 0x06b6d4, linewidth: 2 });
+            const pointsX = [new THREE.Vector3(-3, 0.005, 0), new THREE.Vector3(3, 0.005, 0)];
+            const geomX = new THREE.BufferGeometry().setFromPoints(pointsX);
+            const axisX = new THREE.Line(geomX, lineMatX);
+            scene.add(axisX);
+
+            const lineMatZ = new THREE.LineBasicMaterial({ color: 0xf472b6, linewidth: 2 });
+            const pointsZ = [new THREE.Vector3(0, 0.005, -3), new THREE.Vector3(0, 0.005, 3)];
+            const geomZ = new THREE.BufferGeometry().setFromPoints(pointsZ);
+            const axisZ = new THREE.Line(geomZ, lineMatZ);
+            scene.add(axisZ);
+        }
+
+        function buildSurface() {
+            // Create a plane geometry with enough resolution for smooth rendering
+            surfaceGeometry = new THREE.PlaneGeometry(
+                sigmaMax - sigmaMin, 
+                omegaMax - omegaMin, 
+                gridResSigma - 1, 
+                gridResOmega - 1
+            );
+            
+            // Rotate plane to sit on xz-plane initially
+            surfaceGeometry.rotateX(-Math.PI / 2);
+
+            // Material with color variations based on height
+            const mat = new THREE.MeshPhongMaterial({
+                color: 0x6366f1,
+                side: THREE.DoubleSide,
+                wireframe: false,
+                transparent: true,
+                opacity: 0.85,
+                shininess: 90,
+                specular: 0xffffff,
+                vertexColors: true
+            });
+
+            surfaceMesh = new THREE.Mesh(surfaceGeometry, mat);
+            scene.add(surfaceMesh);
+
+            // Recompute heights based on current system
+            updateSurfaceHeights();
+        }
+
+        function updateSurfaceHeights() {
+            if (!surfaceGeometry) return;
+
+            const pos = surfaceGeometry.attributes.position;
+            const colors = [];
+            const count = pos.count;
+
+            const colorNearPole = new THREE.Color(0xf43f5e);  // bright rose-red
+            const colorConverging = new THREE.Color(0x6366f1); // indigo
+            const colorDiverging = new THREE.Color(0x334155);  // slate dark
+
+            for (let i = 0; i < count; i++) {
+                // Get the base coordinate from geometry attributes
+                let x = pos.getX(i); // maps to sigma
+                let z = pos.getZ(i); // maps to omega
+
+                // Evaluate Laplace magnitude analytically
+                const lapResult = evalLaplaceAnalytical(x, z, signalMode, limitMode);
+                let y = 0;
+
+                // Color mappings based on state
+                let vertexColor = colorConverging.clone();
+
+                if (lapResult.converges) {
+                    // Normalize magnitude for visual height projection, clamping extreme peaks at poles
+                    y = Math.min(3.5, lapResult.mag * 0.5);
+                    
+                    // Blend vertex colors based on proximity to a pole
+                    if (y > 1.5) {
+                        const ratio = (y - 1.5) / 2.0;
+                        vertexColor.lerp(colorNearPole, ratio);
+                    }
+                } else {
+                    // If outside region of convergence, we lower height to 0 and render with slate dark
+                    y = 0;
+                    vertexColor = colorDiverging.clone();
+                }
+
+                pos.setY(i, y);
+
+                // Add colors to array buffer
+                colors.push(vertexColor.r, vertexColor.g, vertexColor.b);
+            }
+
+            surfaceGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            pos.needsUpdate = true;
+            surfaceGeometry.computeVertexNormals();
+        }
+
+        function buildPolesAndZeros() {
+            // Remove existing pole meshes first
+            poleMeshes.forEach(mesh => scene.remove(mesh));
+            poleMeshes = [];
+
+            // Identify pole coordinates based on signal settings
+            let poles = [];
+            if (signalMode === 'double_exp') {
+                if (limitMode === 'unilateral') {
+                    poles = [{ r: -1.0, i: 0 }];
+                } else {
+                    poles = [{ r: -1.0, i: 0 }, { r: 1.0, i: 0 }];
+                }
+            } else if (signalMode === 'causal_cos') {
+                poles = [{ r: -0.5, i: 3.0 }, { r: -0.5, i: -3.0 }];
+            } else if (signalMode === 'growing_exp') {
+                poles = [{ r: 0.5, i: 0 }];
+            }
+
+            // Draw pole list text
+            const listContainer = document.getElementById('poleList');
+            listContainer.innerHTML = poles.map(p => `s = ${p.r.toFixed(1)}${p.i !== 0 ? (p.i > 0 ? ' + j' : ' - j') + Math.abs(p.i).toFixed(1) : ''}`).join(' &nbsp;|&nbsp; ');
+
+            // Build glowing 3D pole shapes (X markers or simple spheres)
+            poles.forEach(pole => {
+                const group = new THREE.Group();
+
+                // Cross shape 1
+                const barGeom = new THREE.CylinderGeometry(0.04, 0.04, 0.4, 8);
+                const barMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+                
+                const bar1 = new THREE.Mesh(barGeom, barMat);
+                bar1.rotation.z = Math.PI / 4;
+                group.add(bar1);
+
+                const bar2 = new THREE.Mesh(barGeom, barMat);
+                bar2.rotation.z = -Math.PI / 4;
+                group.add(bar2);
+
+                // Put the pole directly on s-plane coordinates
+                // Remember: X = sigma, Z = omega, Y = 0 (floor)
+                group.position.set(pole.r, 0.05, pole.i);
+                scene.add(group);
+                poleMeshes.push(group);
+            });
+        }
+
+        function buildProbeMesh() {
+            if (probeMesh) scene.remove(probeMesh);
+
+            probeMesh = new THREE.Group();
+
+            // Vertical line showing probe height projection
+            const lineGeom = new THREE.CylinderGeometry(0.015, 0.015, 4, 8);
+            const lineMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4, transparent: true, opacity: 0.4 });
+            const verticalLine = new THREE.Mesh(lineGeom, lineMat);
+            verticalLine.position.y = 2; // Center offset to float starting from 0 to 4
+            probeMesh.add(verticalLine);
+
+            // Floating sphere indicating the exact computed s-plane amplitude
+            const sphereGeom = new THREE.SphereGeometry(0.08, 16, 16);
+            const sphereMat = new THREE.MeshPhongMaterial({
+                color: 0x22d3ee,
+                emissive: 0x0891b2,
+                shininess: 100
+            });
+            const floatSphere = new THREE.Mesh(sphereGeom, sphereMat);
+            floatSphere.name = 'floatingProbeNode';
+            probeMesh.add(floatSphere);
+
+            scene.add(probeMesh);
+            updateProbeVisualPosition();
+        }
+
+        function updateProbeVisualPosition() {
+            if (!probeMesh) return;
+
+            // Set X and Z directly based on sliders (scaled to match 3D bounds)
+            probeMesh.position.x = probeSigma;
+            probeMesh.position.z = probeOmega;
+
+            // Compute current Laplace amplitude to raise sphere elevation
+            const res = evalLaplaceAnalytical(probeSigma, probeOmega, signalMode, limitMode);
+            const sphere = probeMesh.getObjectByName('floatingProbeNode');
+            if (sphere) {
+                if (res.converges) {
+                    sphere.position.y = Math.min(3.5, res.mag * 0.5);
+                    sphere.material.color.setHex(0x22d3ee);
+                } else {
+                    sphere.position.y = 0;
+                    sphere.material.color.setHex(0x64748b); // grey out sphere if outside ROC
+                }
+            }
+        }
+
+        function animateThree() {
+            requestAnimationFrame(animateThree);
+            if (controls) controls.update();
+            if (renderer && scene && camera) renderer.render(scene, camera);
+        }
+
+        function reset3DCamera() {
+            if (camera && controls) {
+                camera.position.set(4, 5, 4);
+                controls.target.set(0, 0, 0);
+            }
+        }
+
+        function drawIntegrandCanvas() {
+            const w = canvasInt.clientWidth;
+            const h = canvasInt.clientHeight;
+            
+            // Adjust canvas resolution dynamically for crisp display
+            const dpr = window.devicePixelRatio || 1;
+            canvasInt.width = w * dpr;
+            canvasInt.height = h * dpr;
+            ctxInt.scale(dpr, dpr);
+
+            ctxInt.clearRect(0, 0, w, h);
+
+            // 1. Draw central coordinate system axis
+            ctxInt.strokeStyle = '#1e293b';
+            ctxInt.lineWidth = 1.5;
+            ctxInt.beginPath();
+            ctxInt.moveTo(0, h / 2);
+            ctxInt.lineTo(w, h / 2);
+            ctxInt.moveTo(w / 2, 0);
+            ctxInt.lineTo(w / 2, h);
+            ctxInt.stroke();
+
+            // Label axes
+            ctxInt.fillStyle = '#64748b';
+            ctxInt.font = '9px monospace';
+            ctxInt.fillText('-t', 8, h / 2 - 4);
+            ctxInt.fillText('+t', w - 18, h / 2 - 4);
+
+            // 2. Generate and plot mathematical waveforms
+            // Mapping details: X-axis represents Time [-timeLimit, +timeLimit] mapped to [0, w]
+            const mapX = (t) => ((t + timeLimit) / (timeLimit * 2)) * w;
+            // Y-axis represents Amplitude mapped with scaling
+            const mapY = (val) => (h / 2) - val * (h / 3.5);
+
+            // Signal Curve arrays
+            const sigXPoints = [];
+            const envExpPoints = [];
+            const productPoints = [];
+
+            for (let i = 0; i < arraySize; i++) {
+                const t = timeAxis[i];
+                
+                // Get original signal component x(t)
+                const xt = evalX(t, signalMode);
+
+                // Get Real portion of complex exponential e^(-st) = e^(-σt) * cos(ωt)
+                // When unilateral, lower time boundary is 0, meaning we clear left-hand values
+                const unilateralClamp = (limitMode === 'unilateral' && t < 0);
+                
+                const exponentialEnvelope = unilateralClamp ? 0 : Math.exp(-probeSigma * t);
+                const complexTermReal = Math.cos(probeOmega * t);
+                const estReal = exponentialEnvelope * complexTermReal;
+
+                // Combined Integrand wave product: x(t) * Real[e^(-st)]
+                const integrandVal = xt * estReal;
+
+                sigXPoints.push({ x: mapX(t), y: mapY(xt) });
+                envExpPoints.push({ x: mapX(t), y: mapY(estReal) });
+                productPoints.push({ x: mapX(t), y: mapY(integrandVal) });
+            }
+
+            // Draw Source Signal curve x(t) (Dashed slate)
+            ctxInt.strokeStyle = '#475569';
+            ctxInt.lineWidth = 1.5;
+            ctxInt.setLineDash([4, 4]);
+            ctxInt.beginPath();
+            sigXPoints.forEach((p, idx) => {
+                if (idx === 0) ctxInt.moveTo(p.x, p.y);
+                else ctxInt.lineTo(p.x, p.y);
+            });
+            ctxInt.stroke();
+            ctxInt.setLineDash([]);
+
+            // Draw Real Exponential Modulator e^(-σt) cos(ωt) (Cyan)
+            ctxInt.strokeStyle = 'rgba(6, 182, 212, 0.45)';
+            ctxInt.lineWidth = 1;
+            ctxInt.beginPath();
+            envExpPoints.forEach((p, idx) => {
+                if (idx === 0) ctxInt.moveTo(p.x, p.y);
+                else ctxInt.lineTo(p.x, p.y);
+            });
+            ctxInt.stroke();
+
+            // Check if current probe sigma is outside convergence boundary
+            const currentRocTest = evalLaplaceAnalytical(probeSigma, probeOmega, signalMode, limitMode);
+            
+            // Draw Shaded accumulated product integration area
+            ctxInt.fillStyle = currentRocTest.converges ? 'rgba(99, 102, 241, 0.12)' : 'rgba(239, 68, 68, 0.08)';
+            ctxInt.beginPath();
+            
+            // Define bounds based on limit mode
+            let startIdx = 0;
+            if (limitMode === 'unilateral') {
+                // Find index corresponding to t=0
+                startIdx = Math.floor(arraySize / 2);
+            }
+            
+            // Build shading polygon path
+            ctxInt.moveTo(mapX(timeAxis[startIdx]), h / 2);
+            for (let i = startIdx; i < arraySize; i++) {
+                ctxInt.lineTo(productPoints[i].x, productPoints[i].y);
+            }
+            ctxInt.lineTo(mapX(timeAxis[arraySize - 1]), h / 2);
+            ctxInt.closePath();
+            ctxInt.fill();
+
+            // Draw Combined product wave line (Indigo)
+            ctxInt.strokeStyle = currentRocTest.converges ? '#818cf8' : '#f87171';
+            ctxInt.lineWidth = 2.5;
+            ctxInt.beginPath();
+            productPoints.forEach((p, idx) => {
+                // If unilateral mode, don't draw product prior to t=0 (it is zeroed out)
+                if (limitMode === 'unilateral' && timeAxis[idx] < 0) {
+                    ctxInt.moveTo(p.x, h / 2);
+                    return;
+                }
+                if (idx === 0 || (limitMode === 'unilateral' && idx === Math.floor(arraySize/2))) {
+                    ctxInt.moveTo(p.x, p.y);
+                } else {
+                    ctxInt.lineTo(p.x, p.y);
+                }
+            });
+            ctxInt.stroke();
+        }
+
+        function updateProbe() {
+            // Read values from sliders and map to range bounds
+            const rawSigma = parseFloat(document.getElementById('sliderSigma').value);
+            const rawOmega = parseFloat(document.getElementById('sliderOmega').value);
+
+            // Sigma maps slider [-20, 20] to [-2.0, 2.0]
+            probeSigma = rawSigma / 10.0;
+            // Omega maps slider [-50, 50] to [-5.0, 5.0]
+            probeOmega = rawOmega / 10.0;
+
+            // UI Label updates
+            document.getElementById('valSigma').textContent = probeSigma.toFixed(2);
+            document.getElementById('valOmega').textContent = probeOmega.toFixed(2);
+            
+            const imaginaryPartString = (probeOmega >= 0 ? '+' : '-') + ' j' + Math.abs(probeOmega).toFixed(2);
+            document.getElementById('complexValLabel').textContent = `${probeSigma.toFixed(2)} ${imaginaryPartString}`;
+
+            // Trigger dynamic recalculations
+            updateProbeVisualPosition();
+            drawIntegrandCanvas();
+            updateROCDetection();
+        }
+
+        function updateROCDetection() {
+            const lapResult = evalLaplaceAnalytical(probeSigma, probeOmega, signalMode, limitMode);
+            const warningPanel = document.getElementById('panelROCWarning');
+            const statusIcon = document.getElementById('rocStatusIcon');
+            const statusHeader = document.getElementById('rocStatusHeader');
+            const statusDesc = document.getElementById('rocStatusDesc');
+            const mathDetail = document.getElementById('rocMathDetail');
+            const overlayDiverge = document.getElementById('threeDivergeOverlay');
+
+            // Generate s-string
+            const imaginarySign = probeOmega >= 0 ? '+' : '-';
+            const sString = `${probeSigma.toFixed(2)} ${imaginarySign} j${Math.abs(probeOmega).toFixed(2)}`;
+
+            if (lapResult.converges) {
+                // Converges stably
+                warningPanel.className = "bg-gradient-to-br from-slate-900 via-emerald-950/10 to-slate-900 border border-emerald-900/40 rounded-2xl p-5 shadow-2xl relative transition-all duration-300";
+                statusIcon.textContent = "✓";
+                statusIcon.className = "p-1 rounded bg-emerald-500/20 text-emerald-400 text-xs";
+                statusHeader.className = "text-xs font-bold text-emerald-400 uppercase tracking-widest";
+                statusHeader.textContent = "Region of Convergence Status: Active";
+                overlayDiverge.classList.add('hidden');
+
+                // Format math output label
+                const imagVal = lapResult.imag >= 0 ? `+ j${lapResult.imag.toFixed(3)}` : `- j${Math.abs(lapResult.imag).toFixed(3)}`;
+                mathDetail.innerHTML = `X(${sString}) = ${lapResult.real.toFixed(3)} ${imagVal}  (Mag: ${lapResult.mag.toFixed(3)})`;
+
+                // Set textual description explaining why convergence holds
+                if (signalMode === 'double_exp') {
+                    if (limitMode === 'unilateral') {
+                        statusDesc.innerHTML = `The selected probe <span class="text-emerald-400 font-semibold font-mono">σ (${probeSigma.toFixed(2)})</span> lies inside the unilateral ROC (<span class="code-font text-cyan-400">σ > -1.0</span>). The damping envelope decay completely subdues the wave growth at +∞.`;
+                    } else {
+                        statusDesc.innerHTML = `The selected probe <span class="text-emerald-400 font-semibold font-mono font-mono">σ (${probeSigma.toFixed(2)})</span> lies inside the bilateral ROC strip (<span class="code-font text-cyan-400">-1.0 < σ < 1.0</span>). The signal converges both as t → +∞ and t → -∞.`;
+                    }
+                } else if (signalMode === 'causal_cos') {
+                    statusDesc.innerHTML = `The selected probe <span class="text-emerald-400 font-semibold font-mono">σ (${probeSigma.toFixed(2)})</span> lies inside the ROC (<span class="code-font text-cyan-400">σ > -0.5</span>). The signal converges nicely, wrapping into a compact spiraling loop on the complex frequency plane.`;
+                } else if (signalMode === 'growing_exp') {
+                    statusDesc.innerHTML = `The selected probe <span class="text-emerald-400 font-semibold font-mono">σ (${probeSigma.toFixed(2)})</span> lies inside the ROC (<span class="code-font text-cyan-400">σ > 0.5</span>). Even though the input signal grows exponentially, using a sufficiently large real damping factor σ pulls the overall system back to stability!`;
+                }
+            } else {
+                // Diverges
+                warningPanel.className = "bg-gradient-to-br from-slate-900 via-rose-950/10 to-slate-900 border border-rose-950/40 rounded-2xl p-5 shadow-2xl relative transition-all duration-300 animate-pulse-subtle";
+                statusIcon.textContent = "⚠️";
+                statusIcon.className = "p-1 rounded bg-rose-500/20 text-rose-400 text-xs";
+                statusHeader.className = "text-xs font-bold text-rose-400 uppercase tracking-widest";
+                statusHeader.textContent = "Integral Diverges! Outside ROC";
+                overlayDiverge.classList.remove('hidden');
+
+                mathDetail.innerHTML = `X(${sString}) = ∫ |x(t) e^{-st}| dt → ∞  (Integral Diverges!)`;
+
+                // Set textual description detailing failure reason
+                if (signalMode === 'double_exp') {
+                    if (limitMode === 'unilateral') {
+                        statusDesc.innerHTML = `Because <span class="text-rose-400 font-semibold font-mono">σ (${probeSigma.toFixed(2)}) ≤ -1.0</span>, the exponential modulator $e^{-\sigma t}$ grows faster than the input decay. This makes the accumulated area expand to infinity as t → +∞.`;
+                    } else {
+                        statusDesc.innerHTML = `Bilateral convergence requires boundaries in both directions. Since <span class="text-rose-400 font-semibold font-mono">σ (${probeSigma.toFixed(2)})</span> is outside the bounds <span class="code-font text-rose-400">-1.0 < σ < 1.0</span>, the integral explodes at either +∞ (for σ ≤ -1) or -∞ (for σ ≥ 1).`;
+                    }
+                } else if (signalMode === 'causal_cos') {
+                    statusDesc.innerHTML = `The selected probe <span class="text-rose-400 font-semibold font-mono">σ (${probeSigma.toFixed(2)}) ≤ -0.5</span> is to the left of the system's poles. The system cannot overcome the input exponential envelope, yielding an infinite integral sum.`;
+                } else if (signalMode === 'growing_exp') {
+                    statusDesc.innerHTML = `This unstable exponential input requires a probing factor <span class="code-font text-emerald-400">σ > 0.5</span> to suppress it. Probing at <span class="text-rose-400 font-semibold font-mono">σ = ${probeSigma.toFixed(2)}</span> fails to damp the output, causing it to diverge.`;
+                }
+            }
+        }
+
+        function handleSignalChange() {
+            signalMode = document.getElementById('selectSignal').value;
+
+            // Automatically set convenient probe parameters to illustrate key pole differences
+            if (signalMode === 'double_exp') {
+                document.getElementById('sliderSigma').value = -5;  // -0.5
+                document.getElementById('sliderOmega').value = 30;  // 3.0
+            } else if (signalMode === 'causal_cos') {
+                document.getElementById('sliderSigma').value = 2;   // 0.2
+                document.getElementById('sliderOmega').value = 30;  // 3.0
+            } else if (signalMode === 'growing_exp') {
+                document.getElementById('sliderSigma').value = 10;  // 1.0
+                document.getElementById('sliderOmega').value = 10;  // 1.0
+            }
+
+            updateProbe();
+            updateSurfaceHeights();
+            buildPolesAndZeros();
+            updateProbeVisualPosition();
+        }
+
+        function setLimitMode(mode) {
+            limitMode = mode;
+            const btnUni = document.getElementById('btnUnilateral');
+            const btnBi = document.getElementById('btnBilateral');
+
+            if (mode === 'unilateral') {
+                btnUni.className = "py-2.5 px-3 rounded-xl font-semibold text-xs border transition-all duration-300 flex flex-col items-center justify-center gap-1 bg-indigo-600/20 border-indigo-500 text-indigo-200 shadow-md";
+                btnBi.className = "py-2.5 px-3 rounded-xl font-semibold text-xs border transition-all duration-300 flex flex-col items-center justify-center gap-1 bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200";
+            } else {
+                btnBi.className = "py-2.5 px-3 rounded-xl font-semibold text-xs border transition-all duration-300 flex flex-col items-center justify-center gap-1 bg-indigo-600/20 border-indigo-500 text-indigo-200 shadow-md";
+                btnUni.className = "py-2.5 px-3 rounded-xl font-semibold text-xs border transition-all duration-300 flex flex-col items-center justify-center gap-1 bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200";
+            }
+
+            // Trigger visual transitions
+            updateProbe();
+            updateSurfaceHeights();
+            buildPolesAndZeros();
+            updateProbeVisualPosition();
+        }
+
+        // Handle canvas click to drag probe position directly on s-plane
+        // This makes the s-plane highly interactive and intuitive!
+        function handleWindowResize() {
+            if (!scene || !camera || !renderer) return;
+
+            const container = document.getElementById('threeContainer');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+
+            drawIntegrandCanvas();
+        }
+
+        window.addEventListener('resize', handleWindowResize);
+
+        window.onload = function() {
+            // Setup math displays, canvas layouts, and initial values
+            updateProbe();
+            initThree();
+            drawIntegrandCanvas();
+        };
+
+    </script>
+</body>
+</html>

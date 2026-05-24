@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laplace Transform Domain Bridge Explorer</title>
+    <!-- Tailwind CSS for modern layouts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter (Interface) & JetBrains Mono (Math/Code) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .math-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom scrollbar for control drawers */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #020617;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+        /* Subtle glowing/pulsing animations */
+        @keyframes flowPulse {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.15); }
+        }
+        .animate-flow-pulse {
+            animation: flowPulse 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col overflow-x-hidden selection:bg-indigo-500/30 selection:text-indigo-200">
+
+    <!-- HEADER BAR -->
+    <header class="border-b border-slate-900 bg-slate-900/40 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <span class="px-2.5 py-1 text-[10px] font-extrabold uppercase bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full tracking-widest">Laplace Transform Theorem Lab</span>
+                <h1 class="text-2xl font-extrabold tracking-tight text-white mt-1.5 flex items-center gap-2">
+                    The Laplace Domain Bridge: <span class="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 via-indigo-400 to-rose-400">Time vs. s-Domain Evolution</span>
+                </h1>
+                <p class="text-xs text-slate-400 mt-0.5">Demystifying how complex time-domain convolutions and shifts warp into clean, static algebraic operations in the complex frequency plane.</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-slate-500 math-font bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">Domain Map: Dual Fourier/Laplace Solver</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN BODY GRID -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- LEFT ASIDE: CONTROLS & DYNAMIC SCHEMATICS (5 Columns) -->
+        <aside class="lg:col-span-5 flex flex-col gap-6">
+
+            <!-- CONFIGURATION BLOCK: PARAMETER TUNERS -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1.5 h-full bg-teal-500"></div>
+                <h2 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                    1. Signal Generators & Parameter Tuning
+                </h2>
+
+                <div class="space-y-4">
+                    <!-- Signal Waveform Selector -->
+                    <div>
+                        <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex justify-between items-center mb-1.5">
+                            <span>Input Signal $x(t)$ Shape</span>
+                            <span class="text-amber-400 font-mono text-[10px]" id="lblSigType">Exp Decay</span>
+                        </label>
+                        <select id="selSignalType" class="w-full bg-slate-950 text-slate-200 rounded-lg border border-slate-850 px-3 py-2 text-xs focus:ring-1 focus:ring-teal-500 outline-none cursor-pointer">
+                            <option value="exponential">Decaying Exponential [ e^(-0.8t) u(t) ]</option>
+                            <option value="gaussian">Symmetrical Gaussian Pulse [ e^(-(t-2)^2) ]</option>
+                            <option value="cosine">Damped Cosine Burst [ e^(-0.3t) cos(2.5t) ]</option>
+                            <option value="step">Finite Step [ u(t-0.5) - u(t-3.5) ]</option>
+                        </select>
+                    </div>
+
+                    <!-- Shift / Delay Parameter Slider -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Time Shift / Delay ($t_0$)</label>
+                            <span id="lblT0Val" class="math-font text-xs font-bold text-amber-400 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded">1.80 s</span>
+                        </div>
+                        <input type="range" id="sldT0" min="0" max="4" step="0.05" value="1.80" class="w-full accent-amber-500 bg-slate-950 h-1.5 rounded-lg cursor-pointer">
+                        <div class="flex justify-between text-[9px] text-slate-500 font-mono mt-0.5">
+                            <span>No Delay ($t_0=0$)</span>
+                            <span>Max Delay ($t_0=4s$)</span>
+                        </div>
+                    </div>
+
+                    <!-- System Characteristic (Natural Frequency & Damping) Slider -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">LTI System Frequency ($\omega_0$)</label>
+                            <span id="lblW0Val" class="math-font text-xs font-bold text-indigo-400 px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/20 rounded">2.2 rad/s</span>
+                        </div>
+                        <input type="range" id="sldW0" min="0.5" max="5.0" step="0.1" value="2.2" class="w-full accent-indigo-500 bg-slate-950 h-1.5 rounded-lg cursor-pointer">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">System Damping Ratio ($\zeta$)</label>
+                            <span id="lblZetaVal" class="math-font text-xs font-bold text-indigo-400 px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/20 rounded">0.35</span>
+                        </div>
+                        <input type="range" id="sldZeta" min="0.05" max="1.5" step="0.05" value="0.35" class="w-full accent-indigo-500 bg-slate-950 h-1.5 rounded-lg cursor-pointer">
+                    </div>
+                </div>
+            </div>
+
+            <!-- PLAYBACK / TIMELINE CONTROLLER -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1.5 h-full bg-amber-500"></div>
+                <h2 class="text-base font-bold text-white mb-3.5 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    2. Time Evolution & Simulation Driver
+                </h2>
+
+                <div class="space-y-4">
+                    <!-- Current Simulation Time Scrubber -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Simulated Observation Time ($t$)</span>
+                            <span id="lblTVal" class="math-font text-xs font-bold text-amber-400 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded">3.20 s</span>
+                        </div>
+                        <input type="range" id="sldT" min="0" max="8" step="0.02" value="3.20" class="w-full accent-amber-500 bg-slate-950 h-1.5 rounded-lg cursor-pointer">
+                        <div class="flex justify-between text-[9px] text-slate-500 font-mono mt-0.5">
+                            <span>t = 0.0s</span>
+                            <span>t = 8.0s (Max)</span>
+                        </div>
+                    </div>
+
+                    <!-- Control Buttons -->
+                    <div class="grid grid-cols-3 gap-2">
+                        <button id="btnPlayPause" class="col-span-2 py-2 px-3 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white rounded-lg text-xs font-bold flex justify-center items-center gap-1.5 transition duration-150 shadow-md">
+                            <svg id="svgPlayIcon" class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                            <span id="lblPlayBtn">Auto-Play Shift</span>
+                        </button>
+                        <button id="btnReset" class="py-2 px-3 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 border border-slate-700 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 12H16.19a3 3 0 00-3 3H8"></path></svg>
+                            Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DYNAMIC MATHEMATICAL SYSTEM DIAGRAM -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg relative overflow-hidden flex-grow flex flex-col justify-between">
+                <div class="absolute top-0 left-0 w-1.5 h-full bg-rose-500"></div>
+                <div>
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center justify-between">
+                        <span>Dual-Domain Operational Bridge Map</span>
+                        <span class="px-2 py-0.5 text-[9px] font-bold rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">Analytical Pipeline</span>
+                    </h3>
+                    
+                    <div class="space-y-4 text-xs">
+                        <!-- TIME DOMAIN FLOW -->
+                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-850 relative">
+                            <div class="absolute top-2 right-2 text-[9px] text-teal-400 uppercase tracking-widest font-bold">Time Domain (Calculus)</div>
+                            <div class="flex flex-col gap-1.5">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                                    <span class="text-slate-300 font-semibold text-[11px]">Time Shift:</span>
+                                    <span class="math-font text-amber-400 text-[10px]" id="flowShiftFormula">x(t - 1.80)</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                                    <span class="text-slate-300 font-semibold text-[11px]">System Convolution:</span>
+                                    <span class="math-font text-indigo-300 text-[10px]" id="flowConvFormula">y(t) = x(t) * h(t)</span>
+                                </div>
+                            </div>
+                            <div class="mt-2 text-[10px] text-slate-500 leading-relaxed">
+                                Requires temporal folding, alignment, and continuous integration across all historical overlaps.
+                            </div>
+                        </div>
+
+                        <!-- VERTICAL GATEWAY BRIDGE -->
+                        <div class="flex justify-center my-1 relative py-1">
+                            <div class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-gradient-to-b from-teal-500 via-indigo-500 to-rose-500 opacity-60"></div>
+                            <div class="bg-slate-900 border border-slate-800 text-[9px] font-bold px-3 py-1 rounded-full z-10 text-slate-300 uppercase tracking-widest flex items-center gap-1">
+                                <svg class="w-3 h-3 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                                Laplace transform Gateway $\mathcal{L}\{\cdot\}$
+                            </div>
+                        </div>
+
+                        <!-- S-DOMAIN FLOW -->
+                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-850 relative">
+                            <div class="absolute top-2 right-2 text-[9px] text-rose-400 uppercase tracking-widest font-bold">s-Domain (Algebra)</div>
+                            <div class="flex flex-col gap-1.5 font-semibold">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                    <span class="text-slate-300 text-[11px]">Exponential Phase Shift:</span>
+                                    <span class="math-font text-amber-400 text-[10px]" id="flowLapShift">X(s) · e^{-1.80s}</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                                    <span class="text-slate-300 text-[11px]">Simple Multiplication:</span>
+                                    <span class="math-font text-rose-400 text-[10px]" id="flowLapMul">Y(s) = X(s) · H(s)</span>
+                                </div>
+                            </div>
+                            <div class="mt-2 text-[10px] text-slate-500 leading-relaxed">
+                                Integration transforms into instantaneous point-by-point product of scaling factors.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DIAGRAM FOOTER EXPLANATION -->
+                <div class="mt-4 pt-3 border-t border-slate-850 text-[10px] text-slate-400 italic">
+                    *Tip: Use the sliders to watch how changing system resonance or damping shifts physical s-plane poles, reshaping the dynamic spiral filter.*
+                </div>
+            </div>
+        </aside>
+
+        <!-- RIGHT MAIN AREA: THE INTERACTIVE DOMAIN PARALLEL SCENES (7 Columns) -->
+        <section class="lg:col-span-7 flex flex-col gap-6">
+
+            <!-- TRACK A: TIME SHIFTING VS. S-DOMAIN PHASE EXPONENTIAL -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex flex-col gap-4">
+                
+                <div class="flex justify-between items-start border-b border-slate-800 pb-3">
+                    <div>
+                        <span class="px-2 py-0.5 text-[9px] font-bold rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 uppercase tracking-wider">Theorem A</span>
+                        <h3 class="text-sm font-bold text-white mt-1">Time Delay vs. Frequency-Dependent Phase Shift</h3>
+                    </div>
+                    <div class="text-[10px] text-slate-400 text-right">
+                        <span class="math-font text-amber-400 font-bold">x(t - t₀) ⟷ X(s)e⁻ˢᵗ⁰</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Column 1: Time Domain Shifting Plot -->
+                    <div class="flex flex-col">
+                        <div class="flex justify-between text-xs text-slate-400 font-bold mb-1.5">
+                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-slate-500"></span>Original x(t)</span>
+                            <span class="flex items-center gap-1 text-amber-400"><span class="w-2 h-2 rounded-full bg-amber-400"></span>Delayed x(t-t₀)</span>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800 rounded-lg p-1.5 relative h-40">
+                            <canvas id="canvasTimeShift" class="w-full h-full block"></canvas>
+                            <span class="absolute right-2 bottom-2 text-[9px] font-bold text-slate-500 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-850">Time Domain</span>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: s-Domain Phase Rotator Spiral Plot -->
+                    <div class="flex flex-col">
+                        <div class="flex justify-between text-xs text-slate-400 font-bold mb-1.5">
+                            <span class="flex items-center gap-1 text-teal-400"><span class="w-2 h-2 rounded-full bg-teal-400"></span>Phase Helix e⁻ʲʷᵗ⁰</span>
+                            <span id="lblHelixAngle" class="text-[10px] font-medium text-slate-500 italic">Helical Winding Rate</span>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800 rounded-lg p-1.5 relative h-40 overflow-hidden">
+                            <canvas id="canvasPhaseRotator" class="w-full h-full block"></canvas>
+                            <span class="absolute right-2 bottom-2 text-[9px] font-bold text-slate-500 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-850">s-Domain (s = jω)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="text-[11px] text-slate-400 leading-relaxed mt-1">
+                    <span class="text-amber-400 font-semibold">Observation:</span> Delaying the signal in the time domain does not change its spectral magnitude. Instead, it multiplies the Laplace transform by <span class="math-font text-amber-400 text-xs">e^{-s t_0}</span>. Evaluated along the frequency axis (<span class="math-font">s=j\omega</span>), this represents a phase rotation that winds tighter and spirals faster as the delay <span class="math-font">$t_0$</span> increases.
+                </p>
+            </div>
+
+            <!-- TRACK B: TIME CONVOLUTION INTEGRATION VS. S-DOMAIN MULTIPLICATION -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex flex-col gap-4">
+                
+                <div class="flex justify-between items-start border-b border-slate-800 pb-3">
+                    <div>
+                        <span class="px-2 py-0.5 text-[9px] font-bold rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 uppercase tracking-wider">Theorem B</span>
+                        <h3 class="text-sm font-bold text-white mt-1">Convolution Sweep vs. Point-by-Point Multiplication</h3>
+                    </div>
+                    <div class="text-[10px] text-slate-400 text-right">
+                        <span class="math-font text-rose-400 font-bold">x(t) * h(t) ⟷ X(s) · H(s)</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Column 1: Time Domain Convolution Visualizer -->
+                    <div class="flex flex-col">
+                        <div class="flex justify-between text-xs text-slate-400 font-bold mb-1.5">
+                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span>x(τ)</span>
+                            <span class="flex items-center gap-1 text-indigo-400"><span class="w-2 h-2 rounded-full bg-indigo-400"></span>h(t-τ)</span>
+                            <span class="flex items-center gap-1 text-emerald-400"><span class="w-2 h-2 rounded-full bg-emerald-400"></span>y(t)</span>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800 rounded-lg p-1.5 relative h-40">
+                            <canvas id="canvasTimeConv" class="w-full h-full block"></canvas>
+                            <span class="absolute right-2 bottom-2 text-[9px] font-bold text-slate-500 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-850">Time Domain Overlay</span>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: s-Domain Spectrum Multiplication -->
+                    <div class="flex flex-col">
+                        <div class="flex justify-between text-xs text-slate-400 font-bold mb-1.5">
+                            <span class="flex items-center gap-1 text-indigo-400">|H(jω)|</span>
+                            <span class="text-slate-500 font-bold">×</span>
+                            <span class="flex items-center gap-1 text-amber-500">|X(jω)|</span>
+                            <span class="text-slate-500 font-bold">=</span>
+                            <span class="flex items-center gap-1 text-rose-400">|Y(jω)|</span>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800 rounded-lg p-1.5 relative h-40">
+                            <canvas id="canvasFreqMul" class="w-full h-full block"></canvas>
+                            <span class="absolute right-2 bottom-2 text-[9px] font-bold text-slate-500 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-850">s-Domain Magnitude</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- POLE-ZERO S-PLANE PANEL OVERLAY -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-950/50 rounded-xl p-3 border border-slate-850/50">
+                    <div class="flex flex-col items-center justify-center border-r border-slate-850/60 pb-2 md:pb-0">
+                        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Complex s-Plane Poles</span>
+                        <div class="w-24 h-24 bg-slate-950 rounded border border-slate-800 relative">
+                            <canvas id="canvasSPlane" class="w-full h-full block"></canvas>
+                        </div>
+                    </div>
+                    <div class="md:col-span-2 flex flex-col justify-center gap-1 text-[11px] px-1">
+                        <div class="flex justify-between border-b border-slate-900 pb-1">
+                            <span class="text-slate-400">Pole Location:</span>
+                            <span id="lblPoles" class="math-font text-rose-400 font-semibold">-0.77 ± j2.06</span>
+                        </div>
+                        <div class="flex justify-between border-b border-slate-900 pb-1 pt-1">
+                            <span class="text-slate-400">System Resonance type:</span>
+                            <span id="lblResonanceType" class="text-teal-400 font-semibold">Underdamped Harmonic</span>
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-1 leading-relaxed">
+                            <span class="text-rose-400 font-semibold">Misconception Buster:</span> In the time domain, calculating $y(t) = x(t)*h(t)$ requires computing infinite integral overlaps. But in the s-domain, the output spectrum is simply a point-by-point algebraic multiplication.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VISUAL LEARNING OUTCOME BOX -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                <h3 class="text-xs font-bold text-teal-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                    Core Concepts of the Laplace Transform Bridge
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div>
+                        <span class="text-amber-400 font-bold uppercase tracking-wider text-[10px]">1. The Delay Mechanics</span>
+                        <p class="text-slate-300 mt-1 leading-relaxed">
+                            A time-delay $t_0$ shifts the wave shape but preserves all energy frequencies. In the s-plane, this shift is equivalent to a pure phase multiplier $e^{-st_0}$. It creates a phase spiral helix along the frequency axis without changing the amplitude envelope!
+                        </p>
+                    </div>
+                    <div>
+                        <span class="text-rose-400 font-bold uppercase tracking-wider text-[10px]">2. Multiplication Over Convolution</span>
+                        <p class="text-slate-300 mt-1 leading-relaxed">
+                            Convolving a complex impulse response with an arbitrary signal involves severe geometric overlap. In the complex s-domain, this convolution collapses into a static, localized scaling operation: $Y(s) = X(s)H(s)$.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-slate-900 bg-slate-950 px-6 py-6 mt-6">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] text-slate-500">
+            <div>
+                <p>Designed for Continuous Signals, Linear Time-Invariant (LTI) Systems, and Engineering Transforms.</p>
+            </div>
+            <div class="flex gap-4">
+                <a href="#" class="hover:text-slate-300 transition">Continuous Laplace Operator</a>
+                <a href="#" class="hover:text-slate-300 transition">Phase Helix Visualization</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- MATHEMATICAL ENGINE AND PLOTTING LOGIC -->
+    <script>
+        // DOM Elements
+        const selSignalType = document.getElementById('selSignalType');
+        const sldT0 = document.getElementById('sldT0');
+        const sldW0 = document.getElementById('sldW0');
+        const sldZeta = document.getElementById('sldZeta');
+        const sldT = document.getElementById('sldT');
+        
+        const lblSigType = document.getElementById('lblSigType');
+        const lblT0Val = document.getElementById('lblT0Val');
+        const lblW0Val = document.getElementById('lblW0Val');
+        const lblZetaVal = document.getElementById('lblZetaVal');
+        const lblTVal = document.getElementById('lblTVal');
+        const lblHelixAngle = document.getElementById('lblHelixAngle');
+        const lblPoles = document.getElementById('lblPoles');
+        const lblResonanceType = document.getElementById('lblResonanceType');
+
+        const btnPlayPause = document.getElementById('btnPlayPause');
+        const lblPlayBtn = document.getElementById('lblPlayBtn');
+        const svgPlayIcon = document.getElementById('svgPlayIcon');
+        const btnReset = document.getElementById('btnReset');
+
+        const flowShiftFormula = document.getElementById('flowShiftFormula');
+        const flowLapShift = document.getElementById('flowLapShift');
+
+        // Canvases
+        const canvasTimeShift = document.getElementById('canvasTimeShift');
+        const canvasPhaseRotator = document.getElementById('canvasPhaseRotator');
+        const canvasTimeConv = document.getElementById('canvasTimeConv');
+        const canvasFreqMul = document.getElementById('canvasFreqMul');
+        const canvasSPlane = document.getElementById('canvasSPlane');
+
+        const ctxTimeShift = canvasTimeShift.getContext('2d');
+        const ctxPhaseRotator = canvasPhaseRotator.getContext('2d');
+        const ctxTimeConv = canvasTimeConv.getContext('2d');
+        const ctxFreqMul = canvasFreqMul.getContext('2d');
+        const ctxSPlane = canvasSPlane.getContext('2d');
+
+        // Application Constants and States
+        const numSamples = 400;
+        const maxTime = 10.0;
+        const dt = maxTime / numSamples;
+        const maxFreq = 12.0; // jw frequency sweep bound
+        const numFreqSamples = 200;
+        const dw = maxFreq / numFreqSamples;
+
+        let selectedSignal = 'exponential';
+        let delayT0 = 1.80;
+        let systemW0 = 2.2;
+        let systemZeta = 0.35;
+        let currentTimeT = 3.20;
+        let isPlaying = false;
+        let lastFrameTimestamp = 0;
+        let animationFrameId = null;
+
+        // Buffers for calculations
+        let sigX = new Float32Array(numSamples);        // original input
+        let sigXShifted = new Float32Array(numSamples); // delayed input
+        let hSys = new Float32Array(numSamples);        // system impulse response
+        let outY = new Float32Array(numSamples);        // output convolution sequence
+
+        // frequency response buffers
+        let specX = new Float32Array(numFreqSamples);   // |X(jw)|
+        let specH = new Float32Array(numFreqSamples);   // |H(jw)|
+        let specY = new Float32Array(numFreqSamples);   // |Y(jw)|
+
+        // Mathematical Functions
+        function generateInputSignal() {
+            sigX.fill(0);
+            sigXShifted.fill(0);
+
+            for (let i = 0; i < numSamples; i++) {
+                const t = i * dt;
+                
+                // Original Waveforms
+                if (selectedSignal === 'exponential') {
+                    // Decaying exponential
+                    sigX[i] = 2.5 * Math.exp(-0.8 * t);
+                } else if (selectedSignal === 'gaussian') {
+                    // Gaussian pulse centered around 2.0s
+                    sigX[i] = 2.5 * Math.exp(-Math.pow(t - 2.0, 2) / 0.8);
+                } else if (selectedSignal === 'cosine') {
+                    // Damped Cosine burst
+                    sigX[i] = 2.2 * Math.exp(-0.35 * t) * Math.cos(2.5 * t);
+                } else if (selectedSignal === 'step') {
+                    // Custom rectangular pulse/step
+                    if (t >= 0.5 && t <= 3.5) {
+                        sigX[i] = 2.0;
+                    }
+                }
+
+                // Waveform Shifted by delayT0
+                const tDelayed = t - delayT0;
+                if (tDelayed >= 0) {
+                    if (selectedSignal === 'exponential') {
+                        sigXShifted[i] = 2.5 * Math.exp(-0.8 * tDelayed);
+                    } else if (selectedSignal === 'gaussian') {
+                        sigXShifted[i] = 2.5 * Math.exp(-Math.pow(tDelayed - 2.0, 2) / 0.8);
+                    } else if (selectedSignal === 'cosine') {
+                        sigXShifted[i] = 2.2 * Math.exp(-0.35 * tDelayed) * Math.cos(2.5 * tDelayed);
+                    } else if (selectedSignal === 'step') {
+                        if (tDelayed >= 0.5 && tDelayed <= 3.5) {
+                            sigXShifted[i] = 2.0;
+                        }
+                    }
+                }
+            }
+        }
+
+        function generateImpulseResponse() {
+            hSys.fill(0);
+            // System: 2nd-order underdamped/overdamped resonator
+            // Laplace H(s) = w0^2 / (s^2 + 2*zeta*w0*s + w0^2)
+            const w0 = systemW0;
+            const z = systemZeta;
+
+            if (z < 1.0) {
+                // Underdamped resonant response
+                const wd = w0 * Math.sqrt(1.0 - z * z);
+                const sigma = z * w0;
+                for (let i = 0; i < numSamples; i++) {
+                    const t = i * dt;
+                    // Scale such that the area/gain matches standard systems
+                    hSys[i] = (w0 * w0 / wd) * Math.exp(-sigma * t) * Math.sin(wd * t);
+                }
+            } else if (Math.abs(z - 1.0) < 0.01) {
+                // Critically damped response
+                for (let i = 0; i < numSamples; i++) {
+                    const t = i * dt;
+                    hSys[i] = w0 * w0 * t * Math.exp(-w0 * t);
+                }
+            } else {
+                // Overdamped system response
+                const r1 = -w0 * (z - Math.sqrt(z * z - 1));
+                const r2 = -w0 * (z + Math.sqrt(z * z - 1));
+                const coeff = (w0 * w0) / (r1 - r2);
+                for (let i = 0; i < numSamples; i++) {
+                    const t = i * dt;
+                    hSys[i] = coeff * (Math.exp(r1 * t) - Math.exp(r2 * t));
+                }
+            }
+        }
+
+        function computeConvolution() {
+            outY.fill(0);
+            // Dynamic Time Domain Convolution Solver: y(t) = x(t) * h(t)
+            // Discrete integration approximation: y[n] = Sum_{k=0}^{n} x[k] * h[n-k] * dt
+            for (let n = 0; n < numSamples; n++) {
+                let sum = 0;
+                for (let k = 0; k <= n; k++) {
+                    sum += sigX[k] * hSys[n - k];
+                }
+                outY[n] = sum * dt;
+            }
+        }
+
+        function computeSpectrums() {
+            // Compute magnitude spectrum for selected signals along s = jw axis
+            const w0 = systemW0;
+            const z = systemZeta;
+
+            for (let iw = 0; iw < numFreqSamples; iw++) {
+                const w = iw * dw;
+
+                // 1. Analytical System Magnitude |H(jw)|
+                // |H(jw)| = w0^2 / sqrt((w0^2 - w^2)^2 + (2*zeta*w0*w)^2)
+                const denomReal = w0 * w0 - w * w;
+                const denomImag = 2 * z * w0 * w;
+                const denomMag = Math.sqrt(denomReal * denomReal + denomImag * denomImag);
+                specH[iw] = (w0 * w0) / (denomMag + 1e-6);
+
+                // 2. Analytical Signal Magnitude |X(jw)|
+                if (selectedSignal === 'exponential') {
+                    // x(t) = 2.5 * e^(-0.8t) -> X(s) = 2.5 / (s + 0.8)
+                    // |X(jw)| = 2.5 / sqrt(0.8^2 + w^2)
+                    specX[iw] = 2.5 / Math.sqrt(0.64 + w * w);
+                } else if (selectedSignal === 'gaussian') {
+                    // x(t) = 2.5 * e^(-t^2/0.8) (shifted by 2.0s) -> |X(jw)| = 2.5 * sqrt(pi * 0.8) * e^(-w^2 * 0.8 / 4)
+                    const widthParam = 0.8;
+                    const scaleFactor = 2.5 * Math.sqrt(Math.PI * widthParam);
+                    specX[iw] = scaleFactor * Math.exp(-(w * w * widthParam) / 4.0);
+                } else if (selectedSignal === 'cosine') {
+                    // Damped Cosine magnitude approx
+                    // X(s) = 2.2 * (s+0.35) / ((s+0.35)^2 + 2.5^2)
+                    const s_real = 0.35;
+                    const s_imag = 2.5;
+                    const numMag = 2.2 * Math.sqrt(s_real * s_real + w * w);
+                    const term1Real = s_real * s_real - w * w + s_imag * s_imag;
+                    const term1Imag = 2 * s_real * w;
+                    const denomMagX = Math.sqrt(term1Real * term1Real + term1Imag * term1Imag);
+                    specX[iw] = numMag / (denomMagX + 1e-6);
+                } else if (selectedSignal === 'step') {
+                    // x(t) = 2.0 for t in [0.5, 3.5] -> width T = 3.0
+                    // |X(jw)| = 2.0 * T * sinc(w * T / 2)
+                    const T = 3.0;
+                    const theta = (w * T) / 2.0;
+                    if (Math.abs(theta) < 1e-4) {
+                        specX[iw] = 2.0 * T;
+                    } else {
+                        specX[iw] = 2.0 * T * Math.abs(Math.sin(theta) / theta);
+                    }
+                }
+
+                // 3. Multiplication: |Y(jw)| = |X(jw)| * |H(jw)|
+                specY[iw] = specX[iw] * specH[iw];
+            }
+        }
+
+        // CANVAS GRAPHICS GENERATORS
+        function resizeAllCanvases() {
+            [canvasTimeShift, canvasPhaseRotator, canvasTimeConv, canvasFreqMul, canvasSPlane].forEach(canvas => {
+                const rect = canvas.parentNode.getBoundingClientRect();
+                canvas.width = rect.width * window.devicePixelRatio;
+                canvas.height = rect.height * window.devicePixelRatio;
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+            });
+            drawAll();
+        }
+
+        window.addEventListener('resize', resizeAllCanvases);
+
+        // Plot Time Shifting Domain
+        function drawTimeShiftPlot() {
+            const canvas = canvasTimeShift;
+            const ctx = ctxTimeShift;
+            const dpr = window.devicePixelRatio || 1;
+            const width = canvas.width;
+            const height = canvas.height;
+
+            ctx.clearRect(0, 0, width, height);
+
+            const padLeft = 35 * dpr, padRight = 15 * dpr, padTop = 15 * dpr, padBottom = 20 * dpr;
+            const plotW = width - padLeft - padRight;
+            const plotH = height - padTop - padBottom;
+
+            // Draw grid lines
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1 * dpr;
+            ctx.setLineDash([4 * dpr, 4 * dpr]);
+            for (let i = 0; i <= 10; i += 2) {
+                const x = padLeft + (i / 10) * plotW;
+                ctx.beginPath();
+                ctx.moveTo(x, padTop);
+                ctx.lineTo(x, padTop + plotH);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+
+            // Draw baseline (Y = 0)
+            const zeroY = padTop + plotH * 0.85; // Shift baseline down for positive signals
+            ctx.strokeStyle = '#475569';
+            ctx.beginPath();
+            ctx.moveTo(padLeft, zeroY);
+            ctx.lineTo(padLeft + plotW, zeroY);
+            ctx.stroke();
+
+            // Find scale bound
+            let maxVal = 2.8;
+
+            // Plot Original Signal (Ghosted/Gray)
+            ctx.lineWidth = 1.5 * dpr;
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
+            ctx.fillStyle = 'rgba(148, 163, 184, 0.05)';
+            ctx.beginPath();
+            for (let i = 0; i < numSamples; i++) {
+                const t = i * dt;
+                const x = padLeft + (t / maxTime) * plotW;
+                const y = zeroY - (sigX[i] / maxVal) * (plotH * 0.8);
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.lineTo(padLeft + plotW, zeroY);
+            ctx.lineTo(padLeft, zeroY);
+            ctx.closePath();
+            ctx.stroke();
+            ctx.fill();
+
+            // Plot Shifted Signal (Amber)
+            ctx.lineWidth = 2.5 * dpr;
+            ctx.strokeStyle = '#f59e0b';
+            ctx.fillStyle = 'rgba(245, 158, 11, 0.08)';
+            ctx.beginPath();
+            for (let i = 0; i < numSamples; i++) {
+                const t = i * dt;
+                const x = padLeft + (t / maxTime) * plotW;
+                const y = zeroY - (sigXShifted[i] / maxVal) * (plotH * 0.8);
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.lineTo(padLeft + plotW, zeroY);
+            ctx.lineTo(padLeft, zeroY);
+            ctx.closePath();
+            ctx.stroke();
+            ctx.fill();
+
+            // Draw line guide matching current slider delayT0
+            const delayX = padLeft + (delayT0 / maxTime) * plotW;
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 1 * dpr;
+            ctx.setLineDash([2 * dpr, 2 * dpr]);
+            ctx.beginPath();
+            ctx.moveTo(delayX, padTop);
+            ctx.lineTo(delayX, padTop + plotH);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Label delay marker
+            ctx.fillStyle = '#f59e0b';
+            ctx.font = `${8 * dpr}px 'JetBrains Mono'`;
+            ctx.textAlign = 'center';
+            ctx.fillText(`t₀ = ${delayT0.toFixed(2)}s`, delayX, padTop + 10 * dpr);
+
+            // Draw Labels and Axis
+            ctx.fillStyle = '#64748b';
+            ctx.font = `${8 * dpr}px 'JetBrains Mono'`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            for (let i = 0; i <= 10; i += 2) {
+                const x = padLeft + (i / 10) * plotW;
+                ctx.fillText(`${i}s`, x, padTop + plotH + 3 * dpr);
+            }
+
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('0.0', padLeft - 5 * dpr, zeroY);
+            ctx.fillText(`+${maxVal.toFixed(1)}`, padLeft - 5 * dpr, padTop + 5 * dpr);
+        }
+
+        // Plot s-Domain Phase Rotator Spiral Helix Evaluated along s=jw
+        function drawPhaseRotatorPlot() {
+            const canvas = canvasPhaseRotator;
+            const ctx = ctxPhaseRotator;
+            const dpr = window.devicePixelRatio || 1;
+            const width = canvas.width;
+            const height = canvas.height;
+
+            ctx.clearRect(0, 0, width, height);
+
+            const padLeft = 20 * dpr, padRight = 20 * dpr, padTop = 15 * dpr, padBottom = 15 * dpr;
+            const plotW = width - padLeft - padRight;
+            const plotH = height - padTop - padBottom;
+
+            // Draw 3D axis helper coordinates
+            // Z-axis goes depthwise (frequency w from left to right)
+            // X-axis horizontal (Real part of e^-jwt0)
+            // Y-axis vertical (Imaginary part of e^-jwt0)
+            const centerY = padTop + plotH / 2;
+            
+            // Draw baseline frequency axis
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1 * dpr;
+            ctx.beginPath();
+            ctx.moveTo(padLeft, centerY);
+            ctx.lineTo(padLeft + plotW, centerY);
+            ctx.stroke();
+
+            // Render spiral coordinates
+            ctx.lineWidth = 2 * dpr;
+            const gradient = ctx.createLinearGradient(padLeft, 0, padLeft + plotW, 0);
+            gradient.addColorStop(0, '#2dd4bf'); // teal
+            gradient.addColorStop(0.5, '#6366f1'); // indigo
+            gradient.addColorStop(1, '#f43f5e'); // rose
+            ctx.strokeStyle = gradient;
+
+            ctx.beginPath();
+            let firstPoint = true;
+            
+            // Evaluates e^(-j*w*t0) = cos(w*t0) - j*sin(w*t0)
+            for (let i = 0; i < numFreqSamples; i++) {
+                const w = (i / numFreqSamples) * maxFreq;
+                const x = padLeft + (i / numFreqSamples) * plotW;
+                
+                // Calculate Real and Imaginary projection
+                const angle = w * delayT0;
+                const real = Math.cos(angle);
+                const imag = -Math.sin(angle);
+
+                // Perspective projection factor
+                const radius = 35 * dpr;
+                // We skew the circle vertically and apply depth shrinking slightly
+                const projY = centerY + imag * radius;
+                const projX = x + real * (15 * dpr); // Slight horizontal perspective shift
+
+                if (firstPoint) {
+                    ctx.moveTo(projX, projY);
+                    firstPoint = false;
+                } else {
+                    ctx.lineTo(projX, projY);
+                }
+            }
+            ctx.stroke();
+
+            // Draw envelope outline bounds representing cylinder boundary of magnitude = 1
+            ctx.strokeStyle = 'rgba(30, 41, 59, 0.4)';
+            ctx.lineWidth = 0.8 * dpr;
+            ctx.setLineDash([5 * dpr, 5 * dpr]);
+            ctx.beginPath();
+            ctx.moveTo(padLeft, centerY - 35 * dpr);
+            ctx.lineTo(padLeft + plotW, centerY - 35 * dpr);
+            ctx.moveTo(padLeft, centerY + 35 * dpr);
+            ctx.lineTo(padLeft + plotW, centerY + 35 * dpr);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw phasor indicator at user selected observer position
+            // To link simulation: we pick a representative frequency (e.g., w_ref = 3.0 rad/s)
+            const refW = 4.0;
+            const refIdx = Math.round((refW / maxFreq) * numFreqSamples);
+            const refX = padLeft + (refIdx / numFreqSamples) * plotW;
+            const refAngle = refW * delayT0;
+            const refReal = Math.cos(refAngle);
+            const refImag = -Math.sin(refAngle);
+            const refY = centerY + refImag * 35 * dpr;
+            const refProjX = refX + refReal * 15 * dpr;
+
+            // Draw phasor vector
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 1.5 * dpr;
+            ctx.beginPath();
+            ctx.moveTo(refX, centerY);
+            ctx.lineTo(refProjX, refY);
+            ctx.stroke();
+
+            // Draw phasor vector endpoint ball
+            ctx.fillStyle = '#f59e0b';
+            ctx.beginPath();
+            ctx.arc(refProjX, refY, 4 * dpr, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // Text labels
+            ctx.fillStyle = '#64748b';
+            ctx.font = `${8 * dpr}px 'JetBrains Mono'`;
+            ctx.textAlign = 'left';
+            ctx.fillText('Frequency (ω) Axis ──▶', padLeft, padTop + 10 * dpr);
+            ctx.fillText('|e⁻ˢᵗ⁰| = 1', padLeft + plotW - 60 * dpr, centerY - 40 * dpr);
+
+            // Update interactive descriptive stats label
+            const periods = (maxFreq * delayT0) / (2 * Math.PI);
+            lblHelixAngle.textContent = `Delay Winds: ${periods.toFixed(1)} Cycles over spectrum`;
+        }
+
+        // Plot Time-Domain Convolution Overlay sweep (sliding x and h)
+        function drawTimeConvPlot() {
+            const canvas = canvasTimeConv;
+            const ctx = ctxTimeConv;
+            const dpr = window.devicePixelRatio || 1;
+            const width = canvas.width;
+            const height = canvas.height;
+
+            ctx.clearRect(0, 0, width, height);
+
+            const padLeft = 35 * dpr, padRight = 15 * dpr, padTop = 15 * dpr, padBottom = 20 * dpr;
+            const plotW = width - padLeft - padRight;
+            const plotH = height - padTop - padBottom;
+
+            // Grid backgrounds
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1 * dpr;
+            ctx.setLineDash([4 * dpr, 4 * dpr]);
+            for (let i = 0; i <= 10; i += 2) {
+                const x = padLeft + (i / 10) * plotW;
+                ctx.beginPath();
+                ctx.moveTo(x, padTop);
+                ctx.lineTo(x, padTop + plotH);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+
+            // Base ground line (Y=0)
+            const zeroY = padTop + plotH * 0.85;
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 1 * dpr;
+            ctx.beginPath();
+            ctx.moveTo(padLeft, zeroY);
+            ctx.lineTo(padLeft + plotW, zeroY);
+            ctx.stroke();
+
+            // Plot Static Input Signal x(tau) in muted amber
+            ctx.lineWidth = 1.5 * dpr;
+            ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
+            ctx.beginPath();
+            for (let i = 0; i < numSamples; i++) {
+                const tau = i * dt;
+                const x = padLeft + (tau / maxTime) * plotW;
+                const y = zeroY - (sigX[i] / 3.0) * (plotH * 0.8);
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Plot Sliding Flipped System Impulse h(t - tau) in indigo
+            // Evaluated at current simulated observation time currentTimeT
+            // h(t - tau) is non-zero when t - tau >= 0 -> tau <= t
+            ctx.lineWidth = 1.5 * dpr;
+            ctx.strokeStyle = '#818cf8';
+            ctx.fillStyle = 'rgba(129, 140, 248, 0.05)';
+            ctx.beginPath();
+            
+            let h_val_flipped = new Float32Array(numSamples);
+            for (let i = 0; i < numSamples; i++) {
+                const tau = i * dt;
+                const tMinusTau = currentTimeT - tau;
+                let h_val = 0;
+                
+                if (tMinusTau >= 0) {
+                    const idx = Math.round(tMinusTau / dt);
+                    if (idx < numSamples) {
+                        h_val = hSys[idx];
+                    }
+                }
+                h_val_flipped[i] = h_val;
+                
+                const x = padLeft + (tau / maxTime) * plotW;
+                const y = zeroY - (h_val / 3.0) * (plotH * 0.8);
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.lineTo(padLeft + (currentTimeT / maxTime) * plotW, zeroY);
+            ctx.lineTo(padLeft, zeroY);
+            ctx.closePath();
+            ctx.stroke();
+            ctx.fill();
+
+            // Shade overlapping multiplication product (x(tau) * h(t-tau)) in glowing emerald
+            ctx.fillStyle = 'rgba(16, 185, 129, 0.35)';
+            ctx.beginPath();
+            let hasOverlap = false;
+            for (let i = 0; i < numSamples; i++) {
+                const tau = i * dt;
+                const overlapVal = Math.min(sigX[i], h_val_flipped[i]);
+                if (overlapVal > 0.02) {
+                    const x = padLeft + (tau / maxTime) * plotW;
+                    const y = zeroY - (overlapVal / 3.0) * (plotH * 0.8);
+                    if (!hasOverlap) {
+                        ctx.moveTo(x, zeroY);
+                        ctx.lineTo(x, y);
+                        hasOverlap = true;
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+            }
+            if (hasOverlap) {
+                // Find rightmost point of overlap
+                let lastOverlapIdx = 0;
+                for (let i = numSamples - 1; i >= 0; i--) {
+                    if (Math.min(sigX[i], h_val_flipped[i]) > 0.02) {
+                        lastOverlapIdx = i;
+                        break;
+                    }
+                }
+                const lastOverlapX = padLeft + (lastOverlapIdx * dt / maxTime) * plotW;
+                ctx.lineTo(lastOverlapX, zeroY);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Plot Resulting Output Waveform y(t) up to the current observer position
+            ctx.lineWidth = 2.5 * dpr;
+            ctx.strokeStyle = '#10b981';
+            ctx.beginPath();
+            for (let i = 0; i < numSamples; i++) {
+                const t = i * dt;
+                if (t > currentTimeT) break; // Draw only up to current observer sweep
+                const x = padLeft + (t / maxTime) * plotW;
+                const y = zeroY - (outY[i] / 3.0) * (plotH * 0.8);
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Draw active vertical line scrubbing at currentTimeT
+            const activeX = padLeft + (currentTimeT / maxTime) * plotW;
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 1 * dpr;
+            ctx.beginPath();
+            ctx.moveTo(activeX, padTop);
+            ctx.lineTo(activeX, padTop + plotH);
+            ctx.stroke();
+
+            // Handle scrubber marker
+            ctx.fillStyle = '#f59e0b';
+            ctx.beginPath();
+            ctx.arc(activeX, padTop, 3 * dpr, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // Label axes
+            ctx.fillStyle = '#64748b';
+            ctx.font = `${8 * dpr}px 'JetBrains Mono'`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            for (let i = 0; i <= 10; i += 2) {
+                const x = padLeft + (i / 10) * plotW;
+                ctx.fillText(`${i}s`, x, padTop + plotH + 3 * dpr);
+            }
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('0.0', padLeft - 5 * dpr, zeroY);
+            ctx.fillText('max', padLeft - 5 * dpr, padTop + 5 * dpr);
+        }
+
+        // Plot s-Domain Spectrums showing point-by-point product multiplication
+        function drawFreqMulPlot() {
+            const canvas = canvasFreqMul;
+            const ctx = ctxFreqMul;
+            const dpr = window.devicePixelRatio || 1;
+            const width = canvas.width;
+            const height = canvas.height;
+
+            ctx.clearRect(0, 0, width, height);
+
+            const padLeft = 35 * dpr, padRight = 15 * dpr, padTop = 15 * dpr, padBottom = 20 * dpr;
+            const plotW = width - padLeft - padRight;
+            const plotH = height - padTop - padBottom;
+
+            // Grid background
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1 * dpr;
+            ctx.setLineDash([4 * dpr, 4 * dpr]);
+            for (let i = 0; i <= 10; i += 2) {
+                const x = padLeft + (i / 10) * plotW;
+                ctx.beginPath();
+                ctx.moveTo(x, padTop);
+                ctx.lineTo(x, padTop + plotH);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+
+            // Base zero line
+            const zeroY = padTop + plotH * 0.9;
+            ctx.strokeStyle = '#475569';
+            ctx.beginPath();
+            ctx.moveTo(padLeft, zeroY);
+            ctx.lineTo(padLeft + plotW, zeroY);
+            ctx.stroke();
+
+            // Scale calculations (dynamic normalization matching visual range)
+            let maxSpec = 3.5;
+
+            // 1. Draw |X(jw)| in dashed amber
+            ctx.lineWidth = 1.2 * dpr;
+            ctx.strokeStyle = 'rgba(245, 158, 11, 0.65)';
+            ctx.setLineDash([3 * dpr, 3 * dpr]);
+            ctx.beginPath();
+            for (let i = 0; i < numFreqSamples; i++) {
+                const w = i * dw;
+                const x = padLeft + (w / maxFreq) * plotW;
+                const y = zeroY - (specX[i] / maxSpec) * (plotH * 0.85);
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 2. Draw |H(jw)| in solid indigo
+            ctx.lineWidth = 1.5 * dpr;
+            ctx.strokeStyle = '#818cf8';
+            ctx.beginPath();
+            for (let i = 0; i < numFreqSamples; i++) {
+                const w = i * dw;
+                const x = padLeft + (w / maxFreq) * plotW;
+                const y = zeroY - (specH[i] / maxSpec) * (plotH * 0.85);
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // 3. Draw Product |Y(jw)| in thick glowing rose/emerald gradient
+            ctx.lineWidth = 2.8 * dpr;
+            ctx.strokeStyle = '#f43f5e';
+            ctx.fillStyle = 'rgba(244, 63, 94, 0.06)';
+            ctx.beginPath();
+            for (let i = 0; i < numFreqSamples; i++) {
+                const w = i * dw;
+                const x = padLeft + (w / maxFreq) * plotW;
+                const y = zeroY - (specY[i] / maxSpec) * (plotH * 0.85);
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.lineTo(padLeft + plotW, zeroY);
+            ctx.lineTo(padLeft, zeroY);
+            ctx.closePath();
+            ctx.stroke();
+            ctx.fill();
+
+            // Axis values
+            ctx.fillStyle = '#64748b';
+            ctx.font = `${8 * dpr}px 'JetBrains Mono'`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            for (let i = 0; i <= 10; i += 2) {
+                const fVal = (i / 10) * maxFreq;
+                const x = padLeft + (i / 10) * plotW;
+                ctx.fillText(`${fVal.toFixed(0)}`, x, padTop + plotH + 3 * dpr);
+            }
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('0.0', padLeft - 5 * dpr, zeroY);
+            ctx.fillText('rad/s', padLeft - 5 * dpr, padTop + 5 * dpr);
+        }
+
+        // Plot the Complex s-Plane with actual pole coordinates
+        function drawSPlanePlot() {
+            const canvas = canvasSPlane;
+            const ctx = ctxSPlane;
+            const dpr = window.devicePixelRatio || 1;
+            const width = canvas.width;
+            const height = canvas.height;
+
+            ctx.clearRect(0, 0, width, height);
+
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const scale = Math.min(width, height) / 6; // Grid scaling multiplier
+
+            // Draw Real & Imaginary axes
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 1 * dpr;
+            
+            // Re-axis
+            ctx.beginPath();
+            ctx.moveTo(10 * dpr, centerY);
+            ctx.lineTo(width - 10 * dpr, centerY);
+            ctx.stroke();
+
+            // Im-axis
+            ctx.beginPath();
+            ctx.moveTo(centerX, 10 * dpr);
+            ctx.lineTo(centerX, height - 10 * dpr);
+            ctx.stroke();
+
+            // Draw concentric unit guides
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 0.5 * dpr;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, scale, 0, 2 * Math.PI);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 2 * scale, 0, 2 * Math.PI);
+            ctx.stroke();
+
+            // Calculate actual system pole coordinates
+            // s^2 + 2*zeta*w0*s + w0^2 = 0
+            // s = -zeta*w0 +/- w0*sqrt(zeta^2 - 1)
+            const w0 = systemW0;
+            const z = systemZeta;
+            
+            let sigma = -z * w0;
+            let wd = 0;
+            let isComplex = false;
+
+            if (z < 1.0) {
+                wd = w0 * Math.sqrt(1.0 - z * z);
+                isComplex = true;
+            } else {
+                wd = w0 * Math.sqrt(z * z - 1.0); // Real roots
+            }
+
+            ctx.fillStyle = '#f43f5e';
+            ctx.strokeStyle = '#f43f5e';
+            ctx.lineWidth = 2 * dpr;
+
+            // Draw Poles (X markers)
+            const poleScaleX = scale;
+            const poleScaleY = scale;
+
+            if (isComplex) {
+                // Conjugate complex poles
+                const px1 = centerX + sigma * poleScaleX;
+                const py1 = centerY - wd * poleScaleY;
+                const px2 = centerX + sigma * poleScaleX;
+                const py2 = centerY + wd * poleScaleY;
+
+                drawPoleMarker(ctx, px1, py1, 6 * dpr);
+                drawPoleMarker(ctx, px2, py2, 6 * dpr);
+
+                lblPoles.textContent = `${sigma.toFixed(2)} ± j${wd.toFixed(2)}`;
+                lblResonanceType.textContent = z < 0.15 ? 'Highly Resonant Osc.' : 'Underdamped Resonator';
+                lblResonanceType.className = 'text-rose-400 font-semibold';
+            } else {
+                // Two distinct real poles
+                const p1_real = sigma + wd;
+                const p2_real = sigma - wd;
+
+                const px1 = centerX + p1_real * poleScaleX;
+                const px2 = centerX + p2_real * poleScaleX;
+
+                drawPoleMarker(ctx, px1, centerY, 6 * dpr);
+                drawPoleMarker(ctx, px2, centerY, 6 * dpr);
+
+                lblPoles.textContent = `${p1_real.toFixed(2)}, ${p2_real.toFixed(2)}`;
+                lblResonanceType.textContent = Math.abs(z - 1.0) < 0.05 ? 'Critically Damped' : 'Overdamped (Slow)';
+                lblResonanceType.className = 'text-teal-400 font-semibold';
+            }
+
+            // Labels
+            ctx.fillStyle = '#475569';
+            ctx.font = `bold ${7 * dpr}px 'JetBrains Mono'`;
+            ctx.textAlign = 'right';
+            ctx.fillText('Re(s)', width - 12 * dpr, centerY + 10 * dpr);
+            ctx.textAlign = 'left';
+            ctx.fillText('jω', centerX + 8 * dpr, 16 * dpr);
+        }
+
+        function drawPoleMarker(ctx, x, y, size) {
+            ctx.beginPath();
+            ctx.moveTo(x - size, y - size);
+            ctx.lineTo(x + size, y + size);
+            ctx.moveTo(x + size, y - size);
+            ctx.lineTo(x - size, y + size);
+            ctx.stroke();
+        }
+
+        function drawAll() {
+            drawTimeShiftPlot();
+            drawPhaseRotatorPlot();
+            drawTimeConvPlot();
+            drawFreqMulPlot();
+            drawSPlanePlot();
+        }
+
+        // SIMULATION CONTROLS AND TICK ENGINE
+        function stepSimulation(timestamp) {
+            if (!lastFrameTimestamp) lastFrameTimestamp = timestamp;
+            const dtElapsed = timestamp - lastFrameTimestamp;
+            lastFrameTimestamp = timestamp;
+
+            // Shift observer timeline forwards slightly (0.45s of physical speed multiplier)
+            currentTimeT += (dtElapsed / 1000) * 0.45;
+
+            if (currentTimeT > maxTime - 2.0) {
+                currentTimeT = 0; // Wrap observer around
+            }
+
+            sldT.value = currentTimeT.toFixed(2);
+            lblTVal.textContent = `${currentTimeT.toFixed(2)} s`;
+
+            drawTimeConvPlot();
+
+            if (isPlaying) {
+                animationFrameId = requestAnimationFrame(stepSimulation);
+            }
+        }
+
+        function togglePlayPause() {
+            if (isPlaying) {
+                isPlaying = false;
+                lblPlayBtn.textContent = "Auto-Play Shift";
+                svgPlayIcon.innerHTML = `<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>`;
+                cancelAnimationFrame(animationFrameId);
+                lastFrameTimestamp = 0;
+            } else {
+                isPlaying = true;
+                lblPlayBtn.textContent = "Pause Timeline";
+                svgPlayIcon.innerHTML = `<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>`;
+                lastFrameTimestamp = performance.now();
+                animationFrameId = requestAnimationFrame(stepSimulation);
+            }
+        }
+
+        function resetSimulation() {
+            if (isPlaying) {
+                togglePlayPause();
+            }
+            currentTimeT = 3.20;
+            delayT0 = 1.80;
+            systemW0 = 2.2;
+            systemZeta = 0.35;
+
+            sldT.value = 3.20;
+            sldT0.value = 1.80;
+            sldW0.value = 2.2;
+            sldZeta.value = 0.35;
+
+            lblTVal.textContent = "3.20 s";
+            lblT0Val.textContent = "1.80 s";
+            lblW0Val.textContent = "2.2 rad/s";
+            lblZetaVal.textContent = "0.35";
+
+            recalculateAllData();
+        }
+
+        function recalculateAllData() {
+            generateInputSignal();
+            generateImpulseResponse();
+            computeConvolution();
+            computeSpectrums();
+            
+            // Dynamic text mappings
+            flowShiftFormula.textContent = `x(t - ${delayT0.toFixed(2)})`;
+            flowLapShift.textContent = `X(s) · e^{-${delayT0.toFixed(2)}s}`;
+
+            drawAll();
+        }
+
+        // EVENT LISTENERS
+        selSignalType.addEventListener('change', (e) => {
+            selectedSignal = e.target.value;
+            lblSigType.textContent = e.target.options[e.target.selectedIndex].text.split('[')[0].trim();
+            recalculateAllData();
+        });
+
+        sldT0.addEventListener('input', (e) => {
+            delayT0 = parseFloat(e.target.value);
+            lblT0Val.textContent = `${delayT0.toFixed(2)} s`;
+            recalculateAllData();
+        });
+
+        sldW0.addEventListener('input', (e) => {
+            systemW0 = parseFloat(e.target.value);
+            lblW0Val.textContent = `${systemW0.toFixed(1)} rad/s`;
+            recalculateAllData();
+        });
+
+        sldZeta.addEventListener('input', (e) => {
+            systemZeta = parseFloat(e.target.value);
+            lblZetaVal.textContent = `${systemZeta.toFixed(2)}`;
+            recalculateAllData();
+        });
+
+        sldT.addEventListener('input', (e) => {
+            currentTimeT = parseFloat(e.target.value);
+            lblTVal.textContent = `${currentTimeT.toFixed(2)} s`;
+            drawTimeConvPlot();
+        });
+
+        btnPlayPause.addEventListener('click', togglePlayPause);
+        btnReset.addEventListener('click', resetSimulation);
+
+        // INITIAL LOAD INITIALIZER
+        window.onload = function() {
+            resizeAllCanvases();
+            recalculateAllData();
+        };
+    </script>
+</body>
+</html>

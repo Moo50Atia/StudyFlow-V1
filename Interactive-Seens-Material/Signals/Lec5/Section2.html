@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>s-Plane Region of Convergence Explorer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- KaTeX for formulas -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .code-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom scrollbars for clean styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+        /* Visual cues for interactive handles */
+        .cursor-grab:active {
+            cursor: grabbing;
+        }
+    </style>
+</head>
+<body class="bg-[#030712] text-slate-100 min-h-screen flex flex-col overflow-x-hidden">
+
+    <header class="border-b border-slate-900 bg-slate-950/80 backdrop-blur sticky top-0 z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-indigo-500/15 text-indigo-400 rounded-lg border border-indigo-500/20">
+                    <i data-lucide="compass" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                        s-Plane Region of Convergence (ROC) Explorer
+                    </h1>
+                    <p class="text-xs text-slate-400">Demystifying Laplace convergence, stability, and the "Poles inside ROC" fallacy</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <!-- Condition Indicator Badge -->
+                <div class="bg-slate-900 border border-slate-800 rounded-lg px-4 py-2 flex items-center gap-2 text-xs font-mono">
+                    <span class="text-slate-400 font-semibold">Pole Condition:</span>
+                    <span class="text-pink-400 font-bold">X(s) → ∞ @ s = p</span>
+                </div>
+                <button id="btn-info" class="p-2 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-lg border border-slate-800 transition" title="Show Educational Guide">
+                    <i data-lucide="help-circle" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Column: Controls, Waveform Sidedness, Misconception Debunker (4 Cols) -->
+        <section class="lg:col-span-4 flex flex-col gap-6">
+            
+            <!-- Signal Sidedness / System Type Selection -->
+            <div class="bg-slate-950 border border-slate-900 rounded-xl p-5 shadow-xl">
+                <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2 mb-4">
+                    <i data-lucide="arrow-right-left" class="w-4 h-4 text-indigo-400"></i>
+                    Signal Sidedness & System Type
+                </h2>
+                
+                <div class="grid grid-cols-3 gap-2" id="sidedness-selector">
+                    <button id="btn-right-sided" class="p-3 rounded-lg border text-center transition-all flex flex-col items-center gap-1.5 bg-slate-900 border-indigo-500/50 shadow-md">
+                        <i data-lucide="arrow-right-circle" class="w-5 h-5 text-indigo-400"></i>
+                        <span class="text-[10px] font-bold uppercase tracking-wider">Right-Sided</span>
+                        <span class="text-[9px] text-slate-400">h(t) for t ≥ 0</span>
+                    </button>
+                    <button id="btn-left-sided" class="p-3 rounded-lg border text-center transition-all flex flex-col items-center gap-1.5 bg-slate-950 border-slate-900 hover:bg-slate-900/60">
+                        <i data-lucide="arrow-left-circle" class="w-5 h-5 text-slate-500"></i>
+                        <span class="text-[10px] font-bold uppercase tracking-wider">Left-Sided</span>
+                        <span class="text-[9px] text-slate-400">h(t) for t < 0</span>
+                    </button>
+                    <button id="btn-two-sided" class="p-3 rounded-lg border text-center transition-all flex flex-col items-center gap-1.5 bg-slate-950 border-slate-900 hover:bg-slate-900/60">
+                        <i data-lucide="split" class="w-5 h-5 text-slate-500"></i>
+                        <span class="text-[10px] font-bold uppercase tracking-wider">Two-Sided</span>
+                        <span class="text-[9px] text-slate-400">Bilateral h(t)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Misconception Debunker Card -->
+            <div class="bg-slate-950 border border-slate-900 rounded-xl p-5 shadow-xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl -mr-8 -mt-8"></div>
+                
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-amber-500 flex items-center gap-2 mb-3">
+                    <i data-lucide="alert-triangle" class="w-4 text-amber-500"></i>
+                    The ROC Fallacy Debunker
+                </h3>
+                <div class="text-xs text-slate-300 space-y-2.5 leading-relaxed">
+                    <p>
+                        A common misconception is that <strong>poles can sit comfortably inside an ROC</strong>, or that stability is determined purely by having poles in the Left Half-Plane (LHP).
+                    </p>
+                    <p class="text-slate-400">
+                        <strong>The Mathematical Truth:</strong> At a pole $p$, the Laplace Transform $X(s) = \int_{-\infty}^{\infty} x(t)e^{-st}dt$ evaluates to infinity. It <em>cannot</em> converge. Thus, by definition, <strong>the ROC can never contain a pole!</strong>
+                    </p>
+                    <p>
+                        Notice how the ROC shaded boundary shifts to perfectly kiss the pole coordinates but <span class="text-pink-400 font-bold underline">never overlays them</span>. Stability is defined by whether the ROC contains the imaginary ($j\omega$) axis ($\sigma = 0$).
+                    </p>
+                </div>
+            </div>
+
+            <!-- Pole configuration presets -->
+            <div class="bg-slate-950 border border-slate-900 rounded-xl p-5 shadow-xl">
+                <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2 mb-3">
+                    <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
+                    Preset Scenarios
+                </h2>
+                <div class="space-y-2" id="presets-container">
+                    <!-- Presets will be dynamically populated here -->
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-900 flex items-center justify-between">
+                    <span class="text-xs text-slate-400">Force Complex Conjugates</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="conjugate-toggle" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Dynamic Pole List and Position Display -->
+            <div class="bg-slate-950 border border-slate-900 rounded-xl p-5 shadow-xl">
+                <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2 mb-3">
+                    <i data-lucide="crosshair" class="w-4 h-4 text-pink-400"></i>
+                    Pole Positions
+                </h2>
+                <div class="space-y-2" id="poles-list">
+                    <!-- Dynamic numeric readouts of poles -->
+                </div>
+                <p class="text-[10px] text-slate-500 mt-2 text-center">
+                    💡 Drag the <strong class="text-pink-400">✕</strong> markers directly in the $s$-plane!
+                </p>
+            </div>
+
+        </section>
+
+        <!-- Right Column: Dual Visualizations and HUD Readout (8 Cols) -->
+        <section class="lg:col-span-8 flex flex-col gap-6">
+            
+            <!-- Real-time Status HUD -->
+            <div id="stability-hud" class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-950 border border-slate-900 p-5 rounded-xl shadow-xl transition-all duration-300">
+                
+                <!-- System Stability State -->
+                <div class="flex items-center gap-3 border-r border-slate-900 pr-4">
+                    <div id="status-light" class="w-4 h-4 rounded-full bg-emerald-500 glow-emerald"></div>
+                    <div>
+                        <div class="text-[9px] uppercase text-slate-500 tracking-wider">System Stability</div>
+                        <div id="status-text" class="text-sm font-bold text-emerald-400">BIBO STABLE</div>
+                    </div>
+                </div>
+
+                <!-- Fourier Transform Existence -->
+                <div class="flex items-center gap-3 border-r border-slate-900 px-4">
+                    <div class="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg">
+                        <i data-lucide="waveform" class="w-5 h-5" id="fourier-icon"></i>
+                    </div>
+                    <div>
+                        <div class="text-[9px] uppercase text-slate-500 tracking-wider">Fourier Transform</div>
+                        <div id="fourier-text" class="text-xs font-semibold text-slate-200">Exists (ROC contains jω)</div>
+                    </div>
+                </div>
+
+                <!-- Live Mathematical ROC representation -->
+                <div class="flex flex-col justify-center pl-4">
+                    <div class="text-[9px] uppercase text-slate-500 tracking-wider">ROC Domain</div>
+                    <div id="roc-math-formula" class="text-sm font-bold code-font text-indigo-300 mt-0.5">
+                        \sigma > -1.0
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Visualizers Workspace -->
+            <div class="bg-slate-950 border border-slate-900 rounded-xl p-5 shadow-xl flex-1 flex flex-col gap-6">
+                
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6 min-h-[420px]">
+                    
+                    <!-- Complex s-plane Canvas (7 Cols) -->
+                    <div class="md:col-span-7 flex flex-col gap-2">
+                        <div class="flex justify-between items-center px-1">
+                            <span class="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+                                <i data-lucide="target" class="w-4 h-4 text-indigo-400"></i>
+                                Complex $s$-Plane ($\sigma + j\omega$)
+                            </span>
+                            <span class="text-[10px] code-font text-slate-500">Boundaries restricted to Pole Reals</span>
+                        </div>
+                        <div class="flex-1 relative border border-slate-900 rounded-xl overflow-hidden bg-[#030712] min-h-[300px]">
+                            <canvas id="s-plane-canvas" class="w-full h-full absolute inset-0 cursor-grab"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Synchronous Time Domain Response h(t) (5 Cols) -->
+                    <div class="md:col-span-5 flex flex-col gap-2">
+                        <div class="flex justify-between items-center px-1">
+                            <span class="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+                                <i data-lucide="line-chart" class="w-4 h-4 text-purple-400"></i>
+                                Impulse Response $h(t)$
+                            </span>
+                        </div>
+                        <div class="flex-1 relative border border-slate-900 rounded-xl overflow-hidden bg-[#030712] min-h-[300px]">
+                            <canvas id="time-domain-canvas" class="w-full h-full absolute inset-0"></canvas>
+                        </div>
+                    </div>
+                    
+                </div>
+
+                <!-- Dynamic Formula Details & Convergence Explanation -->
+                <div class="bg-slate-900/40 border border-slate-800/60 rounded-lg p-4 text-xs space-y-2">
+                    <div class="flex items-center justify-between border-b border-slate-800/60 pb-2">
+                        <span class="font-semibold text-slate-300 flex items-center gap-1.5">
+                            <i data-lucide="book-open" class="w-3.5 h-3.5 text-pink-400"></i>
+                            Why Poles act as Boundaries:
+                        </span>
+                        <span class="text-[10px] code-font text-indigo-400">Laplace Formula View</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                        <div class="md:col-span-4 flex justify-center py-2 bg-slate-950/80 border border-slate-900 rounded-lg">
+                            <div id="laplace-math-display" class="text-sm"></div>
+                        </div>
+                        <div class="md:col-span-8 text-slate-400 leading-relaxed text-[11px]">
+                            An impulse response component <span class="code-font text-slate-200">e^{pt}</span> converts via Laplace to <span class="code-font text-slate-200">1 / (s - p)</span>. 
+                            When evaluated at the real part boundary, the absolute integration integral <span class="text-slate-200">\int |h(t)e^{-\sigma t}|dt</span> matches the convergence point of the exponential. 
+                            Crossing this vertical line changes growth into decay, instantly flipping convergence state.
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Info Modal / Educational Guide Overlay -->
+    <div id="info-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-950 border border-slate-800 rounded-xl max-w-2xl w-full p-6 shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-900 pb-3">
+                <div class="flex items-center gap-2 text-indigo-400 font-bold">
+                    <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+                    <span>ROC Convergence & Stability Primer</span>
+                </div>
+                <button id="btn-close-modal" class="text-slate-400 hover:text-white transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-3 text-xs text-slate-300 leading-relaxed overflow-y-auto max-h-[60vh] pr-2">
+                <p>
+                    The <strong>Region of Convergence (ROC)</strong> represents the values of $s = \sigma + j\omega$ in the complex plane for which the Laplace transform integral yields a finite value.
+                </p>
+                
+                <h4 class="font-bold text-slate-100 flex items-center gap-1.5 mt-2">
+                    <i data-lucide="shield-alert" class="w-4 h-4 text-pink-400"></i>
+                    Critical Rule: No Poles in the ROC
+                </h4>
+                <p>
+                    A pole is a singularity point where the transform equation goes to infinity ($X(p) = \infty$). Therefore, the ROC <strong>cannot contain any poles</strong>. It is always open-bounded by vertical lines drawn through the real parts of the poles.
+                </p>
+
+                <h4 class="font-bold text-slate-100 flex items-center gap-1.5 mt-2">
+                    <i data-lucide="git-commit" class="w-4 h-4 text-purple-400"></i>
+                    Signal Sidedness Configurations:
+                </h4>
+                <ul class="list-disc pl-5 space-y-1.5 text-slate-400">
+                    <li><strong class="text-indigo-400">Right-Sided Signals:</strong> Extend to $+\infty$. The ROC is a right half-plane lying to the right of the rightmost pole: <span class="code-font text-slate-200">\text{Re}\{s\} > \max(p_i)</span>.</li>
+                    <li><strong class="text-indigo-400">Left-Sided Signals:</strong> Extend to $-\infty$. The ROC is a left half-plane lying to the left of the leftmost pole: <span class="code-font text-slate-200">\text{Re}\{s\} < \min(p_i)</span>.</li>
+                    <li><strong class="text-indigo-400">Two-Sided (Bilateral) Signals:</strong> Combination of left and right-sided exponentials. The ROC is a vertical strip bounded by poles on both sides: <span class="code-font text-slate-200">p_1 < \text{Re}\{s\} < p_2</span>. If the boundaries overlap or cross, no common ROC exists!</li>
+                </ul>
+
+                <h4 class="font-bold text-slate-100 flex items-center gap-1.5 mt-2">
+                    <i data-lucide="activity" class="w-4 h-4 text-emerald-400"></i>
+                    BIBO Stability Condition:
+                </h4>
+                <p>
+                    An LTI system is <strong>BIBO Stable</strong> if and only if its impulse response is absolutely integrable. In the $s$-plane, this is equivalent to saying the <strong>ROC contains the imaginary ($j\omega$) axis</strong> (i.e. $\text{Re}\{s\} = 0$).
+                </p>
+            </div>
+
+            <div class="pt-3 border-t border-slate-900 flex justify-end">
+                <button id="btn-modal-understand" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-5 py-2 rounded-lg transition">
+                    Got it, Let's Explore
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Preset scenarios configuration
+        const PRESETS = [
+            {
+                id: "stable_right",
+                name: "Stable LHP (Right-Sided)",
+                sidedness: "right",
+                poles: [
+                    { re: -1.5, im: 1.5 },
+                    { re: -1.5, im: -1.5 }
+                ],
+                desc: "Typical stable oscillatory system. ROC is on the right of poles, containing the jω axis."
+            },
+            {
+                id: "unstable_right",
+                name: "Unstable RHP (Right-Sided)",
+                sidedness: "right",
+                poles: [
+                    { re: 1.0, im: 1.0 },
+                    { re: 1.0, im: -1.0 }
+                ],
+                desc: "Poles in Right Half-Plane. ROC lies right of poles, excluding the jω axis."
+            },
+            {
+                id: "stable_bilateral",
+                name: "Stable Band (Two-Sided)",
+                sidedness: "two-sided",
+                poles: [
+                    { re: -1.5, im: 1.0 },
+                    { re: 1.5, im: -1.0 }
+                ],
+                desc: "A stable bilateral strip bounded by LHP and RHP poles, enclosing the jω axis."
+            },
+            {
+                id: "unstable_bilateral",
+                name: "Unstable Band (Two-Sided)",
+                sidedness: "two-sided",
+                poles: [
+                    { re: -2.0, im: 0.0 },
+                    { re: -0.5, im: 1.5 }
+                ],
+                desc: "Two-Sided signal without encompassing the imaginary axis. Unstable system."
+            },
+            {
+                id: "left_sided_stable",
+                name: "Convergent Left-Sided",
+                sidedness: "left",
+                poles: [
+                    { re: 1.5, im: 1.0 },
+                    { re: 1.5, im: -1.0 }
+                ],
+                desc: "Left-sided signal is stable because the ROC (Re{s} < 1.5) contains the jω axis."
+            }
+        ];
+
+        // Active State
+        let activeSidedness = "right"; // "right", "left", or "two-sided"
+        let activePoles = [
+            { re: -1.5, im: 1.5 },
+            { re: -1.5, im: -1.5 }
+        ];
+        let forceConjugate = true;
+        let selectedPoleIndex = -1;
+
+        // Canvas Elements
+        const sPlaneCanvas = document.getElementById('s-plane-canvas');
+        const sCtx = sPlaneCanvas.getContext('2d');
+        const timeCanvas = document.getElementById('time-domain-canvas');
+        const tCtx = timeCanvas.getContext('2d');
+
+        // DOM Elements
+        const btnRightSided = document.getElementById('btn-right-sided');
+        const btnLeftSided = document.getElementById('btn-left-sided');
+        const btnTwoSided = document.getElementById('btn-two-sided');
+        const conjugateToggle = document.getElementById('conjugate-toggle');
+        const polesListContainer = document.getElementById('poles-list');
+        const presetsContainer = document.getElementById('presets-container');
+        const statusLight = document.getElementById('status-light');
+        const statusText = document.getElementById('status-text');
+        const fourierIcon = document.getElementById('fourier-icon');
+        const fourierText = document.getElementById('fourier-text');
+        const rocMathFormula = document.getElementById('roc-math-formula');
+        const infoModal = document.getElementById('info-modal');
+        const btnInfo = document.getElementById('btn-info');
+        const btnCloseModal = document.getElementById('btn-close-modal');
+        const btnModalUnderstand = document.getElementById('btn-modal-understand');
+
+        // Coordinate transformation configurations for s-plane
+        // Mapping -4 to 4 horizontally and vertically
+        const scaleLimit = 4.0; 
+
+        // Get S-Plane coordinates from mouse position
+        function canvasToSCoordinates(x, y) {
+            const width = sPlaneCanvas.width / window.devicePixelRatio;
+            const height = sPlaneCanvas.height / window.devicePixelRatio;
+            const originX = width / 2;
+            const originY = height / 2;
+            const stepX = (width - 40) / (scaleLimit * 2);
+            const stepY = (height - 40) / (scaleLimit * 2);
+
+            const re = (x - originX) / stepX;
+            const im = -(y - originY) / stepY;
+            return { re, im };
+        }
+
+        // Get canvas pixel position from complex coordinates
+        function sToCanvasCoordinates(re, im) {
+            const width = sPlaneCanvas.width / window.devicePixelRatio;
+            const height = sPlaneCanvas.height / window.devicePixelRatio;
+            const originX = width / 2;
+            const originY = height / 2;
+            const stepX = (width - 40) / (scaleLimit * 2);
+            const stepY = (height - 40) / (scaleLimit * 2);
+
+            const x = originX + re * stepX;
+            const y = originY - im * stepY;
+            return { x, y };
+        }
+
+        // Set Active Sidedness Selection
+        function setSidedness(sidedness) {
+            activeSidedness = sidedness;
+            
+            // UI Toggle Classes
+            const buttons = [
+                { el: btnRightSided, val: "right", icon: "arrow-right-circle" },
+                { el: btnLeftSided, val: "left", icon: "arrow-left-circle" },
+                { el: btnTwoSided, val: "two-sided", icon: "split" }
+            ];
+
+            buttons.forEach(btn => {
+                if (btn.val === sidedness) {
+                    btn.el.className = "p-3 rounded-lg border text-center transition-all flex flex-col items-center gap-1.5 bg-slate-900 border-indigo-500/50 shadow-md";
+                    const iconEl = btn.el.querySelector('i');
+                    if (iconEl) iconEl.className = "w-5 h-5 text-indigo-400";
+                } else {
+                    btn.el.className = "p-3 rounded-lg border text-center transition-all flex flex-col items-center gap-1.5 bg-slate-950 border-slate-900 hover:bg-slate-900/60";
+                    const iconEl = btn.el.querySelector('i');
+                    if (iconEl) iconEl.className = "w-5 h-5 text-slate-500";
+                }
+            });
+
+            updateHUD();
+            drawAll();
+        }
+
+        // Setup event handlers for Sidedness
+        btnRightSided.addEventListener('click', () => setSidedness('right'));
+        btnLeftSided.addEventListener('click', () => setSidedness('left'));
+        btnTwoSided.addEventListener('click', () => setSidedness('two-sided'));
+
+        // Toggle Complex Conjugates Force constraint
+        conjugateToggle.addEventListener('change', (e) => {
+            forceConjugate = e.target.checked;
+            if (forceConjugate) {
+                enforceConjugatePoles();
+            }
+            updateHUD();
+            drawAll();
+        });
+
+        // Enforce math rules to guarantee symmetrical conjugate pairs if activated
+        function enforceConjugatePoles() {
+            if (activePoles.length >= 2) {
+                // Couple Pole 0 and Pole 1 as conjugate pairs
+                activePoles[1].re = activePoles[0].re;
+                activePoles[1].im = -activePoles[0].im;
+            }
+        }
+
+        // Create presets dynamic card element list
+        function populatePresets() {
+            presetsContainer.innerHTML = '';
+            PRESETS.forEach(preset => {
+                const isSelected = false; // Evaluated dynamically based on pole parameters matches
+                const card = document.createElement('div');
+                card.className = "p-2.5 rounded-lg border border-slate-900 bg-slate-950 hover:bg-slate-900/60 hover:border-slate-800 text-left cursor-pointer transition";
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="font-semibold text-xs text-slate-200">${preset.name}</span>
+                        <span class="text-[8px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                            ${preset.sidedness}
+                        </span>
+                    </div>
+                    <p class="text-[10px] text-slate-400 leading-tight">${preset.desc}</p>
+                `;
+                card.addEventListener('click', () => {
+                    activeSidedness = preset.sidedness;
+                    activePoles = JSON.parse(JSON.stringify(preset.poles));
+                    setSidedness(activeSidedness);
+                    updateHUD();
+                    drawAll();
+                });
+                presetsContainer.appendChild(card);
+            });
+        }
+
+        // Update Pole text list readouts and Stability Analysis HUD
+        function updateHUD() {
+            // Render text Pole lists
+            polesListContainer.innerHTML = '';
+            activePoles.forEach((p, idx) => {
+                const card = document.createElement('div');
+                card.className = "flex justify-between items-center text-xs p-1.5 bg-slate-900/60 border border-slate-800/60 rounded";
+                card.innerHTML = `
+                    <span class="font-medium text-slate-300">Pole ${idx + 1} (p<sub>${idx + 1}</sub>)</span>
+                    <span class="code-font text-pink-400 font-semibold">${p.re.toFixed(2)} ${p.im >= 0 ? '+' : '-'} ${Math.abs(p.im).toFixed(2)}j</span>
+                `;
+                polesListContainer.appendChild(card);
+            });
+
+            // Calculate Boundaries of ROC
+            const poleReals = activePoles.map(p => p.re);
+            const minRe = Math.min(...poleReals);
+            const maxRe = Math.max(...poleReals);
+
+            // Determine if ROC contains Imaginary Axis (Re{s} == 0)
+            let isStable = false;
+            let mathString = "";
+
+            if (activeSidedness === "right") {
+                isStable = (maxRe < 0);
+                mathString = `\\text{Re}\\{s\\} > ${maxRe.toFixed(2)}`;
+            } else if (activeSidedness === "left") {
+                isStable = (minRe > 0);
+                mathString = `\\text{Re}\\{s\\} < ${minRe.toFixed(2)}`;
+            } else if (activeSidedness === "two-sided") {
+                // Two-sided band is valid only if minRe is on the left and maxRe is on the right
+                // It represents the region between them: minRe < Re{s} < maxRe
+                if (minRe < maxRe) {
+                    isStable = (minRe < 0 && maxRe > 0);
+                    mathString = `${minRe.toFixed(2)} < \\text{Re}\\{s\\} < ${maxRe.toFixed(2)}`;
+                } else {
+                    // No valid overlap region
+                    isStable = false;
+                    mathString = "\\emptyset \\text{ (No overlap / Empty ROC)}";
+                }
+            }
+
+            // Render math formulas inside elements
+            if (window.katex) {
+                try {
+                    window.katex.render(mathString, rocMathFormula, { throwOnError: false });
+                    window.katex.render(`X(s) = \\int_{-\\infty}^{\\infty} h(t)e^{-st}dt`, document.getElementById('laplace-math-display'), { throwOnError: false });
+                } catch (e) {
+                    rocMathFormula.textContent = mathString;
+                }
+            }
+
+            // Update UI widgets representing stability state
+            if (isStable) {
+                statusLight.className = "w-4 h-4 rounded-full bg-emerald-500 animate-pulse glow-emerald";
+                statusText.className = "text-sm font-bold text-emerald-400";
+                statusText.textContent = "BIBO STABLE";
+                
+                fourierIcon.className = "w-5 h-5 text-emerald-400";
+                fourierText.textContent = "Exists (ROC contains jω)";
+            } else {
+                statusLight.className = "w-4 h-4 rounded-full bg-rose-500 glow-red animate-ping";
+                statusText.className = "text-sm font-bold text-rose-500";
+                statusText.textContent = "UNSTABLE SYSTEM";
+                
+                fourierIcon.className = "w-5 h-5 text-rose-500 animate-bounce";
+                fourierText.textContent = "Divergent / Does Not Exist";
+            }
+        }
+
+        // Draw s-plane poles, grids, ROC shading bands
+        function drawSPlane() {
+            const width = sPlaneCanvas.width / window.devicePixelRatio;
+            const height = sPlaneCanvas.height / window.devicePixelRatio;
+
+            sCtx.clearRect(0, 0, width, height);
+
+            const originX = width / 2;
+            const originY = height / 2;
+            const stepX = (width - 40) / (scaleLimit * 2);
+            const stepY = (height - 40) / (scaleLimit * 2);
+
+            // 1. Draw grid background
+            sCtx.strokeStyle = '#111827';
+            sCtx.lineWidth = 1;
+            sCtx.font = '9px "JetBrains Mono", monospace';
+            sCtx.fillStyle = '#4b5563';
+
+            // Draw vertical grid markers
+            for (let val = -scaleLimit; val <= scaleLimit; val += 1) {
+                if (val === 0) continue; // Axis drawn later
+                const x = originX + val * stepX;
+                sCtx.beginPath();
+                sCtx.moveTo(x, 10);
+                sCtx.lineTo(x, height - 10);
+                sCtx.stroke();
+
+                // Draw labels
+                sCtx.textAlign = 'center';
+                sCtx.fillText(val.toFixed(0), x, originY + 15);
+            }
+
+            // Draw horizontal grid markers
+            for (let val = -scaleLimit; val <= scaleLimit; val += 1) {
+                if (val === 0) continue;
+                const y = originY - val * stepY;
+                sCtx.beginPath();
+                sCtx.moveTo(10, y);
+                sCtx.lineTo(width - 10, y);
+                sCtx.stroke();
+
+                // Draw labels
+                sCtx.textAlign = 'right';
+                sCtx.fillText(val.toFixed(0) + "j", originX - 8, y + 3);
+            }
+
+            // 2. Draw Main Axes
+            sCtx.strokeStyle = '#374151';
+            sCtx.lineWidth = 2;
+            
+            // Re axis
+            sCtx.beginPath();
+            sCtx.moveTo(10, originY);
+            sCtx.lineTo(width - 10, originY);
+            sCtx.stroke();
+
+            // Im axis (jω)
+            sCtx.beginPath();
+            sCtx.moveTo(originX, 10);
+            sCtx.lineTo(originX, height - 10);
+            sCtx.stroke();
+
+            // Labels for Main Axis
+            sCtx.fillStyle = '#9ca3af';
+            sCtx.font = 'bold 10px Inter';
+            sCtx.textAlign = 'right';
+            sCtx.fillText("Real (σ)", width - 15, originY - 8);
+            sCtx.textAlign = 'left';
+            sCtx.fillText("jω (Imaginary)", originX + 10, 20);
+
+            // 3. Draw Shaded Region of Convergence (ROC)
+            const poleReals = activePoles.map(p => p.re);
+            const minRe = Math.min(...poleReals);
+            const maxRe = Math.max(...poleReals);
+
+            sCtx.fillStyle = 'rgba(79, 70, 229, 0.15)'; // Elegant light purple fill with border lines
+
+            if (activeSidedness === "right") {
+                const borderX = originX + maxRe * stepX;
+                sCtx.fillRect(borderX, 10, width - borderX - 10, height - 20);
+                
+                // Draw dotted limit line
+                sCtx.strokeStyle = '#ec4899'; // pink
+                sCtx.lineWidth = 1.5;
+                sCtx.setLineDash([6, 4]);
+                sCtx.beginPath();
+                sCtx.moveTo(borderX, 10);
+                sCtx.lineTo(borderX, height - 10);
+                sCtx.stroke();
+                sCtx.setLineDash([]);
+            } else if (activeSidedness === "left") {
+                const borderX = originX + minRe * stepX;
+                sCtx.fillRect(10, 10, borderX - 10, height - 20);
+
+                // Draw dotted limit line
+                sCtx.strokeStyle = '#ec4899';
+                sCtx.lineWidth = 1.5;
+                sCtx.setLineDash([6, 4]);
+                sCtx.beginPath();
+                sCtx.moveTo(borderX, 10);
+                sCtx.lineTo(borderX, height - 10);
+                sCtx.stroke();
+                sCtx.setLineDash([]);
+            } else if (activeSidedness === "two-sided") {
+                if (minRe < maxRe) {
+                    const startX = originX + minRe * stepX;
+                    const endX = originX + maxRe * stepX;
+                    sCtx.fillRect(startX, 10, endX - startX, height - 20);
+
+                    // Dual limit lines
+                    sCtx.strokeStyle = '#ec4899';
+                    sCtx.lineWidth = 1.5;
+                    sCtx.setLineDash([6, 4]);
+                    
+                    sCtx.beginPath();
+                    sCtx.moveTo(startX, 10);
+                    sCtx.lineTo(startX, height - 10);
+                    sCtx.stroke();
+
+                    sCtx.beginPath();
+                    sCtx.moveTo(endX, 10);
+                    sCtx.lineTo(endX, height - 10);
+                    sCtx.stroke();
+
+                    sCtx.setLineDash([]);
+                }
+            }
+
+            // 4. Draw Poles (X)
+            activePoles.forEach((p, idx) => {
+                const coord = sToCanvasCoordinates(p.re, p.im);
+                
+                // Draw Interactive Handle Halo on Hover
+                if (selectedPoleIndex === idx) {
+                    sCtx.fillStyle = 'rgba(236, 72, 153, 0.25)';
+                    sCtx.beginPath();
+                    sCtx.arc(coord.x, coord.y, 14, 0, 2 * Math.PI);
+                    sCtx.fill();
+                }
+
+                // Beautiful thick neon pink cross mark
+                sCtx.strokeStyle = '#ec4899';
+                sCtx.lineWidth = 3;
+                sCtx.beginPath();
+                
+                // Backslash
+                sCtx.moveTo(coord.x - 7, coord.y - 7);
+                sCtx.lineTo(coord.x + 7, coord.y + 7);
+                
+                // Slash
+                sCtx.moveTo(coord.x + 7, coord.y - 7);
+                sCtx.lineTo(coord.x - 7, coord.y + 7);
+                sCtx.stroke();
+
+                // Small index number next to pole
+                sCtx.fillStyle = '#f472b6';
+                sCtx.font = 'bold 9px "JetBrains Mono"';
+                sCtx.textAlign = 'left';
+                sCtx.fillText(`p${idx+1}`, coord.x + 10, coord.y - 4);
+            });
+        }
+
+        // Draw the impulse response waveform h(t) matching selected poles and sidedness
+        function drawTimeDomain() {
+            const width = timeCanvas.width / window.devicePixelRatio;
+            const height = timeCanvas.height / window.devicePixelRatio;
+
+            tCtx.clearRect(0, 0, width, height);
+
+            const originX = width / 2;
+            const originY = height / 2;
+            const scaleX = (width - 40) / 10; // 10 seconds total span (-5s to +5s)
+            const scaleY = (height - 40) / 4.0; // max amplitude limit display
+
+            // 1. Draw axes
+            tCtx.strokeStyle = '#1f2937';
+            tCtx.lineWidth = 1.5;
+            
+            // Horizontal t axis
+            tCtx.beginPath();
+            tCtx.moveTo(10, originY);
+            tCtx.lineTo(width - 10, originY);
+            tCtx.stroke();
+
+            // Vertical axis
+            tCtx.beginPath();
+            tCtx.moveTo(originX, 10);
+            tCtx.lineTo(originX, height - 10);
+            tCtx.stroke();
+
+            tCtx.fillStyle = '#6b7280';
+            tCtx.font = '9px "JetBrains Mono"';
+            tCtx.textAlign = 'center';
+            tCtx.fillText("-5s", originX - 5 * scaleX, originY + 14);
+            tCtx.fillText("0s", originX, originY + 14);
+            tCtx.fillText("+5s", originX + 5 * scaleX, originY + 14);
+
+            tCtx.fillStyle = '#9ca3af';
+            tCtx.font = 'bold 10px Inter';
+            tCtx.fillText("h(t)", originX + 22, 22);
+            tCtx.fillText("Time (t)", width - 30, originY - 8);
+
+            // 2. Plot the Waveform function
+            // Mathematical formulas used:
+            // For a conjugate pair p = \sigma \pm j\omega:
+            //   If Right-Sided: h(t) = e^{\sigma t} cos(\omega t) u(t)
+            //   If Left-Sided: h(t) = -e^{\sigma t} cos(\omega t) u(-t)
+            //   If Two-Sided: Combination of LHP / RHP decay lines
+            tCtx.strokeStyle = '#a78bfa'; // violet
+            tCtx.lineWidth = 2.5;
+            tCtx.beginPath();
+
+            let first = true;
+            const step = 0.02;
+
+            for (let t = -5.0; t <= 5.0; t += step) {
+                let hVal = 0;
+
+                if (activeSidedness === "right") {
+                    if (t >= 0) {
+                        // Calculate combination of components of each pole
+                        activePoles.forEach(p => {
+                            hVal += Math.exp(p.re * t) * Math.cos(p.im * t);
+                        });
+                        hVal /= activePoles.length; // Normalized average
+                    } else {
+                        hVal = 0;
+                    }
+                } else if (activeSidedness === "left") {
+                    if (t <= 0) {
+                        // Left-Sided signals have minus sign on impulse amplitude to satisfy converges
+                        activePoles.forEach(p => {
+                            hVal -= Math.exp(p.re * t) * Math.cos(p.im * t);
+                        });
+                        hVal /= activePoles.length;
+                    } else {
+                        hVal = 0;
+                    }
+                } else if (activeSidedness === "two-sided") {
+                    // Bilateral combines decaying left side & right side signals
+                    // Suppose leftmost pole is left-sided component, rightmost is right-sided
+                    const sortedPoles = [...activePoles].sort((a,b) => a.re - b.re);
+                    const pLeft = sortedPoles[0];
+                    const pRight = sortedPoles[sortedPoles.length - 1];
+
+                    if (t >= 0) {
+                        // Decay determined by left pole to satisfy convergence right side bound
+                        hVal = Math.exp(pLeft.re * t) * Math.cos(pLeft.im * t);
+                    } else {
+                        // Decay determined by right pole to satisfy convergence left side bound
+                        hVal = -Math.exp(pRight.re * t) * Math.cos(pRight.im * t);
+                    }
+                }
+
+                // Safeguard against infinite plots
+                if (isNaN(hVal) || !isFinite(hVal)) hVal = 0;
+                if (hVal > 10.0) hVal = 10.0;
+                if (hVal < -10.0) hVal = -10.0;
+
+                const cx = originX + t * scaleX;
+                const cy = originY - hVal * scaleY;
+
+                if (first) {
+                    tCtx.moveTo(cx, cy);
+                    first = false;
+                } else {
+                    tCtx.lineTo(cx, cy);
+                }
+            }
+            tCtx.stroke();
+        }
+
+        // Complete Draw coordination
+        function drawAll() {
+            drawSPlane();
+            drawTimeDomain();
+        }
+
+        // Interactive Mouse Pointer Drag coordinates
+        function getMouseCoordinates(canvas, event) {
+            const rect = canvas.getBoundingClientRect();
+            // Adjust for DPI scale
+            const x = (event.clientX - rect.left);
+            const y = (event.clientY - rect.top);
+            return { x, y };
+        }
+
+        sPlaneCanvas.addEventListener('mousedown', (e) => {
+            const mouse = getMouseCoordinates(sPlaneCanvas, e);
+            const sCoords = canvasToSCoordinates(mouse.x, mouse.y);
+
+            // Find clicked pole (within hit distance)
+            let closestDist = 0.35; // hit radius
+            let foundIndex = -1;
+
+            activePoles.forEach((p, idx) => {
+                const dx = p.re - sCoords.re;
+                const dy = p.im - sCoords.im;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    foundIndex = idx;
+                }
+            });
+
+            selectedPoleIndex = foundIndex;
+            drawAll();
+        });
+
+        sPlaneCanvas.addEventListener('mousemove', (e) => {
+            const mouse = getMouseCoordinates(sPlaneCanvas, e);
+            const sCoords = canvasToSCoordinates(mouse.x, mouse.y);
+
+            // Hover indicator cursor
+            if (selectedPoleIndex === -1) {
+                let overPole = false;
+                activePoles.forEach(p => {
+                    const dx = p.re - sCoords.re;
+                    const dy = p.im - sCoords.im;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < 0.35) overPole = true;
+                });
+                sPlaneCanvas.style.cursor = overPole ? 'grab' : 'default';
+            } else {
+                sPlaneCanvas.style.cursor = 'grabbing';
+                
+                // Keep coordinates within bounds limit
+                const clampedRe = Math.max(-scaleLimit + 0.1, Math.min(scaleLimit - 0.1, sCoords.re));
+                const clampedIm = Math.max(-scaleLimit + 0.1, Math.min(scaleLimit - 0.1, sCoords.im));
+
+                // Drag the selected pole
+                activePoles[selectedPoleIndex].re = clampedRe;
+                activePoles[selectedPoleIndex].im = clampedIm;
+
+                // Handle conjugate rules
+                if (forceConjugate) {
+                    if (selectedPoleIndex === 0 && activePoles.length >= 2) {
+                        activePoles[1].re = clampedRe;
+                        activePoles[1].im = -clampedIm;
+                    } else if (selectedPoleIndex === 1 && activePoles.length >= 2) {
+                        activePoles[0].re = clampedRe;
+                        activePoles[0].im = -clampedIm;
+                    }
+                }
+
+                updateHUD();
+                drawAll();
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            selectedPoleIndex = -1;
+            drawAll();
+        });
+
+        // Resize canvases with proper DPI scales
+        function resizeCanvases() {
+            // S-Plane
+            const sRect = sPlaneCanvas.parentNode.getBoundingClientRect();
+            sPlaneCanvas.width = sRect.width * window.devicePixelRatio;
+            sPlaneCanvas.height = sRect.height * window.devicePixelRatio;
+            sPlaneCanvas.getContext('2d').scale(window.devicePixelRatio, window.devicePixelRatio);
+
+            // Time Domain
+            const tRect = timeCanvas.parentNode.getBoundingClientRect();
+            timeCanvas.width = tRect.width * window.devicePixelRatio;
+            timeCanvas.height = tRect.height * window.devicePixelRatio;
+            timeCanvas.getContext('2d').scale(window.devicePixelRatio, window.devicePixelRatio);
+
+            drawAll();
+        }
+
+        // Info modal handlers
+        btnInfo.addEventListener('click', () => {
+            infoModal.classList.remove('hidden');
+        });
+
+        const closeModal = () => {
+            infoModal.classList.add('hidden');
+        };
+
+        btnCloseModal.addEventListener('click', closeModal);
+        btnModalUnderstand.addEventListener('click', closeModal);
+
+        window.addEventListener('resize', resizeCanvases);
+
+        window.onload = function() {
+            populatePresets();
+            resizeCanvases();
+            updateHUD();
+            lucide.createIcons();
+        };
+    </script>
+</body>
+</html>

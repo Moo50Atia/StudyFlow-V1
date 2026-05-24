@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laplace Transform Parallel Flow Explorer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter and Fira Code -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f19;
+            color: #f1f5f9;
+        }
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+        /* Grid background pattern */
+        .bg-grid {
+            background-size: 30px 30px;
+            background-image: linear-gradient(to right, rgba(30, 41, 59, 0.4) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(30, 41, 59, 0.4) 1px, transparent 1px);
+        }
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        /* Pulse Animation for Barrier Scan */
+        @keyframes scan {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+        .scanner-beam {
+            animation: scan 3s linear infinite;
+        }
+        /* Custom Glowing borders */
+        .glow-blue {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.25);
+            border-color: rgba(59, 130, 246, 0.4);
+        }
+        .glow-emerald {
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+        .glow-purple {
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.25);
+            border-color: rgba(168, 85, 247, 0.4);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-indigo-600 selection:text-white bg-grid">
+
+    <header class="border-b border-slate-800 bg-slate-950/90 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-gradient-to-tr from-indigo-600 to-cyan-500 p-2.5 rounded-xl text-slate-950 font-extrabold text-xl shadow-lg shadow-indigo-950/50">
+                    <i class="fa-solid fa-arrows-split-up-and-left text-white"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg md:text-xl bg-gradient-to-r from-slate-100 via-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+                        Laplace Parallel Flow Sandbox
+                    </h1>
+                    <p class="text-xs text-slate-400 font-medium">Interactive Mapping: <span class="code-font text-indigo-400">f(t) ⇌ F(s) = ∫ f(t) e^(-st) dt</span></p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <div id="stability-status-badge" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    STABLE SYSTEM
+                </div>
+                <button id="reset-btn" class="px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-xs font-medium text-slate-300 transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-rotate-right"></i> Reset
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left: Sliders, Preset Selector & Interactive Settings Panel -->
+        <div class="lg:col-span-3 flex flex-col gap-6">
+            
+            <!-- Signal Selector Block -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col gap-3">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-signature text-indigo-400"></i>
+                    1. Select Flow Input
+                </h3>
+                
+                <div class="flex flex-col gap-2" id="signal-presets-container">
+                    <!-- Loaded via JavaScript -->
+                </div>
+            </div>
+
+            <!-- Parametric Tuning Controls -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col gap-4">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-sliders text-cyan-400"></i>
+                    2. Tune Parameters
+                </h3>
+
+                <div class="flex flex-col gap-4">
+                    <!-- Real Part Damping Factor (sigma) -->
+                    <div id="sigma-slider-container" class="flex flex-col gap-1.5">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="font-semibold text-slate-300">Damping (σ)</span>
+                            <span class="code-font font-bold text-indigo-400" id="sigma-value-label">0.50 s⁻¹</span>
+                        </div>
+                        <input type="range" id="sigma-slider" min="-2.0" max="2.0" step="0.05" value="0.5" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                        <div class="flex justify-between text-[10px] text-slate-500 font-semibold px-0.5">
+                            <span>Unstable (RHP)</span>
+                            <span>Stable (LHP)</span>
+                        </div>
+                    </div>
+
+                    <!-- Imaginary Part Frequency (omega_0) -->
+                    <div id="omega-slider-container" class="flex flex-col gap-1.5">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="font-semibold text-slate-300">Freq (ω₀)</span>
+                            <span class="code-font font-bold text-cyan-400" id="omega-value-label">3.00 rad/s</span>
+                        </div>
+                        <input type="range" id="omega-slider" min="0.0" max="8.0" step="0.1" value="3.0" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-500">
+                        <div class="flex justify-between text-[10px] text-slate-500 font-semibold px-0.5">
+                            <span>DC / Decay</span>
+                            <span>High Oscillation</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stability Analysis Details -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+                    <i class="fa-solid fa-heart-pulse text-emerald-400"></i>
+                    Transient Behavior
+                </h3>
+                <div class="space-y-3 text-xs">
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-850">
+                        <span class="text-[10px] uppercase font-bold text-slate-500">Pole Location</span>
+                        <div class="code-font text-slate-200 mt-1 font-semibold" id="pole-coordinates-text">s = -0.50 ± j3.00</div>
+                    </div>
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-850">
+                        <span class="text-[10px] uppercase font-bold text-slate-500">Time Decay Constant</span>
+                        <div class="code-font text-slate-200 mt-1 font-semibold" id="decay-const-text">τ = 2.00 s</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Center/Right: Parallel Flow Visualization & Interactive S-Plane Mapping -->
+        <div class="lg:col-span-9 flex flex-col gap-6">
+            
+            <!-- Real-time Interactive Split Workstation -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
+                
+                <!-- Time Domain View (f(t)) -->
+                <div class="md:col-span-5 bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3 shadow-xl min-h-[350px]">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                            <h2 class="text-sm font-bold text-slate-200">Time Domain: f(t)</h2>
+                        </div>
+                        <span class="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 uppercase font-semibold">Waveform View</span>
+                    </div>
+
+                    <div class="relative flex-1 bg-slate-950/80 rounded-xl overflow-hidden border border-slate-850">
+                        <canvas id="time-domain-canvas" class="block w-full h-full"></canvas>
+                        <!-- Dynamic overlay for mathematical function title -->
+                        <div class="absolute bottom-2.5 left-3 bg-slate-900/90 border border-slate-800 text-[11px] px-2.5 py-1 rounded-md text-slate-300 font-semibold" id="time-fn-overlay">
+                            f(t) = e^(-0.50t) cos(3.00t) u(t)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Laplace Transformation Barrier Visual Panel -->
+                <div class="md:col-span-2 flex md:flex-col items-center justify-center gap-3 py-4 text-center relative overflow-hidden">
+                    
+                    <!-- Vertical Glowing Barrier -->
+                    <div class="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[2px] bg-gradient-to-b from-transparent via-indigo-500 to-transparent hidden md:block">
+                        <div class="w-3 h-10 bg-indigo-400 rounded-full filter blur-sm opacity-80 scanner-beam"></div>
+                    </div>
+
+                    <div class="relative z-10 bg-slate-900 border border-slate-800 rounded-2xl p-4 max-w-[120px] w-full flex flex-col items-center gap-2 shadow-2xl">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-slate-950 font-bold shadow-md">
+                            <i class="fa-solid fa-bolt text-white animate-bounce"></i>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest leading-tight">Laplace Gateway</span>
+                        <div class="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden mt-1">
+                            <div class="bg-gradient-to-r from-indigo-500 to-cyan-400 h-full w-2/3 animate-pulse"></div>
+                        </div>
+                    </div>
+
+                    <div class="text-[11px] text-slate-500 italic hidden md:block mt-2">
+                        Signals flow through the integral barrier
+                    </div>
+                </div>
+
+                <!-- S-Domain View (F(s)) with Pole-Zero S-Plane Grid -->
+                <div class="md:col-span-5 bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3 shadow-xl min-h-[350px]">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-pulse"></span>
+                            <h2 class="text-sm font-bold text-slate-200">S-Domain: Pole-Zero Map</h2>
+                        </div>
+                        <span class="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-cyan-400 font-semibold uppercase">Interactive S-Plane</span>
+                    </div>
+
+                    <div class="relative flex-1 bg-slate-950/80 rounded-xl overflow-hidden border border-slate-850 cursor-crosshair">
+                        <canvas id="s-plane-canvas" class="block w-full h-full"></canvas>
+                        <!-- Dynamic Legend -->
+                        <div class="absolute top-2.5 right-3 bg-slate-900/85 border border-slate-800 text-[10px] px-2 py-1 rounded-md text-slate-400 flex flex-col gap-0.5">
+                            <div class="flex items-center gap-1.5"><span class="text-rose-500 font-bold">X</span> Pole (System Resonance)</div>
+                            <div class="flex items-center gap-1.5"><span class="text-cyan-400 font-bold">O</span> Zero (Absorber)</div>
+                        </div>
+                        <div class="absolute bottom-2.5 left-3 bg-slate-900/90 border border-slate-800 text-[11px] px-2.5 py-1.5 rounded-md text-slate-300 font-medium select-none pointer-events-none">
+                            <i class="fa-solid fa-hand-pointer text-indigo-400 mr-1"></i> Drag poles to modify time-domain decay
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Algebraic Signature & Pole Formula Panel -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
+                <div class="flex items-center gap-2 border-b border-slate-800 pb-3 mb-4">
+                    <i class="fa-solid fa-code text-indigo-400"></i>
+                    <h3 class="font-bold text-sm text-slate-100">Laplace Algebraic Formula Block &amp; Convergence</h3>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                    <!-- Dynamic Formula Panel -->
+                    <div class="md:col-span-7 bg-slate-950 p-4 rounded-xl border border-slate-850 flex flex-col justify-center min-h-[110px]">
+                        <span class="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">Laplace Transfer Function F(s)</span>
+                        <div id="algebraic-formula-container" class="mt-2 text-slate-200">
+                            <!-- Injected by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Region of Convergence (ROC) Card -->
+                    <div class="md:col-span-5 bg-slate-950 p-4 rounded-xl border border-slate-850 flex flex-col justify-center">
+                        <span class="text-[10px] uppercase font-bold text-cyan-400 tracking-wider">Region of Convergence (ROC)</span>
+                        <div class="mt-1 flex flex-col gap-1 text-xs">
+                            <div class="font-semibold text-slate-200" id="roc-formula-txt">Re{s} &gt; -0.50</div>
+                            <p class="text-[11px] text-slate-400 leading-normal" id="roc-desc-txt">
+                                The Laplace integral converges only inside this shaded region of the s-plane.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Concept Mastery Quiz Challenge -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-graduation-cap text-indigo-400"></i>
+                        <h3 class="font-bold text-sm text-slate-100">Laplace Core Concepts Quiz</h3>
+                    </div>
+                    <span id="quiz-badge" class="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full">0/3 Solved</span>
+                </div>
+
+                <!-- Quiz Card -->
+                <div id="quiz-box" class="bg-slate-950 p-4 rounded-xl border border-slate-850">
+                    <h4 id="quiz-question-txt" class="text-xs font-semibold text-slate-200 mb-3 leading-relaxed">
+                        Loading challenge...
+                    </h4>
+                    <div id="quiz-options-box" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <!-- Options injected here -->
+                    </div>
+                    
+                    <!-- Quiz Feedback Alerts -->
+                    <div id="quiz-result-feedback" class="hidden mt-3 p-3 rounded-lg text-xs leading-normal">
+                        <!-- Feedback content -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Detailed Theory Lesson on Laplace Transformations -->
+    <section class="max-w-7xl w-full mx-auto p-4 lg:p-6 mb-8">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl">
+            <h2 class="text-xl md:text-2xl font-black text-slate-100 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-circle-question text-indigo-500 animate-pulse"></i>
+                Connecting S-Plane Poles to Time Dynamics
+            </h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 text-sm text-slate-300 leading-relaxed">
+                <!-- Left Theory Panel -->
+                <div class="flex flex-col gap-4">
+                    <p>
+                        The Laplace transform maps complex differential equations in the time-domain into elegant, algebraic fraction blocks in the complex s-domain. The variable $s = \sigma + j\omega$ represents a generalized complex frequency, combining scaling/damping ($\sigma$) and physical oscillation ($\omega$).
+                    </p>
+                    <p class="border-l-2 border-indigo-500 pl-4 py-1 italic bg-indigo-950/10 text-slate-200">
+                        "The positions of the poles (roots of the denominator) on the S-plane map determine the exact character of the physical system's natural transient response."
+                    </p>
+                    <p>
+                        When a pole moves to the left (more negative $\sigma$), the corresponding time domain envelope decays faster. If poles cross into the Right Half Plane ($\sigma > 0$), the time-domain system becomes exponentially **unstable**, generating infinite amplification from a simple impulse.
+                    </p>
+                </div>
+
+                <!-- Right Theory Panel -->
+                <div class="bg-slate-950 p-5 rounded-2xl border border-slate-850 flex flex-col gap-4 text-xs">
+                    <h3 class="font-bold text-white text-base flex items-center gap-1.5">
+                        <i class="fa-solid fa-gears text-cyan-400"></i>
+                        Deciphering the Pole Coordinate Landmarks
+                    </h3>
+                    <ul class="space-y-3">
+                        <li class="flex gap-3">
+                            <span class="text-indigo-400 font-bold mt-0.5"><i class="fa-solid fa-chevron-right"></i></span>
+                            <div>
+                                <strong class="text-slate-100">Imaginary Frequency (jω-Axis):</strong>
+                                Dictates how fast the wave oscillates. Poles directly on the imaginary axis ($\sigma = 0$) create undamped, perpetual sinusoids.
+                            </div>
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="text-indigo-400 font-bold mt-0.5"><i class="fa-solid fa-chevron-right"></i></span>
+                            <div>
+                                <strong class="text-slate-100">Real Exponential Decay (σ-Axis):</strong>
+                                dictating dampening. If there's no imaginary component ($\omega_0 = 0$), poles only lie on the real axis, representing simple exponential growth or decay with zero oscillation.
+                            </div>
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="text-indigo-400 font-bold mt-0.5"><i class="fa-solid fa-chevron-right"></i></span>
+                            <div>
+                                <strong class="text-slate-100">Roots on Origin (s = 0):</strong>
+                                Produces a unit step function $u(t)$ with a perpetual steady-state voltage or location.
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="mt-auto border-t border-slate-900 bg-slate-950 text-slate-500 py-6 px-4 text-center text-xs">
+        <p>© 2026 Laplace Parallel Flow Sandbox. Developed for visual engineering education.</p>
+    </footer>
+
+    <script>
+        // --- 1. Signal Models Configuration ---
+        const signalModels = {
+            impulse: {
+                id: 'impulse',
+                name: 'Delta Impulse: δ(t)',
+                desc: 'An infinitely short, infinitely high burst of energy at t = 0.',
+                getFormulaHTML: (sigma, omega) => {
+                    return `
+                    <div class="flex items-center gap-2 text-base md:text-lg font-bold code-font">
+                        <span>F(s) = </span>
+                        <div class="inline-flex flex-col items-center">
+                            <span>1</span>
+                        </div>
+                    </div>
+                    `;
+                },
+                evaluate: (t, s, w) => {
+                    // Impulse approximation: returns sharp peak at 0, otherwise 0
+                    if (t < 0.05) return 2.0;
+                    return 0;
+                },
+                getPolesAndZeros: (sigma, omega) => {
+                    return { poles: [], zeros: [] }; // F(s) = 1 has no finite poles/zeros
+                },
+                getROCText: (sigma, omega) => "Entire S-Plane (All values of s)",
+                hasDecayConst: false
+            },
+            step: {
+                id: 'step',
+                name: 'Unit Step: u(t)',
+                desc: 'Instant step turn-on that remains flat for positive infinity.',
+                getFormulaHTML: (sigma, omega) => {
+                    return `
+                    <div class="flex items-center gap-2 text-base md:text-lg font-bold code-font">
+                        <span>F(s) = </span>
+                        <div class="inline-flex flex-col items-center border-l-0">
+                            <span class="border-b border-slate-700 px-2">1</span>
+                            <span class="px-2">s</span>
+                        </div>
+                    </div>
+                    `;
+                },
+                evaluate: (t, s, w) => {
+                    return 1.0;
+                },
+                getPolesAndZeros: (sigma, omega) => {
+                    return {
+                        poles: [{ r: 0, i: 0 }],
+                        zeros: []
+                    };
+                },
+                getROCText: (sigma, omega) => "Re{s} > 0.00",
+                hasDecayConst: false
+            },
+            exponential: {
+                id: 'exponential',
+                name: 'Exponential Wave: e^(-σ·t)',
+                desc: 'Pure smooth exponential scaling. Decay (if stable) or explosion (if unstable).',
+                getFormulaHTML: (sigma, omega) => {
+                    const sign = sigma >= 0 ? `+ ${sigma.toFixed(2)}` : `- ${Math.abs(sigma).toFixed(2)}`;
+                    return `
+                    <div class="flex items-center gap-2 text-base md:text-lg font-bold code-font">
+                        <span>F(s) = </span>
+                        <div class="inline-flex flex-col items-center">
+                            <span class="border-b border-slate-700 px-2">1</span>
+                            <span class="px-2">s ${sign}</span>
+                        </div>
+                    </div>
+                    `;
+                },
+                evaluate: (t, s, w) => {
+                    return Math.exp(-s * t);
+                },
+                getPolesAndZeros: (sigma, omega) => {
+                    return {
+                        poles: [{ r: -sigma, i: 0 }],
+                        zeros: []
+                    };
+                },
+                getROCText: (sigma, omega) => `Re{s} > ${(-sigma).toFixed(2)}`,
+                hasDecayConst: true
+            },
+            damped_sinusoid: {
+                id: 'damped_sinusoid',
+                name: 'Damped Sinusoid',
+                desc: 'A physical system experiencing exponential decay overlaid with cyclical oscillation.',
+                getFormulaHTML: (sigma, omega) => {
+                    const sigStr = sigma >= 0 ? `+ ${sigma.toFixed(2)}` : `- ${Math.abs(sigma).toFixed(2)}`;
+                    const numSign = sigma >= 0 ? `+ ${sigma.toFixed(2)}` : `- ${Math.abs(sigma).toFixed(2)}`;
+                    const denomTerm = `(s ${sigStr})² + ${(omega * omega).toFixed(2)}`;
+                    return `
+                    <div class="flex items-center gap-2 text-base md:text-lg font-bold code-font">
+                        <span>F(s) = </span>
+                        <div class="inline-flex flex-col items-center">
+                            <span class="border-b border-slate-700 px-2">s ${numSign}</span>
+                            <span class="px-2 text-xs md:text-sm">${denomTerm}</span>
+                        </div>
+                    </div>
+                    `;
+                },
+                evaluate: (t, s, w) => {
+                    return Math.exp(-s * t) * Math.cos(w * t);
+                },
+                getPolesAndZeros: (sigma, omega) => {
+                    return {
+                        poles: [
+                            { r: -sigma, i: omega },
+                            { r: -sigma, i: -omega }
+                        ],
+                        zeros: [
+                            { r: -sigma, i: 0 }
+                        ]
+                    };
+                },
+                getROCText: (sigma, omega) => `Re{s} > ${(-sigma).toFixed(2)}`,
+                hasDecayConst: true
+            }
+        };
+
+        // --- STREAMING_CHUNK: Setting up the app State management variables... ---
+        // --- 2. Interactive Global State Variables ---
+        let currentSignalId = 'damped_sinusoid';
+        let sigma = 0.50;  // Decay rate parameter
+        let omega = 3.00;  // Frequency parameter
+        let dragTarget = null; // tracking which pole/zero are we manipulating on S-plane
+        let activeQuizIdx = 0;
+        let solvedCount = 0;
+
+        const timeCanvas = document.getElementById('time-domain-canvas');
+        const sPlaneCanvas = document.getElementById('s-plane-canvas');
+        const timeCtx = timeCanvas.getContext('2d');
+        const sPlaneCtx = sPlaneCanvas.getContext('2d');
+
+        // Core coordinates configuration for S-Plane
+        const gridConfig = {
+            minSigma: -5.0,
+            maxSigma: 5.0,
+            minOmega: -10.0,
+            maxOmega: 10.0
+        };
+
+        const quizQuestions = [
+            {
+                q: "If a complex conjugate pair of poles slides vertically upwards away from the real (σ) axis, how does the time-domain signal change?",
+                options: [
+                    { text: "The oscillation frequency increases.", correct: true },
+                    { text: "The signal decays faster to zero.", correct: false },
+                    { text: "The signal becomes highly unstable and blows up.", correct: false },
+                    { text: "The signal turns into a static DC step response.", correct: false }
+                ],
+                explain: "The imaginary axis distance (jω) directly dictates oscillation frequency. Increasing the vertical distance of conjugate poles always increases frequency."
+            },
+            {
+                q: "What happens when poles cross over the imaginary (jω) axis into the Right Half Plane (RHP, σ > 0)?",
+                options: [
+                    { text: "The system remains stable but changes phase.", correct: false },
+                    { text: "The system becomes unstable and grows exponentially.", correct: true },
+                    { text: "The system's frequency becomes zero.", correct: false },
+                    { text: "The region of convergence expands to include all points.", correct: false }
+                ],
+                explain: "The Right Half Plane corresponds to negative damping, leading to exponentially growing amplitude, which makes any analog system unstable."
+            },
+            {
+                q: "For a decaying exponential signal with a pole at s = -2.0, what is its corresponding decay time constant (τ)?",
+                options: [
+                    { text: "τ = 2.0 seconds", correct: false },
+                    { text: "τ = 0.5 seconds", correct: true },
+                    { text: "The system has infinite decay time.", correct: false },
+                    { text: "τ = 4.0 seconds", correct: false }
+                ],
+                explain: "The decay constant (τ) is the reciprocal of the exponential decay rate. For e^(-2t), τ = 1/2 = 0.5 seconds."
+            }
+        ];
+
+        // --- STREAMING_CHUNK: Initializing controllers and HTML preset binders... ---
+        // --- 3. App Setup & Bootloader ---
+        function initApp() {
+            renderSignalPresets();
+            loadSignal(currentSignalId);
+            setupQuizQuestion();
+            setupInterfaceEvents();
+            
+            // Start Rendering Loop
+            requestAnimationFrame(animationLoop);
+        }
+
+        function renderSignalPresets() {
+            const container = document.getElementById('signal-presets-container');
+            container.innerHTML = '';
+
+            Object.values(signalModels).forEach(sig => {
+                const isSelected = sig.id === currentSignalId;
+                const activeStyle = isSelected
+                    ? 'border-indigo-500 bg-indigo-500/10 text-indigo-200 glow-blue'
+                    : 'border-slate-800 bg-slate-950 text-slate-400 hover:border-slate-700 hover:text-slate-200';
+                
+                const btn = document.createElement('button');
+                btn.className = `w-full text-left p-3 rounded-xl border-2 transition-all flex flex-col gap-1 ${activeStyle}`;
+                btn.onclick = () => loadSignal(sig.id);
+                btn.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold leading-none">${sig.name}</span>
+                        <i class="fa-solid ${sig.id === 'impulse' ? 'fa-pulse' : sig.id === 'step' ? 'fa-stairs' : sig.id === 'exponential' ? 'fa-arrow-trend-down' : 'fa-chart-line-up'} text-[11px] opacity-75"></i>
+                    </div>
+                    <p class="text-[10px] text-slate-500 leading-tight">${sig.desc}</p>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        // --- STREAMING_CHUNK: Loading Signal State... ---
+        function loadSignal(id) {
+            currentSignalId = id;
+            const sig = signalModels[id];
+
+            // Configure dynamic control constraints
+            const sigmaSlider = document.getElementById('sigma-slider');
+            const omegaSlider = document.getElementById('omega-slider');
+
+            if (id === 'impulse' || id === 'step') {
+                // Disable sliders for static signals
+                sigmaSlider.disabled = true;
+                omegaSlider.disabled = true;
+                sigmaSlider.closest('div').classList.add('opacity-40');
+                omegaSlider.closest('div').classList.add('opacity-40');
+            } else if (id === 'exponential') {
+                sigmaSlider.disabled = false;
+                omegaSlider.disabled = true;
+                sigmaSlider.closest('div').classList.remove('opacity-40');
+                omegaSlider.closest('div').classList.add('opacity-40');
+            } else {
+                sigmaSlider.disabled = false;
+                omegaSlider.disabled = false;
+                sigmaSlider.closest('div').classList.remove('opacity-40');
+                omegaSlider.closest('div').classList.remove('opacity-40');
+            }
+
+            renderSignalPresets();
+            updateControlUI();
+        }
+
+        function updateControlUI() {
+            // Synchronize sliders
+            document.getElementById('sigma-slider').value = sigma;
+            document.getElementById('omega-slider').value = omega;
+
+            // Formats values
+            document.getElementById('sigma-value-label').textContent = `${sigma.toFixed(2)} s⁻¹`;
+            document.getElementById('omega-value-label').textContent = `${omega.toFixed(2)} rad/s`;
+
+            // Update details and parameters
+            const polesAndZeros = signalModels[currentSignalId].getPolesAndZeros(sigma, omega);
+            let poleText = "None";
+            if (polesAndZeros.poles.length > 0) {
+                poleText = polesAndZeros.poles.map(p => {
+                    const imagPart = p.i !== 0 ? ` ± j${Math.abs(p.i).toFixed(2)}` : '';
+                    return `s = ${p.r.toFixed(2)}${imagPart}`;
+                }).join(' ; ');
+            }
+            document.getElementById('pole-coordinates-text').textContent = poleText;
+
+            // Decay Time Constant update
+            const decayEl = document.getElementById('decay-const-text');
+            if (signalModels[currentSignalId].hasDecayConst && Math.abs(sigma) > 0.01) {
+                const tau = 1 / Math.abs(sigma);
+                decayEl.textContent = `τ = ${tau.toFixed(2)} s (${sigma >= 0 ? 'Decay' : 'Growth'})`;
+            } else {
+                decayEl.textContent = "N/A (Steady/Oscillating)";
+            }
+
+            // Equation updates
+            const container = document.getElementById('algebraic-formula-container');
+            container.innerHTML = signalModels[currentSignalId].getFormulaHTML(sigma, omega);
+
+            // Update Region of Convergence text
+            document.getElementById('roc-formula-txt').textContent = signalModels[currentSignalId].getROCText(sigma, omega);
+
+            // Update Time-Domain Function Overlay Text
+            updateFnTextOverlay();
+
+            // Stability badge check
+            updateStabilityBadge();
+        }
+
+        function updateFnTextOverlay() {
+            const el = document.getElementById('time-fn-overlay');
+            const sVal = sigma.toFixed(2);
+            const oVal = omega.toFixed(2);
+
+            switch (currentSignalId) {
+                case 'impulse':
+                    el.textContent = "f(t) = δ(t)";
+                    break;
+                case 'step':
+                    el.textContent = "f(t) = u(t)";
+                    break;
+                case 'exponential':
+                    const expTerm = sigma >= 0 ? `e^(-${sVal}t)` : `e^(${Math.abs(sigma).toFixed(2)}t)`;
+                    el.textContent = `f(t) = ${expTerm} u(t)`;
+                    break;
+                case 'damped_sinusoid':
+                    const expTerm2 = sigma >= 0 ? `e^(-${sVal}t)` : `e^(${Math.abs(sigma).toFixed(2)}t)`;
+                    el.textContent = `f(t) = ${expTerm2} cos(${oVal}t) u(t)`;
+                    break;
+            }
+        }
+
+        function updateStabilityBadge() {
+            const badge = document.getElementById('stability-status-badge');
+            
+            if (currentSignalId === 'impulse' || currentSignalId === 'step') {
+                badge.className = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span> STABLE`;
+                return;
+            }
+
+            if (sigma > 0) {
+                badge.className = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span> STABLE`;
+            } else if (sigma === 0) {
+                badge.className = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20";
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400"></span> MARGINALLY STABLE`;
+            } else {
+                badge.className = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20";
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></span> UNSTABLE GROWTH`;
+            }
+        }
+
+        // --- STREAMING_CHUNK: Coding interaction events and dragging calculations... ---
+        // --- 4. Event Handler Bindings ---
+        function setupInterfaceEvents() {
+            // Slider listeners
+            document.getElementById('sigma-slider').addEventListener('input', (e) => {
+                sigma = parseFloat(e.target.value);
+                updateControlUI();
+            });
+
+            document.getElementById('omega-slider').addEventListener('input', (e) => {
+                omega = parseFloat(e.target.value);
+                updateControlUI();
+            });
+
+            // Reset button
+            document.getElementById('reset-btn').addEventListener('click', () => {
+                sigma = 0.50;
+                omega = 3.00;
+                currentSignalId = 'damped_sinusoid';
+                loadSignal(currentSignalId);
+            });
+
+            // Setup Mouse/Touch Event triggers for the S-Plane Canvas
+            sPlaneCanvas.addEventListener('mousedown', startDrag);
+            sPlaneCanvas.addEventListener('mousemove', dragMove);
+            window.addEventListener('mouseup', endDrag);
+
+            sPlaneCanvas.addEventListener('touchstart', (e) => startDrag(convertTouch(e)), { passive: false });
+            sPlaneCanvas.addEventListener('touchmove', (e) => { dragMove(convertTouch(e)); e.preventDefault(); }, { passive: false });
+            window.addEventListener('touchend', endDrag);
+        }
+
+        function convertTouch(e) {
+            if (e.touches.length === 0) return e;
+            return {
+                clientX: e.touches[0].clientX,
+                clientY: e.touches[0].clientY
+            };
+        }
+
+        // Mapping helpers to translate screen coordinates to poles coordinates
+        function toSPlaneCoords(clientX, clientY) {
+            const rect = sPlaneCanvas.getBoundingClientRect();
+            const px = clientX - rect.left;
+            const py = clientY - rect.top;
+
+            const dpr = window.devicePixelRatio || 1;
+            const w = sPlaneCanvas.width / dpr;
+            const h = sPlaneCanvas.height / dpr;
+
+            // Convert to relative real/imag coordinates
+            const sReal = gridConfig.minSigma + (px / w) * (gridConfig.maxSigma - gridConfig.minSigma);
+            const sImag = gridConfig.maxOmega - (py / h) * (gridConfig.maxOmega - gridConfig.minOmega);
+
+            return { r: sReal, i: sImag };
+        }
+
+        function startDrag(e) {
+            if (currentSignalId === 'impulse' || currentSignalId === 'step') return;
+
+            const clickCoords = toSPlaneCoords(e.clientX, e.clientY);
+            const polesAndZeros = signalModels[currentSignalId].getPolesAndZeros(sigma, omega);
+
+            // Find closest pole
+            let closestDist = 0.5; // Threshold radius for selection
+            let foundPole = null;
+
+            polesAndZeros.poles.forEach((pole, idx) => {
+                const dx = clickCoords.r - pole.r;
+                const dy = clickCoords.i - pole.i;
+                const distance = Math.sqrt(dx*dx + dy*dy);
+                if (distance < closestDist) {
+                    closestDist = distance;
+                    foundPole = { type: 'pole', index: idx, offsetR: dx, offsetI: dy };
+                }
+            });
+
+            if (foundPole) {
+                dragTarget = foundPole;
+            }
+        }
+
+        function dragMove(e) {
+            if (!dragTarget) return;
+
+            const mouseCoords = toSPlaneCoords(e.clientX, e.clientY);
+
+            // Update parameters based on pole selected
+            if (dragTarget.type === 'pole') {
+                // real part maps to -sigma
+                let requestedSigma = -mouseCoords.r;
+                let requestedOmega = Math.abs(mouseCoords.i);
+
+                // Bound parameters inside physical limits
+                sigma = Math.max(-2.0, Math.min(2.0, requestedSigma));
+                if (currentSignalId !== 'exponential') {
+                    omega = Math.max(0.0, Math.min(8.0, requestedOmega));
+                }
+
+                updateControlUI();
+            }
+        }
+
+        function endDrag() {
+            dragTarget = null;
+        }
+
+        // --- STREAMING_CHUNK: Coding high-performance double rendering canvas loop... ---
+        // --- 5. Rendering Pipeline Loop ---
+        function animationLoop(timestamp) {
+            resizeCanvasToWindow();
+
+            renderTimeDomain();
+            renderSPlane();
+
+            requestAnimationFrame(animationLoop);
+        }
+
+        function resizeCanvasToWindow() {
+            const dpr = window.devicePixelRatio || 1;
+
+            // Handle Time Canvas resizing
+            const rectTime = timeCanvas.getBoundingClientRect();
+            const targetTimeW = Math.floor(rectTime.width);
+            const targetTimeH = Math.floor(rectTime.height);
+            if (timeCanvas.width !== targetTimeW * dpr || timeCanvas.height !== targetTimeH * dpr) {
+                timeCanvas.width = targetTimeW * dpr;
+                timeCanvas.height = targetTimeH * dpr;
+                timeCtx.scale(dpr, dpr);
+                timeCanvas.style.width = targetTimeW + 'px';
+                timeCanvas.style.height = targetTimeH + 'px';
+            }
+
+            // Handle S-Plane Canvas resizing
+            const rectS = sPlaneCanvas.getBoundingClientRect();
+            const targetSW = Math.floor(rectS.width);
+            const targetSH = Math.floor(rectS.height);
+            if (sPlaneCanvas.width !== targetSW * dpr || sPlaneCanvas.height !== targetSH * dpr) {
+                sPlaneCanvas.width = targetSW * dpr;
+                sPlaneCanvas.height = targetSH * dpr;
+                sPlaneCtx.scale(dpr, dpr);
+                sPlaneCanvas.style.width = targetSW + 'px';
+                sPlaneCanvas.style.height = targetSH + 'px';
+            }
+        }
+
+        // Drawing Time Domain Waves
+        function renderTimeDomain() {
+            const dpr = window.devicePixelRatio || 1;
+            const w = timeCanvas.width / dpr;
+            const h = timeCanvas.height / dpr;
+
+            timeCtx.fillStyle = '#060a13';
+            timeCtx.fillRect(0, 0, w, h);
+
+            // Set up plotting boundaries and dimensions
+            const padding = { left: 45, right: 20, top: 30, bottom: 35 };
+            const plotW = w - padding.left - padding.right;
+            const plotH = h - padding.top - padding.bottom;
+
+            // Draw local grid lines
+            timeCtx.strokeStyle = '#1e293b';
+            timeCtx.lineWidth = 1;
+
+            // Horizontal time increments
+            const duration = 6.0; // Seconds mapped to width
+            for (let t = 0; t <= duration; t += 1.0) {
+                const x = padding.left + (t / duration) * plotW;
+                timeCtx.beginPath();
+                timeCtx.moveTo(x, padding.top);
+                timeCtx.lineTo(x, padding.top + plotH);
+                timeCtx.stroke();
+
+                // Draw X-labels
+                timeCtx.fillStyle = '#64748b';
+                timeCtx.font = '9px "Fira Code", monospace';
+                timeCtx.fillText(`${t}s`, x - 5, padding.top + plotH + 15);
+            }
+
+            // Amplitude baseline guides
+            const ampMax = 2.0;
+            const ampMin = -2.0;
+
+            for (let val = ampMin; val <= ampMax; val += 1.0) {
+                const y = padding.top + plotH - ((val - ampMin) / (ampMax - ampMin)) * plotH;
+                timeCtx.beginPath();
+                timeCtx.moveTo(padding.left, y);
+                timeCtx.lineTo(padding.left + plotW, y);
+                timeCtx.stroke();
+
+                // Draw Y-labels
+                timeCtx.fillStyle = '#64748b';
+                timeCtx.font = '9px "Fira Code", monospace';
+                timeCtx.fillText(val.toFixed(1), padding.left - 30, y + 3);
+            }
+
+            // Zero Time Axis reference line
+            const yZero = padding.top + plotH - ((0 - ampMin) / (ampMax - ampMin)) * plotH;
+            timeCtx.strokeStyle = '#475569';
+            timeCtx.lineWidth = 1.5;
+            timeCtx.beginPath();
+            timeCtx.moveTo(padding.left, yZero);
+            timeCtx.lineTo(padding.left + plotW, yZero);
+            timeCtx.stroke();
+
+            // Evaluate Wave points
+            const points = [];
+            const steps = 300;
+            const sig = signalModels[currentSignalId];
+
+            for (let i = 0; i <= steps; i++) {
+                const t = (i / steps) * duration;
+                const value = sig.evaluate(t, sigma, omega);
+                
+                const x = padding.left + (t / duration) * plotW;
+                // Clamp visually inside plotting frame to prevent giant unstable loops from breaching UI limits
+                const visualValue = Math.max(ampMin * 2, Math.min(ampMax * 2, value));
+                const y = padding.top + plotH - ((visualValue - ampMin) / (ampMax - ampMin)) * plotH;
+
+                points.push({ x, y });
+            }
+
+            // Draw Decay Envelopes (for visual cue)
+            if (currentSignalId === 'exponential' || currentSignalId === 'damped_sinusoid') {
+                timeCtx.strokeStyle = 'rgba(168, 85, 247, 0.15)';
+                timeCtx.lineWidth = 1.5;
+                timeCtx.setLineDash([4, 4]);
+
+                // Draw Upper decay
+                timeCtx.beginPath();
+                points.forEach((pt, idx) => {
+                    const t = (idx / steps) * duration;
+                    const envVal = Math.exp(-sigma * t);
+                    const yEnv = padding.top + plotH - ((envVal - ampMin) / (ampMax - ampMin)) * plotH;
+                    if (idx === 0) timeCtx.moveTo(pt.x, yEnv);
+                    else timeCtx.lineTo(pt.x, yEnv);
+                });
+                timeCtx.stroke();
+
+                // Draw Lower decay
+                timeCtx.beginPath();
+                points.forEach((pt, idx) => {
+                    const t = (idx / steps) * duration;
+                    const envVal = -Math.exp(-sigma * t);
+                    const yEnv = padding.top + plotH - ((envVal - ampMin) / (ampMax - ampMin)) * plotH;
+                    if (idx === 0) timeCtx.moveTo(pt.x, yEnv);
+                    else timeCtx.lineTo(pt.x, yEnv);
+                });
+                timeCtx.stroke();
+
+                timeCtx.setLineDash([]); // Restore solid line
+            }
+
+            // Render Time-domain curve line
+            timeCtx.strokeStyle = sigma < 0 ? '#f43f5e' : '#6366f1';
+            timeCtx.lineWidth = 2.5;
+            timeCtx.beginPath();
+            points.forEach((pt, idx) => {
+                if (idx === 0) timeCtx.moveTo(pt.x, pt.y);
+                else timeCtx.lineTo(pt.x, pt.y);
+            });
+            timeCtx.stroke();
+
+            // Clear frame outlines
+            timeCtx.strokeStyle = '#334155';
+            timeCtx.lineWidth = 1.5;
+            timeCtx.strokeRect(padding.left, padding.top, plotW, plotH);
+        }
+
+        // --- STREAMING_CHUNK: Coding the interactive S-Plane graphics... ---
+        // Drawing S-Plane with pole and zero markers
+        function renderSPlane() {
+            const dpr = window.devicePixelRatio || 1;
+            const w = sPlaneCanvas.width / dpr;
+            const h = sPlaneCanvas.height / dpr;
+
+            sPlaneCtx.fillStyle = '#060a13';
+            sPlaneCtx.fillRect(0, 0, w, h);
+
+            // Compute grid points coordinates
+            const originX = w / 2;
+            const originY = h / 2;
+
+            // Mapping domain value to pixels
+            const toX = (val) => originX + (val / gridConfig.maxSigma) * (w / 2);
+            const toY = (val) => originY - (val / gridConfig.maxOmega) * (h / 2);
+
+            // 1. Shading regions (Region of Convergence / Stability zones)
+            // Left Half Plane (LHP) is Stable: Shaded very faintly green
+            sPlaneCtx.fillStyle = 'rgba(16, 185, 129, 0.03)';
+            sPlaneCtx.fillRect(0, 0, originX, h);
+
+            // Right Half Plane (RHP) is Unstable: Shaded very faintly red
+            sPlaneCtx.fillStyle = 'rgba(244, 63, 94, 0.03)';
+            sPlaneCtx.fillRect(originX, 0, w - originX, h);
+
+            // 2. Shade the Region of Convergence (ROC) dynamically
+            const rocBoundary = -sigma; // for LTI causality
+            const boundaryX = toX(rocBoundary);
+
+            sPlaneCtx.fillStyle = 'rgba(59, 130, 246, 0.08)';
+            if (currentSignalId === 'impulse') {
+                // Entire plane converges
+                sPlaneCtx.fillRect(0, 0, w, h);
+            } else {
+                // Right of pole boundary converges
+                sPlaneCtx.fillRect(boundaryX, 0, w - boundaryX, h);
+
+                // Draw dashed vertical ROC barrier
+                sPlaneCtx.strokeStyle = 'rgba(59, 130, 246, 0.4)';
+                sPlaneCtx.lineWidth = 1.5;
+                sPlaneCtx.setLineDash([5, 5]);
+                sPlaneCtx.beginPath();
+                sPlaneCtx.moveTo(boundaryX, 0);
+                sPlaneCtx.lineTo(boundaryX, h);
+                sPlaneCtx.stroke();
+                sPlaneCtx.setLineDash([]);
+            }
+
+            // Draw central axes
+            sPlaneCtx.strokeStyle = '#334155';
+            sPlaneCtx.lineWidth = 1.5;
+
+            // Real axis (sigma)
+            sPlaneCtx.beginPath();
+            sPlaneCtx.moveTo(0, originY);
+            sPlaneCtx.lineTo(w, originY);
+            sPlaneCtx.stroke();
+
+            // Imaginary axis (j_omega)
+            sPlaneCtx.beginPath();
+            sPlaneCtx.moveTo(originX, 0);
+            sPlaneCtx.lineTo(originX, h);
+            sPlaneCtx.stroke();
+
+            // 3. Draw grid markings
+            sPlaneCtx.strokeStyle = '#1e293b';
+            sPlaneCtx.lineWidth = 1;
+
+            // Verticals (sigma intervals)
+            for (let val = gridConfig.minSigma; val <= gridConfig.maxSigma; val += 1.0) {
+                if (val === 0) continue;
+                const x = toX(val);
+                sPlaneCtx.beginPath();
+                sPlaneCtx.moveTo(x, 0);
+                sPlaneCtx.lineTo(x, h);
+                sPlaneCtx.stroke();
+
+                // Axis label ticks
+                sPlaneCtx.fillStyle = '#64748b';
+                sPlaneCtx.font = '8px "Fira Code", monospace';
+                sPlaneCtx.fillText(val.toFixed(0), x - 5, originY + 14);
+            }
+
+            // Horizontals (omega intervals)
+            for (let val = gridConfig.minOmega; val <= gridConfig.maxOmega; val += 2.0) {
+                if (val === 0) continue;
+                const y = toY(val);
+                sPlaneCtx.beginPath();
+                sPlaneCtx.moveTo(0, y);
+                sPlaneCtx.lineTo(w, y);
+                sPlaneCtx.stroke();
+
+                // Axis label ticks
+                sPlaneCtx.fillStyle = '#64748b';
+                sPlaneCtx.font = '8px "Fira Code", monospace';
+                sPlaneCtx.fillText(`${val > 0 ? '+' : ''}${val.toFixed(0)}j`, originX + 8, y + 3);
+            }
+
+            // Draw main axes title legends
+            sPlaneCtx.fillStyle = '#94a3b8';
+            sPlaneCtx.font = 'bold 10px "Inter"';
+            sPlaneCtx.fillText("Real Axis (σ)", w - 75, originY - 8);
+            sPlaneCtx.fillText("Imaginary Axis (jω)", originX + 8, 15);
+
+            // 4. Render Active Poles and Zeros
+            const markers = signalModels[currentSignalId].getPolesAndZeros(sigma, omega);
+
+            // Draw Zeros as circle 'O' symbols
+            markers.zeros.forEach(zero => {
+                const zx = toX(zero.r);
+                const zy = toY(zero.i);
+
+                sPlaneCtx.strokeStyle = '#22d3ee';
+                sPlaneCtx.lineWidth = 3;
+                sPlaneCtx.beginPath();
+                sPlaneCtx.arc(zx, zy, 6, 0, 2 * Math.PI);
+                sPlaneCtx.stroke();
+                
+                // Outer glow ring
+                sPlaneCtx.strokeStyle = 'rgba(34, 211, 238, 0.2)';
+                sPlaneCtx.lineWidth = 1;
+                sPlaneCtx.beginPath();
+                sPlaneCtx.arc(zx, zy, 11, 0, 2 * Math.PI);
+                sPlaneCtx.stroke();
+            });
+
+            // Draw Poles as bold cross 'X' symbols
+            markers.poles.forEach((pole, index) => {
+                const px = toX(pole.r);
+                const py = toY(pole.i);
+                const size = 6;
+
+                // Glowing outer handle ring for dragging cues
+                sPlaneCtx.fillStyle = (dragTarget && dragTarget.index === index) ? 'rgba(244, 63, 94, 0.35)' : 'rgba(244, 63, 94, 0.15)';
+                sPlaneCtx.beginPath();
+                sPlaneCtx.arc(px, py, 11, 0, 2 * Math.PI);
+                sPlaneCtx.fill();
+
+                // Cross design
+                sPlaneCtx.strokeStyle = '#f43f5e';
+                sPlaneCtx.lineWidth = 3;
+
+                sPlaneCtx.beginPath();
+                sPlaneCtx.moveTo(px - size, py - size);
+                sPlaneCtx.lineTo(px + size, py + size);
+                sPlaneCtx.stroke();
+
+                sPlaneCtx.beginPath();
+                sPlaneCtx.moveTo(px - size, py + size);
+                sPlaneCtx.lineTo(px + size, py - size);
+                sPlaneCtx.stroke();
+            });
+        }
+
+        // --- STREAMING_CHUNK: Coding the Interactive Quiz System... ---
+        // --- 6. Interactive Quiz Mechanics ---
+        function setupQuizQuestion() {
+            const qData = quizQuestions[activeQuizIdx];
+            document.getElementById('quiz-question-txt').textContent = `${activeQuizIdx + 1}. ${qData.q}`;
+            
+            const box = document.getElementById('quiz-options-box');
+            box.innerHTML = '';
+
+            const feedback = document.getElementById('quiz-result-feedback');
+            feedback.className = "hidden mt-3 p-3 rounded-lg text-xs leading-normal";
+
+            qData.options.forEach((opt, idx) => {
+                const button = document.createElement('button');
+                button.className = "w-full text-left p-3 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-800 hover:border-indigo-500/40 text-xs transition-all text-slate-300 hover:text-white";
+                button.onclick = () => selectQuizAnswer(idx, button);
+                button.textContent = opt.text;
+                box.appendChild(button);
+            });
+        }
+
+        function selectQuizAnswer(selectedIdx, clickedBtn) {
+            const qData = quizQuestions[activeQuizIdx];
+            const isCorrect = qData.options[selectedIdx].correct;
+            const feedback = document.getElementById('quiz-result-feedback');
+
+            // Block multiple selections
+            const options = document.getElementById('quiz-options-box').querySelectorAll('button');
+            options.forEach(btn => btn.disabled = true);
+
+            if (isCorrect) {
+                solvedCount++;
+                clickedBtn.className = "w-full text-left p-3 rounded-xl border border-emerald-500/50 bg-emerald-500/10 text-emerald-300 text-xs font-semibold";
+                feedback.className = "mt-3 p-3 rounded-lg text-xs leading-normal bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 block";
+                feedback.innerHTML = `<span class="font-bold text-emerald-300"><i class="fa-solid fa-circle-check"></i> Correct!</span> ${qData.explain}`;
+            } else {
+                clickedBtn.className = "w-full text-left p-3 rounded-xl border border-rose-500/50 bg-rose-500/10 text-rose-300 text-xs font-semibold";
+                feedback.className = "mt-3 p-3 rounded-lg text-xs leading-normal bg-rose-500/10 text-rose-400 border border-rose-500/20 block";
+                feedback.innerHTML = `<span class="font-bold text-rose-300"><i class="fa-solid fa-triangle-exclamation"></i> Incorrect.</span> ${qData.explain}`;
+
+                // Highlight correct selection
+                const correctIdx = qData.options.findIndex(o => o.correct);
+                options[correctIdx].className = "w-full text-left p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 text-emerald-400 text-xs";
+            }
+
+            document.getElementById('quiz-badge').textContent = `${solvedCount}/3 Solved`;
+
+            // Auto-advance with comfortable educational delay
+            setTimeout(() => {
+                activeQuizIdx = (activeQuizIdx + 1) % quizQuestions.length;
+                if (activeQuizIdx === 0) {
+                    solvedCount = 0;
+                    document.getElementById('quiz-badge').textContent = `0/3 Solved`;
+                }
+                setupQuizQuestion();
+            }, 7500);
+        }
+
+        // Launch the system on load
+        window.onload = function() {
+            initApp();
+        };
+    </script>
+</body>
+</html>
