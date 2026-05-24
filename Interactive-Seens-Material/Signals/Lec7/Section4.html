@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Evolution: Time to Frequency</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .scanner-beam { animation: scan 2.5s infinite linear; }
+        @keyframes scan { 
+            0% { left: -100%; opacity: 0; } 
+            15% { opacity: 1; } 
+            85% { opacity: 1; } 
+            100% { left: 100%; opacity: 0; } 
+        }
+        .floating-block { animation: float 4s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans p-4">
+
+    <div class="max-w-4xl mx-auto mt-10">
+        <header class="text-center mb-10">
+            <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">
+                System Evolution: Time to Frequency
+            </h1>
+        </header>
+
+        <div id="math-stage" class="bg-slate-900 border border-slate-700 rounded-3xl p-10 min-h-[300px] flex items-center justify-center shadow-2xl relative overflow-hidden">
+            <div id="math-content" class="text-3xl md:text-5xl font-serif italic"></div>
+        </div>
+
+        <div id="info-panel" class="mt-8 bg-slate-800 p-6 rounded-2xl border border-slate-700">
+            <h3 id="step-title" class="text-xl font-semibold mb-2"></h3>
+            <p id="step-desc" class="text-slate-300"></p>
+        </div>
+
+        <div class="flex justify-center items-center gap-6 mt-8">
+            <button onclick="prevStep()" class="p-4 rounded-full bg-slate-800 hover:bg-slate-700">Prev</button>
+            <button onclick="togglePlay()" id="play-btn" class="p-6 rounded-full bg-fuchsia-600">Play</button>
+            <button onclick="nextStep()" class="p-4 rounded-full bg-slate-800 hover:bg-slate-700">Next</button>
+        </div>
+    </div>
+
+    <script>
+        const STEPS = [
+            { title: "1. Time Domain", desc: "Modeling a system using a differential equation.", math: "y''(t) + 3y'(t) + 2y(t) = x(t)" },
+            { title: "2. Laplace Transform", desc: "Mapping the equation into the complex frequency domain.", math: "s²Y(s) + 3sY(s) + 2Y(s) = X(s)" },
+            { title: "3. Transfer Function", desc: "Defining H(s) = Y(s)/X(s).", math: "H(s) = 1 / (s² + 3s + 2)" },
+            { title: "4. Impulse Response", desc: "Inverse Laplace transform yields h(t).", math: "h(t) = e⁻ᵗu(t) - e⁻²ᵗu(t)" }
+        ];
+
+        let currentStep = 0;
+        let isPlaying = false;
+
+        function update() {
+            document.getElementById('math-content').textContent = STEPS[currentStep].math;
+            document.getElementById('step-title').textContent = STEPS[currentStep].title;
+            document.getElementById('step-desc').textContent = STEPS[currentStep].desc;
+        }
+
+        function nextStep() { if(currentStep < STEPS.length - 1) currentStep++; update(); }
+        function prevStep() { if(currentStep > 0) currentStep--; update(); }
+        function togglePlay() { 
+            isPlaying = !isPlaying;
+            document.getElementById('play-btn').textContent = isPlaying ? "Pause" : "Play";
+            if(isPlaying) interval = setInterval(() => {
+                if(currentStep < STEPS.length - 1) nextStep();
+                else togglePlay();
+            }, 3000);
+            else clearInterval(interval);
+        }
+
+        update();
+    </script>
+</body>
+</html>

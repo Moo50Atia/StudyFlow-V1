@@ -1,244 +1,250 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowRight, Activity, RefreshCw, Zap, Layers, Cpu, CheckCircle } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Convolution vs Laplace</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes flowRight {
+      0% { transform: translateX(-20px); opacity: 0; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { transform: translateX(80px); opacity: 0; }
+    }
+    @keyframes flowUp {
+      0% { transform: translateY(20px); opacity: 0; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { transform: translateY(-40px); opacity: 0; }
+    }
+    @keyframes pulseGlow {
+      0%, 100% { filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.5)); }
+      50% { filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.9)); }
+    }
+    @keyframes pulsePurple {
+      0%, 100% { filter: drop-shadow(0 0 5px rgba(192, 132, 252, 0.5)); }
+      50% { filter: drop-shadow(0 0 20px rgba(192, 132, 252, 0.9)); }
+    }
+    @keyframes pulseEmerald {
+      0%, 100% { filter: drop-shadow(0 0 5px rgba(52, 211, 153, 0.5)); }
+      50% { filter: drop-shadow(0 0 20px rgba(52, 211, 153, 0.9)); }
+    }
+    @keyframes pulsePink {
+      0%, 100% { filter: drop-shadow(0 0 5px rgba(244, 114, 182, 0.5)); }
+      50% { filter: drop-shadow(0 0 20px rgba(244, 114, 182, 0.9)); }
+    }
+    @keyframes pulseIndigo {
+      0%, 100% { filter: drop-shadow(0 0 5px rgba(129, 140, 248, 0.5)); }
+      50% { filter: drop-shadow(0 0 20px rgba(129, 140, 248, 0.9)); }
+    }
+    @keyframes pulseFuchsia {
+      0%, 100% { filter: drop-shadow(0 0 5px rgba(232, 121, 249, 0.5)); }
+      50% { filter: drop-shadow(0 0 20px rgba(232, 121, 249, 0.9)); }
+    }
+    @keyframes laplaceFlash {
+      0% { opacity: 0; backdrop-filter: blur(0px); }
+      50% { opacity: 1; backdrop-filter: blur(10px); }
+      100% { opacity: 0; backdrop-filter: blur(0px); }
+    }
 
-export default function ConvolutionVsLaplace() {
-  const [domain, setDomain] = useState('time'); // 'time' or 's'
-  const [isAnimatingTransition, setIsAnimatingTransition] = useState(false);
+    .signal-flow-x { animation: flowRight 3s infinite linear; }
+    .signal-flow-y { animation: flowUp 3s infinite linear; }
+    .overlay-flash { animation: laplaceFlash 1.2s ease-in-out forwards; z-index: 50; }
 
-  // Handle domain toggle with a Laplace transformation overlay effect
-  const toggleDomain = () => {
-    if (isAnimatingTransition) return;
-    setIsAnimatingTransition(true);
+    /* Component specific glows */
+    .glow-sky { animation: pulseGlow 2s infinite; }
+    .glow-purple { animation: pulsePurple 2s infinite; }
+    .glow-emerald { animation: pulseEmerald 2s infinite; }
+    .glow-pink { animation: pulsePink 2s infinite; }
+    .glow-indigo { animation: pulseIndigo 2s infinite; }
+    .glow-fuchsia { animation: pulseFuchsia 2s infinite; }
+  </style>
+</head>
+<body class="bg-slate-950 m-0 p-0">
+
+  <div id="app" data-domain="time" class="min-h-screen text-slate-200 font-sans p-6 flex flex-col items-center justify-center overflow-hidden relative">
     
-    // Halfway through the overlay animation, swap the actual domain data
-    setTimeout(() => {
-      setDomain(prev => (prev === 'time' ? 's' : 'time'));
-    }, 600);
+    <div class="absolute inset-0 opacity-20 transition-colors duration-1000 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-900 data-[domain=time]:from-blue-900 via-slate-950 to-slate-950"></div>
 
-    // End transition
-    setTimeout(() => {
-      setIsAnimatingTransition(false);
-    }, 1200);
-  };
+    <div id="overlay" class="hidden absolute inset-0 bg-indigo-900/40 flex-col items-center justify-center pointer-events-none">
+      <div class="text-8xl font-serif text-white opacity-90 drop-shadow-[0_0_30px_rgba(255,255,255,1)]">ℒ</div>
+      <div class="mt-4 text-2xl font-light text-indigo-100 tracking-widest uppercase">Transforming Domain</div>
+    </div>
 
-  const isTime = domain === 'time';
+    <header class="z-10 text-center mb-10 w-full max-w-4xl">
+      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-transparent bg-clip-text bg-gradient-to-r from-slate-100 to-slate-400">
+        Domain Transformation
+      </h1>
+      <p class="text-slate-400 text-lg max-w-2xl mx-auto">
+        Contrast continuous time-domain convolution with algebraic s-domain multiplication using the Laplace Transform.
+      </p>
+    </header>
 
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans p-6 flex flex-col items-center justify-center overflow-hidden">
-      
-      {/* Dynamic Background Gradients */}
-      <div className={`absolute inset-0 opacity-20 transition-colors duration-1000 ${isTime ? 'bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-900 via-slate-950 to-slate-950' : 'bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-900 via-slate-950 to-slate-950'}`}></div>
-
-      {/* Embedded CSS for custom path animations */}
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes flowRight {
-          0% { transform: translateX(-20px); opacity: 0; }
-          20% { opacity: 1; }
-          80% { opacity: 1; }
-          100% { transform: translateX(80px); opacity: 0; }
-        }
-        @keyframes flowUp {
-          0% { transform: translateY(20px); opacity: 0; }
-          20% { opacity: 1; }
-          80% { opacity: 1; }
-          100% { transform: translateY(-40px); opacity: 0; }
-        }
-        @keyframes pulseGlow {
-          0%, 100% { filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.5)); }
-          50% { filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.9)); }
-        }
-        @keyframes pulsePurple {
-          0%, 100% { filter: drop-shadow(0 0 5px rgba(192, 132, 252, 0.5)); }
-          50% { filter: drop-shadow(0 0 20px rgba(192, 132, 252, 0.9)); }
-        }
-        @keyframes laplaceFlash {
-          0% { opacity: 0; backdrop-filter: blur(0px); }
-          50% { opacity: 1; backdrop-filter: blur(10px); }
-          100% { opacity: 0; backdrop-filter: blur(0px); }
-        }
-        .signal-flow-x { animation: flowRight 3s infinite linear; }
-        .signal-flow-y { animation: flowUp 3s infinite linear; }
-        .glow-time { animation: pulseGlow 2s infinite; }
-        .glow-s { animation: pulsePurple 2s infinite; }
-        .overlay-flash { animation: laplaceFlash 1.2s ease-in-out forwards; z-index: 50; }
-      `}} />
-
-      {/* --- Laplace Transformation Overlay --- */}
-      {isAnimatingTransition && (
-        <div className="absolute inset-0 bg-indigo-900/40 flex flex-col items-center justify-center overlay-flash pointer-events-none">
-          <div className="text-8xl font-serif text-white opacity-90 drop-shadow-[0_0_30px_rgba(255,255,255,1)]">
-            ℒ
+    <div class="z-10 flex flex-col items-center mb-12">
+      <div class="flex items-center gap-4 bg-slate-900/80 p-2 rounded-full border border-slate-700/50 shadow-xl backdrop-blur-sm">
+        <span class="px-4 py-2 font-semibold text-sm transition-colors text-slate-500 data-[domain=time]:text-sky-400">Time Domain t</span>
+        
+        <button id="toggle-btn" class="relative w-20 h-10 rounded-full transition-colors duration-500 flex items-center p-1 focus:outline-none ring-2 ring-offset-2 ring-offset-slate-950 bg-purple-600 ring-purple-900 data-[domain=time]:bg-sky-600 data-[domain=time]:ring-sky-900">
+          <div class="w-8 h-8 rounded-full bg-white shadow-md transform transition-transform duration-500 flex items-center justify-center translate-x-10 data-[domain=time]:translate-x-0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-sky-600 hidden data-[domain=time]:block"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-purple-600 block data-[domain=time]:hidden"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 12 12 17 22 12"></polyline><polyline points="2 17 12 22 22 17"></polyline></svg>
           </div>
-          <div className="mt-4 text-2xl font-light text-indigo-100 tracking-widest uppercase">
-            Transforming Domain
+        </button>
+        
+        <span class="px-4 py-2 font-semibold text-sm transition-colors text-purple-400 data-[domain=time]:text-slate-500">s-Domain (Laplace)</span>
+      </div>
+    </div>
+
+    <main class="z-10 relative w-full max-w-5xl flex flex-col md:flex-row items-center justify-between gap-8 mb-16 p-8 rounded-3xl bg-slate-900/40 border border-slate-800/60 shadow-2xl backdrop-blur-md">
+      
+      <div class="absolute inset-0 items-center justify-center pointer-events-none opacity-20 hidden md:flex">
+        <div class="w-full h-[2px] bg-gradient-to-r from-transparent via-slate-500 to-transparent"></div>
+      </div>
+
+      <div class="relative flex flex-col items-center z-10 w-full md:w-1/3">
+        <div class="text-xs font-bold tracking-widest uppercase mb-3 text-slate-500">Input</div>
+        <div class="w-32 h-32 rounded-2xl flex items-center justify-center border-2 transition-all duration-700 bg-purple-900/20 border-purple-500/50 glow-purple data-[domain=time]:bg-sky-900/20 data-[domain=time]:border-sky-500/50 data-[domain=time]:glow-sky">
+          
+          <div class="hidden data-[domain=time]:flex flex-col items-center">
+            <svg width="60" height="40" viewBox="0 0 100 50" class="stroke-sky-400 stroke-2 fill-none mb-2">
+              <path d="M 10 40 L 30 40 L 30 10 L 70 10 L 70 40 L 90 40" stroke-linejoin="round" />
+            </svg>
+            <span class="font-serif text-xl text-sky-200">x(t)</span>
+          </div>
+          
+          <div class="flex flex-col items-center data-[domain=time]:hidden">
+            <div class="text-3xl font-serif text-purple-200 font-bold mb-1">X(s)</div>
           </div>
         </div>
-      )}
-
-      {/* --- Header --- */}
-      <header className="z-10 text-center mb-10 w-full max-w-4xl">
-        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-transparent bg-clip-text bg-gradient-to-r from-slate-100 to-slate-400">
-          Domain Transformation
-        </h1>
-        <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-          Contrast continuous time-domain convolution with algebraic s-domain multiplication using the Laplace Transform.
-        </p>
-      </header>
-
-      {/* --- Controls --- */}
-      <div className="z-10 flex flex-col items-center mb-12">
-        <div className="flex items-center gap-4 bg-slate-900/80 p-2 rounded-full border border-slate-700/50 shadow-xl backdrop-blur-sm">
-          <span className={`px-4 py-2 font-semibold text-sm transition-colors ${isTime ? 'text-sky-400' : 'text-slate-500'}`}>Time Domain t</span>
-          
-          <button 
-            onClick={toggleDomain}
-            className={`relative w-20 h-10 rounded-full transition-colors duration-500 flex items-center p-1 focus:outline-none ring-2 ring-offset-2 ring-offset-slate-950 ${isTime ? 'bg-sky-600 ring-sky-900' : 'bg-purple-600 ring-purple-900'}`}
-          >
-            <div className={`w-8 h-8 rounded-full bg-white shadow-md transform transition-transform duration-500 flex items-center justify-center ${isTime ? 'translate-x-0' : 'translate-x-10'}`}>
-              {isTime ? <Activity className="w-4 h-4 text-sky-600" /> : <Layers className="w-4 h-4 text-purple-600" />}
-            </div>
-          </button>
-          
-          <span className={`px-4 py-2 font-semibold text-sm transition-colors ${!isTime ? 'text-purple-400' : 'text-slate-500'}`}>s-Domain (Laplace)</span>
+        
+        <div class="absolute top-1/2 -right-8 transform -translate-y-1/2 signal-flow-x hidden md:block">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-sky-400 hidden data-[domain=time]:block"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          <div class="text-purple-400 font-serif font-bold text-lg block data-[domain=time]:hidden">X</div>
         </div>
       </div>
 
-      {/* --- Main Visual Scene --- */}
-      <main className="z-10 relative w-full max-w-5xl flex flex-col md:flex-row items-center justify-between gap-8 mb-16 p-8 rounded-3xl bg-slate-900/40 border border-slate-800/60 shadow-2xl backdrop-blur-md">
+      <div class="relative flex flex-col items-center z-10 w-full md:w-1/3 mt-12 md:mt-0">
         
-        {/* Connection Lines (Background) */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20 hidden md:flex">
-          <div className="w-full h-[2px] bg-gradient-to-r from-transparent via-slate-500 to-transparent"></div>
+        <div class="text-xs font-bold tracking-widest uppercase mb-3 text-slate-500">Operator</div>
+        <div class="w-20 h-20 rounded-full flex items-center justify-center border-4 shadow-2xl z-20 transition-all duration-700 bg-slate-800 border-purple-500 text-purple-400 scale-110 data-[domain=time]:border-sky-500 data-[domain=time]:text-sky-400 data-[domain=time]:scale-100">
+          <div class="text-5xl font-mono mt-3 animate-[spin_10s_linear_infinite] hidden data-[domain=time]:block">∗</div>
+          <div class="text-4xl font-mono block data-[domain=time]:hidden">×</div>
         </div>
 
-        {/* 1. INPUT SIGNAL / BLOCK */}
-        <div className="relative flex flex-col items-center z-10 w-full md:w-1/3">
-          <div className="text-xs font-bold tracking-widest uppercase mb-3 text-slate-500">Input</div>
-          <div className={`w-32 h-32 rounded-2xl flex items-center justify-center border-2 transition-all duration-700 ${isTime ? 'bg-sky-900/20 border-sky-500/50 glow-time' : 'bg-purple-900/20 border-purple-500/50 glow-s'}`}>
-            {isTime ? (
-              <div className="flex flex-col items-center">
-                <svg width="60" height="40" viewBox="0 0 100 50" className="stroke-sky-400 stroke-2 fill-none mb-2">
-                  <path d="M 10 40 L 30 40 L 30 10 L 70 10 L 70 40 L 90 40" strokeLinejoin="round" />
-                </svg>
-                <span className="font-serif text-xl text-sky-200">x(t)</span>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center">
-                <div className="text-3xl font-serif text-purple-200 font-bold mb-1">X(s)</div>
-              </div>
-            )}
-          </div>
-          
-          {/* Flowing Animation (Input -> Operator) */}
-          <div className="absolute top-1/2 -right-8 transform -translate-y-1/2 signal-flow-x hidden md:block">
-            {isTime ? <Activity className="text-sky-400 w-6 h-6" /> : <div className="text-purple-400 font-serif font-bold text-lg">X</div>}
-          </div>
+        <div class="h-16 w-[2px] border-l-2 border-dashed border-slate-600 my-2 relative">
+           <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 signal-flow-y">
+             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 -rotate-90 hidden data-[domain=time]:block"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+             <div class="text-pink-400 font-serif font-bold text-sm block data-[domain=time]:hidden">H</div>
+           </div>
         </div>
 
-        {/* 2. OPERATOR & SYSTEM (MIDDLE SECTION) */}
-        <div className="relative flex flex-col items-center z-10 w-full md:w-1/3 mt-12 md:mt-0">
-          
-          {/* Operator Node */}
-          <div className="text-xs font-bold tracking-widest uppercase mb-3 text-slate-500">Operator</div>
-          <div className={`w-20 h-20 rounded-full flex items-center justify-center border-4 shadow-2xl z-20 transition-all duration-700 ${isTime ? 'bg-slate-800 border-sky-500 text-sky-400' : 'bg-slate-800 border-purple-500 text-purple-400 scale-110'}`}>
-            {isTime ? (
-              <div className="text-5xl font-mono mt-3 animate-[spin_10s_linear_infinite]">∗</div>
-            ) : (
-              <div className="text-4xl font-mono">×</div>
-            )}
+        <div class="w-32 h-24 rounded-xl flex items-center justify-center border-2 transition-all duration-700 bg-pink-900/20 border-pink-500/50 glow-pink data-[domain=time]:bg-emerald-900/20 data-[domain=time]:border-emerald-500/50 data-[domain=time]:glow-emerald">
+          <div class="hidden data-[domain=time]:flex flex-col items-center">
+             <svg width="60" height="30" viewBox="0 0 100 50" class="stroke-emerald-400 stroke-2 fill-none mb-1">
+               <path d="M 10 40 Q 30 10 90 40" stroke-linecap="round" />
+             </svg>
+             <span class="font-serif text-lg text-emerald-200">h(t)</span>
           </div>
-
-          {/* Connection Line from System to Operator */}
-          <div className="h-16 w-[2px] border-l-2 border-dashed border-slate-600 my-2 relative">
-             <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 signal-flow-y">
-               {isTime ? <ArrowRight className="text-emerald-400 w-4 h-4 -rotate-90" /> : <div className="text-pink-400 font-serif font-bold text-sm">H</div>}
-             </div>
-          </div>
-
-          {/* System Block */}
-          <div className={`w-32 h-24 rounded-xl flex items-center justify-center border-2 transition-all duration-700 ${isTime ? 'bg-emerald-900/20 border-emerald-500/50 glow-time' : 'bg-pink-900/20 border-pink-500/50 glow-s'}`}>
-            {isTime ? (
-               <div className="flex flex-col items-center">
-                 <svg width="60" height="30" viewBox="0 0 100 50" className="stroke-emerald-400 stroke-2 fill-none mb-1">
-                   <path d="M 10 40 Q 30 10 90 40" strokeLinecap="round" />
-                 </svg>
-                 <span className="font-serif text-lg text-emerald-200">h(t)</span>
-               </div>
-            ) : (
-               <div className="flex flex-col items-center">
-                 <div className="text-2xl font-serif text-pink-200 font-bold mb-1">H(s)</div>
-               </div>
-            )}
-          </div>
-          <div className="text-xs font-bold tracking-widest uppercase mt-3 text-slate-500">System</div>
-          
-          {/* Flowing Animation (Operator -> Output) */}
-          <div className="absolute top-1/2 -right-8 transform -translate-y-1/2 signal-flow-x hidden md:block" style={{animationDelay: '1.5s'}}>
-            {isTime ? <Activity className="text-sky-300 w-6 h-6" /> : <div className="text-purple-300 font-serif font-bold text-lg">Y</div>}
+          <div class="flex flex-col items-center data-[domain=time]:hidden">
+             <div class="text-2xl font-serif text-pink-200 font-bold mb-1">H(s)</div>
           </div>
         </div>
+        <div class="text-xs font-bold tracking-widest uppercase mt-3 text-slate-500">System</div>
+        
+        <div class="absolute top-1/2 -right-8 transform -translate-y-1/2 signal-flow-x hidden md:block" style="animation-delay: 1.5s">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-sky-300 hidden data-[domain=time]:block"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          <div class="text-purple-300 font-serif font-bold text-lg block data-[domain=time]:hidden">Y</div>
+        </div>
+      </div>
 
-        {/* 3. OUTPUT SIGNAL / BLOCK */}
-        <div className="relative flex flex-col items-center z-10 w-full md:w-1/3">
-          <div className="text-xs font-bold tracking-widest uppercase mb-3 text-slate-500">Output</div>
-          <div className={`w-32 h-32 rounded-2xl flex items-center justify-center border-2 transition-all duration-700 ${isTime ? 'bg-indigo-900/20 border-indigo-500/50 glow-time' : 'bg-fuchsia-900/20 border-fuchsia-500/50 glow-s'}`}>
-            {isTime ? (
-              <div className="flex flex-col items-center">
-                <svg width="60" height="40" viewBox="0 0 100 50" className="stroke-indigo-400 stroke-2 fill-none mb-2">
-                  <path d="M 10 40 C 30 40, 40 10, 50 10 C 60 10, 70 40, 90 40" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <span className="font-serif text-xl text-indigo-200">y(t)</span>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center">
-                <div className="text-3xl font-serif text-fuchsia-200 font-bold mb-1">Y(s)</div>
-              </div>
-            )}
+      <div class="relative flex flex-col items-center z-10 w-full md:w-1/3">
+        <div class="text-xs font-bold tracking-widest uppercase mb-3 text-slate-500">Output</div>
+        <div class="w-32 h-32 rounded-2xl flex items-center justify-center border-2 transition-all duration-700 bg-fuchsia-900/20 border-fuchsia-500/50 glow-fuchsia data-[domain=time]:bg-indigo-900/20 data-[domain=time]:border-indigo-500/50 data-[domain=time]:glow-indigo">
+          
+          <div class="hidden data-[domain=time]:flex flex-col items-center">
+            <svg width="60" height="40" viewBox="0 0 100 50" class="stroke-indigo-400 stroke-2 fill-none mb-2">
+              <path d="M 10 40 C 30 40, 40 10, 50 10 C 60 10, 70 40, 90 40" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span class="font-serif text-xl text-indigo-200">y(t)</span>
+          </div>
+          
+          <div class="flex flex-col items-center data-[domain=time]:hidden">
+            <div class="text-3xl font-serif text-fuchsia-200 font-bold mb-1">Y(s)</div>
           </div>
         </div>
-      </main>
+      </div>
+    </main>
 
-      {/* --- Bottom Section: The Ratio Meter (Unique Identity) --- */}
-      <section className={`z-10 w-full max-w-2xl transform transition-all duration-1000 ${isTime ? 'opacity-50 scale-95 grayscale' : 'opacity-100 scale-100 grayscale-0'}`}>
-        <div className="bg-slate-900/80 border border-slate-700 rounded-2xl p-6 relative overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.5)]">
-          {/* Identity Glowing Background when in s-domain */}
-          {!isTime && <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-fuchsia-500/10 to-pink-500/10 animate-pulse"></div>}
+    <section class="z-10 w-full max-w-2xl transform transition-all duration-1000 opacity-100 scale-100 grayscale-0 data-[domain=time]:opacity-50 data-[domain=time]:scale-95 data-[domain=time]:grayscale">
+      <div class="bg-slate-900/80 border border-slate-700 rounded-2xl p-6 relative overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+        
+        <div class="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-fuchsia-500/10 to-pink-500/10 animate-pulse block data-[domain=time]:hidden"></div>
+        
+        <div class="relative flex flex-col items-center">
+          <div class="flex items-center gap-2 mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-fuchsia-400 data-[domain=time]:text-slate-500"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
+            <h3 class="text-sm font-bold tracking-widest uppercase text-slate-300">System Unique Identity</h3>
+          </div>
           
-          <div className="relative flex flex-col items-center">
-            <div className="flex items-center gap-2 mb-4">
-              <Cpu className={`w-5 h-5 ${!isTime ? 'text-fuchsia-400' : 'text-slate-500'}`} />
-              <h3 className="text-sm font-bold tracking-widest uppercase text-slate-300">System Unique Identity</h3>
-            </div>
-            
-            <div className="flex items-center gap-6 my-2">
-              {/* Math Display */}
-              <div className={`text-4xl md:text-5xl font-serif tracking-wider transition-colors duration-500 flex items-center gap-4 ${!isTime ? 'text-white' : 'text-slate-600'}`}>
-                <span>H(s)</span>
-                <span className="text-3xl">=</span>
-                <div className="flex flex-col items-center pb-1">
-                  <span className="border-b-2 border-current px-2 pb-1">Y(s)</span>
-                  <span className="pt-1 px-2">X(s)</span>
-                </div>
+          <div class="flex items-center gap-6 my-2">
+            <div class="text-4xl md:text-5xl font-serif tracking-wider transition-colors duration-500 flex items-center gap-4 text-white data-[domain=time]:text-slate-600">
+              <span>H(s)</span>
+              <span class="text-3xl">=</span>
+              <div class="flex flex-col items-center pb-1">
+                <span class="border-b-2 border-current px-2 pb-1">Y(s)</span>
+                <span class="pt-1 px-2">X(s)</span>
               </div>
             </div>
+          </div>
 
-            <div className="mt-6 flex items-center justify-center gap-2 text-xs font-medium text-slate-400 bg-slate-950/50 px-4 py-2 rounded-full border border-slate-800">
-              {isTime ? (
-                <>
-                  <RefreshCw className="w-3 h-3 animate-spin" />
-                  <span>Switch to s-Domain to reveal algebraic ratio</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-4 h-4 text-emerald-400" />
-                  <span className="text-emerald-100">Identity Established: Convolution reduced to Multiplication</span>
-                </>
-              )}
+          <div class="mt-6 flex items-center justify-center gap-2 text-xs font-medium text-slate-400 bg-slate-950/50 px-4 py-2 rounded-full border border-slate-800">
+            <div class="hidden data-[domain=time]:flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+              <span>Switch to s-Domain to reveal algebraic ratio</span>
+            </div>
+            <div class="flex data-[domain=time]:hidden items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+              <span class="text-emerald-100">Identity Established: Convolution reduced to Multiplication</span>
             </div>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
-    </div>
-  );
-}
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const app = document.getElementById('app');
+      const toggleBtn = document.getElementById('toggle-btn');
+      const overlay = document.getElementById('overlay');
+      
+      let isAnimatingTransition = false;
+      let currentDomain = 'time';
+
+      toggleBtn.addEventListener('click', () => {
+        if (isAnimatingTransition) return;
+        isAnimatingTransition = true;
+
+        // Show flash overlay
+        overlay.classList.remove('hidden');
+        overlay.classList.add('flex', 'overlay-flash');
+
+        // Halfway through animation, swap the DOM data attribute to update all styles at once
+        setTimeout(() => {
+          currentDomain = currentDomain === 'time' ? 's' : 'time';
+          app.setAttribute('data-domain', currentDomain);
+        }, 600);
+
+        // End transition and hide overlay
+        setTimeout(() => {
+          isAnimatingTransition = false;
+          overlay.classList.remove('flex', 'overlay-flash');
+          overlay.classList.add('hidden');
+        }, 1200);
+      });
+    });
+  </script>
+</body>
+</html>

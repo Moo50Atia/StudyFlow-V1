@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Control Architectures</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans p-6">
+
+  <div class="max-w-5xl mx-auto">
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-extrabold text-slate-900 mb-3">System Control Architectures</h1>
+      <p class="text-lg text-slate-600 max-w-3xl mx-auto">
+        Explore how block diagrams are manipulated. In a <strong>Cascade</strong> configuration, transfer functions multiply. In a <strong>Parallel</strong> configuration, they add.
+      </p>
+    </div>
+
+    <div class="mb-8 flex justify-center space-x-4">
+      <button onclick="toggleView(false)" id="btn-detailed" class="px-6 py-2.5 rounded-xl font-semibold bg-blue-600 text-white shadow-md">Detailed Architecture</button>
+      <button onclick="toggleView(true)" id="btn-simplified" class="px-6 py-2.5 rounded-xl font-semibold bg-slate-100 text-slate-500 hover:bg-slate-200">Simplified System</button>
+    </div>
+
+    <div class="bg-white rounded-3xl shadow-xl border border-slate-200 p-8 overflow-x-auto">
+      <svg id="system-svg" viewBox="0 0 800 550" class="w-full min-w-[700px]">
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#475569"/></marker>
+          <marker id="arrowhead-h" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#059669"/></marker>
+        </defs>
+        
+        <g id="diagram-content"></g>
+      </svg>
+    </div>
+  </div>
+
+  <script>
+    let isSimplified = false;
+
+    function createBlock(x, y, w, h, label, colorClass = "fill-blue-50 stroke-blue-600") {
+      return `
+        <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" class="${colorClass}" stroke-width="3"/>
+        <text x="${x + w/2}" y="${y + h/2}" text-anchor="middle" dominant-baseline="middle" class="font-mono text-lg font-bold ${colorClass.includes('emerald') ? 'fill-emerald-800' : 'fill-blue-900'}">${label}</text>
+      `;
+    }
+
+    function render() {
+      const container = document.getElementById('diagram-content');
+      const arrowClass = isSimplified ? "stroke-emerald-600" : "stroke-slate-600";
+      const marker = isSimplified ? "url(#arrowhead-h)" : "url(#arrowhead)";
+
+      if (!isSimplified) {
+        container.innerHTML = `
+          <text x="40" y="40" class="text-xl font-bold uppercase">1. Cascade (Series) Flow</text>
+          <path d="M 60 120 L 140 120" stroke="#475569" stroke-width="2.5" marker-end="${marker}"/>
+          ${createBlock(150, 90, 120, 60, "H1(s)")}
+          <path d="M 270 120 L 380 120" stroke="#475569" stroke-width="2.5" marker-end="${marker}"/>
+          ${createBlock(390, 90, 120, 60, "H2(s)")}
+          <path d="M 510 120 L 710 120" stroke="#475569" stroke-width="2.5" marker-end="${marker}"/>
+
+          <text x="40" y="280" class="text-xl font-bold uppercase">2. Parallel Flow</text>
+          <path d="M 60 375 L 140 375" stroke="#475569" stroke-width="2.5"/>
+          <circle cx="140" cy="375" r="5" fill="#475569"/>
+          <path d="M 140 375 L 140 300 L 230 300" stroke="#475569" stroke-width="2.5" marker-end="${marker}"/>
+          <path d="M 140 375 L 140 450 L 230 450" stroke="#475569" stroke-width="2.5" marker-end="${marker}"/>
+          ${createBlock(240, 270, 120, 60, "H1(s)")}
+          ${createBlock(240, 420, 120, 60, "H2(s)")}
+          <path d="M 360 300 L 480 300 L 480 345" stroke="#475569" stroke-width="2.5" marker-end="${marker}"/>
+          <path d="M 360 450 L 480 450 L 480 405" stroke="#475569" stroke-width="2.5" marker-end="${marker}"/>
+          <circle cx="480" cy="375" r="20" fill="white" stroke="#475569" stroke-width="2"/>
+          <path d="M 465 360 L 495 390 M 495 360 L 465 390" stroke="#475569" stroke-width="2"/>
+          <path d="M 500 375 L 710 375" stroke="#475569" stroke-width="2.5" marker-end="${marker}"/>
+        `;
+      } else {
+        container.innerHTML = `
+          <text x="40" y="40" class="text-xl font-bold uppercase">1. Cascade (Series) Flow</text>
+          <path d="M 60 120 L 240 120" stroke="#059669" stroke-width="2.5" marker-end="url(#arrowhead-h)"/>
+          ${createBlock(250, 90, 220, 60, "H1(s) × H2(s)", "fill-emerald-100 stroke-emerald-600")}
+          <path d="M 470 120 L 710 120" stroke="#059669" stroke-width="2.5" marker-end="url(#arrowhead-h)"/>
+
+          <text x="40" y="280" class="text-xl font-bold uppercase">2. Parallel Flow</text>
+          <path d="M 60 375 L 240 375" stroke="#059669" stroke-width="2.5" marker-end="url(#arrowhead-h)"/>
+          ${createBlock(250, 345, 220, 60, "H1(s) + H2(s)", "fill-emerald-100 stroke-emerald-600")}
+          <path d="M 470 375 L 710 375" stroke="#059669" stroke-width="2.5" marker-end="url(#arrowhead-h)"/>
+        `;
+      }
+    }
+
+    function toggleView(val) {
+      isSimplified = val;
+      document.getElementById('btn-detailed').className = val ? "px-6 py-2.5 rounded-xl font-semibold bg-slate-100 text-slate-500" : "px-6 py-2.5 rounded-xl font-semibold bg-blue-600 text-white shadow-md";
+      document.getElementById('btn-simplified').className = val ? "px-6 py-2.5 rounded-xl font-semibold bg-emerald-600 text-white shadow-md" : "px-6 py-2.5 rounded-xl font-semibold bg-slate-100 text-slate-500";
+      render();
+    }
+
+    render();
+  </script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive s-Plane Explorer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .touch-none { touch-action: none; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center justify-center p-6 font-sans">
+
+  <div class="max-w-4xl w-full">
+    <div class="mb-6 text-center">
+      <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400 mb-2">
+        Interactive s-Plane Explorer
+      </h1>
+      <p class="text-slate-400 max-w-2xl mx-auto">
+        Drag the poles (<span class="text-orange-400 font-bold">X</span>) around the s-plane. 
+        For a causal system, the Region of Convergence (ROC) extends to the right of the rightmost pole. 
+        Notice how the system loses stability as a pole crosses into the Right-Half Plane.
+      </p>
+    </div>
+
+    <div class="bg-slate-800 rounded-2xl p-6 shadow-2xl border border-slate-700/50 flex flex-col items-center gap-6 mb-6">
+      
+      <div class="w-full max-w-md bg-slate-900 rounded-xl p-4 flex flex-col items-center shadow-inner">
+        <div class="flex justify-between w-full mb-2 font-semibold">
+          <span class="text-slate-400">System Stability</span>
+          <span id="stability-text" class="transition-colors duration-200">STABLE</span>
+        </div>
+        <div class="w-full h-3 bg-slate-800 rounded-full overflow-hidden relative">
+          <div id="meter-bar" class="absolute top-0 left-0 h-full transition-all duration-100 ease-linear rounded-full w-full" style="background-color: rgb(34, 197, 94);"></div>
+        </div>
+        <div class="flex justify-between w-full mt-2 text-xs text-slate-500">
+          <span>LHP (Stable)</span>
+          <span>RHP (Unstable)</span>
+        </div>
+      </div>
+
+      <div class="relative w-full aspect-[4/3] bg-slate-900 rounded-xl overflow-hidden border border-slate-700 select-none shadow-[inset_0_0_50px_rgba(0,0,0,0.5)]">
+        <svg id="s-plane-svg" viewBox="0 0 800 600" class="w-full h-full touch-none cursor-crosshair">
+          <defs>
+            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#334155" strokeWidth="0.5" />
+            </pattern>
+            <pattern id="rocHatch" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+              <line x1="0" y1="0" x2="0" y2="8" stroke="#38bdf8" strokeWidth="1.5" strokeOpacity="0.4" />
+            </pattern>
+            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="6" result="blur" />
+              <feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+          </defs>
+
+          <rect width="100%" height="100%" fill="url(#grid)" />
+          <rect id="roc-shade" x="250" y="0" width="550" height="600" fill="url(#rocHatch)" opacity="0.1" />
+          <line id="roc-line" x1="250" y1="0" x2="250" y2="600" stroke="#38bdf8" strokeWidth="2" strokeDasharray="6,4" />
+          
+          <line x1="0" y1="300" x2="800" y2="300" stroke="#94a3b8" strokeWidth="2" />
+          <line id="jw-axis" x1="400" y1="0" x2="400" y2="600" stroke="#38bdf8" strokeWidth="4" filter="url(#glow)" />
+          
+          <g id="poles-container"></g>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const width = 800, height = 600, originX = 400, originY = 300;
+    let poles = [
+      { id: 1, x: 250, y: 150 },
+      { id: 2, x: 250, y: 450 },
+      { id: 3, x: 350, y: 300 },
+    ];
+    let draggingId = null;
+
+    const svg = document.getElementById('s-plane-svg');
+    const polesContainer = document.getElementById('poles-container');
+
+    function render() {
+      polesContainer.innerHTML = '';
+      let rightmostX = Math.min(...poles.map(p => p.x));
+      
+      poles.forEach(pole => {
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.setAttribute('transform', `translate(${pole.x}, ${pole.y})`);
+        g.innerHTML = `<circle r="30" fill="transparent" style="cursor:grab"/>
+                       <path d="M-10 -10 L10 10 M-10 10 L10 -10" stroke="#f97316" strokeWidth="4" strokeLinecap="round"/>`;
+        
+        g.onpointerdown = (e) => { draggingId = pole.id; e.target.setPointerCapture(e.pointerId); };
+        polesContainer.appendChild(g);
+      });
+
+      const isStable = rightmostX < originX;
+      const penetration = Math.max(0, rightmostX - originX);
+      const t = Math.min(1, penetration / 150);
+      const color = `rgb(${Math.round(34 + t*205)}, ${Math.round(197 - 129*t)}, ${Math.round(94 - 26*t)})`;
+      
+      document.getElementById('stability-text').innerText = isStable ? 'STABLE' : 'UNSTABLE';
+      document.getElementById('stability-text').style.color = color;
+      document.getElementById('meter-bar').style.backgroundColor = color;
+      document.getElementById('roc-shade').setAttribute('x', rightmostX);
+      document.getElementById('roc-line').setAttribute('x1', rightmostX);
+      document.getElementById('roc-line').setAttribute('x2', rightmostX);
+    }
+
+    svg.onpointermove = (e) => {
+      if (!draggingId) return;
+      const pt = svg.createSVGPoint();
+      pt.x = e.clientX; pt.y = e.clientY;
+      const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
+      poles = poles.map(p => p.id === draggingId ? { ...p, x: Math.max(20, Math.min(780, svgP.x)), y: Math.max(20, Math.min(580, svgP.y)) } : p);
+      render();
+    };
+
+    svg.onpointerup = () => draggingId = null;
+    render();
+  </script>
+</body>
+</html>
