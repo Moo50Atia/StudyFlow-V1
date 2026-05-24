@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inverse Laplace Transform & Path Integration Explorer</title>
+    <!-- Tailwind CSS for rapid modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js for 3D s-plane graphics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls for rotatable 3D view -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- KaTeX for beautiful math formulas -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col overflow-x-hidden">
+
+    <!-- Top Navigation Bar -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur px-6 py-4 flex flex-wrap items-center justify-between sticky top-0 z-50">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 p-2.5 rounded-xl shadow-lg shadow-purple-500/20">
+                <i class="fa-solid fa-chart-line text-lg text-white"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+                    Inverse Laplace & ROC visualizer
+                </h1>
+                <p class="text-xs text-slate-400 font-medium">Complex Path Integration & Signal Reconstruction</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center space-x-4 mt-3 sm:mt-0">
+            <div class="bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700/50 flex items-center space-x-2 text-xs">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="text-slate-300 font-medium">Active ROC: <span id="active-roc-badge" class="text-emerald-400 font-semibold">Bilateral</span></span>
+            </div>
+            <button id="btn-info" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3.5 py-1.5 rounded-lg border border-slate-700/50 transition-all text-sm flex items-center space-x-1.5">
+                <i class="fa-solid fa-circle-question"></i>
+                <span>Theory Guide</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Interactive Dashboard Grid -->
+    <main class="flex-1 grid grid-cols-1 xl:grid-cols-12 gap-6 p-6 max-w-7xl mx-auto w-full">
+        
+        <!-- Left Column: Controls & Dynamic Mathematical Formulation (xl:col-span-4) -->
+        <section class="xl:col-span-4 flex flex-col gap-6">
+            
+            <!-- Quick System Presets Card -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-indigo-400"></i> System Configuration Presets
+                </h2>
+                <div class="grid grid-cols-2 gap-3.5">
+                    <button onclick="applyPreset('bilateral')" class="preset-btn active bg-indigo-950/40 border-indigo-500 text-indigo-200 hover:bg-indigo-900/40 border p-3 rounded-xl transition-all duration-200 text-left text-xs flex flex-col gap-1">
+                        <span class="font-bold text-white flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span> Bilateral System
+                        </span>
+                        <span class="text-[10px] text-indigo-300/80">Real stable poles. Double-sided signal.</span>
+                    </button>
+                    <button onclick="applyPreset('causal-stable')" class="preset-btn bg-slate-800/40 border-slate-700/50 text-slate-300 hover:bg-slate-800/80 border p-3 rounded-xl transition-all duration-200 text-left text-xs flex flex-col gap-1">
+                        <span class="font-bold text-white flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Complex Conjugate
+                        </span>
+                        <span class="text-[10px] text-slate-400">Oscillatory causal signal with decaying envelope.</span>
+                    </button>
+                    <button onclick="applyPreset('causal-unstable')" class="preset-btn bg-slate-800/40 border-slate-700/50 text-slate-300 hover:bg-slate-800/80 border p-3 rounded-xl transition-all duration-200 text-left text-xs flex flex-col gap-1">
+                        <span class="font-bold text-white flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> Causal Unstable
+                        </span>
+                        <span class="text-[10px] text-slate-400">Poles in RHP. Exponentially growing signal.</span>
+                    </button>
+                    <button onclick="applyPreset('double-integrator')" class="preset-btn bg-slate-800/40 border-slate-700/50 text-slate-300 hover:bg-slate-800/80 border p-3 rounded-xl transition-all duration-200 text-left text-xs flex flex-col gap-1">
+                        <span class="font-bold text-white flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Pure Oscillatory
+                        </span>
+                        <span class="text-[10px] text-slate-400">Poles on Imaginary Axis. Sinusoidal wave.</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Interactive Parameter Sliders Card -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col gap-5">
+                <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-gamepad text-indigo-400"></i> Interactive Controls
+                </h2>
+                
+                <!-- Parameter: Integration line position 'c' -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-sm bg-cyan-400 inline-block"></span>
+                            <span>Line of Integration ($\sigma = c$)</span>
+                        </label>
+                        <span id="c-val-badge" class="code-font text-xs text-cyan-400 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800/60 font-semibold">-0.50</span>
+                    </div>
+                    <input type="range" id="slider-c" min="-4.0" max="4.0" step="0.05" value="-0.50" 
+                        class="w-full accent-cyan-400 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between text-[10px] text-slate-500 font-medium">
+                        <span>$\sigma = -4.0$ (Left)</span>
+                        <span>$\sigma = +4.0$ (Right)</span>
+                    </div>
+                </div>
+
+                <!-- Parameter: Evaluation Time 't0' -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-sm bg-purple-400 inline-block"></span>
+                            <span>Evaluation Time ($t_0$)</span>
+                        </label>
+                        <span id="t-val-badge" class="code-font text-xs text-purple-400 bg-purple-950/80 px-2 py-0.5 rounded border border-purple-800/60 font-semibold">1.20 s</span>
+                    </div>
+                    <input type="range" id="slider-t0" min="-3.0" max="5.0" step="0.05" value="1.20" 
+                        class="w-full accent-purple-400 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between text-[10px] text-slate-500 font-medium">
+                        <span>$t = -3.0s$ (Past)</span>
+                        <span>$t = 5.0s$ (Future)</span>
+                    </div>
+                </div>
+
+                <!-- Custom Pole Position Sliders -->
+                <div class="border-t border-slate-800/80 pt-4 mt-1 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Fine-tune Pole Locations</h3>
+                        <button id="btn-lock-conjugate" class="text-[10px] bg-slate-800 hover:bg-slate-700 border border-slate-700/60 rounded px-2 py-1 text-slate-300 transition-colors flex items-center gap-1">
+                            <i class="fa-solid fa-lock text-emerald-400"></i> Mirror Complex Pairs
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-3.5">
+                        <!-- Pole 1 Real Part -->
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-[11px]">
+                                <span class="text-slate-400 font-medium">Pole 1 Real ($\sigma_1$)</span>
+                                <span id="p1-real-val" class="code-font text-slate-300">-2.00</span>
+                            </div>
+                            <input type="range" id="slider-p1-real" min="-3.5" max="3.5" step="0.1" value="-2.0" class="w-full accent-indigo-400 bg-slate-800 h-1 rounded">
+                        </div>
+                        
+                        <!-- Pole 1 Imag Part -->
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-[11px]">
+                                <span class="text-slate-400 font-medium">Pole 1 Imag ($\omega_1$)</span>
+                                <span id="p1-imag-val" class="code-font text-slate-300">0.00</span>
+                            </div>
+                            <input type="range" id="slider-p1-imag" min="-4.0" max="4.0" step="0.1" value="0.0" class="w-full accent-indigo-400 bg-slate-800 h-1 rounded">
+                        </div>
+
+                        <!-- Pole 2 Real Part -->
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-[11px]">
+                                <span class="text-slate-400 font-medium">Pole 2 Real ($\sigma_2$)</span>
+                                <span id="p2-real-val" class="code-font text-slate-300">1.00</span>
+                            </div>
+                            <input type="range" id="slider-p2-real" min="-3.5" max="3.5" step="0.1" value="1.0" class="w-full accent-indigo-400 bg-slate-800 h-1 rounded">
+                        </div>
+
+                        <!-- Pole 2 Imag Part -->
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-[11px]">
+                                <span class="text-slate-400 font-medium">Pole 2 Imag ($\omega_2$)</span>
+                                <span id="p2-imag-val" class="code-font text-slate-300">0.00</span>
+                            </div>
+                            <input type="range" id="slider-p2-imag" min="-4.0" max="4.0" step="0.1" value="0.0" class="w-full accent-indigo-400 bg-slate-800 h-1 rounded">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mathematical Definition & Formula Viewer Card -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col justify-between">
+                <div>
+                    <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3.5 flex items-center gap-2">
+                        <i class="fa-solid fa-square-root-variable text-purple-400"></i> Mathematical Overlays
+                    </h2>
+                    
+                    <!-- Laplace Transform of the Current System -->
+                    <div class="bg-slate-950/60 rounded-xl p-3.5 border border-slate-800/80 mb-3">
+                        <p class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-2">Transfer Function</p>
+                        <div id="math-transfer-function" class="text-center py-2 text-sm text-indigo-200">
+                            <!-- Formula will be injected dynamically via KaTeX -->
+                        </div>
+                    </div>
+
+                    <!-- Inversion Formula Integral -->
+                    <div class="bg-slate-950/60 rounded-xl p-3.5 border border-slate-800/80">
+                        <p class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-2">Mellin-Fourier Inversion Formula</p>
+                        <div id="math-inversion-formula" class="text-center py-2 text-sm text-cyan-200">
+                            <!-- Formula will be injected dynamically via KaTeX -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-slate-800/50 text-[11px] text-slate-400 leading-relaxed flex gap-2">
+                    <i class="fa-solid fa-circle-info text-cyan-400 text-xs mt-0.5"></i>
+                    <span>Moving the line of integration $\sigma = c$ outside the boundaries of a given Region of Convergence (ROC) changes the absolute convergence characteristics, mapping the integration to a completely different time-domain function.</span>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Middle Column: Interactive 3D s-Plane Surface Slicing Plot (xl:col-span-4) -->
+        <section class="xl:col-span-4 flex flex-col gap-6 h-full min-h-[500px] xl:min-h-[0px]">
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl shadow-xl flex-1 flex flex-col overflow-hidden relative">
+                
+                <!-- 3D Viewport Controls Overlay -->
+                <div class="absolute top-4 left-4 z-10 flex flex-col gap-1.5 pointer-events-none">
+                    <h2 class="text-sm font-bold text-slate-100 flex items-center gap-2 drop-shadow">
+                        <i class="fa-solid fa-cube text-cyan-400 animate-spin-slow"></i> s-Plane 3D Magnitude Surface
+                    </h2>
+                    <p class="text-[10px] text-slate-300/90 bg-slate-950/60 px-2 py-0.5 rounded backdrop-blur border border-slate-800">
+                        Drag to rotate | Scroll to zoom
+                    </p>
+                </div>
+
+                <!-- 3D Legend -->
+                <div class="absolute bottom-4 left-4 z-10 bg-slate-950/80 backdrop-blur border border-slate-800 p-2.5 rounded-xl text-[10px] space-y-1.5 pointer-events-auto">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-1.5 bg-gradient-to-r from-red-500 to-pink-600 rounded"></span>
+                        <span>Pole singularities: $\times$</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-1.5 bg-cyan-400 rounded"></span>
+                        <span>Integration path: $c + j\omega$</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-slate-400">
+                        <span class="w-3 h-1.5 bg-indigo-500/30 border border-indigo-400/40 rounded"></span>
+                        <span>ROC Boundary Region</span>
+                    </div>
+                </div>
+
+                <!-- Three.js Container -->
+                <div id="threejs-container" class="w-full flex-1 bg-slate-950"></div>
+                
+                <!-- Coordinate readout along path of integration -->
+                <div class="bg-slate-900 border-t border-slate-800 p-4 flex justify-between items-center text-xs text-slate-400">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span>
+                        <span>Pole 1: <strong id="pole1-readout" class="code-font text-slate-200">-2.00 + j0.00</strong></span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-pink-500 inline-block"></span>
+                        <span>Pole 2: <strong id="pole2-readout" class="code-font text-slate-200">1.00 + j0.00</strong></span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: Simultaneous 2D Time-Domain Signal and Integration Convergence Analysis (xl:col-span-4) -->
+        <section class="xl:col-span-4 flex flex-col gap-6">
+            
+            <!-- 2D Time-Domain Waveform Plot -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-wave-square text-purple-400"></i> Time-Domain Waveform $x(t)$
+                    </h2>
+                    <span id="convergence-status" class="text-[10px] font-bold bg-emerald-950/80 border border-emerald-800 px-2 py-0.5 rounded text-emerald-400">
+                        Stable Integral
+                    </span>
+                </div>
+                
+                <!-- Waveform Canvas Container -->
+                <div class="relative bg-slate-950/80 rounded-xl border border-slate-850 aspect-[5/3] w-full overflow-hidden flex items-center justify-center">
+                    <canvas id="canvas-time-domain" class="absolute inset-0 w-full h-full cursor-crosshair"></canvas>
+                </div>
+                <p class="text-[9px] text-slate-500 mt-2 text-center">
+                    Click/Drag anywhere on the graph to slide selected evaluation time $t_0$.
+                </p>
+            </div>
+
+            <!-- Path Integration Integrand & Complex Convergence Analysis -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col gap-4">
+                <h2 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-circle-nodes text-emerald-400"></i> Complex Path Integration Profile
+                </h2>
+
+                <div class="grid grid-cols-2 gap-4 flex-1 min-h-[220px]">
+                    <!-- Real Integrand along integration path -->
+                    <div class="bg-slate-950/60 rounded-xl border border-slate-800/80 p-3 flex flex-col">
+                        <div class="flex justify-between text-[10px] mb-2 font-medium text-slate-400">
+                            <span>Integrand: $\text{Re}[X(c+j\omega)e^{(c+j\omega)t_0}]$</span>
+                        </div>
+                        <div class="relative flex-1 bg-slate-950 rounded-lg overflow-hidden border border-slate-900">
+                            <canvas id="canvas-integrand-profile" class="absolute inset-0 w-full h-full"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Complex path convergence spiral -->
+                    <div class="bg-slate-950/60 rounded-xl border border-slate-800/80 p-3 flex flex-col">
+                        <div class="flex justify-between text-[10px] mb-2 font-medium text-slate-400">
+                            <span>Integration Convergence Spiral</span>
+                            <span class="text-amber-400 text-[9px] font-bold">In Complex Plane</span>
+                        </div>
+                        <div class="relative flex-1 bg-slate-950 rounded-lg overflow-hidden border border-slate-900">
+                            <canvas id="canvas-convergence-spiral" class="absolute inset-0 w-full h-full"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-950/40 p-3 rounded-xl border border-slate-850 flex gap-2.5 items-start">
+                    <i class="fa-solid fa-compass-drafting text-amber-500 text-xs mt-0.5"></i>
+                    <p class="text-[10px] text-slate-400 leading-relaxed">
+                        The left plot shows the decaying integrand oscillations across $\omega$. The right plot traces the cumulative integral path. If $\sigma=c$ lies outside the ROC, the tail amplitudes expand, and the complex path fails to spiral inward to convergence.
+                    </p>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Theoretical Guide Modal popup overlay -->
+    <div id="info-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm flex items-center justify-center z-[100] hidden p-4">
+        <div class="bg-slate-900 border border-slate-800 max-w-2xl w-full rounded-2xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-graduation-cap text-indigo-400 text-xl"></i>
+                    <h3 class="text-lg font-bold">Understanding Inverse Laplace Integration Paths</h3>
+                </div>
+                <button id="btn-close-modal" class="text-slate-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto space-y-5 text-sm leading-relaxed text-slate-300">
+                <section class="space-y-2">
+                    <h4 class="font-bold text-white text-sm uppercase tracking-wider text-indigo-400">1. What does the vertical integration line $c$ do?</h4>
+                    <p>
+                        In Laplace analysis, the system function $X(s)$ is structured over a 2D complex plane $s = \sigma + j\omega$. 
+                        The **Inverse Laplace Transform** reconstructs the time domain signal $x(t)$ by integrating along a single vertical line path at real offset $\sigma = c$:
+                    </p>
+                    <div class="bg-slate-950 py-3 rounded-lg border border-slate-800 text-center my-3">
+                        $x(t) = \frac{1}{2\pi j} \int_{c-j\infty}^{c+j\infty} X(s) e^{st} ds$
+                    </div>
+                </section>
+
+                <section class="space-y-2">
+                    <h4 class="font-bold text-white text-sm uppercase tracking-wider text-indigo-400">2. The Role of the Region of Convergence (ROC)</h4>
+                    <p>
+                        The ROC defines the boundaries of $\sigma$ where the system converges. The poles (marked as red vertical spikes in the 3D surface) represent locations of division-by-zero, acting as boundaries.
+                    </p>
+                    <ul class="list-disc pl-5 space-y-1 text-xs">
+                        <li><strong>Causal / Right-Sided Signal:</strong> The ROC exists to the right of the rightmost pole ($\sigma > \sigma_2$).</li>
+                        <li><strong>Anti-Causal / Left-Sided Signal:</strong> The ROC exists to the left of the leftmost pole ($\sigma < \sigma_1$).</li>
+                        <li><strong>Bilateral Signal:</strong> The ROC is a middle strip bounded between two poles ($\sigma_1 < \sigma < \sigma_2$).</li>
+                    </ul>
+                </section>
+
+                <section class="space-y-2">
+                    <h4 class="font-bold text-white text-sm uppercase tracking-wider text-indigo-400">3. Visualizing Convergence</h4>
+                    <p>
+                        Our simulation dynamically computes both numerical path integration and analytical solutions. Notice how when you slide the line $c$ within the active ROC boundaries:
+                    </p>
+                    <ul class="list-disc pl-5 space-y-1 text-xs text-slate-400">
+                        <li>The integrand real-profile curves decay smoothly to zero for large $\omega$.</li>
+                        <li>The cumulative convergence spiral winds inward toward a tight complex coordinate limit.</li>
+                    </ul>
+                    <p class="text-xs text-amber-300">
+                        If you move $c$ past a pole border (crossing outside the ROC), the integration explodes outward, demonstrating math-divergence directly.
+                    </p>
+                </section>
+            </div>
+
+            <div class="p-4 border-t border-slate-800 bg-slate-950/50 flex justify-end">
+                <button id="btn-close-modal-footer" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-5 py-2 rounded-lg transition-colors text-xs">
+                    Got it, Let's Explore!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Complex Math Library Helper Class
+        class Complex {
+            constructor(re, im = 0) {
+                this.re = re;
+                this.im = im;
+            }
+
+            add(c) {
+                return new Complex(this.re + c.re, this.im + c.im);
+            }
+
+            sub(c) {
+                return new Complex(this.re - c.re, this.im - c.im);
+            }
+
+            mul(c) {
+                return new Complex(
+                    this.re * c.re - this.im * c.im,
+                    this.re * c.im + this.im * c.re
+                );
+            }
+
+            div(c) {
+                const denom = c.re * c.re + c.im * c.im;
+                if (denom === 0) return new Complex(Infinity, Infinity);
+                return new Complex(
+                    (this.re * c.re + this.im * c.im) / denom,
+                    (this.im * c.re - this.re * c.im) / denom
+                );
+            }
+
+            exp() {
+                const expReal = Math.exp(this.re);
+                return new Complex(
+                    expReal * Math.cos(this.im),
+                    expReal * Math.sin(this.im)
+                );
+            }
+
+            mag() {
+                return Math.sqrt(this.re * this.re + this.im * this.im);
+            }
+
+            phase() {
+                return Math.atan2(this.im, this.re);
+            }
+        }
+
+        // Global State variables
+        const state = {
+            p1: new Complex(-2.0, 0.0),
+            p2: new Complex(1.0, 0.0),
+            c: -0.5,
+            t0: 1.2,
+            lockConjugate: false,
+            activePreset: 'bilateral'
+        };
+
+        // UI Element References
+        const sliderC = document.getElementById('slider-c');
+        const sliderT0 = document.getElementById('slider-t0');
+        const badgeC = document.getElementById('c-val-badge');
+        const badgeT = document.getElementById('t-val-badge');
+        
+        const sliderP1Real = document.getElementById('slider-p1-real');
+        const sliderP1Imag = document.getElementById('slider-p1-imag');
+        const sliderP2Real = document.getElementById('slider-p2-real');
+        const sliderP2Imag = document.getElementById('slider-p2-imag');
+
+        const valP1Real = document.getElementById('p1-real-val');
+        const valP1Imag = document.getElementById('p1-imag-val');
+        const valP2Real = document.getElementById('p2-real-val');
+        const valP2Imag = document.getElementById('p2-imag-val');
+
+        const badgeRoc = document.getElementById('active-roc-badge');
+        const statusConvergence = document.getElementById('convergence-status');
+
+        // Render Math equations via KaTeX
+        function renderMathFormulas() {
+            try {
+                // Formatting poles values for presentation
+                const formatPole = (p) => {
+                    const imPart = p.im !== 0 ? `${p.im >= 0 ? '+' : '-'}${Math.abs(p.im).toFixed(2)}j` : '';
+                    return `${p.re.toFixed(2)}${imPart}`;
+                };
+
+                // System Transfer Function formula rendering
+                // X(s) = 1 / [(s - p1)(s - p2)]
+                const pole1Str = state.p1.re < 0 ? `(s + ${Math.abs(state.p1.re).toFixed(1)})` : `(s - ${state.p1.re.toFixed(1)})`;
+                const pole2Str = state.p2.re < 0 ? `(s + ${Math.abs(state.p2.re).toFixed(1)})` : `(s - ${state.p2.re.toFixed(1)})`;
+                
+                let systemMath = `X(s) = \\frac{1}{${pole1Str}${pole2Str}}`;
+                katex.render(systemMath, document.getElementById('math-transfer-function'), { throwOnError: false });
+
+                // Inversion formula template with current parameters
+                const cVal = state.c.toFixed(2);
+                const t0Val = state.t0.toFixed(2);
+                let inversionMath = `x(${t0Val}) = \\frac{1}{2\\pi j} \\int_{${cVal} - j\\infty}^{${cVal} + j\\infty} X(s) e^{s(${t0Val})} ds`;
+                katex.render(inversionMath, document.getElementById('math-inversion-formula'), { throwOnError: false });
+
+                // Readout cards updates
+                document.getElementById('pole1-readout').textContent = formatPole(state.p1);
+                document.getElementById('pole2-readout').textContent = formatPole(state.p2);
+            } catch (err) {
+                console.error("KaTeX failed to render math: ", err);
+            }
+        }
+
+        // Apply preconfigured system configurations
+        function applyPreset(presetType) {
+            state.activePreset = presetType;
+            
+            // Remove active classes from other preset buttons
+            document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active', 'bg-indigo-950/40', 'border-indigo-500'));
+            
+            if (presetType === 'bilateral') {
+                state.p1 = new Complex(-2.0, 0.0);
+                state.p2 = new Complex(1.0, 0.0);
+                state.c = -0.5;
+                state.lockConjugate = false;
+            } else if (presetType === 'causal-stable') {
+                state.p1 = new Complex(-1.0, 2.0);
+                state.p2 = new Complex(-1.0, -2.0);
+                state.c = 0.5;
+                state.lockConjugate = true;
+            } else if (presetType === 'causal-unstable') {
+                state.p1 = new Complex(0.8, 1.5);
+                state.p2 = new Complex(0.8, -1.5);
+                state.c = 1.8;
+                state.lockConjugate = true;
+            } else if (presetType === 'double-integrator') {
+                state.p1 = new Complex(0.0, 2.5);
+                state.p2 = new Complex(0.0, -2.5);
+                state.c = 0.6;
+                state.lockConjugate = true;
+            }
+
+            // Sync slider inputs to state values
+            syncControlsToState();
+            updateLockConjugateButton();
+            updateSimulation();
+        }
+
+        function updateLockConjugateButton() {
+            const btn = document.getElementById('btn-lock-conjugate');
+            if (state.lockConjugate) {
+                btn.classList.add('bg-emerald-950/40', 'border-emerald-500', 'text-emerald-200');
+                btn.innerHTML = '<i class="fa-solid fa-link text-emerald-400"></i> Locked Pairs';
+            } else {
+                btn.classList.remove('bg-emerald-950/40', 'border-emerald-500', 'text-emerald-200');
+                btn.innerHTML = '<i class="fa-solid fa-lock text-slate-400"></i> Mirror Complex Pairs';
+            }
+        }
+
+        function syncControlsToState() {
+            sliderC.value = state.c;
+            sliderT0.value = state.t0;
+            
+            sliderP1Real.value = state.p1.re;
+            sliderP1Imag.value = state.p1.im;
+            sliderP2Real.value = state.p2.re;
+            sliderP2Imag.value = state.p2.im;
+
+            badgeC.textContent = state.c.toFixed(2);
+            badgeT.textContent = state.t0.toFixed(2) + " s";
+
+            valP1Real.textContent = state.p1.re.toFixed(2);
+            valP1Imag.textContent = state.p1.im.toFixed(2);
+            valP2Real.textContent = state.p2.re.toFixed(2);
+            valP2Imag.textContent = state.p2.im.toFixed(2);
+        }
+
+        // Three.js 3D Graphics Setup
+        let scene, camera, renderer, controls;
+        let surfaceMesh, planeMesh, pole1Marker, pole2Marker;
+        const resolution3D = 50;
+        const sigmaMin = -4.0, sigmaMax = 4.0;
+        const omegaMin = -5.0, omegaMax = 5.0;
+
+        function init3D() {
+            const container = document.getElementById('threejs-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight || 450;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x090d16);
+
+            // Lighting setup
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 15, 8);
+            scene.add(dirLight);
+
+            const pointLight = new THREE.PointLight(0x06b6d4, 1, 30);
+            pointLight.position.set(0, 5, 0);
+            scene.add(pointLight);
+
+            // Camera setting
+            camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+            camera.position.set(6, 7, 9);
+
+            // WebGL Renderer settings
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            // Setup mouse/touch orbital controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2 - 0.05; // Lock camera from going below plane
+            controls.minDistance = 3;
+            controls.maxDistance = 20;
+
+            // Create grids and axes
+            buildGridHelper();
+
+            // Create dynamically updateable geometry objects
+            buildDynamicObjects();
+
+            // Start animation frame loops
+            animate();
+        }
+
+        function buildGridHelper() {
+            // Plane helper for complex plane grid lines
+            const gridHelper = new THREE.GridHelper(10, 20, 0x475569, 0x1e293b);
+            gridHelper.position.y = 0;
+            scene.add(gridHelper);
+
+            // Solid 3D coordinate line vectors
+            const originMat = new THREE.LineBasicMaterial({ color: 0x64748b });
+            
+            // Re Axis Line
+            const reGeom = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(-5, 0, 0),
+                new THREE.Vector3(5, 0, 0)
+            ]);
+            const reLine = new THREE.Line(reGeom, originMat);
+            scene.add(reLine);
+
+            // Im Axis Line
+            const imGeom = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, -5),
+                new THREE.Vector3(0, 0, 5)
+            ]);
+            const imLine = new THREE.Line(imGeom, originMat);
+            scene.add(imLine);
+        }
+
+        function buildDynamicObjects() {
+            // 1. Create 3D Surface geometry for Transfer Function Magnitude |X(s)|
+            const surfaceGeo = new THREE.PlaneGeometry(8, 10, resolution3D, resolution3D);
+            // Orient plane to horizontal axis
+            surfaceGeo.rotateX(-Math.PI / 2);
+
+            // Custom shader/vertex-based coloring logic
+            const material = new THREE.MeshStandardMaterial({
+                roughness: 0.2,
+                metalness: 0.1,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.85,
+                flatShading: false,
+                vertexColors: true
+            });
+
+            surfaceMesh = new THREE.Mesh(surfaceGeo, material);
+            scene.add(surfaceMesh);
+
+            // Wireframe mesh layer overlay for detailed visual depth
+            const wireMat = new THREE.MeshBasicMaterial({
+                color: 0x4f46e5,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.18
+            });
+            const wireMesh = new THREE.Mesh(surfaceGeo, wireMat);
+            surfaceMesh.add(wireMesh);
+
+            // 2. Integration path slicing plane setup
+            const sliceGeo = new THREE.PlaneGeometry(10, 8);
+            sliceGeo.rotateY(Math.PI / 2); // Stand vertically
+            const sliceMat = new THREE.MeshBasicMaterial({
+                color: 0x22d3ee,
+                transparent: true,
+                opacity: 0.15,
+                side: THREE.DoubleSide
+            });
+            planeMesh = new THREE.Mesh(sliceGeo, sliceMat);
+            scene.add(planeMesh);
+
+            // Glowing boundary wires for vertical slice
+            const borderMat = new THREE.LineBasicMaterial({ color: 0x22d3ee, linewidth: 2 });
+            const borderGeom = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, -5),
+                new THREE.Vector3(0, 6, -5),
+                new THREE.Vector3(0, 6, 5),
+                new THREE.Vector3(0, 0, 5)
+            ]);
+            const borderLines = new THREE.Line(borderGeom, borderMat);
+            planeMesh.add(borderLines);
+
+            // 3. Poles indicators
+            const poleGeo = new THREE.SphereGeometry(0.12, 16, 16);
+            const poleStemGeo = new THREE.CylinderGeometry(0.04, 0.04, 5, 8);
+            poleStemGeo.translate(0, 2.5, 0);
+
+            const p1Mat = new THREE.MeshPhongMaterial({ color: 0x6366f1, emissive: 0x312e81, shininess: 80 });
+            const p2Mat = new THREE.MeshPhongMaterial({ color: 0xec4899, emissive: 0x500724, shininess: 80 });
+
+            pole1Marker = new THREE.Group();
+            pole1Marker.add(new THREE.Mesh(poleGeo, p1Mat));
+            pole1Marker.add(new THREE.Mesh(poleStemGeo, p1Mat));
+            scene.add(pole1Marker);
+
+            pole2Marker = new THREE.Group();
+            pole2Marker.add(new THREE.Mesh(poleGeo, p2Mat));
+            pole2Marker.add(new THREE.Mesh(poleStemGeo, p2Mat));
+            scene.add(pole2Marker);
+        }
+
+        // System function calculations
+        function calculateX(s) {
+            // s: complex representation
+            // X(s) = 1 / [(s - p1)(s - p2)]
+            const term1 = s.sub(state.p1);
+            const term2 = s.sub(state.p2);
+            const product = term1.mul(term2);
+            return new Complex(1, 0).div(product);
+        }
+
+        // Dynamic updates for 3D Geometry vertices based on pole state coordinates
+        function update3DSurface() {
+            const position = surfaceMesh.geometry.attributes.position;
+            const colors = [];
+            
+            // Loop through all points in geometry matrix grid
+            for (let i = 0; i < position.count; i++) {
+                const x = position.getX(i); // real s component (sigma)
+                const z = position.getZ(i); // imaginary s component (omega)
+
+                const s = new Complex(x, -z); // Map 3D coordinate frame to complex coordinates (z axis maps inverted to complex im)
+                const X_val = calculateX(s);
+                let magnitude = X_val.mag();
+
+                // Cap magnitude spike values at poles to prevent infinite mathematical scale overflow
+                const capLimit = 5.0;
+                const visualMag = Math.min(magnitude, capLimit);
+
+                // Set height value to mapped visual magnitude
+                position.setY(i, visualMag);
+
+                // Add vertices custom complex-phase mapped colors
+                const phase = X_val.phase(); // Angle range: [-PI, PI]
+                const hue = (phase + Math.PI) / (2 * Math.PI); // Map hue to [0, 1]
+                
+                // Convert simple HSL values to ThreeJS Color space
+                const vertexColor = new THREE.Color().setHSL(hue, 0.85, 0.2 + (visualMag/capLimit) * 0.4);
+                colors.push(vertexColor.r, vertexColor.g, vertexColor.b);
+            }
+
+            // Apply modifications to Three.js vertex graphics attributes
+            surfaceMesh.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            surfaceMesh.geometry.attributes.position.needsUpdate = true;
+            surfaceMesh.geometry.computeVertexNormals();
+
+            // Slide cyan slice integration plane matching parameter state
+            planeMesh.position.x = state.c;
+
+            // Position and align pole meshes
+            pole1Marker.position.set(state.p1.re, 0, -state.p1.im);
+            pole2Marker.position.set(state.p2.re, 0, -state.p2.im);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // System residues and theoretical inverse Laplace formulation
+        function calculateResidues() {
+            // For distinct complex poles p1, p2 of X(s) = 1 / [(s-p1)(s-p2)]
+            // Residue at p1: R1 = lim s->p1 of (s-p1)X(s) = 1 / (p1 - p2)
+            // Residue at p2: R2 = lim s->p2 of (s-p2)X(s) = 1 / (p2 - p1)
+            const diff = state.p1.sub(state.p2);
+            if (diff.mag() === 0) {
+                // Return dummy fallback state for overlapping poles
+                return {
+                    R1: new Complex(100, 0),
+                    R2: new Complex(-100, 0)
+                };
+            }
+            const R1 = new Complex(1, 0).div(diff);
+            const R2 = new Complex(-1, 0).div(diff);
+            return { R1, R2 };
+        }
+
+        // Find the boundary limits of Region of Convergence (ROC)
+        function getRocInfo() {
+            // Poles real parts sorted
+            const r1 = Math.min(state.p1.re, state.p2.re);
+            const r2 = Math.max(state.p1.re, state.p2.re);
+
+            let mode = '';
+            let label = '';
+            let stable = false;
+
+            // Determine active ROC mode based on location of slice c relative to poles
+            if (state.c < r1) {
+                mode = 'left';
+                label = `Anti-Causal (\\sigma < ${r1.toFixed(1)})`;
+                stable = (r1 < 0);
+            } else if (state.c > r2) {
+                mode = 'right';
+                label = `Causal (\\sigma > ${r2.toFixed(1)})`;
+                stable = (r2 < 0);
+            } else {
+                mode = 'bilateral';
+                label = `Bilateral (${r1.toFixed(1)} < \\sigma < ${r2.toFixed(1)})`;
+                // Bilateral stable if system ROC contains the jw-axis, meaning Re(p1) < 0 and Re(p2) > 0 (ROC covers 0)
+                stable = (r1 < 0 && r2 > 0);
+            }
+
+            return { mode, label, stable, r1, r2 };
+        }
+
+        // Calculates exact analytical value of signal x(t) matching selected ROC
+        function calculateAnalyticalSignal(t) {
+            const { R1, R2 } = calculateResidues();
+            const { mode } = getRocInfo();
+
+            // Term contributions
+            // x_k(t) = R_k * e^(p_k * t)
+            const term1 = R1.mul(new Complex(state.p1.re * t, state.p1.im * t).exp());
+            const term2 = R2.mul(new Complex(state.p2.re * t, state.p2.im * t).exp());
+
+            let result = new Complex(0, 0);
+
+            // Apply causal/anti-causal selection criteria matching path coordinate c
+            // If pole.re < c: causal contribution (u(t) active)
+            // If pole.re > c: anti-causal contribution (-u(-t) active)
+            
+            // Pole 1
+            if (state.p1.re < state.c) {
+                if (t >= 0) result = result.add(term1);
+            } else {
+                if (t < 0) result = result.sub(term1);
+            }
+
+            // Pole 2
+            if (state.p2.re < state.c) {
+                if (t >= 0) result = result.add(term2);
+            } else {
+                if (t < 0) result = result.sub(term2);
+            }
+
+            // Return purely real projection of the analytical equation
+            return result.re;
+        }
+
+        // Custom 2D Canvas Plotters
+        const canvasTime = document.getElementById('canvas-time-domain');
+        const ctxTime = canvasTime.getContext('2d');
+
+        const canvasIntegrand = document.getElementById('canvas-integrand-profile');
+        const ctxIntegrand = canvasIntegrand.getContext('2d');
+
+        const canvasSpiral = document.getElementById('canvas-convergence-spiral');
+        const ctxSpiral = canvasSpiral.getContext('2d');
+
+        // Handles adaptive canvas DPI scaling
+        function resize2DCanvases() {
+            const list = [
+                { canvas: canvasTime, ctx: ctxTime },
+                { canvas: canvasIntegrand, ctx: ctxIntegrand },
+                { canvas: canvasSpiral, ctx: ctxSpiral }
+            ];
+
+            list.forEach(({ canvas }) => {
+                const rect = canvas.parentElement.getBoundingClientRect();
+                canvas.width = rect.width * window.devicePixelRatio;
+                canvas.height = rect.height * window.devicePixelRatio;
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+            });
+        }
+
+        // 1. Draw Time Domain Waveform Chart
+        function drawTimeDomainPlot() {
+            const w = canvasTime.width;
+            const h = canvasTime.height;
+            ctxTime.clearRect(0, 0, w, h);
+
+            // Margin parameters
+            const margin = { top: 30, right: 30, bottom: 30, left: 40 };
+            const graphW = w - margin.left - margin.right;
+            const graphH = h - margin.top - margin.bottom;
+
+            // X scale (time: -3 to 5 seconds)
+            const tMin = -3.0;
+            const tMax = 5.0;
+            const scaleX = (t) => margin.left + ((t - tMin) / (tMax - tMin)) * graphW;
+            const scaleXInv = (x) => tMin + ((x - margin.left) / graphW) * (tMax - tMin);
+
+            // Compute values to auto-scale Y axis dynamically
+            const timePoints = [];
+            const signalValues = [];
+            const steps = 150;
+            for (let i = 0; i <= steps; i++) {
+                const t = tMin + (i / steps) * (tMax - tMin);
+                let val = calculateAnalyticalSignal(t);
+                
+                // Keep values rational for visual framing limits
+                if (isNaN(val) || !isFinite(val)) val = 0;
+                timePoints.push(t);
+                signalValues.push(val);
+            }
+
+            let maxVal = Math.max(...signalValues.map(Math.abs));
+            if (maxVal < 0.1) maxVal = 1.0;
+            if (maxVal > 15.0) maxVal = 15.0; // clamp visual limits
+
+            const scaleY = (v) => margin.top + graphH / 2 - (v / maxVal) * (graphH / 2.2);
+
+            // Grid Line elements
+            ctxTime.strokeStyle = '#1e293b';
+            ctxTime.lineWidth = 1;
+            
+            // Draw horizontal zero axis line
+            ctxTime.beginPath();
+            ctxTime.moveTo(margin.left, scaleY(0));
+            ctxTime.lineTo(w - margin.right, scaleY(0));
+            ctxTime.stroke();
+
+            // Draw vertical zero axis line
+            ctxTime.beginPath();
+            ctxTime.moveTo(scaleX(0), margin.top);
+            ctxTime.lineTo(scaleX(0), h - margin.bottom);
+            ctxTime.stroke();
+
+            // Grid lines & labels
+            ctxTime.fillStyle = '#64748b';
+            ctxTime.font = `${Math.max(10, Math.floor(w/40))}px Inter`;
+            ctxTime.textAlign = 'center';
+
+            // Horizontal time axis coordinates
+            for (let t = Math.ceil(tMin); t <= Math.floor(tMax); t++) {
+                if (t === 0) continue;
+                const gx = scaleX(t);
+                ctxTime.beginPath();
+                ctxTime.moveTo(gx, margin.top);
+                ctxTime.lineTo(gx, h - margin.bottom);
+                ctxTime.stroke();
+
+                ctxTime.fillText(`${t}s`, gx, h - margin.bottom + 15);
+            }
+
+            // Draw reconstructed waveform signal line
+            ctxTime.beginPath();
+            ctxTime.strokeStyle = '#a855f7';
+            ctxTime.lineWidth = 3;
+            ctxTime.lineJoin = 'round';
+
+            for (let i = 0; i < timePoints.length; i++) {
+                const x = scaleX(timePoints[i]);
+                const y = scaleY(signalValues[i]);
+                if (i === 0) ctxTime.moveTo(x, y);
+                else ctxTime.lineTo(x, y);
+            }
+            ctxTime.stroke();
+
+            // Draw a highlighted vertical line marker representing selected t0 position
+            const xT0 = scaleX(state.t0);
+            ctxTime.strokeStyle = '#e9d5ff';
+            ctxTime.lineWidth = 1.5;
+            ctxTime.setLineDash([4, 4]);
+            ctxTime.beginPath();
+            ctxTime.moveTo(xT0, margin.top);
+            ctxTime.lineTo(xT0, h - margin.bottom);
+            ctxTime.stroke();
+            ctxTime.setLineDash([]); // Reset line dashes
+
+            // Draw current location glowing marker circle
+            const yT0 = scaleY(calculateAnalyticalSignal(state.t0));
+            ctxTime.fillStyle = '#d8b4fe';
+            ctxTime.beginPath();
+            ctxTime.arc(xT0, yT0, 6, 0, Math.PI * 2);
+            ctxTime.fill();
+            ctxTime.strokeStyle = '#a855f7';
+            ctxTime.lineWidth = 2;
+            ctxTime.stroke();
+
+            // Chart Labels overlay
+            ctxTime.fillStyle = '#94a3b8';
+            ctxTime.textAlign = 'left';
+            ctxTime.fillText(`x(t) Signal Amplitude`, margin.left + 5, margin.top - 5);
+        }
+
+        // 2. Draw Real Integrand Profile vs Frequency along Integration Path
+        function drawIntegrandPlot() {
+            const w = canvasIntegrand.width;
+            const h = canvasIntegrand.height;
+            ctxIntegrand.clearRect(0, 0, w, h);
+
+            const margin = { top: 20, right: 15, bottom: 20, left: 15 };
+            const graphW = w - margin.left - margin.right;
+            const graphH = h - margin.top - margin.bottom;
+
+            // Frequency range Omega evaluated
+            const omMax = 7.0;
+            const scaleX = (om) => margin.left + ((om + omMax) / (2 * omMax)) * graphW;
+
+            const samples = 120;
+            const values = [];
+            
+            // Loop and evaluate Integrand = 1/(2*PI) * X(c + j*w) * e^((c + j*w)*t0)
+            for (let i = 0; i <= samples; i++) {
+                const omega = -omMax + (i / samples) * (2 * omMax);
+                const s = new Complex(state.c, omega);
+                const Xs = calculateX(s);
+                const est = new Complex(state.c * state.t0, omega * state.t0).exp();
+                
+                // Integrand value: product scaled by 1/2pi
+                const integrand = Xs.mul(est).div(new Complex(2 * Math.PI, 0));
+                
+                values.push({
+                    omega: omega,
+                    re: integrand.re,
+                    im: integrand.im
+                });
+            }
+
+            // Real peak amplitude boundary finding
+            let maxAmp = Math.max(...values.map(v => Math.abs(v.re)));
+            if (maxAmp < 0.05) maxAmp = 0.05;
+
+            const scaleY = (val) => margin.top + graphH / 2 - (val / maxAmp) * (graphH / 2.2);
+
+            // Draw axis lines
+            ctxIntegrand.strokeStyle = '#1e293b';
+            ctxIntegrand.lineWidth = 1;
+            ctxIntegrand.beginPath();
+            ctxIntegrand.moveTo(margin.left, scaleY(0));
+            ctxIntegrand.lineTo(w - margin.right, scaleY(0));
+            ctxIntegrand.stroke();
+
+            ctxIntegrand.beginPath();
+            ctxIntegrand.moveTo(scaleX(0), margin.top);
+            ctxIntegrand.lineTo(scaleX(0), h - margin.bottom);
+            ctxIntegrand.stroke();
+
+            // Draw path plot area under the curve (Real part)
+            ctxIntegrand.beginPath();
+            ctxIntegrand.fillStyle = 'rgba(34, 211, 238, 0.12)';
+            ctxIntegrand.moveTo(scaleX(values[0].omega), scaleY(0));
+            for (let i = 0; i < values.length; i++) {
+                ctxIntegrand.lineTo(scaleX(values[i].omega), scaleY(values[i].re));
+            }
+            ctxIntegrand.lineTo(scaleX(values[values.length - 1].omega), scaleY(0));
+            ctxIntegrand.fill();
+
+            // Draw Real waveform curve boundary line
+            ctxIntegrand.beginPath();
+            ctxIntegrand.strokeStyle = '#22d3ee';
+            ctxIntegrand.lineWidth = 2;
+            for (let i = 0; i < values.length; i++) {
+                const x = scaleX(values[i].omega);
+                const y = scaleY(values[i].re);
+                if (i === 0) ctxIntegrand.moveTo(x, y);
+                else ctxIntegrand.lineTo(x, y);
+            }
+            ctxIntegrand.stroke();
+
+            // Labels
+            ctxIntegrand.fillStyle = '#64748b';
+            ctxIntegrand.font = '10px Inter';
+            ctxIntegrand.textAlign = 'right';
+            ctxIntegrand.fillText(`+j\u03c9`, scaleX(0) - 5, margin.top + 8);
+        }
+
+        // 3. Draw Integration Convergence Spiral in the Complex Plane
+        function drawConvergenceSpiral() {
+            const w = canvasSpiral.width;
+            const h = canvasSpiral.height;
+            ctxSpiral.clearRect(0, 0, w, h);
+
+            const margin = 20;
+            const center = { x: w / 2, y: h / 2 };
+            const size = Math.min(w, h) - 2 * margin;
+
+            // We perform numerical integration along vertical line path
+            // Integral trace: I(Omega_limit) = Integral_(-Omega_limit)^(Omega_limit) X(c+jw) e^((c+jw)t0) dw
+            // Trace running coordinates to visualize convergence speed
+            const omSteps = 150;
+            const omMaxIntegration = 12.0;
+            
+            // Build raw array of evaluation coordinates
+            const integrals = [];
+            let currentIntegral = new Complex(0, 0);
+
+            // Trapezoidal integration loop
+            const dOm = (2 * omMaxIntegration) / omSteps;
+            
+            // Integrate symmetrically starting from omega = 0 outward or simply sweep from -omMax to omMax
+            // Sweeping from -omMax to +omMax yields a dynamic visual curve tracing
+            for (let i = 0; i <= omSteps; i++) {
+                const omega = -omMaxIntegration + (i / omSteps) * (2 * omMaxIntegration);
+                const s = new Complex(state.c, omega);
+                const Xs = calculateX(s);
+                const est = new Complex(state.c * state.t0, omega * state.t0).exp();
+                const integrand = Xs.mul(est).div(new Complex(2 * Math.PI, 0)); // scaled 1/2pi factor
+
+                if (i > 0) {
+                    // Integrate incremental step (trapezoidal step sum)
+                    const prevOmega = -omMaxIntegration + ((i-1) / omSteps) * (2 * omMaxIntegration);
+                    const prevS = new Complex(state.c, prevOmega);
+                    const prevXs = calculateX(prevS);
+                    const prevEst = new Complex(state.c * state.t0, prevOmega * state.t0).exp();
+                    const prevIntegrand = prevXs.mul(prevEst).div(new Complex(2 * Math.PI, 0));
+
+                    const avgStep = integrand.add(prevIntegrand).mul(new Complex(0.5 * dOm, 0));
+                    
+                    // Add complex multiplication element representation of differential complex path element (ds = j dw)
+                    // Since Integral(X(s)e^(st) ds) = Integral(X(c+jw)e^((c+jw)t) j dw)
+                    // We must multiply current sum increments by j (which rotates coordinates 90 deg)
+                    const rotatedStep = new Complex(-avgStep.im, avgStep.re); // multiplied by j
+
+                    currentIntegral = currentIntegral.add(rotatedStep);
+                }
+
+                integrals.push(new Complex(currentIntegral.re, currentIntegral.im));
+            }
+
+            // Scale calculations mapping path dimensions visually inside box
+            const absValues = integrals.map(pt => pt.mag());
+            let maxRadius = Math.max(...absValues);
+            if (maxRadius < 0.1) maxRadius = 1.0;
+
+            const scale = size / (2 * maxRadius * 1.15); // visual scale boundary fitting
+
+            const mapX = (r) => center.x + r * scale;
+            const mapY = (i) => center.y - i * scale; // invert imaginary vector layout vertically
+
+            // Grid Coordinate Cross
+            ctxSpiral.strokeStyle = '#1e293b';
+            ctxSpiral.lineWidth = 1;
+            ctxSpiral.beginPath();
+            ctxSpiral.moveTo(margin, center.y);
+            ctxSpiral.lineTo(w - margin, center.y);
+            ctxSpiral.stroke();
+
+            ctxSpiral.beginPath();
+            ctxSpiral.moveTo(center.x, margin);
+            ctxSpiral.lineTo(center.x, h - margin);
+            ctxSpiral.stroke();
+
+            // Trace spiral line
+            ctxSpiral.beginPath();
+            ctxSpiral.strokeStyle = '#f59e0b'; // Amber trace color
+            ctxSpiral.lineWidth = 1.5;
+            ctxSpiral.lineJoin = 'round';
+            for (let i = 0; i < integrals.length; i++) {
+                const x = mapX(integrals[i].re);
+                const y = mapY(integrals[i].im);
+                if (i === 0) ctxSpiral.moveTo(x, y);
+                else ctxSpiral.lineTo(x, y);
+            }
+            ctxSpiral.stroke();
+
+            // Draw glowing node marker at ending index convergence coordinate
+            const finalPt = integrals[integrals.length - 1];
+            ctxSpiral.fillStyle = '#f59e0b';
+            ctxSpiral.beginPath();
+            ctxSpiral.arc(mapX(finalPt.re), mapY(finalPt.im), 5, 0, Math.PI * 2);
+            ctxSpiral.fill();
+
+            // Draw analytical coordinate comparison target (green dot target representation)
+            const targetVal = calculateAnalyticalSignal(state.t0);
+            ctxSpiral.strokeStyle = '#10b981'; // Green accent ring
+            ctxSpiral.lineWidth = 1.8;
+            ctxSpiral.beginPath();
+            ctxSpiral.arc(mapX(targetVal), mapY(0), 6, 0, Math.PI * 2);
+            ctxSpiral.stroke();
+
+            // Legend indicators
+            ctxSpiral.fillStyle = '#64748b';
+            ctxSpiral.font = '9px Inter';
+            ctxSpiral.fillText(`Target x(t₀)`, mapX(targetVal) - 20, mapY(0) - 10);
+        }
+
+        // Synchronize all application graphics logic loops
+        function updateSimulation() {
+            // Recalculate ROC boundary details
+            const roc = getRocInfo();
+            badgeRoc.innerHTML = roc.label;
+
+            // Render math overlay texts
+            renderMathFormulas();
+
+            // Setup Convergence indicator styling depending on stability parameters
+            if (roc.stable) {
+                statusConvergence.textContent = "Stable Integration Path";
+                statusConvergence.className = "text-[10px] font-bold bg-emerald-950/80 border border-emerald-800 px-2.5 py-0.5 rounded text-emerald-400";
+            } else {
+                statusConvergence.textContent = "Divergent Integrand Profile";
+                statusConvergence.className = "text-[10px] font-bold bg-rose-950/80 border border-rose-800 px-2.5 py-0.5 rounded text-rose-400";
+            }
+
+            // Recompute 3D Surface
+            update3DSurface();
+
+            // Redraw 2D Canvas views
+            drawTimeDomainPlot();
+            drawIntegrandPlot();
+            drawConvergenceSpiral();
+        }
+
+        // Event Listeners Registration
+        function registerEvents() {
+            
+            // Line c Position control
+            sliderC.addEventListener('input', (e) => {
+                state.c = parseFloat(e.target.value);
+                badgeC.textContent = state.c.toFixed(2);
+                updateSimulation();
+            });
+
+            // Time selection slider control
+            sliderT0.addEventListener('input', (e) => {
+                state.t0 = parseFloat(e.target.value);
+                badgeT.textContent = state.t0.toFixed(2) + " s";
+                updateSimulation();
+            });
+
+            // Mirror pair lock toggle control
+            document.getElementById('btn-lock-conjugate').addEventListener('click', () => {
+                state.lockConjugate = !state.lockConjugate;
+                if (state.lockConjugate) {
+                    // Force pole 2 to match complex conjugate of pole 1
+                    state.p2 = new Complex(state.p1.re, -state.p1.im);
+                    syncControlsToState();
+                }
+                updateLockConjugateButton();
+                updateSimulation();
+            });
+
+            // Sliders: Pole 1 Configurations
+            sliderP1Real.addEventListener('input', (e) => {
+                state.p1.re = parseFloat(e.target.value);
+                if (state.lockConjugate) {
+                    state.p2.re = state.p1.re;
+                }
+                syncControlsToState();
+                updateSimulation();
+            });
+            sliderP1Imag.addEventListener('input', (e) => {
+                state.p1.im = parseFloat(e.target.value);
+                if (state.lockConjugate) {
+                    state.p2.im = -state.p1.im;
+                }
+                syncControlsToState();
+                updateSimulation();
+            });
+
+            // Sliders: Pole 2 Configurations
+            sliderP2Real.addEventListener('input', (e) => {
+                state.p2.re = parseFloat(e.target.value);
+                if (state.lockConjugate) {
+                    state.p1.re = state.p2.re;
+                }
+                syncControlsToState();
+                updateSimulation();
+            });
+            sliderP2Imag.addEventListener('input', (e) => {
+                state.p2.im = parseFloat(e.target.value);
+                if (state.lockConjugate) {
+                    state.p1.im = -state.p2.im;
+                }
+                syncControlsToState();
+                updateSimulation();
+            });
+
+            // Drag interactions on 2D Time Domain waveform canvas to change evaluation point t0
+            function handleTimeDomainCanvasClick(e) {
+                const rect = canvasTime.getBoundingClientRect();
+                const xPos = (e.clientX - rect.left) * (canvasTime.width / rect.width);
+                
+                const margin = { left: 40, right: 30 };
+                const graphW = canvasTime.width - margin.left - margin.right;
+                
+                // Inverse coordinate lookup
+                const tMin = -3.0;
+                const tMax = 5.0;
+                let clickedTime = tMin + ((xPos - margin.left) / graphW) * (tMax - tMin);
+                
+                // Bound check limits
+                clickedTime = Math.max(tMin, Math.min(tMax, clickedTime));
+                state.t0 = clickedTime;
+                
+                // Sync UI and reload calculations
+                sliderT0.value = state.t0;
+                badgeT.textContent = state.t0.toFixed(2) + " s";
+                updateSimulation();
+            }
+
+            let isDraggingTime = false;
+            canvasTime.addEventListener('mousedown', (e) => {
+                isDraggingTime = true;
+                handleTimeDomainCanvasClick(e);
+            });
+            canvasTime.addEventListener('mousemove', (e) => {
+                if (isDraggingTime) handleTimeDomainCanvasClick(e);
+            });
+            window.addEventListener('mouseup', () => {
+                isDraggingTime = false;
+            });
+
+            // Support touch events for mobile interactions
+            canvasTime.addEventListener('touchstart', (e) => {
+                isDraggingTime = true;
+                if (e.touches.length > 0) handleTimeDomainCanvasClick(e.touches[0]);
+            });
+            canvasTime.addEventListener('touchmove', (e) => {
+                if (isDraggingTime && e.touches.length > 0) handleTimeDomainCanvasClick(e.touches[0]);
+            });
+            canvasTime.addEventListener('touchend', () => {
+                isDraggingTime = false;
+            });
+
+            // Theory Modal overlays triggers
+            const modal = document.getElementById('info-modal');
+            document.getElementById('btn-info').addEventListener('click', () => {
+                modal.classList.remove('hidden');
+            });
+            document.getElementById('btn-close-modal').addEventListener('click', () => {
+                modal.classList.add('hidden');
+            });
+            document.getElementById('btn-close-modal-footer').addEventListener('click', () => {
+                modal.classList.add('hidden');
+            });
+
+            // Resize viewport adjustment listener
+            window.addEventListener('resize', () => {
+                if (camera && renderer) {
+                    const container = document.getElementById('threejs-container');
+                    const w = container.clientWidth;
+                    const h = container.clientHeight || 450;
+                    camera.aspect = w / h;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(w, h);
+                }
+                resize2DCanvases();
+                updateSimulation();
+            });
+        }
+
+        // Window entry point execution
+        window.onload = function() {
+            // Initial element structures sizing
+            resize2DCanvases();
+            
+            // Instantiate 3D Viewport environment
+            init3D();
+            
+            // Wire listeners
+            registerEvents();
+
+            // Initial mathematical rendering presets sweep
+            applyPreset('bilateral');
+        };
+    </script>
+</body>
+</html>

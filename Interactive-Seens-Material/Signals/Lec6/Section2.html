@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laplace Transform: Parallel Flow & Linearity Visualizer</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              bg: '#0f172a', // slate-900
+              card: '#1e293b', // slate-800
+              border: '#334155', // slate-700
+              accent: '#3b82f6', // blue-500
+              accentLight: '#60a5fa', // blue-400
+              teal: '#14b8a6', // teal-500
+              purple: '#a855f7', // purple-500
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Outfit', sans-serif;
+    }
+    .mono-font {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Simple keyframes for animated signal flows */
+    @keyframes dash {
+      to {
+        stroke-dashoffset: -40;
+      }
+    }
+    .flow-line {
+      stroke-dasharray: 8, 4;
+      animation: dash 2s linear infinite;
+    }
+    .flow-line-paused {
+      stroke-dasharray: 8, 4;
+    }
+  </style>
+</head>
+<body class="bg-brand-bg text-slate-100 min-h-screen flex flex-col selection:bg-purple-500 selection:text-white">
+
+  <!-- Header -->
+  <header class="border-b border-brand-border bg-slate-900/80 backdrop-blur sticky top-0 z-50 px-6 py-4">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+      <div class="flex items-center gap-3">
+        <div class="bg-gradient-to-tr from-brand-accent to-brand-purple p-2.5 rounded-xl shadow-lg shadow-brand-accent/20">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-blue-400 via-teal-400 to-purple-400 bg-clip-text text-transparent">Parallel Flow Decomposition</h1>
+          <p class="text-xs text-slate-400 font-medium">Laplace Domain Split & Linearity Reconstruction Visualizer</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="text-xs bg-slate-800 border border-brand-border px-3 py-1.5 rounded-lg flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>Linearity Active: <span class="mono-font font-bold text-teal-400">∑ x_n(t)</span></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+    
+    <!-- LEFT PANEL: Interactive Controls & Table (5 cols) -->
+    <div class="lg:col-span-5 flex flex-col gap-6">
+      
+      <!-- Interactive Signal Constructor -->
+      <div class="bg-brand-card border border-brand-border rounded-2xl p-5 shadow-xl">
+        <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+          <span class="w-1.5 h-4 bg-brand-accent rounded"></span>
+          Signal Synthesis Controls
+        </h2>
+        
+        <!-- Parameter Sliders -->
+        <div class="space-y-4">
+          <!-- Residue A & Pole a1 (Component 1) -->
+          <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
+            <div class="flex justify-between items-center mb-3">
+              <span class="text-sm font-semibold text-sky-400 flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
+                Component 1: x₁(t) = A·e^(-a₁·t)
+              </span>
+            </div>
+            <div class="space-y-3 text-xs">
+              <div>
+                <div class="flex justify-between mb-1 text-slate-400">
+                  <span>Residue (A)</span>
+                  <span class="mono-font text-sky-400 font-bold" id="valA">2.0</span>
+                </div>
+                <input id="sliderA" type="range" min="0.5" max="4.0" step="0.1" value="2.0" class="w-full accent-sky-500 bg-slate-800 rounded-lg cursor-pointer h-1.5">
+              </div>
+              <div>
+                <div class="flex justify-between mb-1 text-slate-400">
+                  <span>Decay Rate / Pole (a₁)</span>
+                  <span class="mono-font text-sky-400 font-bold" id="vala1">1.0</span>
+                </div>
+                <input id="slidera1" type="range" min="0.2" max="3.0" step="0.1" value="1.0" class="w-full accent-sky-500 bg-slate-800 rounded-lg cursor-pointer h-1.5">
+              </div>
+            </div>
+          </div>
+
+          <!-- Residue B & Pole a2 (Component 2) -->
+          <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
+            <div class="flex justify-between items-center mb-3">
+              <span class="text-sm font-semibold text-emerald-400 flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                Component 2: x₂(t) = B·e^(-a₂·t)
+              </span>
+            </div>
+            <div class="space-y-3 text-xs">
+              <div>
+                <div class="flex justify-between mb-1 text-slate-400">
+                  <span>Residue (B)</span>
+                  <span class="mono-font text-emerald-400 font-bold" id="valB">1.0</span>
+                </div>
+                <input id="sliderB" type="range" min="0.5" max="4.0" step="0.1" value="1.0" class="w-full accent-emerald-500 bg-slate-800 rounded-lg cursor-pointer h-1.5">
+              </div>
+              <div>
+                <div class="flex justify-between mb-1 text-slate-400">
+                  <span>Decay Rate / Pole (a₂)</span>
+                  <span class="mono-font text-emerald-400 font-bold" id="vala2">2.0</span>
+                </div>
+                <input id="slidera2" type="range" min="0.2" max="3.0" step="0.1" value="2.0" class="w-full accent-emerald-500 bg-slate-800 rounded-lg cursor-pointer h-1.5">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Calculated Overall Formula -->
+        <div class="mt-4 p-3 bg-slate-950 rounded-xl border border-slate-800 text-center">
+          <span class="text-xs text-slate-400 block mb-1 uppercase tracking-wider">Equivalent Complex Form: X(s)</span>
+          <div class="flex justify-center items-center gap-2 text-sm font-medium text-slate-200">
+            <span class="mono-font">X(s) =</span>
+            <!-- Custom HTML Fraction -->
+            <div class="inline-flex flex-col items-center align-middle mx-1 text-xs">
+              <span class="border-b border-slate-500 px-2 pb-0.5 font-bold text-teal-400" id="numFormula">3.00s + 5.00</span>
+              <span class="pt-0.5 text-slate-400" id="denFormula">(s + 1.00)(s + 2.00)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Laplace Transform Reference Table (Dynamic Highlight) -->
+      <div class="bg-brand-card border border-brand-border rounded-2xl p-5 shadow-xl flex-1 flex flex-col justify-between">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <span class="w-1.5 h-4 bg-brand-teal rounded"></span>
+            Transform Reference Table
+          </h2>
+          <div class="overflow-hidden border border-slate-700/60 rounded-xl bg-slate-900/40 text-xs">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-800/80 text-slate-400 font-semibold border-b border-brand-border">
+                  <th class="p-3">f(t) (Time Domain)</th>
+                  <th class="p-3">F(s) (Laplace Domain)</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-brand-border">
+                <tr id="row-impulse" class="transition-all duration-300 opacity-40">
+                  <td class="p-3 mono-font">δ(t)</td>
+                  <td class="p-3 mono-font">1</td>
+                </tr>
+                <tr id="row-step" class="transition-all duration-300 opacity-40">
+                  <td class="p-3 mono-font">u(t)</td>
+                  <td class="p-3 mono-font">1 / s</td>
+                </tr>
+                <!-- The Critical Exponential Row -->
+                <tr id="row-exp" class="transition-all duration-300 relative bg-brand-teal/10 font-medium border-l-2 border-brand-teal text-teal-300">
+                  <td class="p-3 mono-font">e^(-at) · u(t)</td>
+                  <td class="p-3 mono-font">1 / (s + a)</td>
+                </tr>
+                <tr id="row-ramp" class="transition-all duration-300 opacity-40">
+                  <td class="p-3 mono-font">t · e^(-at)</td>
+                  <td class="p-3 mono-font">1 / (s + a)²</td>
+                </tr>
+                <tr id="row-cos" class="transition-all duration-300 opacity-40">
+                  <td class="p-3 mono-font">cos(ωt)</td>
+                  <td class="p-3 mono-font">s / (s² + ω²)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <div class="mt-4 p-3.5 bg-brand-teal/5 border border-brand-teal/20 rounded-xl text-xs text-teal-400 leading-relaxed flex items-start gap-2.5">
+          <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <p>
+            The table matching engine automatically highlights row 3 because both sub-blocks fit the <span class="mono-font font-bold">1/(s + a)</span> pattern. Linearity permits scaling each term by <span class="mono-font text-sky-400">A</span> and <span class="mono-font text-emerald-400">B</span> independently.
+          </p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT PANEL: Stages & Visualization (7 cols) -->
+    <div class="lg:col-span-7 flex flex-col gap-6">
+      
+      <!-- Stepper Header -->
+      <div class="bg-brand-card border border-brand-border rounded-2xl p-4 flex justify-between items-center shadow-xl">
+        <div class="flex items-center gap-2">
+          <span class="text-xs uppercase tracking-widest text-slate-400 font-bold">Current Step:</span>
+          <span id="stepBadge" class="text-xs font-bold px-2.5 py-1 bg-brand-accent/20 text-brand-accentLight border border-brand-accent/30 rounded-full">1. Complex Block</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <button id="prevBtn" class="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition disabled:opacity-30 disabled:hover:bg-transparent" disabled>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
+          </button>
+          <div class="flex gap-1" id="stepDots">
+            <!-- Dynamically generated indicators -->
+          </div>
+          <button id="nextBtn" class="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- VISUAL STAGE: Interactive Block Diagram SVG -->
+      <div class="bg-brand-card border border-brand-border rounded-2xl p-6 shadow-xl relative min-h-[320px] flex flex-col justify-between overflow-hidden">
+        
+        <!-- Explanation Bar -->
+        <div id="stepExplanation" class="text-sm text-slate-300 min-h-[3rem] border-b border-brand-border/40 pb-3 mb-4">
+          Loading step description...
+        </div>
+
+        <!-- SVG Flow Stage -->
+        <div class="relative w-full h-[220px] flex items-center justify-center">
+          <svg id="stageSvg" viewBox="0 0 700 240" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="blueGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#3b82f6" />
+                <stop offset="100%" stop-color="#60a5fa" />
+              </linearGradient>
+              <linearGradient id="emeraldGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#059669" />
+                <stop offset="100%" stop-color="#34d399" />
+              </linearGradient>
+              <filter id="glow" x="-10%" y="-10%" width="120%" height="120%">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
+            </defs>
+
+            <!-- CONNECTIONS (All generated dynamically in JS for steps) -->
+            <g id="svgConnections"></g>
+
+            <!-- BLOCKS (Generated/Manipulated dynamically) -->
+            <g id="svgBlocks"></g>
+          </svg>
+
+          <!-- Math Overlay (Absolute placement atop graph/svg for perfect rendering) -->
+          <div id="mathOverlay" class="absolute inset-0 pointer-events-none flex items-center justify-center">
+            <!-- Will house dynamic HTML for linearity/equations -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Graphing Station: Real-time time domain response -->
+      <div class="bg-brand-card border border-brand-border rounded-2xl p-5 shadow-xl">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+            <span class="w-1.5 h-4 bg-brand-purple rounded"></span>
+            Accumulated Output Wave: x(t) = x₁(t) + x₂(t)
+          </h2>
+          <!-- Legend -->
+          <div class="flex gap-4 text-[11px] font-semibold">
+            <span class="flex items-center gap-1.5 text-sky-400">
+              <span class="w-2.5 h-0.5 border-t-2 border-sky-400"></span> x₁(t)
+            </span>
+            <span class="flex items-center gap-1.5 text-emerald-400">
+              <span class="w-2.5 h-0.5 border-t-2 border-emerald-400"></span> x₂(t)
+            </span>
+            <span class="flex items-center gap-1.5 text-purple-400">
+              <span class="w-2.5 h-0.5 border-t-2 border-purple-500"></span> x(t) (Sum)
+            </span>
+          </div>
+        </div>
+
+        <!-- Graph canvas & Dynamic Readout -->
+        <div class="relative bg-slate-950 rounded-xl p-2 border border-slate-800">
+          <canvas id="timeGraph" class="w-full h-[180px] block"></canvas>
+          <div id="tooltip" class="absolute bg-slate-900/90 border border-slate-700 px-2.5 py-1 text-xs rounded shadow-xl pointer-events-none hidden select-none z-10"></div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-brand-border bg-slate-950 py-4 px-6 mt-12 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+      <p>Interactive Signals & Systems Laboratory Sandbox</p>
+      <p>Demonstrating <span class="mono-font text-slate-400">L⁻¹{∑ a_n X_n(s)} = ∑ a_n x_n(t)</span> via Parallel Decomposition</p>
+    </div>
+  </footer>
+
+  <!-- Script logic for controlling app state -->
+  <script>
+    // State management
+    const state = {
+      A: 2.0,
+      a1: 1.0,
+      B: 1.0,
+      a2: 2.0,
+      currentStep: 0,
+      totalSteps: 4,
+      hoverTime: null // tracking hover coordinate on graph
+    };
+
+    // Step configuration
+    const steps = [
+      {
+        id: "step-1",
+        badge: "1. Complex X(s) Block",
+        text: "We begin with a complex s-domain transfer function <strong>X(s)</strong>. Attempting to directly perform an inverse transform integration on this complex fractional expression is highly tedious. Instead, we must unpack its parallel structures."
+      },
+      {
+        id: "step-2",
+        badge: "2. Parallel Separation",
+        text: "Using Partial Fraction Expansion, we break down the complex block into individual <strong>additive</strong> sub-blocks. This visual split converts the single complex cascade into a streamlined parallel architecture."
+      },
+      {
+        id: "step-3",
+        badge: "3. Table Matching",
+        text: "By focusing on individual components, we can easily find direct matches in our standard Laplace Transform Table. Here, both parallel streams map cleanly to the <strong>exponential decay transform row</strong>."
+      },
+      {
+        id: "step-4",
+        badge: "4. Reconstructed x(t)",
+        text: "Applying the <strong>Linearity Property of the Laplace Transform</strong>, we invert each sub-block directly and sum their output curves. The accumulated final wave <strong>x(t)</strong> perfectly reconstructs the signal."
+      }
+    ];
+
+    // Core DOM Elements
+    const sliderA = document.getElementById('sliderA');
+    const slidera1 = document.getElementById('slidera1');
+    const sliderB = document.getElementById('sliderB');
+    const slidera2 = document.getElementById('slidera2');
+
+    const valA = document.getElementById('valA');
+    const vala1 = document.getElementById('vala1');
+    const valB = document.getElementById('valB');
+    const vala2 = document.getElementById('vala2');
+
+    const numFormula = document.getElementById('numFormula');
+    const denFormula = document.getElementById('denFormula');
+
+    const stepBadge = document.getElementById('stepBadge');
+    const stepExplanation = document.getElementById('stepExplanation');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const stepDotsContainer = document.getElementById('stepDots');
+
+    const svgConnections = document.getElementById('svgConnections');
+    const svgBlocks = document.getElementById('svgBlocks');
+    const mathOverlay = document.getElementById('mathOverlay');
+
+    const timeGraph = document.getElementById('timeGraph');
+    const graphCtx = timeGraph.getContext('2d');
+    const tooltip = document.getElementById('tooltip');
+
+    // Setup interactive step indicators (dots)
+    function setupStepIndicators() {
+      stepDotsContainer.innerHTML = '';
+      for (let i = 0; i < state.totalSteps; i++) {
+        const dot = document.createElement('button');
+        dot.className = `w-2.5 h-2.5 rounded-full transition-all duration-300 ${i === state.currentStep ? 'bg-brand-accent scale-125' : 'bg-slate-700 hover:bg-slate-500'}`;
+        dot.addEventListener('click', () => {
+          state.currentStep = i;
+          updateWorkspace();
+        });
+        stepDotsContainer.appendChild(dot);
+      }
+    }
+
+    // Mathematical calculators
+    function getCombinedNumerator() {
+      // X(s) = A / (s + a1)  +  B / (s + a2)
+      //      = [ A(s + a2) + B(s + a1) ] / [ (s+a1)(s+a2) ]
+      //      = [ (A+B)s + (A*a2 + B*a1) ] / [ (s+a1)(s+a2) ]
+      const sCoeff = state.A + state.B;
+      const constCoeff = (state.A * state.a2) + (state.B * state.a1);
+      return `${sCoeff.toFixed(1)}s + ${constCoeff.toFixed(1)}`;
+    }
+
+    // UI Updates based on sliders
+    function updateFormulaText() {
+      valA.textContent = state.A.toFixed(1);
+      vala1.textContent = state.a1.toFixed(1);
+      valB.textContent = state.B.toFixed(1);
+      vala2.textContent = state.a2.toFixed(1);
+
+      numFormula.textContent = getCombinedNumerator();
+      denFormula.textContent = `(s + ${state.a1.toFixed(1)})(s + ${state.a2.toFixed(1)})`;
+    }
+
+    // Draw graph to canvas
+    function drawGraph() {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = timeGraph.getBoundingClientRect();
+      
+      // Responsive canvas bounds
+      timeGraph.width = rect.width * dpr;
+      timeGraph.height = 180 * dpr;
+      graphCtx.scale(dpr, dpr);
+
+      const width = rect.width;
+      const height = 180;
+      const padding = { left: 40, right: 20, top: 20, bottom: 30 };
+
+      // Clear & Background
+      graphCtx.fillStyle = '#020617';
+      graphCtx.fillRect(0, 0, width, height);
+
+      // Grid System
+      graphCtx.strokeStyle = 'rgba(51, 65, 85, 0.4)';
+      graphCtx.lineWidth = 1;
+      
+      // X & Y Gridlines
+      const maxTime = 5; // seconds
+      const maxVal = Math.max(state.A + state.B + 0.5, 5); // adaptive height scale
+
+      // Draw X Grid
+      for (let i = 0; i <= maxTime; i++) {
+        const x = padding.left + (i / maxTime) * (width - padding.left - padding.right);
+        graphCtx.beginPath();
+        graphCtx.moveTo(x, padding.top);
+        graphCtx.lineTo(x, height - padding.bottom);
+        graphCtx.stroke();
+        
+        // Label
+        graphCtx.fillStyle = '#64748b';
+        graphCtx.font = '10px Outfit';
+        graphCtx.textAlign = 'center';
+        graphCtx.fillText(`${i}s`, x, height - padding.bottom + 15);
+      }
+
+      // Draw Y Grid
+      const yTicks = 5;
+      for (let i = 0; i <= yTicks; i++) {
+        const val = (i / yTicks) * maxVal;
+        const y = height - padding.bottom - (i / yTicks) * (height - padding.top - padding.bottom);
+        graphCtx.beginPath();
+        graphCtx.moveTo(padding.left, y);
+        graphCtx.lineTo(width - padding.right, y);
+        graphCtx.stroke();
+
+        // Label
+        graphCtx.fillStyle = '#64748b';
+        graphCtx.font = '10px Outfit';
+        graphCtx.textAlign = 'right';
+        graphCtx.fillText(val.toFixed(1), padding.left - 10, y + 3);
+      }
+
+      // Axis lines
+      graphCtx.strokeStyle = '#475569';
+      graphCtx.lineWidth = 1.5;
+      // Draw X Axis
+      graphCtx.beginPath();
+      graphCtx.moveTo(padding.left, height - padding.bottom);
+      graphCtx.lineTo(width - padding.right, height - padding.bottom);
+      graphCtx.stroke();
+      // Draw Y Axis
+      graphCtx.beginPath();
+      graphCtx.moveTo(padding.left, padding.top);
+      graphCtx.lineTo(padding.left, height - padding.bottom);
+      graphCtx.stroke();
+
+      // Plot curves
+      const steps = 150;
+      const getX = (t) => padding.left + (t / maxTime) * (width - padding.left - padding.right);
+      const getY = (v) => height - padding.bottom - (v / maxVal) * (height - padding.top - padding.bottom);
+
+      const f1 = (t) => state.A * Math.exp(-state.a1 * t);
+      const f2 = (t) => state.B * Math.exp(-state.a2 * t);
+      const fCombined = (t) => f1(t) + f2(t);
+
+      // Helper to draw single line path
+      const drawPath = (color, fn, lineWidth = 2, isDashed = false) => {
+        graphCtx.beginPath();
+        graphCtx.strokeStyle = color;
+        graphCtx.lineWidth = lineWidth;
+        if (isDashed) {
+          graphCtx.setLineDash([4, 4]);
+        } else {
+          graphCtx.setLineDash([]);
+        }
+
+        for (let i = 0; i <= steps; i++) {
+          const t = (i / steps) * maxTime;
+          const yVal = fn(t);
+          const x = getX(t);
+          const y = getY(yVal);
+          if (i === 0) graphCtx.moveTo(x, y);
+          else graphCtx.lineTo(x, y);
+        }
+        graphCtx.stroke();
+      };
+
+      // Depending on active step, draw different levels of curves
+      if (state.currentStep >= 1) {
+        // Draw sub-components
+        drawPath('#38bdf8', f1, 1.5, true); // sky-400
+        drawPath('#34d399', f2, 1.5, true); // emerald-400
+      }
+      
+      // Draw final combined accumulated wave
+      if (state.currentStep >= 3) {
+        drawPath('#c084fc', fCombined, 3.5, false); // violet-400 thick
+      } else if (state.currentStep === 0) {
+        // Step 1: Just show the baseline composite curve as theoretical goal
+        drawPath('rgba(148, 163, 184, 0.3)', fCombined, 2, true); // faint gray
+      } else {
+        // Steps 2 & 3: Showing progress
+        drawPath('#818cf8', fCombined, 2, false); // indigo-400 thin
+      }
+
+      // Handle custom user mouse-hover interactions on the graph
+      if (state.hoverTime !== null) {
+        const hX = getX(state.hoverTime);
+        if (hX >= padding.left && hX <= width - padding.right) {
+          // Draw indicator line
+          graphCtx.setLineDash([3, 3]);
+          graphCtx.strokeStyle = '#94a3b8';
+          graphCtx.beginPath();
+          graphCtx.moveTo(hX, padding.top);
+          graphCtx.lineTo(hX, height - padding.bottom);
+          graphCtx.stroke();
+
+          // Draw marker circles
+          const drawCircle = (v, color) => {
+            const hY = getY(v);
+            graphCtx.beginPath();
+            graphCtx.arc(hX, hY, 4, 0, 2 * Math.PI);
+            graphCtx.fillStyle = color;
+            graphCtx.fill();
+            graphCtx.strokeStyle = '#020617';
+            graphCtx.lineWidth = 1;
+            graphCtx.stroke();
+          };
+
+          const val1 = f1(state.hoverTime);
+          const val2 = f2(state.hoverTime);
+          const valTot = fCombined(state.hoverTime);
+
+          if (state.currentStep >= 1) {
+            drawCircle(val1, '#38bdf8');
+            drawCircle(val2, '#34d399');
+          }
+          if (state.currentStep >= 3) {
+            drawCircle(valTot, '#c084fc');
+          }
+
+          // Tooltip position update
+          tooltip.style.left = `${hX - 5}px`;
+          tooltip.style.top = `${getY(valTot) - 45}px`;
+          tooltip.style.display = 'block';
+          tooltip.innerHTML = `
+            <div class="font-bold border-b border-slate-700 pb-0.5 mb-1 text-[10px]">t = ${state.hoverTime.toFixed(2)}s</div>
+            <div class="text-[10px] space-y-0.5">
+              ${state.currentStep >= 1 ? `<span class="text-sky-400 font-medium">x₁: ${val1.toFixed(2)}</span><br>` : ''}
+              ${state.currentStep >= 1 ? `<span class="text-emerald-400 font-medium">x₂: ${val2.toFixed(2)}</span><br>` : ''}
+              <span class="text-purple-400 font-bold">x(t): ${valTot.toFixed(2)}</span>
+            </div>
+          `;
+        }
+      } else {
+        tooltip.style.display = 'none';
+      }
+    }
+
+    // Capture hover action
+    timeGraph.addEventListener('mousemove', (e) => {
+      const rect = timeGraph.getBoundingClientRect();
+      const paddingLeft = 40;
+      const paddingRight = 20;
+      const maxTime = 5;
+
+      const scaleX = rect.width;
+      const xClick = e.clientX - rect.left;
+      
+      const usableWidth = scaleX - paddingLeft - paddingRight;
+      const relativeX = xClick - paddingLeft;
+
+      if (relativeX >= 0 && relativeX <= usableWidth) {
+        state.hoverTime = (relativeX / usableWidth) * maxTime;
+        drawGraph();
+      } else {
+        state.hoverTime = null;
+        drawGraph();
+      }
+    });
+
+    timeGraph.addEventListener('mouseleave', () => {
+      state.hoverTime = null;
+      drawGraph();
+    });
+
+    // Drawing Dynamic SVG Blocks based on steps
+    function buildSVGStage() {
+      svgConnections.innerHTML = '';
+      svgBlocks.innerHTML = '';
+      mathOverlay.innerHTML = '';
+
+      const createBlock = (x, y, w, h, title, subtitle, strokeColor, fillColor, extraClass = '') => {
+        return `
+          <g class="transition-all duration-500 transform hover:scale-102 ${extraClass}">
+            <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="12" fill="${fillColor}" stroke="${strokeColor}" stroke-width="2.5" filter="url(#glow)"/>
+            <text x="${x + w/2}" y="${y + h/2 - 2}" fill="#f1f5f9" font-size="13" font-weight="700" text-anchor="middle" font-family="Outfit">${title}</text>
+            <text x="${x + w/2}" y="${y + h/2 + 15}" fill="#94a3b8" font-size="10.5" font-family="JetBrains Mono" text-anchor="middle">${subtitle}</text>
+          </g>
+        `;
+      };
+
+      const createLine = (x1, y1, x2, y2, color, isFlowing, pathId) => {
+        const midX = (x1 + x2) / 2;
+        // Draw orthogonal paths or straight paths
+        let dPath = `M ${x1} ${y1} L ${x2} ${y2}`;
+        if (Math.abs(y1 - y2) > 5) {
+          dPath = `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`;
+        }
+
+        const strokeClass = isFlowing ? 'flow-line' : 'flow-line-paused';
+        return `
+          <path d="${dPath}" fill="none" stroke="${color}" stroke-width="2.5" class="${strokeClass} opacity-80" />
+        `;
+      };
+
+      const createSumNode = (x, y, symbol = 'Σ') => {
+        return `
+          <g>
+            <circle cx="${x}" cy="${y}" r="20" fill="#1e293b" stroke="#a855f7" stroke-width="3" filter="url(#glow)"/>
+            <text x="${x}" y="${y + 5}" fill="#a855f7" font-size="18" font-weight="800" text-anchor="middle" font-family="Outfit">${symbol}</text>
+          </g>
+        `;
+      };
+
+      // Highlight the correct row of Laplace table
+      const expRow = document.getElementById('row-exp');
+      if (state.currentStep === 2) {
+        expRow.classList.remove('opacity-40');
+        expRow.classList.add('bg-brand-teal/20', 'border-brand-teal', 'text-teal-300', 'scale-102');
+      } else {
+        expRow.classList.remove('bg-brand-teal/20', 'scale-102');
+      }
+
+      // RENDER BASED ON ACTIVE STEP
+      if (state.currentStep === 0) {
+        // Step 1: Single Consolidated Block
+        svgBlocks.innerHTML += createBlock(240, 70, 220, 100, "X(s) Complex Transfer", "s-Domain Cascade", "#3b82f6", "rgba(59, 130, 246, 0.1)");
+        svgConnections.innerHTML += createLine(60, 120, 240, 120, "#475569", true);
+        svgConnections.innerHTML += createLine(460, 120, 640, 120, "#3b82f6", false);
+
+        // Custom Equation Layer directly mapped over block
+        mathOverlay.innerHTML = `
+          <div class="bg-slate-900/90 border border-slate-700 px-4 py-2 rounded-xl backdrop-blur shadow-2xl transition duration-500 pointer-events-auto">
+            <span class="text-[11px] uppercase tracking-wider text-slate-400 block mb-1">Laplace Integral Goal</span>
+            <div class="flex items-center gap-1.5 font-semibold text-xs text-white">
+              <span>x(t) = L⁻¹</span>
+              <div class="inline-flex flex-col items-center align-middle mx-1">
+                <span class="border-b border-slate-400 px-1 pb-0.5 text-sky-400 font-bold">${getCombinedNumerator()}</span>
+                <span class="pt-0.5 text-slate-400">(s + ${state.a1.toFixed(1)})(s + ${state.a2.toFixed(1)})</span>
+              </div>
+            </div>
+          </div>
+        `;
+
+      } else if (state.currentStep === 1) {
+        // Step 2: Split Blocks
+        svgBlocks.innerHTML += createBlock(240, 25, 200, 75, "Sub-Block X₁(s)", `${state.A.toFixed(1)} / (s + ${state.a1.toFixed(1)})`, "#38bdf8", "rgba(56, 189, 248, 0.1)");
+        svgBlocks.innerHTML += createBlock(240, 140, 200, 75, "Sub-Block X₂(s)", `${state.B.toFixed(1)} / (s + ${state.a2.toFixed(1)})`, "#14b8a6", "rgba(20, 184, 166, 0.1)");
+
+        // Flow lines separating out
+        svgConnections.innerHTML += createLine(60, 120, 240, 62, "#475569", true);
+        svgConnections.innerHTML += createLine(60, 120, 240, 177, "#475569", true);
+
+        // Lines merging back
+        svgConnections.innerHTML += createLine(440, 62, 530, 120, "#38bdf8", true);
+        svgConnections.innerHTML += createLine(440, 177, 530, 120, "#14b8a6", true);
+
+        svgBlocks.innerHTML += createSumNode(530, 120, "+");
+        svgConnections.innerHTML += createLine(550, 120, 640, 120, "#a855f7", true);
+
+        // Label on split paths
+        mathOverlay.innerHTML = `
+          <div class="absolute left-[8%] top-[10%] text-slate-400 text-xs font-semibold px-2 py-1 bg-slate-900 rounded border border-slate-800 pointer-events-auto">
+            Input R(s) Split
+          </div>
+          <div class="absolute right-[5%] bottom-[10%] bg-slate-900 border border-brand-accent/20 px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 text-xs text-slate-300 font-semibold pointer-events-auto">
+            <span>∑ X_n(s) Linearity Setup</span>
+          </div>
+        `;
+
+      } else if (state.currentStep === 2) {
+        // Step 3: Mapping from Table to Time domain components
+        svgBlocks.innerHTML += createBlock(240, 25, 200, 75, "Inverted x₁(t)", `${state.A.toFixed(1)}e^(${(-state.a1).toFixed(1)}t)`, "#38bdf8", "rgba(56, 189, 248, 0.15)");
+        svgBlocks.innerHTML += createBlock(240, 140, 200, 75, "Inverted x₂(t)", `${state.B.toFixed(1)}e^(${(-state.a2).toFixed(1)}t)`, "#34d399", "rgba(52, 211, 153, 0.15)");
+
+        svgConnections.innerHTML += createLine(60, 120, 240, 62, "#38bdf8", true);
+        svgConnections.innerHTML += createLine(60, 120, 240, 177, "#34d399", true);
+
+        svgConnections.innerHTML += createLine(440, 62, 530, 120, "#38bdf8", true);
+        svgConnections.innerHTML += createLine(440, 177, 530, 120, "#34d399", true);
+
+        svgBlocks.innerHTML += createSumNode(530, 120, "+");
+        svgConnections.innerHTML += createLine(550, 120, 640, 120, "#a855f7", true);
+
+        // Highlight mapping connecting vectors
+        mathOverlay.innerHTML = `
+          <div class="absolute bg-brand-teal text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs shadow-lg animate-bounce pointer-events-auto">
+            Matched 1 / (s + a) ⟶ e^(-at)
+          </div>
+        `;
+
+      } else if (state.currentStep === 3) {
+        // Step 4: Final output reconstruction
+        svgBlocks.innerHTML += createBlock(240, 25, 200, 75, "Signal Component 1", `${state.A.toFixed(1)}e^(${(-state.a1).toFixed(1)}t)`, "#38bdf8", "rgba(56, 189, 248, 0.15)");
+        svgBlocks.innerHTML += createBlock(240, 140, 200, 75, "Signal Component 2", `${state.B.toFixed(1)}e^(${(-state.a2).toFixed(1)}t)`, "#34d399", "rgba(52, 211, 153, 0.15)");
+
+        svgConnections.innerHTML += createLine(60, 120, 240, 62, "#38bdf8", true);
+        svgConnections.innerHTML += createLine(60, 120, 240, 177, "#34d399", true);
+
+        svgConnections.innerHTML += createLine(440, 62, 530, 120, "#38bdf8", true);
+        svgConnections.innerHTML += createLine(440, 177, 530, 120, "#34d399", true);
+
+        svgBlocks.innerHTML += createSumNode(530, 120, "Σ");
+        svgConnections.innerHTML += createLine(550, 120, 640, 120, "#a855f7", true);
+
+        // Big Overlay highlighting Linearity rule mathematically
+        mathOverlay.innerHTML = `
+          <div class="bg-brand-purple/20 border border-brand-purple/50 backdrop-blur-md px-4 py-2.5 rounded-2xl text-center pointer-events-auto transition-all hover:scale-105 shadow-2xl max-w-[340px]">
+            <span class="text-[10px] uppercase font-bold text-purple-300 tracking-wider block mb-1">Linearity Overlays Active</span>
+            <div class="text-[11px] text-slate-300 leading-tight">
+              <span class="mono-font font-bold text-white">x(t) = x₁(t) + x₂(t)</span><br>
+              = <span class="text-sky-400 font-bold">${state.A.toFixed(1)}e<sup>-${state.a1.toFixed(1)}t</sup></span> + <span class="text-emerald-400 font-bold">${state.B.toFixed(1)}e<sup>-${state.a2.toFixed(1)}t</sup></span>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // Refresh entire interactive workspace
+    function updateWorkspace() {
+      // Step constraints
+      prevBtn.disabled = state.currentStep === 0;
+      nextBtn.disabled = state.currentStep === state.totalSteps - 1;
+
+      // Labels & metadata
+      const currentStepObj = steps[state.currentStep];
+      stepBadge.textContent = currentStepObj.badge;
+      stepExplanation.innerHTML = currentStepObj.text;
+
+      // Re-setup indicators
+      setupStepIndicators();
+      
+      // Calculations & renderings
+      updateFormulaText();
+      buildSVGStage();
+      drawGraph();
+    }
+
+    // Interactive event listeners for sliders
+    sliderA.addEventListener('input', (e) => {
+      state.A = parseFloat(e.target.value);
+      updateWorkspace();
+    });
+    slidera1.addEventListener('input', (e) => {
+      state.a1 = parseFloat(e.target.value);
+      updateWorkspace();
+    });
+    sliderB.addEventListener('input', (e) => {
+      state.B = parseFloat(e.target.value);
+      updateWorkspace();
+    });
+    slidera2.addEventListener('input', (e) => {
+      state.a2 = parseFloat(e.target.value);
+      updateWorkspace();
+    });
+
+    // Step navigations
+    prevBtn.addEventListener('click', () => {
+      if (state.currentStep > 0) {
+        state.currentStep--;
+        updateWorkspace();
+      }
+    });
+    nextBtn.addEventListener('click', () => {
+      if (state.currentStep < state.totalSteps - 1) {
+        state.currentStep++;
+        updateWorkspace();
+      }
+    });
+
+    // Window Resize dynamic graphing
+    window.addEventListener('resize', drawGraph);
+
+    // Initial load sequence
+    updateWorkspace();
+  </script>
+</body>
+</html>

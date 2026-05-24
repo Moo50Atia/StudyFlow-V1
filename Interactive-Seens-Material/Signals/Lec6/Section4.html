@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laplace Transform: ROC & Time-Domain Mapping Explorer</title>
+    <!-- Tailwind CSS for modern responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .math-font {
+            font-family: 'Fira Code', monospace;
+        }
+        /* Custom scrollbar for control panels */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+
+
+    <!-- Navigation Header -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600 p-2 rounded-xl text-white shadow-lg shadow-indigo-500/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">
+                        Laplace ROC & Signal Mapping Explorer
+                    </h1>
+                    <p class="text-xs text-slate-400">Interactive visualization of multiple signals mapping to a single X(s)</p>
+                </div>
+            </div>
+            
+            <!-- Quick Presets -->
+            <div class="flex flex-wrap gap-2 items-center">
+                <span class="text-xs font-semibold text-slate-400 mr-1">Presets:</span>
+                <button onclick="applyPreset('stable-causal')" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-800/60 transition-all">
+                    Stable & Causal
+                </button>
+                <button onclick="applyPreset('stable-double')" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-sky-950/80 hover:bg-sky-900 text-sky-300 border border-sky-800/60 transition-all">
+                    Stable & Double-sided
+                </button>
+                <button onclick="applyPreset('unstable-causal')" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-950/80 hover:bg-amber-900 text-amber-300 border border-amber-800/60 transition-all">
+                    Unstable Causal
+                </button>
+                <button onclick="applyPreset('anticausal-unstable')" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800/60 transition-all">
+                    Anti-causal Unstable
+                </button>
+            </div>
+        </div>
+    </header>
+
+
+    <!-- Main Workspace -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Side: Interactive Graphics / Controls (7 Cols) -->
+        <div class="lg:col-span-7 flex flex-col gap-6">
+            
+            <!-- Dynamic Controls Card -->
+            <div class="bg-slate-900/90 border border-slate-800/80 rounded-2xl p-5 shadow-xl">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-sm font-semibold tracking-wider text-indigo-400 uppercase">Configuration</h2>
+                    <span class="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded-md math-font">X(s) = 1/((s - p₁)(s - p₂))</span>
+                </div>
+                
+                <!-- Pole sliders -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                    <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-850">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                                <span class="inline-block w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                                Left Pole (p₁)
+                            </label>
+                            <span id="p1-val-display" class="text-xs font-bold text-rose-400 math-font">-2.0</span>
+                        </div>
+                        <input id="p1-slider" type="range" min="-4.5" max="3.5" step="0.1" value="-2.0" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-500">
+                        <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+                            <span>-4.5 (Stable)</span>
+                            <span>+3.5 (Unstable)</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-850">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                                <span class="inline-block w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                                Right Pole (p₂)
+                            </label>
+                            <span id="p2-val-display" class="text-xs font-bold text-indigo-400 math-font">1.0</span>
+                        </div>
+                        <input id="p2-slider" type="range" min="-3.5" max="4.5" step="0.1" value="1.0" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                        <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+                            <span>-3.5 (Stable)</span>
+                            <span>+4.5 (Unstable)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Region Selectors (ROC Toggles) -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Select ROC Region (or click inside s-Plane below)</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <!-- Left Half Plane (LHP) -->
+                        <button id="btn-roc-lhp" onclick="setROC('lhp')" class="flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-400">
+                            <span class="text-xs font-bold mb-1">Left-Half Plane</span>
+                            <span class="text-[10px] opacity-80 math-font text-rose-400">σ &lt; p₁</span>
+                            <span class="text-[10px] mt-1 bg-rose-500/10 text-rose-400 px-1.5 py-0.5 rounded">Anti-Causal u(-t)</span>
+                        </button>
+                        
+                        <!-- Center Strip -->
+                        <button id="btn-roc-center" onclick="setROC('center')" class="flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-400">
+                            <span class="text-xs font-bold mb-1">Center Strip</span>
+                            <span class="text-[10px] opacity-80 math-font text-indigo-400">p₁ &lt; σ &lt; p₂</span>
+                            <span class="text-[10px] mt-1 bg-indigo-500/10 text-indigo-400 px-1.5 py-0.5 rounded">Double-Sided</span>
+                        </button>
+
+                        <!-- Right Half Plane (RHP) -->
+                        <button id="btn-roc-rhp" onclick="setROC('rhp')" class="flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all bg-indigo-600/10 border-indigo-500/30 text-indigo-400 shadow-lg shadow-indigo-500/5">
+                            <span class="text-xs font-bold mb-1">Right-Half Plane</span>
+                            <span class="text-[10px] opacity-80 math-font text-emerald-400">σ &gt; p₂</span>
+                            <span class="text-[10px] mt-1 bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded">Causal u(t)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Card: s-Plane Visualization -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col items-center">
+                <div class="w-full flex justify-between items-center mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                        <h3 class="font-bold text-slate-200 text-sm">s-Plane Representation (poles & ROC)</h3>
+                    </div>
+                    <span class="text-xs text-slate-400 flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" /></svg>
+                        Drag poles or click regions
+                    </span>
+                </div>
+
+                <!-- Interactive SVG for s-Plane -->
+                <div class="relative w-full aspect-[4/3] bg-slate-950 rounded-xl overflow-hidden border border-slate-800/80">
+                    <svg id="s-plane-svg" class="w-full h-full cursor-crosshair select-none" viewBox="0 0 600 450">
+                        <!-- Grid Lines & Axes -->
+                        <g stroke="#1e293b" stroke-width="1" id="grid"></g>
+                        
+                        <!-- Axis labels -->
+                        <text x="580" y="240" fill="#94a3b8" font-size="12" text-anchor="end" class="font-semibold math-font">Re (σ)</text>
+                        <text x="315" y="20" fill="#94a3b8" font-size="12" text-anchor="start" class="font-semibold math-font">Im (jω)</text>
+                        
+                        <!-- ROC Shading (Will update dynamically via JS) -->
+                        <rect id="roc-area" fill="url(#roc-gradient)" opacity="0.3" x="0" y="0" width="0" height="0" />
+                        
+                        <!-- Main Axes -->
+                        <line x1="0" y1="225" x2="600" y2="225" stroke="#475569" stroke-width="2" /> <!-- Horizontal Axis -->
+                        <line x1="300" y1="0" x2="300" y2="450" stroke="#475569" stroke-width="2" id="jw-axis" /> <!-- jw Axis -->
+                        
+                        <!-- Dynamic Dashed Pole Boundaries -->
+                        <line id="pole1-line" x1="0" y1="0" x2="0" y2="450" stroke="#f43f5e" stroke-width="1.5" stroke-dasharray="4,4" />
+                        <line id="pole2-line" x1="0" y1="0" x2="0" y2="450" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="4,4" />
+
+                        <!-- Interactive Clickable Hotzones (Left, Center, Right) -->
+                        <rect id="zone-lhp" class="cursor-pointer fill-transparent hover:fill-rose-500/5 transition-colors" x="0" y="0" width="100" height="450" />
+                        <rect id="zone-center" class="cursor-pointer fill-transparent hover:fill-indigo-500/5 transition-colors" x="100" y="0" width="200" height="450" />
+                        <rect id="zone-rhp" class="cursor-pointer fill-transparent hover:fill-emerald-500/5 transition-colors" x="300" y="0" width="300" height="450" />
+
+                        <!-- Gradients definition for nice visual effect -->
+                        <defs>
+                            <linearGradient id="roc-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.6"/>
+                                <stop offset="100%" stop-color="#1d4ed8" stop-opacity="0.8"/>
+                            </linearGradient>
+                        </defs>
+
+                        <!-- Draggable Pole Icons (SVG groups) -->
+                        <g id="pole1-handle" class="cursor-ew-resize group select-none">
+                            <line x1="-10" y1="-10" x2="10" y2="10" stroke="#f43f5e" stroke-width="3" />
+                            <line x1="10" y1="-10" x2="-10" y2="10" stroke="#f43f5e" stroke-width="3" />
+                            <circle r="15" fill="transparent" class="group-hover:fill-rose-500/10 transition-colors" />
+                            <text y="-14" fill="#f43f5e" font-size="11" font-weight="bold" text-anchor="middle" class="math-font">p₁</text>
+                        </g>
+                        
+                        <g id="pole2-handle" class="cursor-ew-resize group select-none">
+                            <line x1="-10" y1="-10" x2="10" y2="10" stroke="#6366f1" stroke-width="3" />
+                            <line x1="10" y1="-10" x2="-10" y2="10" stroke="#6366f1" stroke-width="3" />
+                            <circle r="15" fill="transparent" class="group-hover:fill-indigo-500/10 transition-colors" />
+                            <text y="-14" fill="#6366f1" font-size="11" font-weight="bold" text-anchor="middle" class="math-font">p₂</text>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Right Side: Signal Plots & Scientific Math context (5 Cols) -->
+        <div class="lg:col-span-5 flex flex-col gap-6">
+            
+            <!-- Time Domain Plot Card -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <h3 class="font-bold text-slate-200 text-sm">Corresponding Time-Domain Signal x(t)</h3>
+                    </div>
+                    <span id="signal-type-tag" class="text-[10px] bg-slate-800 text-slate-300 font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider">Causal</span>
+                </div>
+
+                <!-- Time Plot canvas -->
+                <div class="relative w-full aspect-[4/3] bg-slate-950 rounded-xl overflow-hidden border border-slate-800/80 mb-4">
+                    <svg id="time-plot-svg" class="w-full h-full select-none" viewBox="0 0 400 300">
+                        <!-- Horizontal Axis -->
+                        <line x1="0" y1="150" x2="400" y2="150" stroke="#475569" stroke-width="1.5" />
+                        <!-- Vertical Axis (t=0) -->
+                        <line x1="200" y1="0" x2="200" y2="300" stroke="#475569" stroke-dasharray="2,4" stroke-width="1.5" />
+                        
+                        <!-- Grid Lines -->
+                        <g stroke="#1e293b" stroke-width="0.5" id="time-grid"></g>
+                        
+                        <!-- Axis labels -->
+                        <text x="390" y="140" fill="#94a3b8" font-size="11" text-anchor="end" class="math-font">Time (t)</text>
+                        <text x="210" y="18" fill="#94a3b8" font-size="11" text-anchor="start" class="math-font">x(t)</text>
+                        
+                        <!-- Dynamic Signal Path -->
+                        <path id="signal-path-1" fill="none" stroke="#10b981" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+                        <path id="signal-path-2" fill="none" stroke="#ef4444" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+                
+                <!-- System Diagnostics -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-850/80">
+                        <span class="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Causality</span>
+                        <span id="causality-status" class="text-xs font-semibold px-2 py-0.5 rounded-full inline-block">Right-Sided (Causal)</span>
+                    </div>
+                    <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-850/80">
+                        <span class="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">BIBO Stability</span>
+                        <span id="stability-status" class="text-xs font-semibold px-2 py-0.5 rounded-full inline-block">Stable (ROC includes jω)</span>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Analytical Equation & Concept Breakdown -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <h3 class="font-bold text-slate-200 text-sm mb-3 text-indigo-400">Mathematical Mapping Details</h3>
+                
+                <!-- Formula Panel -->
+                <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-850/80 space-y-3 mb-4">
+                    <!-- Standard X(s) with actual values -->
+                    <div>
+                        <span class="text-[10px] text-slate-500 block uppercase font-bold tracking-wider mb-1">Laplace Domain X(s)</span>
+                        <div id="math-xs" class="text-sm font-semibold text-slate-300 math-font">
+                            X(s) = 1 / ((s + 2.0)(s - 1.0))
+                        </div>
+                    </div>
+                    <!-- Partial Fraction Form -->
+                    <div>
+                        <span class="text-[10px] text-slate-500 block uppercase font-bold tracking-wider mb-1">Partial Fraction Decomposition</span>
+                        <div id="math-pfe" class="text-xs font-medium text-slate-400 math-font leading-relaxed">
+                            -0.333 / (s + 2.0) + 0.333 / (s - 1.0)
+                        </div>
+                    </div>
+                    <!-- Final inverse formula based on ROC context -->
+                    <div class="border-t border-slate-850 pt-3">
+                        <span class="text-[10px] text-indigo-400 block uppercase font-bold tracking-wider mb-1">Inverse Laplace x(t) (Selected ROC Context)</span>
+                        <div id="math-xt" class="text-xs font-bold text-emerald-400 math-font bg-slate-900/50 p-2.5 rounded-lg border border-slate-800/80 leading-relaxed">
+                            [-0.333·e^(-2.0t) + 0.333·e^(1.0t)]·u(t)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Explanation Box -->
+                <div class="text-xs text-slate-400 space-y-2 leading-relaxed">
+                    <div class="flex gap-2 items-start">
+                        <span class="text-slate-500 font-bold">•</span>
+                        <p>An algebraic <code class="text-slate-300">X(s)</code> represents <strong>multiple</strong> completely unique time signals. The mapping is <em>only</em> unique when the <strong>Region of Convergence (ROC)</strong> is defined.</p>
+                    </div>
+                    <div class="flex gap-2 items-start">
+                        <span class="text-slate-500 font-bold">•</span>
+                        <p>Right-half plane ROCs match poles mapping to <code class="text-rose-400 font-medium">u(t)</code>. Left-half plane ROCs match poles mapping to <code class="text-rose-400 font-medium">-u(-t)</code> (anti-causal).</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Full Width Interactive Grid Matrix to address the Mapping Matrix Request -->
+    <section class="max-w-7xl w-full mx-auto px-4 md:px-6 pb-12">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+            <h3 class="font-bold text-slate-200 text-base mb-2">The Multi-Mapping Phenomenon: 1 Algebra ⟶ 3 Distinct Signals</h3>
+            <p class="text-slate-400 text-sm mb-5 leading-relaxed">
+                Notice how the single expression <code class="math-font text-indigo-300 text-xs bg-slate-950 px-2 py-1 rounded border border-slate-800">X(s) = 1/((s - p₁)(s - p₂))</code> translates to three entirely different real-world behaviors depending on where convergence is assumed on the s-plane:
+            </p>
+
+            <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-800 bg-slate-900/40 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                            <th class="p-4">ROC Region Domain</th>
+                            <th class="p-4">Time-Domain Signal Type</th>
+                            <th class="p-4">Mathematical Equation x(t)</th>
+                            <th class="p-4">BIBO Stability Condition</th>
+                            <th class="p-4 text-center">Interactive Quick Select</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60 text-xs md:text-sm text-slate-300">
+                        <!-- RHP Row -->
+                        <tr id="row-rhp" class="hover:bg-slate-900/30 transition-colors">
+                            <td class="p-4 font-semibold text-emerald-400 math-font">σ &gt; Re(p₂)</td>
+                            <td class="p-4">
+                                <span class="bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded text-xs font-medium">Right-sided (Causal)</span>
+                            </td>
+                            <td class="p-4 math-font text-slate-400">[A·e<sup>p₁t</sup> + B·e<sup>p₂t</sup>] u(t)</td>
+                            <td class="p-4 text-xs text-slate-400" id="matrix-stability-rhp">Stable only if both poles &lt; 0</td>
+                            <td class="p-4 text-center">
+                                <button onclick="setROC('rhp')" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg transition-all shadow-md">
+                                    Apply
+                                </button>
+                            </td>
+                        </tr>
+                        <!-- Center Strip Row -->
+                        <tr id="row-center" class="hover:bg-slate-900/30 transition-colors">
+                            <td class="p-4 font-semibold text-indigo-400 math-font">Re(p₁) &lt; σ &lt; Re(p₂)</td>
+                            <td class="p-4">
+                                <span class="bg-indigo-500/10 text-indigo-400 px-2 py-1 rounded text-xs font-medium">Double-sided (Non-causal)</span>
+                            </td>
+                            <td class="p-4 math-font text-slate-400">A·e<sup>p₁t</sup>u(t) - B·e<sup>p₂t</sup>u(-t)</td>
+                            <td class="p-4 text-xs text-slate-400" id="matrix-stability-center">Stable if p₁ &lt; 0 and p₂ &gt; 0</td>
+                            <td class="p-4 text-center">
+                                <button onclick="setROC('center')" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg transition-all shadow-md">
+                                    Apply
+                                </button>
+                            </td>
+                        </tr>
+                        <!-- LHP Row -->
+                        <tr id="row-lhp" class="hover:bg-slate-900/30 transition-colors">
+                            <td class="p-4 font-semibold text-rose-400 math-font">σ &lt; Re(p₁)</td>
+                            <td class="p-4">
+                                <span class="bg-rose-500/10 text-rose-400 px-2 py-1 rounded text-xs font-medium">Left-sided (Anti-causal)</span>
+                            </td>
+                            <td class="p-4 math-font text-slate-400">[-A·e<sup>p₁t</sup> - B·e<sup>p₂t</sup>] u(-t)</td>
+                            <td class="p-4 text-xs text-slate-400" id="matrix-stability-lhp">Stable only if both poles &gt; 0</td>
+                            <td class="p-4 text-center">
+                                <button onclick="setROC('lhp')" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg transition-all shadow-md">
+                                    Apply
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Footer informational element -->
+    <footer class="border-t border-slate-900 bg-slate-950 py-6 text-center text-xs text-slate-500">
+        <p>Interactive Laplace Signal Explorer © 2026. Perfect for teaching and visualizing System Dynamics & Signals processing.</p>
+    </footer>
+
+    <script>
+        // --- Core System State ---
+        let p1 = -2.0; // Left pole value
+        let p2 = 1.0;  // Right pole value
+        let selectedROC = 'center'; // 'lhp', 'center', 'rhp'
+        
+        // --- Interactive elements & bounds mapping constants ---
+        const svgW = 600;
+        const svgH = 450;
+        const xOffset = 300; // Pixel coordinate for real-axis 0
+        const yOffset = 225; // Pixel coordinate for imag-axis 0
+        const scaleX = 50;  // 50 pixels per unit on x-axis
+
+        // DOM elements cache
+        const p1Slider = document.getElementById('p1-slider');
+        const p2Slider = document.getElementById('p2-slider');
+        const p1ValDisplay = document.getElementById('p1-val-display');
+        const p2ValDisplay = document.getElementById('p2-val-display');
+        
+        // Buttons
+        const btnLHP = document.getElementById('btn-roc-lhp');
+        const btnCenter = document.getElementById('btn-roc-center');
+        const btnRHP = document.getElementById('btn-roc-rhp');
+
+        // Matrix Highlight rows
+        const rowLHP = document.getElementById('row-lhp');
+        const rowCenter = document.getElementById('row-center');
+        const rowRHP = document.getElementById('row-rhp');
+
+        // Handles
+        const p1Handle = document.getElementById('pole1-handle');
+        const p2Handle = document.getElementById('pole2-handle');
+        const sPlaneSVG = document.getElementById('s-plane-svg');
+
+        // SVG elements
+        const rocArea = document.getElementById('roc-area');
+        const pole1Line = document.getElementById('pole1-line');
+        const pole2Line = document.getElementById('pole2-line');
+        
+        // Canvas / SVG Plot elements
+        const signalPath1 = document.getElementById('signal-path-1');
+        const signalPath2 = document.getElementById('signal-path-2');
+        const timeGrid = document.getElementById('time-grid');
+
+        // Preset configurations
+        const presets = {
+            'stable-causal': { p1: -3.0, p2: -1.0, roc: 'rhp' },
+            'stable-double': { p1: -2.0, p2: 1.5, roc: 'center' },
+            'unstable-causal': { p1: -1.0, p2: 1.5, roc: 'rhp' },
+            'anticausal-unstable': { p1: -2.0, p2: -0.5, roc: 'lhp' }
+        };
+
+        // --- Math & Computational logic for plotting ---
+        function calculateInverseLaplace(t) {
+            // Evaluates mathematical component elements
+            // X(s) = 1 / ((s - p1)(s - p2))
+            // Partial Fractions: A / (s - p1) + B / (s - p2)
+            // A = 1 / (p1 - p2), B = 1 / (p2 - p1) -> Note: B = -A
+            const pDif = p1 - p2;
+            if (Math.abs(pDif) < 0.01) return 0; // Prevent divide by zero issues
+            
+            const A = 1 / pDif;
+            const B = -A;
+
+            if (selectedROC === 'rhp') {
+                // Right-sided: (A * e^(p1 * t) + B * e^(p2 * t)) * u(t)
+                if (t < 0) return 0;
+                return A * Math.exp(p1 * t) + B * Math.exp(p2 * t);
+            } else if (selectedROC === 'lhp') {
+                // Left-sided: (-A * e^(p1 * t) - B * e^(p2 * t)) * u(-t)
+                if (t > 0) return 0;
+                return -A * Math.exp(p1 * t) - B * Math.exp(p2 * t);
+            } else { // 'center'
+                // Double-sided: A * e^(p1 * t) * u(t) - B * e^(p2 * t) * u(-t)
+                if (t >= 0) {
+                    return A * Math.exp(p1 * t);
+                } else {
+                    return -B * Math.exp(p2 * t);
+                }
+            }
+        }
+
+
+        // --- View Updater Logic ---
+        function updateUI() {
+            // Keep sliders correct (forces left-pole to remain smaller than right-pole)
+            if (p1 >= p2) {
+                p1 = p2 - 0.2;
+                p1Slider.value = p1;
+            }
+
+            // Sync visual text representations
+            p1ValDisplay.textContent = p1.toFixed(1);
+            p2ValDisplay.textContent = p2.toFixed(1);
+
+            // Compute SVG layout locations
+            const p1X = xOffset + p1 * scaleX;
+            const p2X = xOffset + p2 * scaleX;
+
+            // Update Vertical guide dashes
+            pole1Line.setAttribute('x1', p1X);
+            pole1Line.setAttribute('x2', p1X);
+            pole2Line.setAttribute('x1', p2X);
+            pole2Line.setAttribute('x2', p2X);
+
+            // Position Draggable pole handle groups
+            p1Handle.setAttribute('transform', `translate(${p1X}, ${yOffset})`);
+            p2Handle.setAttribute('transform', `translate(${p2X}, ${yOffset})`);
+
+            // Update clickable zones dynamically (bounds match poles)
+            document.getElementById('zone-lhp').setAttribute('width', Math.max(0, p1X));
+            document.getElementById('zone-center').setAttribute('x', p1X);
+            document.getElementById('zone-center').setAttribute('width', Math.max(0, p2X - p1X));
+            document.getElementById('zone-rhp').setAttribute('x', p2X);
+            document.getElementById('zone-rhp').setAttribute('width', Math.max(0, svgW - p2X));
+
+            // Update shaded ROC Area
+            if (selectedROC === 'lhp') {
+                rocArea.setAttribute('x', 0);
+                rocArea.setAttribute('width', p1X);
+            } else if (selectedROC === 'center') {
+                rocArea.setAttribute('x', p1X);
+                rocArea.setAttribute('width', p2X - p1X);
+            } else { // 'rhp'
+                rocArea.setAttribute('x', p2X);
+                rocArea.setAttribute('width', svgW - p2X);
+            }
+            rocArea.setAttribute('y', 0);
+            rocArea.setAttribute('height', svgH);
+
+            // Styling Button Toggles to show which is currently active
+            const btnStates = [
+                { id: 'btn-roc-lhp', type: 'lhp', base: 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700', active: 'bg-rose-600/15 border-rose-500/50 text-rose-400 shadow-md shadow-rose-500/5' },
+                { id: 'btn-roc-center', type: 'center', base: 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700', active: 'bg-indigo-600/15 border-indigo-500/50 text-indigo-400 shadow-md shadow-indigo-500/5' },
+                { id: 'btn-roc-rhp', type: 'rhp', base: 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700', active: 'bg-emerald-600/15 border-emerald-500/50 text-emerald-400 shadow-md shadow-emerald-500/5' }
+            ];
+
+            btnStates.forEach(btn => {
+                const el = document.getElementById(btn.id);
+                if (selectedROC === btn.type) {
+                    el.className = `flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all ${btn.active}`;
+                } else {
+                    el.className = `flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all ${btn.base}`;
+                }
+            });
+
+            // Highlight corresponding matrix rows
+            const activeClass = 'bg-slate-900 border-l-4 border-indigo-500 text-white';
+            const inactiveClass = 'hover:bg-slate-900/30 transition-colors opacity-60';
+
+            rowLHP.className = (selectedROC === 'lhp') ? activeClass : inactiveClass;
+            rowCenter.className = (selectedROC === 'center') ? activeClass : inactiveClass;
+            rowRHP.className = (selectedROC === 'rhp') ? activeClass : inactiveClass;
+
+            // Generate Time-Domain plot representation
+            plotTimeDomain();
+
+            // Perform algebraic math calculations & dynamically print HTML Formulas
+            updateMathFormulas();
+
+            // Evaluate system properties
+            updateSystemProperties();
+        }
+
+        function updateMathFormulas() {
+            const absP1 = Math.abs(p1).toFixed(1);
+            const absP2 = Math.abs(p2).toFixed(1);
+            
+            const signP1 = p1 >= 0 ? `-${p1.toFixed(1)}` : `+${absP1}`;
+            const signP2 = p2 >= 0 ? `-${p2.toFixed(1)}` : `+${absP2}`;
+
+            // Set main X(s) representation
+            document.getElementById('math-xs').innerHTML = `X(s) = <div class="inline-block text-center border-t border-slate-500 pt-0.5"><span class="block text-xs pb-0.5">1</span>(s ${signP1})(s ${signP2})</div>`;
+
+            // Partial fraction expansion details
+            const pDif = p1 - p2;
+            const A = 1 / pDif;
+            const B = -A;
+
+            const signA = A >= 0 ? `+` : `-`;
+            const signB = B >= 0 ? `+` : `-`;
+
+            document.getElementById('math-pfe').innerHTML = `
+                Decomposition: &nbsp;
+                <div class="inline-block text-center align-middle">${A.toFixed(3)}<span class="block border-t border-slate-600 text-[10px]">s ${signP1}</span></div> 
+                &nbsp; + &nbsp; 
+                <div class="inline-block text-center align-middle">${B.toFixed(3)}<span class="block border-t border-slate-600 text-[10px]">s ${signP2}</span></div>
+            `;
+
+            // Dynamically construct text representation of x(t) based on active ROC
+            let signalFormula = "";
+            const absA = Math.abs(A).toFixed(3);
+            const absB = Math.abs(B).toFixed(3);
+            
+            const term1Sign = A >= 0 ? "" : "-";
+            const term2Sign = B >= 0 ? "+" : "-";
+
+            const exp1 = `${p1.toFixed(1)}t`;
+            const exp2 = `${p2.toFixed(1)}t`;
+
+            if (selectedROC === 'rhp') {
+                signalFormula = `x(t) = [ ${term1Sign}${absA}e<sup>${exp1}</sup> ${term2Sign}${absB}e<sup>${exp2}</sup> ] u(t)`;
+            } else if (selectedROC === 'lhp') {
+                // For LHP, Inverse is -R1*e^(p1 t)*u(-t) - R2*e^(p2 t)*u(-t)
+                const term1LHPSign = -A >= 0 ? "" : "-";
+                const term2LHPSign = -B >= 0 ? "+" : "-";
+                signalFormula = `x(t) = [ ${term1LHPSign}${absA}e<sup>${exp1}</sup> ${term2LHPSign}${absB}e<sup>${exp2}</sup> ] u(-t)`;
+            } else { // center-strip
+                // Pole 1 is left of ROC (RHP style component): A * e^(p1 * t) * u(t)
+                // Pole 2 is right of ROC (LHP style component): -B * e^(p2 * t) * u(-t)
+                const comp1 = `${term1Sign}${absA}e<sup>${exp1}</sup> u(t)`;
+                const comp2Sign = -B >= 0 ? "+" : "-";
+                const comp2 = `${comp2Sign}${absB}e<sup>${exp2}</sup> u(-t)`;
+                signalFormula = `x(t) = ${comp1} ${comp2}`;
+            }
+
+            document.getElementById('math-xt').innerHTML = signalFormula;
+        }
+
+        function updateSystemProperties() {
+            const causalitySpan = document.getElementById('causality-status');
+            const stabilitySpan = document.getElementById('stability-status');
+            const typeTag = document.getElementById('signal-type-tag');
+
+            // Set matrix table subtexts dynamically
+            document.getElementById('matrix-stability-rhp').innerHTML = (p1 < 0 && p2 < 0) 
+                ? "<span class='text-emerald-400 font-semibold'>Stable</span> (All poles real parts &lt; 0)" 
+                : "<span class='text-rose-400 font-semibold'>Unstable</span> (Rightmost pole &ge; 0)";
+
+            document.getElementById('matrix-stability-center').innerHTML = (p1 < 0 && p2 > 0) 
+                ? "<span class='text-emerald-400 font-semibold'>Stable</span> (Includes jω axis)" 
+                : "<span class='text-rose-400 font-semibold'>Unstable</span> (Excludes jω axis)";
+
+            document.getElementById('matrix-stability-lhp').innerHTML = (p1 > 0 && p2 > 0) 
+                ? "<span class='text-emerald-400 font-semibold'>Stable</span> (All poles real parts &gt; 0)" 
+                : "<span class='text-rose-400 font-semibold'>Unstable</span> (Leftmost pole &le; 0)";
+
+            // Update details based on selection state
+            if (selectedROC === 'rhp') {
+                causalitySpan.textContent = "Causal [x(t)=0 for t<0]";
+                causalitySpan.className = "text-xs font-semibold px-2.5 py-1 rounded-full inline-block bg-emerald-500/15 text-emerald-400 border border-emerald-500/20";
+                typeTag.textContent = "Causal u(t)";
+                typeTag.className = "text-[10px] bg-emerald-950/80 text-emerald-300 font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider";
+
+                if (p2 < 0) {
+                    stabilitySpan.textContent = "Stable (jω is inside ROC)";
+                    stabilitySpan.className = "text-xs font-semibold px-2.5 py-1 rounded-full inline-block bg-emerald-500/15 text-emerald-400 border border-emerald-500/20";
+                } else {
+                    stabilitySpan.textContent = "Unstable (jω is outside ROC)";
+                    stabilitySpan.className = "text-xs font-semibold px-2.5 py-1 rounded-full inline-block bg-rose-500/15 text-rose-400 border border-rose-500/20";
+                }
+            } else if (selectedROC === 'lhp') {
+                causalitySpan.textContent = "Anti-Causal [x(t)=0 for t>0]";
+                causalitySpan.className = "text-xs font-semibold px-2.5 py-1 rounded-full inline-block bg-rose-500/15 text-rose-400 border border-rose-500/20";
+                typeTag.textContent = "Anti-Causal u(-t)";
+                typeTag.className = "text-[10px] bg-rose-950/80 text-rose-300 font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider";
+
+                if (p1 > 0) {
+                    stabilitySpan.textContent = "Stable (jω is inside ROC)";
+                    stabilitySpan.className = "text-xs font-semibold px-2.5 py-1 rounded-full inline-block bg-emerald-500/15 text-emerald-400 border border-emerald-500/20";
+                } else {
+                    stabilitySpan.textContent = "Unstable (jω is outside ROC)";
+                    stabilitySpan.className = "text-xs font-semibold px-2.5 py-1 rounded-full inline-block bg-rose-500/15 text-rose-400 border border-rose-500/20";
+                }
+            } else { // Center Strip
+                causalitySpan.textContent = "Double-Sided (Non-Causal)";
+                causalitySpan.className = "text-xs font-semibold px-2.5 py-1 rounded-full inline-block bg-indigo-500/15 text-indigo-400 border border-indigo-500/20";
+                typeTag.textContent = "Double-Sided";
+                typeTag.className = "text-[10px] bg-indigo-950/80 text-indigo-300 font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider";
+
+                if (p1 < 0 && p2 > 0) {
+                    stabilitySpan.textContent = "Stable (jω is inside ROC)";
+                    stabilitySpan.className = "text-xs font-semibold px-2.5 py-1 rounded-full inline-block bg-emerald-500/15 text-emerald-400 border border-emerald-500/20";
+                } else {
+                    stabilitySpan.textContent = "Unstable (jω is outside ROC)";
+                    stabilitySpan.className = "text-xs font-semibold px-2.5 py-1 rounded-full inline-block bg-rose-500/15 text-rose-400 border border-rose-500/20";
+                }
+            }
+        }
+
+        // --- Render Plots inside Time-domain SVG ---
+        function plotTimeDomain() {
+            const plotW = 400;
+            const plotH = 300;
+            const midY = 150; // Center amplitude coordinate
+            const scaleY = 40;  // Multiplier scale for x(t) values
+            const scaleT = 40;  // Multiplier scale for t (pixels/sec)
+            const centerT = 200; // t=0 is middle of graph width
+
+            // Build coordinate strings for two separate paths if discontinuity is needed (at t=0)
+            let path1Coords = []; // Left half (t < 0)
+            let path2Coords = []; // Right half (t > 0)
+
+            const resolution = 2.0; // Higher resolution plots smoother curves
+            const totalSteps = plotW * resolution;
+
+            for (let i = 0; i <= totalSteps; i++) {
+                const pixelX = i / resolution;
+                const tVal = (pixelX - centerT) / scaleT; // Translate pixel back to time coordinate
+
+                const amp = calculateInverseLaplace(tVal);
+                
+                // Prevent extreme out-of-bound overflow rendering issues
+                let clampedAmp = amp;
+                if (clampedAmp > 4.5) clampedAmp = 4.5;
+                if (clampedAmp < -4.5) clampedAmp = -4.5;
+
+                const pixelY = midY - clampedAmp * scaleY;
+
+                // Segment signals based on discontinuity boundaries to draw sharp corners at t=0
+                if (tVal <= 0.001) {
+                    path1Coords.push(`${pixelX.toFixed(1)},${pixelY.toFixed(1)}`);
+                }
+                if (tVal >= -0.001) {
+                    path2Coords.push(`${pixelX.toFixed(1)},${pixelY.toFixed(1)}`);
+                }
+            }
+
+            // Draw line components inside SVGs
+            if (path1Coords.length > 0) {
+                signalPath1.setAttribute('d', `M ${path1Coords.join(' L ')}`);
+            } else {
+                signalPath1.setAttribute('d', '');
+            }
+
+            if (path2Coords.length > 0) {
+                signalPath2.setAttribute('d', `M ${path2Coords.join(' L ')}`);
+            } else {
+                signalPath2.setAttribute('d', '');
+            }
+        }
+
+        // --- Setup Grid Lines dynamically for visuals ---
+        function initializeGrids() {
+            // Draw s-plane coordinate grid
+            const grid = document.getElementById('grid');
+            let gridHTML = "";
+            
+            // Major real-axis lines
+            for (let x = -5; x <= 5; x++) {
+                if (x === 0) continue;
+                const px = xOffset + x * scaleX;
+                gridHTML += `<line x1="${px}" y1="0" x2="${px}" y2="${svgH}" stroke="#1e293b" stroke-width="1" />`;
+                gridHTML += `<text x="${px}" y="${yOffset + 15}" fill="#475569" font-size="10" text-anchor="middle" class="math-font">${x > 0 ? '+' : ''}${x}</text>`;
+            }
+
+            // Major Imag-axis lines
+            for (let y = -4; y <= 4; y++) {
+                if (y === 0) continue;
+                const py = yOffset - y * scaleX;
+                gridHTML += `<line x1="0" y1="${py}" x2="${svgW}" y2="${py}" stroke="#1e293b" stroke-width="1" />`;
+                gridHTML += `<text x="${xOffset + 8}" y="${py + 3}" fill="#475569" font-size="10" text-anchor="start" class="math-font">${y > 0 ? '+' : ''}${y}j</text>`;
+            }
+            grid.innerHTML = gridHTML;
+
+            // Time plot axes grids
+            const tGrid = document.getElementById('time-grid');
+            let tGridHTML = "";
+            const scaleT = 40;
+            const centerT = 200;
+
+            for (let t = -4; t <= 4; t++) {
+                if (t === 0) continue;
+                const pt = centerT + t * scaleT;
+                tGridHTML += `<line x1="${pt}" y1="0" x2="${pt}" y2="300" stroke="#1e293b" stroke-width="1" />`;
+                tGridHTML += `<text x="${pt}" y="165" fill="#475569" font-size="9" text-anchor="middle" class="math-font">${t}</text>`;
+            }
+            tGrid.innerHTML = tGridHTML;
+        }
+
+
+        // --- Drag Event Handler Utilities ---
+        let draggingPole = null; // 'p1' or 'p2'
+
+        function setupDragHandlers() {
+            const handleStart = (poleName) => (e) => {
+                draggingPole = poleName;
+                e.preventDefault();
+            };
+
+            p1Handle.addEventListener('mousedown', handleStart('p1'));
+            p1Handle.addEventListener('touchstart', handleStart('p1'), { passive: false });
+
+            p2Handle.addEventListener('mousedown', handleStart('p2'));
+            p2Handle.addEventListener('touchstart', handleStart('p2'), { passive: false });
+
+            const handleMove = (e) => {
+                if (!draggingPole) return;
+
+                let clientX;
+                if (e.touches) {
+                    clientX = e.touches[0].clientX;
+                } else {
+                    clientX = e.clientX;
+                }
+
+                const rect = sPlaneSVG.getBoundingClientRect();
+                const relativeX = clientX - rect.left;
+                const svgScale = svgW / rect.width;
+                const mappedSVGX = relativeX * svgScale;
+
+                // Convert back from pixel space to real pole value
+                let rawVal = (mappedSVGX - xOffset) / scaleX;
+                
+                // Boundaries limit constraints
+                if (rawVal < -5.0) rawVal = -5.0;
+                if (rawVal > 5.0) rawVal = 5.0;
+
+                // Snapping for exact steps
+                rawVal = Math.round(rawVal * 10) / 10;
+
+                if (draggingPole === 'p1') {
+                    // Left pole must always remain to the left of p2
+                    if (rawVal >= p2 - 0.2) {
+                        p1 = p2 - 0.2;
+                    } else {
+                        p1 = rawVal;
+                    }
+                    p1Slider.value = p1;
+                } else if (draggingPole === 'p2') {
+                    // Right pole must always remain to the right of p1
+                    if (rawVal <= p1 + 0.2) {
+                        p2 = p1 + 0.2;
+                    } else {
+                        p2 = rawVal;
+                    }
+                    p2Slider.value = p2;
+                }
+
+                updateUI();
+            };
+
+            const handleEnd = () => {
+                draggingPole = null;
+            };
+
+            window.addEventListener('mousemove', handleMove);
+            window.addEventListener('touchmove', handleMove, { passive: false });
+            window.addEventListener('mouseup', handleEnd);
+            window.addEventListener('touchend', handleEnd);
+        }
+
+        // --- Interactive Click Regions Setup ---
+        function setupHotzones() {
+            document.getElementById('zone-lhp').addEventListener('click', () => setROC('lhp'));
+            document.getElementById('zone-center').addEventListener('click', () => setROC('center'));
+            document.getElementById('zone-rhp').addEventListener('click', () => setROC('rhp'));
+        }
+
+        // Action executors
+        function setROC(type) {
+            selectedROC = type;
+            updateUI();
+        }
+
+        function applyPreset(key) {
+            const preset = presets[key];
+            if (preset) {
+                p1 = preset.p1;
+                p2 = preset.p2;
+                selectedROC = preset.roc;
+                p1Slider.value = p1;
+                p2Slider.value = p2;
+                updateUI();
+            }
+        }
+
+        // Sliders event bindings
+        p1Slider.addEventListener('input', (e) => {
+            p1 = parseFloat(e.target.value);
+            updateUI();
+        });
+
+        p2Slider.addEventListener('input', (e) => {
+            p2 = parseFloat(e.target.value);
+            updateUI();
+        });
+
+        // Initialize App on Window Loaded state
+        window.onload = function() {
+            initializeGrids();
+            setupDragHandlers();
+            setupHotzones();
+            updateUI();
+        };
+    </script>
+</body>
+</html>

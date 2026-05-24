@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Partial Fraction Decomposition & Residue Visualizer</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- KaTeX CSS and JS for LaTeX rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .math-font {
+      font-family: 'Fira Code', monospace;
+    }
+    /* Simple scale/fade transitions */
+    .fade-enter {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    .fade-enter-active {
+      opacity: 1;
+      transform: scale(1);
+      transition: opacity 300ms, transform 300ms;
+    }
+    .strike-through {
+      position: relative;
+    }
+    .strike-through::after {
+      content: "";
+      position: absolute;
+      left: -2px;
+      right: -2px;
+      top: 50%;
+      height: 3px;
+      background: #ef4444;
+      transform: rotate(-10deg);
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500/30 selection:text-indigo-200">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="p-2.5 bg-indigo-600/20 text-indigo-400 rounded-xl border border-indigo-500/30 shadow-inner">
+          <i data-lucide="binary" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            Partial Fraction Decomposition <span class="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full font-normal">s-Domain Visualizer</span>
+          </h1>
+          <p class="text-xs text-slate-400">Algebraic reduction of complex rational ratios into elementary forms</p>
+        </div>
+      </div>
+      
+      <!-- Preset Selector -->
+      <div class="flex items-center gap-3 bg-slate-800/60 p-1 rounded-xl border border-slate-700/50">
+        <span class="text-xs text-slate-400 pl-3 font-medium">Select Function:</span>
+        <select id="preset-select" class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 cursor-pointer">
+          <option value="0">X(s) = (5s + 3) / (s² + 3s + 2)</option>
+          <option value="1">X(s) = (3s + 5) / (s² + 4s + 3)</option>
+          <option value="2">X(s) = (2s + 10) / (s² + 6s + 8)</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Dashboard -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-6 flex flex-col lg:flex-row gap-6">
+    
+    <!-- Left Panel: Guided Walkthrough & Math Explanation Card -->
+    <div class="w-full lg:w-1/3 flex flex-col gap-5">
+      
+      <!-- Active Stepper Map -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4">Pipeline Steps</h3>
+        <div class="space-y-3">
+          <!-- Step 1 Trigger -->
+          <div id="step-btn-1" class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all bg-indigo-950/40 border-indigo-500/50 text-indigo-200">
+            <span class="w-7 h-7 flex items-center justify-center rounded-lg font-bold text-xs bg-indigo-500 text-white shadow-md">1</span>
+            <div class="text-left">
+              <h4 class="font-semibold text-xs text-white">Factorize Denominator</h4>
+              <p class="text-[10px] text-indigo-300">Factor D(s) into poles</p>
+            </div>
+          </div>
+          <!-- Step 2 Trigger -->
+          <div id="step-btn-2" class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all border-slate-800 bg-slate-900/40 text-slate-400 hover:border-slate-700">
+            <span class="w-7 h-7 flex items-center justify-center rounded-lg font-bold text-xs bg-slate-800 text-slate-400">2</span>
+            <div class="text-left">
+              <h4 class="font-semibold text-xs text-slate-300">Split into Blocks</h4>
+              <p class="text-[10px] text-slate-400">Partial fraction layout</p>
+            </div>
+          </div>
+          <!-- Step 3 Trigger -->
+          <div id="step-btn-3" class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all border-slate-800 bg-slate-900/40 text-slate-400 hover:border-slate-700">
+            <span class="w-7 h-7 flex items-center justify-center rounded-lg font-bold text-xs bg-slate-800 text-slate-400">3</span>
+            <div class="text-left">
+              <h4 class="font-semibold text-xs text-slate-300">Calculate Residues</h4>
+              <p class="text-[10px] text-slate-400">Find residues c₁ and c₂</p>
+            </div>
+          </div>
+          <!-- Step 4 Trigger -->
+          <div id="step-btn-4" class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all border-slate-800 bg-slate-900/40 text-slate-400 hover:border-slate-700">
+            <span class="w-7 h-7 flex items-center justify-center rounded-lg font-bold text-xs bg-slate-800 text-slate-400">4</span>
+            <div class="text-left">
+              <h4 class="font-semibold text-xs text-slate-300">Inverse Lookup Table</h4>
+              <p class="text-[10px] text-slate-400">Time domain transformation</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Guide / Commentary Box -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></div>
+            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Coaching Insights</h3>
+          </div>
+          <h2 id="explanation-title" class="text-lg font-bold text-white mb-2">Step 1: Denominator Factorization</h2>
+          <p id="explanation-body" class="text-sm text-slate-300 leading-relaxed">
+            The denominator $D(s) = s^2 + 3s + 2$ dictates the poles of our system. Before we can isolate the individual exponential modes, we must find the roots of this polynomial.
+          </p>
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between">
+          <button id="prev-btn" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 rounded-lg text-xs transition-all disabled:opacity-40 disabled:pointer-events-none">
+            <i data-lucide="chevron-left" class="w-4 h-4"></i> Back
+          </button>
+          <button id="next-btn" class="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white rounded-lg text-xs font-semibold transition-all">
+            Next step <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel: Interactive Canvas & Math Visualizer Workspace -->
+    <div class="flex-1 flex flex-col gap-6">
+      
+      <!-- Interactive Sandbox Canvas -->
+      <div class="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 flex-1 flex flex-col justify-center min-h-[420px] shadow-2xl relative overflow-hidden backdrop-blur-sm">
+        <!-- Interactive Canvas Background Grid Design -->
+        <div class="absolute inset-0 bg-[radial-gradient(#2563eb10_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none"></div>
+
+        <!-- Canvas Dynamic Render Box -->
+        <div id="canvas-content" class="relative z-10 w-full flex flex-col items-center justify-center min-h-[300px]">
+          <!-- Active step visuals dynamically loaded in JavaScript -->
+        </div>
+
+        <!-- Formula Overlay Block (Stays persistent at bottom for visual context) -->
+        <div class="absolute bottom-4 left-4 right-4 bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 backdrop-blur-md">
+          <div class="flex items-center gap-2.5">
+            <span class="p-1.5 bg-pink-500/10 text-pink-400 border border-pink-500/20 rounded-lg">
+              <i data-lucide="info" class="w-4 h-4"></i>
+            </span>
+            <div>
+              <p class="text-[11px] font-semibold text-slate-300 tracking-wide uppercase">Mathematical Principle</p>
+              <p id="theory-title" class="text-[10px] text-slate-400">Residue (Heaviside Cover-up Method)</p>
+            </div>
+          </div>
+          <!-- Katex display rendering mathematical rule -->
+          <div id="theory-latex" class="text-sm bg-slate-900/80 px-3 py-1 rounded-lg border border-slate-800"></div>
+        </div>
+      </div>
+
+      <!-- Lookup Table View (Visible especially in Step 4, previewable on request) -->
+      <div id="lookup-table-section" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl transition-all duration-300">
+        <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+          <div class="flex items-center gap-2">
+            <i data-lucide="book-open" class="w-4 h-4 text-emerald-400"></i>
+            <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-widest">Laplace transform lookup table</h3>
+          </div>
+          <span class="text-[10px] text-slate-400 font-medium">Domain Map: $s$-domain $\longleftrightarrow$ Time-domain $t$</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <!-- Row 1 -->
+          <div class="bg-slate-950/60 border border-slate-800 hover:border-slate-700 rounded-xl p-3 flex flex-col gap-1 transition-all">
+            <div class="flex justify-between items-center text-[10px] text-slate-400 border-b border-slate-900 pb-1">
+              <span>Unit Step Function</span>
+              <span class="text-indigo-400 font-mono">$u(t)$</span>
+            </div>
+            <div class="text-center py-2 flex items-center justify-center gap-3">
+              <span class="math-lookup text-sm" data-expr="\frac{1}{s}"></span>
+              <span class="text-slate-600 text-xs">🡘</span>
+              <span class="math-lookup text-sm text-indigo-300" data-expr="u(t)"></span>
+            </div>
+          </div>
+          <!-- Row 2 -->
+          <div id="lookup-highlight-row" class="bg-slate-950/60 border border-slate-800 hover:border-slate-700 rounded-xl p-3 flex flex-col gap-1 transition-all">
+            <div class="flex justify-between items-center text-[10px] text-slate-400 border-b border-slate-900 pb-1">
+              <span>Exponential Decay</span>
+              <span class="text-emerald-400 font-mono">e^{at}u(t)</span>
+            </div>
+            <div class="text-center py-2 flex items-center justify-center gap-3">
+              <span class="math-lookup text-sm" data-expr="\frac{1}{s - a}"></span>
+              <span class="text-slate-600 text-xs">🡘</span>
+              <span class="math-lookup text-sm text-emerald-300" data-expr="e^{at}u(t)"></span>
+            </div>
+          </div>
+          <!-- Row 3 -->
+          <div class="bg-slate-950/60 border border-slate-800 hover:border-slate-700 rounded-xl p-3 flex flex-col gap-1 transition-all">
+            <div class="flex justify-between items-center text-[10px] text-slate-400 border-b border-slate-900 pb-1">
+              <span>Damped Cosine</span>
+              <span class="text-amber-400 font-mono">e^{-at}\cos(\omega t)</span>
+            </div>
+            <div class="text-center py-2 flex items-center justify-center gap-3">
+              <span class="math-lookup text-sm" data-expr="\frac{s + a}{(s+a)^2 + \omega^2}"></span>
+              <span class="text-slate-600 text-xs">🡘</span>
+              <span class="math-lookup text-sm text-amber-300" data-expr="e^{-at}\cos(\omega t)u(t)"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  </main>
+
+  <!-- Footer Info bar -->
+  <footer class="text-center text-xs text-slate-500 py-6 border-t border-slate-900 bg-slate-950">
+    Designed for visual learner outcomes. Made with <span class="text-pink-500">♥</span> using LaTeX mathematical reduction logic.
+  </footer>
+
+  <script>
+    // System Data Presets
+    const PRESETS = [
+      {
+        numerator: "5s + 3",
+        D_s: "s^2 + 3s + 2",
+        factored: "(s + 1)(s + 2)",
+        c1: -2,
+        p1: -1,
+        c2: 7,
+        p2: -2,
+        s1_expr: "s + 1",
+        s2_expr: "s + 2",
+        residue_formula_1: "c_1 = \\left. (s+1)\\frac{5s+3}{(s+1)(s+2)} \\right|_{s = -1}",
+        residue_calc_1: "c_1 = \\frac{5(-1) + 3}{-1 + 2} = \\frac{-2}{1} = -2",
+        residue_formula_2: "c_2 = \\left. (s+2)\\frac{5s+3}{(s+1)(s+2)} \\right|_{s = -2}",
+        residue_calc_2: "c_2 = \\frac{5(-2) + 3}{-2 + 1} = \\frac{-7}{-1} = 7",
+        result_t: "-2e^{-t} + 7e^{-2t}"
+      },
+      {
+        numerator: "3s + 5",
+        D_s: "s^2 + 4s + 3",
+        factored: "(s + 1)(s + 3)",
+        c1: 1,
+        p1: -1,
+        c2: 2,
+        p2: -3,
+        s1_expr: "s + 1",
+        s2_expr: "s + 3",
+        residue_formula_1: "c_1 = \\left. (s+1)\\frac{3s+5}{(s+1)(s+3)} \\right|_{s = -1}",
+        residue_calc_1: "c_1 = \\frac{3(-1) + 5}{-1 + 3} = \\frac{2}{2} = 1",
+        residue_formula_2: "c_2 = \\left. (s+3)\\frac{3s+5}{(s+1)(s+3)} \\right|_{s = -3}",
+        residue_calc_2: "c_2 = \\frac{3(-3) + 5}{-3 + 1} = \\frac{-4}{-2} = 2",
+        result_t: "e^{-t} + 2e^{-3t}"
+      },
+      {
+        numerator: "2s + 10",
+        D_s: "s^2 + 6s + 8",
+        factored: "(s + 2)(s + 4)",
+        c1: 3,
+        p1: -2,
+        c2: -1,
+        p2: -4,
+        s1_expr: "s + 2",
+        s2_expr: "s + 4",
+        residue_formula_1: "c_1 = \\left. (s+2)\\frac{2s+10}{(s+2)(s+4)} \\right|_{s = -2}",
+        residue_calc_1: "c_1 = \\frac{2(-2) + 10}{-2 + 4} = \\frac{6}{2} = 3",
+        residue_formula_2: "c_2 = \\left. (s+4)\\frac{2s+10}{(s+2)(s+4)} \\right|_{s = -4}",
+        residue_calc_2: "c_2 = \\frac{2(-4) + 10}{-4 + 2} = \\frac{2}{-2} = -1",
+        result_t: "3e^{-2t} - e^{-4t}"
+      }
+    ];
+
+    let currentStep = 1;
+    let selectedPresetIdx = 0;
+    
+    // UI elements
+    const canvas = document.getElementById('canvas-content');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const presetSelect = document.getElementById('preset-select');
+    const explanationTitle = document.getElementById('explanation-title');
+    const explanationBody = document.getElementById('explanation-body');
+    const theoryTitle = document.getElementById('theory-title');
+    const theoryLatex = document.getElementById('theory-latex');
+    const lookupHighlightRow = document.getElementById('lookup-highlight-row');
+
+    // Load presets and setup event listeners
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      initMathLookups();
+      renderApp();
+      
+      presetSelect.addEventListener('change', (e) => {
+        selectedPresetIdx = parseInt(e.target.value);
+        renderApp();
+      });
+
+      prevBtn.addEventListener('click', () => {
+        if (currentStep > 1) {
+          currentStep--;
+          renderApp();
+        }
+      });
+
+      nextBtn.addEventListener('click', () => {
+        if (currentStep < 4) {
+          currentStep++;
+          renderApp();
+        } else {
+          // Wrap around reset
+          currentStep = 1;
+          renderApp();
+        }
+      });
+    });
+
+    // Simple helper to render beautiful math strings with KaTeX
+    function math(expr) {
+      return katex.renderToString(expr, { throwOnError: false, displayMode: false });
+    }
+
+    function mathDisplay(expr) {
+      return katex.renderToString(expr, { throwOnError: false, displayMode: true });
+    }
+
+    function initMathLookups() {
+      document.querySelectorAll('.math-lookup').forEach(el => {
+        el.innerHTML = math(el.dataset.expr);
+      });
+    }
+
+    // Main central state visual updates
+    function renderApp() {
+      // 1. Update stepper highlights
+      for (let s = 1; s <= 4; s++) {
+        const btn = document.getElementById(`step-btn-${s}`);
+        const span = btn.querySelector('span');
+        const title = btn.querySelector('h4');
+        const sub = btn.querySelector('p');
+        
+        // Remove old states
+        btn.classList.remove('bg-indigo-950/40', 'border-indigo-500/50', 'text-indigo-200', 'border-slate-800', 'bg-slate-900/40', 'text-slate-400');
+        span.classList.remove('bg-indigo-500', 'text-white', 'bg-slate-800', 'text-slate-400', 'bg-emerald-500/20', 'text-emerald-400');
+
+        if (s === currentStep) {
+          btn.classList.add('bg-indigo-950/40', 'border-indigo-500/50', 'text-indigo-200');
+          span.classList.add('bg-indigo-500', 'text-white');
+          title.className = "font-semibold text-xs text-white";
+        } else if (s < currentStep) {
+          btn.classList.add('border-slate-800/80', 'bg-slate-900/10', 'text-slate-500');
+          span.classList.add('bg-emerald-500/20', 'text-emerald-400');
+          title.className = "font-semibold text-xs text-slate-400";
+        } else {
+          btn.classList.add('border-slate-800', 'bg-slate-900/40', 'text-slate-400');
+          span.classList.add('bg-slate-800', 'text-slate-400');
+          title.className = "font-semibold text-xs text-slate-400";
+        }
+      }
+
+      // 2. Set Up Prev/Next Button states
+      prevBtn.disabled = (currentStep === 1);
+      if (currentStep === 4) {
+        nextBtn.innerHTML = `Restart visualizer <i data-lucide="refresh-cw" class="w-4 h-4 ml-1"></i>`;
+        nextBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-500');
+        nextBtn.classList.add('bg-emerald-600', 'hover:bg-emerald-500');
+      } else {
+        nextBtn.innerHTML = `Next step <i data-lucide="chevron-right" class="w-4 h-4 ml-1"></i>`;
+        nextBtn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
+        nextBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-500');
+      }
+      lucide.createIcons();
+
+      // Get accurate data from Preset selection
+      const data = PRESETS[selectedPresetIdx];
+
+      // 3. Render Canvas based on steps
+      canvas.className = "relative z-10 w-full flex flex-col items-center justify-center min-h-[300px] gap-6 transition-all duration-300";
+      
+      if (currentStep === 1) {
+        // STEP 1: Factorize Denominator
+        theoryTitle.innerText = "Denominator Polynomial Roots";
+        theoryLatex.innerHTML = math("D(s) = 0 \\implies s^2 + bs + c = (s - p_1)(s - p_2)");
+        lookupHighlightRow.classList.remove('border-emerald-500', 'bg-emerald-950/20', 'ring-2', 'ring-emerald-500/30');
+
+        explanationTitle.innerText = "Step 1: Denominator Factorization";
+        explanationBody.innerHTML = `
+          We begin with the continuous ratio $X(s) = \\frac{${data.numerator}}{${data.D_s}}$. 
+          To discover the active poles of the frequency-domain system, we rewrite the quadratic expression in the denominator as its factored product form:
+          <br><br>
+          <div class='bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-center'>
+            $s^2 + ${data.D_s.split('s^2 + ')[1]} = ${data.factored}$
+          </div>
+          <br>
+          The poles of our transfer system reside cleanly at $p_1 = ${data.p1}$ and $p_2 = ${data.p2}$.
+        `;
+
+        canvas.innerHTML = `
+          <div class="flex flex-col items-center gap-6 animate-fade-in">
+            <!-- Starting Rational Expression Block -->
+            <div class="bg-slate-900 border-2 border-slate-800 p-8 rounded-2xl shadow-xl flex flex-col items-center justify-center min-w-[280px]">
+              <div class="text-xl font-medium mb-3 pb-3 border-b-2 border-slate-700 w-full text-center tracking-wide text-indigo-200">
+                ${math(data.numerator)}
+              </div>
+              <div id="denom-block" class="text-xl font-bold tracking-wider text-white transition-all duration-700 bg-slate-950 px-4 py-2 rounded-lg border border-slate-800">
+                ${math(data.D_s)}
+              </div>
+            </div>
+
+            <button id="factor-action" class="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl shadow-lg shadow-indigo-500/20 font-semibold text-sm transition-all active:scale-95">
+              <i data-lucide="sparkles" class="w-4 h-4 text-amber-300"></i> Factorize Denominator
+            </button>
+          </div>
+        `;
+
+        // Interactivity for Factorize Action
+        document.getElementById('factor-action').addEventListener('click', () => {
+          const denomBlock = document.getElementById('denom-block');
+          denomBlock.classList.add('bg-emerald-950/40', 'border-emerald-500/50', 'scale-105');
+          denomBlock.innerHTML = math(data.factored);
+          
+          explanationBody.innerHTML += `
+            <div class="mt-3 text-emerald-400 flex items-center gap-1.5 text-xs font-semibold">
+              <i data-lucide="check-circle" class="w-4 h-4"></i> Factoring successful! You isolated poles p₁ = ${data.p1}, p₂ = ${data.p2}.
+            </div>
+          `;
+          lucide.createIcons();
+        });
+
+      } else if (currentStep === 2) {
+        // STEP 2: Partial Fraction Split
+        theoryTitle.innerText = "Linear Independent Combination Rule";
+        theoryLatex.innerHTML = math("X(s) = \\frac{c_1}{s - p_1} + \\frac{c_2}{s - p_2}");
+        lookupHighlightRow.classList.remove('border-emerald-500', 'bg-emerald-950/20', 'ring-2', 'ring-emerald-500/30');
+
+        explanationTitle.innerText = "Step 2: Splitting Expression";
+        explanationBody.innerHTML = `
+          According to partial fraction theory, any linear factor $(s-p_i)$ in the denominator produces a separate simple fraction block.
+          We rewrite the complex product state into two distinct sub-fractions with coefficients $c_1$ and $c_2$:
+          <br><br>
+          <div class='bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-center'>
+            $X(s) = \\frac{c_1}{${data.s1_expr}} + \\frac{c_2}{${data.s2_expr}}$
+          </div>
+          <br>
+          These coefficients $c_i$ represent the <strong>residues</strong> of the system poles, telling us how much of each decay pattern fits our final profile.
+        `;
+
+        canvas.innerHTML = `
+          <div class="flex flex-col items-center gap-8 w-full max-w-lg">
+            <!-- Stage 1 State -->
+            <div id="unified-frac" class="bg-slate-900 border border-slate-800 px-6 py-4 rounded-xl flex flex-col items-center transition-all duration-500">
+              <span class="text-sm text-indigo-300 border-b border-slate-700 pb-1.5 w-full text-center font-medium">${math(data.numerator)}</span>
+              <span class="text-sm text-slate-400 pt-1.5">${math(data.factored)}</span>
+            </div>
+
+            <!-- Transition Arrow -->
+            <div id="split-arrow" class="flex flex-col items-center gap-1 text-slate-500">
+              <span class="text-[10px] tracking-widest font-mono uppercase">Linear Decomposition split</span>
+              <i data-lucide="arrow-down" class="w-5 h-5 animate-bounce"></i>
+            </div>
+
+            <!-- Stage 2 State (Splits on click/hover) -->
+            <div class="flex items-center justify-center gap-6 w-full">
+              <!-- Block 1 -->
+              <div class="bg-slate-900 border-2 border-indigo-500/20 p-4 rounded-xl flex flex-col items-center w-36 shadow-lg shadow-indigo-950/40 hover:border-indigo-500/50 transition-all">
+                <span class="text-indigo-400 font-bold text-lg mb-1.5 pb-1 border-b-2 border-dashed border-slate-700 w-full text-center">c₁</span>
+                <span class="text-xs text-slate-300">${math(data.s1_expr)}</span>
+              </div>
+
+              <span class="text-2xl font-bold text-slate-600">+</span>
+
+              <!-- Block 2 -->
+              <div class="bg-slate-900 border-2 border-indigo-500/20 p-4 rounded-xl flex flex-col items-center w-36 shadow-lg shadow-indigo-950/40 hover:border-indigo-500/50 transition-all">
+                <span class="text-indigo-400 font-bold text-lg mb-1.5 pb-1 border-b-2 border-dashed border-slate-700 w-full text-center">c₂</span>
+                <span class="text-xs text-slate-300">${math(data.s2_expr)}</span>
+              </div>
+            </div>
+          </div>
+        `;
+
+      } else if (currentStep === 3) {
+        // STEP 3: Calculate Residues (Heaviside Cover-up Method)
+        theoryTitle.innerText = "Residue evaluation (Heaviside Cover-up Method)";
+        theoryLatex.innerHTML = math("c_i = \\lim_{s \\to p_i} (s - p_i)X(s)");
+        lookupHighlightRow.classList.remove('border-emerald-500', 'bg-emerald-950/20', 'ring-2', 'ring-emerald-500/30');
+
+        explanationTitle.innerText = "Step 3: Calculating Residues";
+        explanationBody.innerHTML = `
+          The <strong>Heaviside Cover-up method</strong> offers a swift way to discover residues:
+          <ol class="list-decimal pl-4 space-y-2 mt-2 text-xs text-slate-300">
+            <li>Multiply the full transfer expression $X(s)$ by the target factor. This effectively cancels out the target factor.</li>
+            <li>Evaluate the remaining formula at the pole value $s = p_i$.</li>
+          </ol>
+          <br>
+          <span class="text-indigo-300 font-semibold block mb-1">Interactive Action:</span>
+          Click on either coefficient block on the right to simulate the cover-up method and isolate the values.
+        `;
+
+        canvas.innerHTML = `
+          <div class="flex flex-col md:flex-row items-center justify-center gap-8 w-full max-w-2xl px-4">
+            
+            <!-- Left Side Interactive Toggle Buttons -->
+            <div class="flex flex-col gap-3 w-full md:w-1/3">
+              <button id="calc-c1-btn" class="flex flex-col items-start p-4 bg-slate-900 border border-slate-800 hover:border-indigo-500 rounded-xl transition-all w-full text-left group">
+                <div class="flex items-center justify-between w-full">
+                  <span class="font-bold text-lg text-indigo-400 group-hover:text-indigo-300">Residue c₁</span>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-300 font-mono">s = ${data.p1}</span>
+                </div>
+                <span class="text-xs text-slate-400 mt-1">Pole at s = ${data.p1}</span>
+              </button>
+
+              <button id="calc-c2-btn" class="flex flex-col items-start p-4 bg-slate-900 border border-slate-800 hover:border-indigo-500 rounded-xl transition-all w-full text-left group">
+                <div class="flex items-center justify-between w-full">
+                  <span class="font-bold text-lg text-indigo-400 group-hover:text-indigo-300">Residue c₂</span>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-300 font-mono">s = ${data.p2}</span>
+                </div>
+                <span class="text-xs text-slate-400 mt-1">Pole at s = ${data.p2}</span>
+              </button>
+            </div>
+
+            <!-- Right Side Cover-up Sandbox Display Screen -->
+            <div id="sandbox-display" class="flex-1 bg-slate-950 border border-slate-800 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[220px]">
+              <div class="text-center text-slate-500 max-w-xs">
+                <i data-lucide="mouse-pointer-click" class="w-8 h-8 mx-auto mb-2 text-slate-600 animate-pulse"></i>
+                <p class="text-xs">Click one of the residue buttons on the left to see the step-by-step substitution.</p>
+              </div>
+            </div>
+
+          </div>
+        `;
+
+        // Interactive calculation buttons logic
+        const c1Btn = document.getElementById('calc-c1-btn');
+        const c2Btn = document.getElementById('calc-c2-btn');
+        const sandbox = document.getElementById('sandbox-display');
+
+        c1Btn.addEventListener('click', () => {
+          c1Btn.classList.add('border-indigo-500', 'bg-indigo-950/20');
+          c2Btn.classList.remove('border-indigo-500', 'bg-indigo-950/20');
+          
+          sandbox.innerHTML = `
+            <div class="w-full text-center space-y-4 animate-fade-in">
+              <h4 class="text-xs tracking-wider uppercase text-indigo-300 font-semibold">Residue c₁ algebraic cover-up</h4>
+              
+              <!-- Formula cancel visual -->
+              <div class="flex items-center justify-center gap-2 text-sm bg-slate-900/50 py-3 px-4 rounded-xl border border-slate-800">
+                <span>c₁ = </span>
+                <div class="flex flex-col items-center">
+                  <span class="border-b border-slate-700 pb-0.5">${math(data.numerator)}</span>
+                  <span><span class="strike-through text-red-400">${math("(" + data.s1_expr + ")")}</span>${math("(" + data.s2_expr + ")")}</span>
+                </div>
+                <span class="text-slate-600 mx-1">×</span>
+                <span>${math("(" + data.s1_expr + ")")}</span>
+              </div>
+
+              <!-- Substitution Phase -->
+              <div class="text-xs text-slate-300">
+                Substitute $s = ${data.p1}$:
+              </div>
+
+              <div class="p-3 bg-slate-900 border border-slate-800 rounded-xl text-lg font-mono text-emerald-400">
+                ${math(data.residue_calc_1)}
+              </div>
+            </div>
+          `;
+          // Render latex on new elements
+          const textNodes = sandbox.querySelectorAll('span, div');
+          textNodes.forEach(node => {
+            if (node.textContent.includes('$')) {
+              node.innerHTML = node.textContent.replace(/\$(.*?)\$/g, (m, g) => math(g));
+            }
+          });
+        });
+
+        c2Btn.addEventListener('click', () => {
+          c2Btn.classList.add('border-indigo-500', 'bg-indigo-950/20');
+          c1Btn.classList.remove('border-indigo-500', 'bg-indigo-950/20');
+          
+          sandbox.innerHTML = `
+            <div class="w-full text-center space-y-4 animate-fade-in">
+              <h4 class="text-xs tracking-wider uppercase text-indigo-300 font-semibold">Residue c₂ algebraic cover-up</h4>
+              
+              <!-- Formula cancel visual -->
+              <div class="flex items-center justify-center gap-2 text-sm bg-slate-900/50 py-3 px-4 rounded-xl border border-slate-800">
+                <span>c₂ = </span>
+                <div class="flex flex-col items-center">
+                  <span class="border-b border-slate-700 pb-0.5">${math(data.numerator)}</span>
+                  <span>${math("(" + data.s1_expr + ")")}<span class="strike-through text-red-400">${math("(" + data.s2_expr + ")")}</span></span>
+                </div>
+                <span class="text-slate-600 mx-1">×</span>
+                <span>${math("(" + data.s2_expr + ")")}</span>
+              </div>
+
+              <!-- Substitution Phase -->
+              <div class="text-xs text-slate-300">
+                Substitute $s = ${data.p2}$:
+              </div>
+
+              <div class="p-3 bg-slate-900 border border-slate-800 rounded-xl text-lg font-mono text-emerald-400">
+                ${math(data.residue_calc_2)}
+              </div>
+            </div>
+          `;
+          const textNodes = sandbox.querySelectorAll('span, div');
+          textNodes.forEach(node => {
+            if (node.textContent.includes('$')) {
+              node.innerHTML = node.textContent.replace(/\$(.*?)\$/g, (m, g) => math(g));
+            }
+          });
+        });
+
+      } else if (currentStep === 4) {
+        // STEP 4: Inverse Lookup Table
+        theoryTitle.innerText = "Exponential mapping theorem";
+        theoryLatex.innerHTML = math("\\mathcal{L}^{-1} \\left\\{ \\frac{1}{s - a} \\right\\} = e^{at}u(t)");
+        
+        // Highlight matched lookup row in table dynamically
+        lookupHighlightRow.classList.add('border-emerald-500', 'bg-emerald-950/20', 'ring-2', 'ring-emerald-500/30');
+
+        explanationTitle.innerText = "Step 4: Lookup Table Mapping";
+        explanationBody.innerHTML = `
+          Now that the complex fraction is fully split and the residues are calculated, we map our elementary terms to the Laplace domain lookup table:
+          <br><br>
+          <div class='bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-center font-mono text-sm'>
+            $X(s) = \\frac{${data.c1}}{${data.s1_expr}} + \\frac{${data.c2 === -1 ? '-' : (data.c2 > 0 ? '+ ' : '')}${data.c2 === -1 ? '' : Math.abs(data.c2)}}{${data.s2_expr}}$
+          </div>
+          <br>
+          Applying exponential mapping yields the system response in the continuous-time domain:
+          <br><br>
+          <div class='bg-emerald-950/20 border border-emerald-500/30 p-3 rounded-xl text-center text-emerald-400 font-bold'>
+            $x(t) = (${data.result_t}) u(t)$
+          </div>
+        `;
+
+        canvas.innerHTML = `
+          <div class="flex flex-col items-center gap-6 w-full max-w-xl animate-fade-in">
+            <h4 class="text-xs uppercase text-indigo-400 tracking-widest font-mono font-bold">Time-domain map</h4>
+            
+            <div class="flex items-center justify-center gap-4 w-full bg-slate-950 p-6 rounded-2xl border border-slate-800 relative">
+              
+              <!-- Term 1 Box -->
+              <div class="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-indigo-500/30 bg-indigo-950/10 min-w-[100px] text-center">
+                <span class="text-xs text-slate-400">s-Domain Term 1</span>
+                <span class="text-sm font-bold text-indigo-300 font-mono">${math("\\frac{" + data.c1 + "}{" + data.s1_expr + "}")}</span>
+                <i data-lucide="chevrons-down" class="w-4 h-4 text-emerald-400 animate-pulse my-1"></i>
+                <span class="text-xs text-slate-400">Time Term 1</span>
+                <span class="text-sm font-bold text-emerald-400 font-mono">${math(data.c1 + "e^{" + data.p1 + "t}")}</span>
+              </div>
+
+              <span class="text-2xl font-bold text-slate-700">+</span>
+
+              <!-- Term 2 Box -->
+              <div class="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-indigo-500/30 bg-indigo-950/10 min-w-[100px] text-center">
+                <span class="text-xs text-slate-400">s-Domain Term 2</span>
+                <span class="text-sm font-bold text-indigo-300 font-mono">${math("\\frac{" + data.c2 + "}{" + data.s2_expr + "}")}</span>
+                <i data-lucide="chevrons-down" class="w-4 h-4 text-emerald-400 animate-pulse my-1"></i>
+                <span class="text-xs text-slate-400">Time Term 2</span>
+                <span class="text-sm font-bold text-emerald-400 font-mono">${math((data.c2 === -1 ? "-" : (data.c2 === 1 ? "" : data.c2)) + "e^{" + data.p2 + "t}")}</span>
+              </div>
+
+            </div>
+
+            <!-- Complete Combined Equation -->
+            <div class="w-full text-center bg-emerald-950/20 border border-emerald-500/40 py-4 px-6 rounded-xl shadow-lg">
+              <span class="text-[10px] text-emerald-400 uppercase tracking-wider font-mono font-semibold block mb-1">Final Continuous System Response</span>
+              <span class="text-base text-white font-bold">${math("x(t) = \\left(" + data.result_t + "\\right) u(t)")}</span>
+            </div>
+          </div>
+        `;
+      }
+
+      // 4. Render LateX markup on the dynamic paragraphs
+      const textNodes = [explanationBody, theoryTitle];
+      textNodes.forEach(node => {
+        if (node.innerHTML.includes('$')) {
+          node.innerHTML = node.innerHTML.replace(/\$(.*?)\$/g, (m, g) => math(g));
+        }
+      });
+    }
+  </script>
+</body>
+</html>

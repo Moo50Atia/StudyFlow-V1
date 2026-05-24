@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Evolution & Pole-Zero Explorer</title>
+    <!-- Tailwind CSS for sleek design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- KaTeX for gorgeous math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+        /* Custom scrollbar for control panels */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col overflow-x-hidden">
+
+    <!-- Main Header -->
+    <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur px-6 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="px-2 py-1 text-xs font-bold uppercase tracking-wider bg-indigo-600 rounded text-indigo-100">Laplace Domain</span>
+                <span class="text-xs text-slate-400">Control Systems & Signal Processing Visualizer</span>
+            </div>
+            <h1 class="text-2xl font-bold bg-gradient-to-r from-indigo-400 via-sky-400 to-emerald-400 bg-clip-text text-transparent mt-1">
+                Time Evolution & Completed-Square Form
+            </h1>
+        </div>
+        <div class="flex items-center gap-3">
+            <button id="btnPlaySound" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 px-4 rounded-lg shadow-lg hover:shadow-indigo-500/20 transition duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                Listen to Impulse Response
+            </button>
+            <button id="btnToggleGuide" class="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white p-2 rounded-lg transition duration-200" title="Toggle Educational Info">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="flex-1 p-4 md:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-[1800px] w-full mx-auto">
+        
+        <!-- Column 1: Math and Control Sliders (4 Cols) -->
+        <div class="lg:col-span-4 flex flex-col gap-6">
+            
+            <!-- Quick Preset Selectors -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-5">
+                <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">System Presets</h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <button class="preset-btn bg-slate-800 hover:bg-indigo-900/50 border border-slate-700 hover:border-indigo-700 text-xs py-2 px-3 rounded-lg text-left transition duration-200" data-a="0.0" data-w="4.5">
+                        <span class="block font-bold text-slate-200">Undamped</span>
+                        <span class="text-[10px] text-slate-400">Pure Oscillator (a = 0)</span>
+                    </button>
+                    <button class="preset-btn bg-indigo-950/40 border border-indigo-500/50 text-xs py-2 px-3 rounded-lg text-left transition duration-200" data-a="0.8" data-w="3.5">
+                        <span class="block font-bold text-indigo-300">Underdamped ★</span>
+                        <span class="text-[10px] text-indigo-400">Standard decay (a > 0)</span>
+                    </button>
+                    <button class="preset-btn bg-slate-800 hover:bg-indigo-900/50 border border-slate-700 hover:border-indigo-700 text-xs py-2 px-3 rounded-lg text-left transition duration-200" data-a="2.5" data-w="1.0">
+                        <span class="block font-bold text-slate-200">Heavily Damped</span>
+                        <span class="text-[10px] text-slate-400">Fast exponential decay</span>
+                    </button>
+                    <button class="preset-btn bg-slate-800 hover:bg-indigo-900/50 border border-slate-700 hover:border-indigo-700 text-xs py-2 px-3 rounded-lg text-left transition duration-200" data-a="-0.3" data-w="4.0">
+                        <span class="block font-bold text-red-400">Unstable / Growing</span>
+                        <span class="text-[10px] text-red-500">Right-Half Plane (a < 0)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Precision Controls (Sliders) -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-5">
+                <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Precision Coordinates</h3>
+                
+                <!-- Damping Slider (Real Part, a) -->
+                <div class="mb-5">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-sm font-medium text-slate-300 flex items-center gap-1">
+                            Damping Rate <span class="text-indigo-400 font-mono">(a)</span>
+                        </label>
+                        <span id="val_a" class="text-sm font-bold font-mono text-indigo-400">0.80</span>
+                    </div>
+                    <input type="range" id="slider_a" min="-1.5" max="3.5" step="0.05" value="0.8" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                    <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+                        <span>Unstable (a < 0)</span>
+                        <span>Stable (a > 0)</span>
+                    </div>
+                </div>
+
+                <!-- Frequency Slider (Imaginary Part, w) -->
+                <div class="mb-2">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-sm font-medium text-slate-300 flex items-center gap-1">
+                            Frequency <span class="text-emerald-400 font-mono">(ω)</span>
+                        </label>
+                        <span id="val_w" class="text-sm font-bold font-mono text-emerald-400">3.50</span>
+                    </div>
+                    <input type="range" id="slider_w" min="0.0" max="8.0" step="0.05" value="3.5" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                    <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+                        <span>Pure DC (ω = 0)</span>
+                        <span>High-frequency Oscillation</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Math & Quadratic Formulator -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-5 flex-1 flex flex-col justify-between">
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Completed Square Transformation</h3>
+                    <p class="text-xs text-slate-400 mb-4 leading-relaxed">
+                        Watch how the quadratic system denominator is restructured to isolate the damping factor <span class="text-indigo-300 font-bold">a</span> and oscillation frequency <span class="text-emerald-300 font-bold">ω</span>:
+                    </p>
+
+                    <!-- Math Blocks rendered dynamically via JS/KaTeX -->
+                    <div class="space-y-4 bg-slate-950/60 p-4 rounded-lg border border-slate-800/80">
+                        <div class="text-center">
+                            <span class="text-xs text-slate-500 block mb-1">Standard Quadratic Form</span>
+                            <div id="math-standard" class="text-sm py-1"></div>
+                        </div>
+                        <div class="border-t border-slate-800/80 my-2"></div>
+                        <div class="text-center">
+                            <span class="text-xs text-slate-500 block mb-1">Completed Square Form</span>
+                            <div id="math-completed" class="text-base py-1 text-indigo-300 font-semibold"></div>
+                        </div>
+                        <div class="border-t border-slate-800/80 my-2"></div>
+                        <div class="text-center">
+                            <span class="text-xs text-slate-500 block mb-1">Time Domain Impulse Response h(t)</span>
+                            <div id="math-timedomain" class="text-base py-1 text-sky-300"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Parameter Stats Readout -->
+                <div class="mt-4 pt-4 border-t border-slate-800 grid grid-cols-2 gap-2 text-xs">
+                    <div class="bg-slate-950/40 p-2 rounded border border-slate-800/50">
+                        <span class="text-slate-500 block">Damping Ratio (ζ):</span>
+                        <span id="stat-zeta" class="font-mono font-bold text-slate-300">-</span>
+                    </div>
+                    <div class="bg-slate-950/40 p-2 rounded border border-slate-800/50">
+                        <span class="text-slate-500 block">Natural Freq (ωn):</span>
+                        <span id="stat-wn" class="font-mono font-bold text-slate-300">-</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Column 2: Graphics Core (8 Cols) -->
+        <div class="lg:col-span-8 flex flex-col gap-6">
+            
+            <!-- Graphic panels grid: Left-S Plane, Right-Time Domain -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <!-- S-Plane Canvas Wrapper -->
+                <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-5 flex flex-col">
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="text-base font-bold text-slate-200 flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                            s-Plane (Frequency Domain)
+                        </h2>
+                        <span class="text-[10px] bg-indigo-950 text-indigo-300 px-2 py-0.5 rounded border border-indigo-800/50 uppercase font-mono font-semibold">Drag Poles</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-3 leading-relaxed">
+                        Poles are at <span class="code-font text-slate-200">s = -a ± jω</span>. Drag the red '✖' to change dynamic properties in real-time.
+                    </p>
+                    <div class="relative bg-slate-950 rounded-lg overflow-hidden border border-slate-800 flex-1 aspect-square md:aspect-auto md:min-h-[380px] cursor-crosshair">
+                        <canvas id="canvas_splane" class="absolute inset-0 w-full h-full"></canvas>
+                    </div>
+                </div>
+
+                <!-- Time Domain Canvas Wrapper -->
+                <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-5 flex flex-col">
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="text-base font-bold text-slate-200 flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                            Time Domain Response
+                        </h2>
+                        <span id="envelopeStatus" class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700 uppercase font-mono font-semibold">Decaying Envelope</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-3 leading-relaxed">
+                        The signal oscillates with period <span class="font-semibold text-slate-300">T = 2π/ω</span> inside the exponential envelope <span class="font-semibold text-slate-300">e⁻ᵃᵗ</span>.
+                    </p>
+                    <div class="relative bg-slate-950 rounded-lg overflow-hidden border border-slate-800 flex-1 aspect-square md:aspect-auto md:min-h-[380px]">
+                        <canvas id="canvas_timedomain" class="absolute inset-0 w-full h-full"></canvas>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Interactive Guide & Conceptual Walkthrough -->
+            <div id="guidePanel" class="bg-slate-900/80 border border-slate-800 rounded-xl p-6 relative">
+                <button id="btnCloseGuide" class="absolute top-4 right-4 text-slate-500 hover:text-slate-300 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+                <h3 class="text-base font-bold text-slate-200 mb-3 flex items-center gap-2">
+                    <span class="text-emerald-400">💡</span> How to Read this Visualization
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-slate-400 leading-relaxed">
+                    <div class="bg-slate-950/50 p-3.5 rounded-lg border border-slate-850">
+                        <h4 class="font-bold text-slate-300 mb-1.5">1. Drag Horizontal (Real Part, -a)</h4>
+                        <p>Moving poles left/right adjusts <strong>damping (a)</strong>.
+                        <br><span class="text-indigo-400 font-bold">• Left of axis (a > 0):</span> Stable decay.
+                        <br><span class="text-red-400 font-bold">• Right of axis (a < 0):</span> Unstable exponential expansion.
+                        <br><span class="text-yellow-400 font-bold">• On vertical axis (a = 0):</span> Undamped perpetual oscillation.</p>
+                    </div>
+                    <div class="bg-slate-950/50 p-3.5 rounded-lg border border-slate-850">
+                        <h4 class="font-bold text-slate-300 mb-1.5">2. Drag Vertical (Imaginary Part, ω)</h4>
+                        <p>Moving poles up/down adjusts <strong>oscillation speed (ω)</strong>.
+                        <br>• Higher ω squeezes cycles closer together (shorter period <span class="font-semibold text-slate-200">T</span>).
+                        <br>• Pulling poles onto the horizontal line eliminates oscillation completely (DC / Pure exponential response).</p>
+                    </div>
+                    <div class="bg-slate-950/50 p-3.5 rounded-lg border border-slate-850">
+                        <h4 class="font-bold text-slate-300 mb-1.5">3. Mathematical Link</h4>
+                        <p>Every dynamic system is defined by its denominator. Completing the square:
+                        <br><span class="text-indigo-300 block my-1 font-mono text-center">s² + 2as + (a² + ω²) = (s+a)² + ω²</span>
+                        This shape directly corresponds to the time envelope <span class="text-sky-300">e⁻ᵃᵗ</span> and sinusoid rate <span class="text-emerald-300">sin(ωt)</span>.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer Status -->
+    <footer class="mt-auto py-4 border-t border-slate-800 text-center text-xs text-slate-500 bg-slate-950">
+        Time Evolution and s-Plane Explorer • Built using HTML5 Canvas, Tailwind CSS & Web Audio Synthesizer
+    </footer>
+
+    <script>
+        // System variables (Initial state)
+        // a is the damping rate (real coordinate is -a on the s-plane)
+        // w is the oscillation frequency (imaginary coordinate is +/- w)
+        let a = 0.80; 
+        let w = 3.50;
+
+        // Interaction state
+        let activeDrag = null; // 'pole' or null
+        const sPlaneScale = 45; // Pixels per unit coordinate scale
+        let audioCtx = null;
+
+        // Get elements
+        const splaneCanvas = document.getElementById('canvas_splane');
+        const timedomainCanvas = document.getElementById('canvas_timedomain');
+        const slider_a = document.getElementById('slider_a');
+        const slider_w = document.getElementById('slider_w');
+        const val_a = document.getElementById('val_a');
+        const val_w = document.getElementById('val_w');
+        const statZeta = document.getElementById('stat-zeta');
+        const statWn = document.getElementById('stat-wn');
+        const envelopeStatus = document.getElementById('envelopeStatus');
+        
+        // Setup listeners
+        slider_a.addEventListener('input', (e) => {
+            a = parseFloat(e.target.value);
+            updateAll();
+        });
+        slider_w.addEventListener('input', (e) => {
+            w = parseFloat(e.target.value);
+            updateAll();
+        });
+
+        // Toggle info guide panel
+        const guidePanel = document.getElementById('guidePanel');
+        document.getElementById('btnToggleGuide').addEventListener('click', () => {
+            guidePanel.classList.toggle('hidden');
+        });
+        document.getElementById('btnCloseGuide').addEventListener('click', () => {
+            guidePanel.classList.add('hidden');
+        });
+
+        // Set system values directly from preset clicks
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Highlight active preset button
+                document.querySelectorAll('.preset-btn').forEach(b => {
+                    b.classList.remove('bg-indigo-950/40', 'border-indigo-500/50');
+                    b.classList.add('bg-slate-800', 'border-slate-700');
+                });
+                btn.classList.add('bg-indigo-950/40', 'border-indigo-500/50');
+                btn.classList.remove('bg-slate-800', 'border-slate-700');
+
+                a = parseFloat(btn.dataset.a);
+                w = parseFloat(btn.dataset.w);
+                updateAll();
+            });
+        });
+
+        // Setup audio synth to hear impulse response
+        document.getElementById('btnPlaySound').addEventListener('click', () => {
+            playSystemAudioResponse();
+        });
+
+        // Resize Handlers
+        window.addEventListener('resize', () => {
+            initCanvasSizes();
+            updateAll();
+        });
+
+        function initCanvasSizes() {
+            // Adjust canvas coordinate spaces backends to look sharp on high DPI displays
+            const dpr = window.devicePixelRatio || 1;
+            
+            [splaneCanvas, timedomainCanvas].forEach(canvas => {
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+                const ctx = canvas.getContext('2d');
+                ctx.scale(dpr, dpr);
+            });
+        }
+
+        // Return s-plane coordinate transforms to screen coordinates
+        // Origin of s-plane: Let's center it vertically, and put real axis at 70% of horizontal width.
+        // This gives more room for the stable negative region (left) than the unstable positive region (right).
+        function getSPlaneOrigin(canvas) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: Math.round(rect.width * 0.70), // Center real axis slightly shifted to right
+                y: Math.round(rect.height / 2)
+            };
+        }
+
+        // Screen pixels to mathematical (a, w)
+        function screenToSPlane(clientX, clientY, canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const origin = getSPlaneOrigin(canvas);
+            
+            const pxX = clientX - rect.left;
+            const pxY = clientY - rect.top;
+
+            // x coordinate maps to -a (real axis, left is negative)
+            // Real part sigma = -a
+            const sigma = (pxX - origin.x) / sPlaneScale;
+            const target_a = -sigma;
+
+            // y coordinate maps to imaginary axis (up is positive w, down is negative w)
+            const target_w = -(pxY - origin.y) / sPlaneScale;
+
+            return { a: target_a, w: target_w };
+        }
+
+        // Mathematical (a, w) to screen pixels
+        function sPlaneToScreen(a_val, w_val, canvas) {
+            const origin = getSPlaneOrigin(canvas);
+            const sigma = -a_val; // real part is negative of a
+            
+            return {
+                x: origin.x + (sigma * sPlaneScale),
+                y: origin.y - (w_val * sPlaneScale)
+            };
+        }
+
+        function initDragInteraction() {
+            const getDistance = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
+
+            const handleStart = (clientX, clientY) => {
+                const rect = splaneCanvas.getBoundingClientRect();
+                const mousePos = {
+                    x: clientX - rect.left,
+                    y: clientY - rect.top
+                };
+
+                // Get current locations of the conjugate poles
+                const screenPolePositive = sPlaneToScreen(a, w, splaneCanvas);
+                const screenPoleNegative = sPlaneToScreen(a, -w, splaneCanvas);
+
+                // Dragging sensitivity margin
+                const threshold = 16; 
+                if (getDistance(mousePos, screenPolePositive) < threshold || 
+                    getDistance(mousePos, screenPoleNegative) < threshold) {
+                    activeDrag = 'pole';
+                }
+            };
+
+            const handleMove = (clientX, clientY) => {
+                if (activeDrag === 'pole') {
+                    const coords = screenToSPlane(clientX, clientY, splaneCanvas);
+                    
+                    // Constrain damping range (-1.5 to 3.5)
+                    a = Math.max(-1.5, Math.min(3.5, coords.a));
+                    // Constrain frequency (0 to 8.0). If they drag below axis, we handle magnitude
+                    w = Math.max(0.0, Math.min(8.0, Math.abs(coords.w)));
+
+                    // Snap very close to axes
+                    if (Math.abs(a) < 0.05) a = 0;
+                    if (w < 0.08) w = 0;
+
+                    updateAll();
+                }
+            };
+
+            // Touch support for tablets/mobile
+            splaneCanvas.addEventListener('mousedown', (e) => handleStart(e.clientX, e.clientY));
+            window.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY));
+            window.addEventListener('mouseup', () => { activeDrag = null; });
+
+            splaneCanvas.addEventListener('touchstart', (e) => {
+                if(e.touches.length > 0) {
+                    handleStart(e.touches[0].clientX, e.touches[0].clientY);
+                }
+            }, { passive: true });
+            
+            window.addEventListener('touchmove', (e) => {
+                if(activeDrag === 'pole' && e.touches.length > 0) {
+                    handleMove(e.touches[0].clientX, e.touches[0].clientY);
+                }
+            }, { passive: true });
+            
+            window.addEventListener('touchend', () => { activeDrag = null; });
+        }
+
+        function updateMathPanels() {
+            // Format numbers nicely
+            const formatNum = (num, sign = false) => {
+                const abs = Math.abs(num).toFixed(2);
+                if (num === 0) return sign ? " + 0.00" : "0.00";
+                if (num > 0) return sign ? " + " + abs : abs;
+                return sign ? " - " + abs : "-" + abs;
+            };
+
+            const aForm = a.toFixed(2);
+            const wForm = w.toFixed(2);
+
+            // Compute standard coefficients
+            const coeff_2a = (2 * a).toFixed(2);
+            const coeff_denom_const = (a * a + w * w).toFixed(2);
+
+            // Standard Quadratic math string
+            const strStandard = `H(s) = \\frac{${wForm}}{s^2 + ${coeff_2a}s + ${coeff_denom_const}}`;
+            
+            // Completed Square form string
+            const aSignString = a >= 0 ? `+ ${a.toFixed(2)}` : `- ${Math.abs(a).toFixed(2)}`;
+            const strCompleted = `H(s) = \\frac{${wForm}}{(s ${aSignString})^2 + ${wForm}^2}`;
+
+            // Time Domain Impulse response h(t)
+            // Note: If a = 0, we have perpetual sine wave sin(wt)
+            let strTime;
+            if (a === 0) {
+                strTime = `h(t) = \\sin(${wForm} t)`;
+            } else {
+                const expPower = a > 0 ? `-${aForm}t` : `+${Math.abs(a).toFixed(2)}t`;
+                strTime = `h(t) = e^{${expPower}} \\sin(${wForm} t)`;
+            }
+
+            try {
+                // Ensure katex is loaded, then render
+                if (window.katex) {
+                    katex.render(strStandard, document.getElementById('math-standard'), { throwOnError: false });
+                    katex.render(strCompleted, document.getElementById('math-completed'), { throwOnError: false });
+                    katex.render(strTime, document.getElementById('math-timedomain'), { throwOnError: false });
+                }
+            } catch (err) {
+                console.error("Error rendering KaTeX: ", err);
+            }
+        }
+
+        function drawSPlane() {
+            const canvas = splaneCanvas;
+            const ctx = canvas.getContext('2d');
+            const rect = canvas.getBoundingClientRect();
+            const width = rect.width;
+            const height = rect.height;
+
+            // Clear S-Plane Canvas
+            ctx.clearRect(0, 0, width, height);
+            
+            const origin = getSPlaneOrigin(canvas);
+
+            // Draw grid lines
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+            
+            // Vertical grid lines
+            for (let xCoord = -10; xCoord <= 10; xCoord++) {
+                const xScreen = origin.x + (xCoord * sPlaneScale);
+                ctx.beginPath();
+                ctx.moveTo(xScreen, 0);
+                ctx.lineTo(xScreen, height);
+                ctx.stroke();
+            }
+            // Horizontal grid lines
+            for (let yCoord = -10; yCoord <= 10; yCoord++) {
+                const yScreen = origin.y - (yCoord * sPlaneScale);
+                ctx.beginPath();
+                ctx.moveTo(0, yScreen);
+                ctx.lineTo(width, yScreen);
+                ctx.stroke();
+            }
+
+            // Draw Region Shading: unstable is RHP, stable is LHP
+            // LHP: Stable Shading (Damping > 0)
+            ctx.fillStyle = 'rgba(79, 70, 229, 0.04)'; // faint indigo
+            ctx.fillRect(0, 0, origin.x, height);
+            
+            // RHP: Unstable Shading (Damping < 0)
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.04)'; // faint red
+            ctx.fillRect(origin.x, 0, width - origin.x, height);
+
+            // Draw Region Text Labels
+            ctx.fillStyle = '#64748b';
+            ctx.font = '10px sans-serif';
+            ctx.fillText('Stable Region (a > 0)', 15, 20);
+            ctx.fillText('Unstable Region (a < 0)', origin.x + 15, 20);
+
+            // Draw main axes
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 1.5;
+            
+            // Real axis (horizontal)
+            ctx.beginPath();
+            ctx.moveTo(0, origin.y);
+            ctx.lineTo(width, origin.y);
+            ctx.stroke();
+
+            // Imaginary axis (vertical)
+            ctx.beginPath();
+            ctx.moveTo(origin.x, 0);
+            ctx.lineTo(origin.x, height);
+            ctx.stroke();
+
+            // Axis Arrow labels
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '11px sans-serif';
+            ctx.fillText('σ (Real Axis, -a)', width - 100, origin.y - 8);
+            ctx.fillText('jω (Imaginary)', origin.x + 10, 15);
+
+            // Draw ticks
+            ctx.strokeStyle = '#64748b';
+            ctx.fillStyle = '#64748b';
+            ctx.font = '9px monospace';
+            
+            // Horizontal ticks
+            [-4, -2, 2].forEach(val => {
+                const xPos = origin.x + (val * sPlaneScale);
+                ctx.beginPath();
+                ctx.moveTo(xPos, origin.y - 4);
+                ctx.lineTo(xPos, origin.y + 4);
+                ctx.stroke();
+                ctx.fillText(val.toString(), xPos - 5, origin.y + 16);
+            });
+
+            // Vertical ticks
+            [-6, -4, -2, 2, 4, 6].forEach(val => {
+                const yPos = origin.y - (val * sPlaneScale);
+                ctx.beginPath();
+                ctx.moveTo(origin.x - 4, yPos);
+                ctx.lineTo(origin.x + 4, yPos);
+                ctx.stroke();
+                ctx.fillText((val > 0 ? '+' : '') + val + 'j', origin.x + 10, yPos + 3);
+            });
+
+            // Origin Label
+            ctx.fillText('0', origin.x - 12, origin.y + 12);
+
+            // Draw poles indicators
+            const polePos = sPlaneToScreen(a, w, canvas);
+            const poleNeg = sPlaneToScreen(a, -w, canvas);
+
+            // Draw connecting lines from poles to origin (showing natural frequency wn as radius)
+            ctx.save();
+            ctx.strokeStyle = 'rgba(99, 102, 241, 0.4)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+            
+            ctx.beginPath();
+            ctx.moveTo(origin.x, origin.y);
+            ctx.lineTo(polePos.x, polePos.y);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(origin.x, origin.y);
+            ctx.lineTo(poleNeg.x, poleNeg.y);
+            ctx.stroke();
+
+            // Arc to show the angle (related to damping ratio)
+            if (a > 0 && w > 0) {
+                const angle = Math.atan2(w, a);
+                ctx.beginPath();
+                ctx.arc(origin.x, origin.y, 35, Math.PI, Math.PI + angle);
+                ctx.strokeStyle = 'rgba(16, 185, 129, 0.4)';
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // Draw Conjugate Poles (Crosses)
+            const poleRadius = 6;
+            const drawCross = (center, color) => {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3.5;
+                ctx.beginPath();
+                ctx.moveTo(center.x - poleRadius, center.y - poleRadius);
+                ctx.lineTo(center.x + poleRadius, center.y + poleRadius);
+                ctx.moveTo(center.x + poleRadius, center.y - poleRadius);
+                ctx.lineTo(center.x - poleRadius, center.y + poleRadius);
+                ctx.stroke();
+
+                // Outer halo glow
+                ctx.strokeStyle = 'rgba(239, 68, 68, 0.2)';
+                ctx.lineWidth = 9;
+                ctx.beginPath();
+                ctx.arc(center.x, center.y, poleRadius * 1.5, 0, Math.PI * 2);
+                ctx.stroke();
+            };
+
+            // Positive Pole
+            drawCross(polePos, '#ef4444');
+            // Negative Pole
+            drawCross(poleNeg, 'rgba(239, 68, 68, 0.6)');
+
+            // Coordinate labels next to the dragged pole
+            ctx.fillStyle = '#f1f5f9';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.fillText(`s = ${-a.toFixed(2)} + ${w.toFixed(2)}j`, polePos.x + 12, polePos.y - 4);
+            ctx.fillText(`s = ${-a.toFixed(2)} - ${w.toFixed(2)}j`, poleNeg.x + 12, poleNeg.y + 12);
+        }
+
+        function drawTimeDomain() {
+            const canvas = timedomainCanvas;
+            const ctx = canvas.getContext('2d');
+            const rect = canvas.getBoundingClientRect();
+            const width = rect.width;
+            const height = rect.height;
+
+            // Clear Time-Domain Canvas
+            ctx.clearRect(0, 0, width, height);
+
+            // Compute axes geometry
+            const padLeft = 45;
+            const padRight = 20;
+            const padTop = 30;
+            const padBottom = 35;
+
+            const graphWidth = width - padLeft - padRight;
+            const graphHeight = height - padTop - padBottom;
+            const centerY = padTop + graphHeight / 2;
+
+            // X scale: Time. Max time t = 10.0 seconds
+            const maxTime = 10.0;
+            const getXPixel = (t) => padLeft + (t / maxTime) * graphWidth;
+
+            // Y scale: Amplitude. Dynamic limit depends on stability (unstable peaks grow huge)
+            // Limit minimum magnitude scale to keep pure sine readable
+            let maxAmplitude = 1.3;
+            if (a < 0) {
+                // If unstable, calculate final peak size at t=10 seconds to auto-scale safely
+                const growthFactor = Math.exp(-a * maxTime);
+                maxAmplitude = Math.max(1.3, growthFactor * 0.8);
+            }
+            const getYPixel = (amp) => centerY - (amp / maxAmplitude) * (graphHeight / 2);
+
+            // Draw time grid
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+
+            // Time markers (seconds)
+            ctx.fillStyle = '#64748b';
+            ctx.font = '9px monospace';
+            for (let t = 0; t <= maxTime; t += 2) {
+                const x = getXPixel(t);
+                ctx.beginPath();
+                ctx.moveTo(x, padTop);
+                ctx.lineTo(x, padTop + graphHeight);
+                ctx.stroke();
+                ctx.fillText(t + 's', x - 6, padTop + graphHeight + 16);
+            }
+
+            // Amplitude markers (ticks on vertical axis)
+            const tickSteps = maxAmplitude > 5 ? 5 : 1;
+            const roundedMaxAmp = Math.ceil(maxAmplitude);
+            for (let amp = -roundedMaxAmp; amp <= roundedMaxAmp; amp += (maxAmplitude > 10 ? 10 : 1)) {
+                if (Math.abs(amp) > maxAmplitude) continue;
+                const y = getYPixel(amp);
+                ctx.beginPath();
+                ctx.moveTo(padLeft - 4, y);
+                ctx.lineTo(padLeft + 4, y);
+                ctx.stroke();
+                ctx.fillText(amp.toFixed(0), padLeft - 22, y + 3);
+            }
+
+            // Draw primary axes
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 1.5;
+            // Time axis line
+            ctx.beginPath();
+            ctx.moveTo(padLeft, centerY);
+            ctx.lineTo(width - padRight, centerY);
+            ctx.stroke();
+            // Amp axis line
+            ctx.beginPath();
+            ctx.moveTo(padLeft, padTop);
+            ctx.lineTo(padLeft, padTop + graphHeight);
+            ctx.stroke();
+
+            // Label axes
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '11px sans-serif';
+            ctx.fillText('Time (t)', width - padRight - 45, centerY - 8);
+            ctx.fillText('Amplitude h(t)', padLeft - 30, padTop - 12);
+
+            // Calculate curves
+            const pointsWave = [];
+            const pointsEnvUpper = [];
+            const pointsEnvLower = [];
+            
+            const steps = 300;
+            for (let i = 0; i <= steps; i++) {
+                const t = (i / steps) * maxTime;
+                
+                // Exponential decay envelope = e^(-at)
+                const envelopeVal = Math.exp(-a * t);
+                
+                // Signal impulse response = e^(-at) * sin(wt)
+                const waveVal = envelopeVal * Math.sin(w * t);
+
+                pointsWave.push({ x: getXPixel(t), y: getYPixel(waveVal) });
+                pointsEnvUpper.push({ x: getXPixel(t), y: getYPixel(envelopeVal) });
+                pointsEnvLower.push({ x: getXPixel(t), y: getYPixel(-envelopeVal) });
+            }
+
+            // Draw envelope (Dashed lines, glowing white/blue)
+            ctx.save();
+            ctx.setLineDash([4, 4]);
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = a > 0 ? 'rgba(99, 102, 241, 0.5)' : 'rgba(239, 68, 68, 0.4)'; // blue decay vs red grow
+            
+            // Upper envelope
+            ctx.beginPath();
+            ctx.moveTo(pointsEnvUpper[0].x, pointsEnvUpper[0].y);
+            for (let p of pointsEnvUpper) ctx.lineTo(p.x, p.y);
+            ctx.stroke();
+
+            // Lower envelope
+            ctx.beginPath();
+            ctx.moveTo(pointsEnvLower[0].x, pointsEnvLower[0].y);
+            for (let p of pointsEnvLower) ctx.lineTo(p.x, p.y);
+            ctx.stroke();
+            ctx.restore();
+
+            // Draw main sinusoidal wave curve
+            ctx.save();
+            ctx.strokeStyle = '#10b981'; // vibrant emerald green for time signal
+            ctx.lineWidth = 2.5;
+            ctx.shadowBlur = 4;
+            ctx.shadowColor = 'rgba(16, 185, 129, 0.4)';
+            ctx.beginPath();
+            ctx.moveTo(pointsWave[0].x, pointsWave[0].y);
+            for (let p of pointsWave) {
+                ctx.lineTo(p.x, p.y);
+            }
+            ctx.stroke();
+            ctx.restore();
+
+            // Draw system metrics and guides visually on graph: Time Constant & Period
+            if (a > 0) {
+                // Draw Time Constant tau = 1/a
+                const tauVal = 1 / a;
+                if (tauVal < maxTime) {
+                    const tauX = getXPixel(tauVal);
+                    const tauAmp = Math.exp(-1); // at t = tau, envelope = e^-1 = 0.368
+                    const tauY = getYPixel(tauAmp);
+
+                    ctx.save();
+                    ctx.strokeStyle = '#6366f1';
+                    ctx.setLineDash([2, 2]);
+                    ctx.beginPath();
+                    // Vertical drop line to axis
+                    ctx.moveTo(tauX, centerY);
+                    ctx.lineTo(tauX, tauY);
+                    ctx.stroke();
+                    
+                    // Draw node point
+                    ctx.fillStyle = '#818cf8';
+                    ctx.beginPath();
+                    ctx.arc(tauX, tauY, 4.5, 0, Math.PI*2);
+                    ctx.fill();
+
+                    // Label
+                    ctx.font = '10px monospace';
+                    ctx.fillStyle = '#818cf8';
+                    ctx.fillText(`τ = 1/a ≈ ${tauVal.toFixed(2)}s (36.8%)`, tauX + 6, tauY - 2);
+                    ctx.restore();
+                }
+            }
+
+            // Period mark indicator
+            if (w > 0) {
+                const period = (2 * Math.PI) / w;
+                // Draw period mark if it starts inside limits
+                const pStartT = 0.25 * period; // visual starting point near first wave peak
+                const pEndT = pStartT + period;
+                
+                if (pEndT < maxTime) {
+                    const pxStart = getXPixel(pStartT);
+                    const pxEnd = getXPixel(pEndT);
+                    const pyMarker = centerY - 15; // slightly above zero line
+
+                    ctx.save();
+                    ctx.strokeStyle = '#f59e0b'; // amber
+                    ctx.lineWidth = 1;
+                    
+                    // Horizontal line with caps
+                    ctx.beginPath();
+                    ctx.moveTo(pxStart, pyMarker);
+                    ctx.lineTo(pxEnd, pyMarker);
+                    ctx.moveTo(pxStart, pyMarker - 4);
+                    ctx.lineTo(pxStart, pyMarker + 4);
+                    ctx.moveTo(pxEnd, pyMarker - 4);
+                    ctx.lineTo(pxEnd, pyMarker + 4);
+                    ctx.stroke();
+
+                    // Label
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.font = '9px monospace';
+                    ctx.fillText(`Period T = 2π/ω ≈ ${period.toFixed(2)}s`, pxStart + (pxEnd - pxStart)/2 - 60, pyMarker - 6);
+                    ctx.restore();
+                }
+            }
+        }
+
+        function updateStats() {
+            // Natural frequency wn = sqrt(a^2 + w^2)
+            const wn = Math.sqrt(a * a + w * w);
+            // Damping ratio zeta = a / wn (if wn != 0)
+            const zeta = wn !== 0 ? a / wn : 0;
+
+            statWn.innerText = wn.toFixed(3) + ' rad/s';
+            statZeta.innerText = zeta.toFixed(3);
+
+            // Update sliders elements visually
+            slider_a.value = a;
+            slider_w.value = w;
+            val_a.innerText = a.toFixed(2);
+            val_w.innerText = w.toFixed(2);
+
+            // Update top bar alert status badge color depending on stability
+            if (a < 0) {
+                envelopeStatus.className = "text-[10px] bg-red-950 text-red-400 px-2 py-0.5 rounded border border-red-800/50 uppercase font-mono font-semibold";
+                envelopeStatus.innerText = "Unstable (Exponential Growth)";
+            } else if (a === 0) {
+                envelopeStatus.className = "text-[10px] bg-amber-950 text-amber-400 px-2 py-0.5 rounded border border-amber-800/50 uppercase font-mono font-semibold";
+                envelopeStatus.innerText = "Marginally Stable (Undamped Oscillation)";
+            } else {
+                envelopeStatus.className = "text-[10px] bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded border border-emerald-800/50 uppercase font-mono font-semibold";
+                envelopeStatus.innerText = "Stable (Decaying Envelope)";
+            }
+        }
+
+        // Central update router
+        function updateAll() {
+            updateStats();
+            drawSPlane();
+            drawTimeDomain();
+            updateMathPanels();
+        }
+
+        // Play physical real-time audio sound of the system transfer function
+        function playSystemAudioResponse() {
+            try {
+                // Initialize Web Audio Context if not ready
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                
+                // Resume in case browser suspended audio context
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                const now = audioCtx.currentTime;
+                
+                // Map the imaginary pole frequency "w" directly to acoustic pitch!
+                // w = 3.5 is roughly mapped to standard comfortable synth frequencies (like 350Hz)
+                const pitchFrequency = Math.max(80, w * 110); 
+                
+                // Convert real coordinate "a" to audio amplitude envelope decay constant.
+                // a is the envelope rate.
+                // In AudioContext, exponential decay constant can be implemented using setTargetAtTime.
+                // Time constant tau = 1/a. Let's map it safely. If a <= 0, we decay manually or cap it to prevent ear damage!
+                const safetyDecayRate = Math.max(0.1, a); // Limit decay rate to avoid infinite loops if negative
+                const timeConstant = 1.0 / safetyDecayRate;
+
+                // Create oscillator
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                // Setup sound characteristics: Sine is pure, triangle represents physical mechanics beautifully
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(pitchFrequency, now);
+
+                // Set volume envelope
+                gainNode.gain.setValueAtTime(0.001, now);
+                // Linear ramp up to represent impulse trigger (very fast step response)
+                gainNode.gain.linearRampToValueAtTime(0.35, now + 0.02);
+
+                if (a > 0) {
+                    // Exponentially decay following exact physical envelope e^(-at)
+                    gainNode.gain.setTargetAtTime(0, now + 0.02, timeConstant * 0.5);
+                    // Stop osc once fully quiet
+                    const duration = Math.min(5.0, timeConstant * 4);
+                    osc.start(now);
+                    osc.stop(now + duration + 0.5);
+                } else {
+                    // If a <= 0 (unstable or marginal), let it play for 2 seconds and decay artificially so it doesn't hurt hearing
+                    const safeLimit = 1.5;
+                    if (a === 0) {
+                        osc.start(now);
+                        // Sustain then soft fade
+                        gainNode.gain.setValueAtTime(0.3, now + safeLimit - 0.2);
+                        gainNode.gain.linearRampToValueAtTime(0, now + safeLimit);
+                        osc.stop(now + safeLimit);
+                    } else {
+                        // Unstable: demonstrate growth slightly, then clip off for protection
+                        gainNode.gain.linearRampToValueAtTime(0.7, now + safeLimit - 0.2); // grow volume
+                        gainNode.gain.linearRampToValueAtTime(0, now + safeLimit); // immediate drop safe
+                        osc.start(now);
+                        osc.stop(now + safeLimit);
+                    }
+                }
+            } catch (e) {
+                console.warn("Audio Context not fully supported or restricted by policy", e);
+            }
+        }
+
+        // Window load initializer
+        window.onload = function() {
+            initCanvasSizes();
+            initDragInteraction();
+            
+            // Initial render
+            setTimeout(() => {
+                updateAll();
+            }, 100);
+        };
+    </script>
+</body>
+</html>
