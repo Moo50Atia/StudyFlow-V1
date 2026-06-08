@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinical Presentations of Chronic Coronary Syndromes (CCS)</title>
+    <!-- Outfit & Inter Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --border-color: #30363d;
+            --text-color: #c9d1d9;
+            --text-heading: #f0f6fc;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-orange: #d29922;
+            --accent-red: #f85149;
+            --glass-bg: rgba(22, 27, 34, 0.7);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 2rem 1rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header Style */
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            position: relative;
+        }
+
+        header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.2rem;
+            color: var(--text-heading);
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #fff 30%, var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            color: #8b949e;
+            font-size: 1rem;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .badge {
+            background-color: rgba(88, 166, 255, 0.15);
+            color: var(--accent-blue);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+
+        /* Perspective Toggles */
+        .perspective-container {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-toggle {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-toggle:hover {
+            border-color: var(--accent-blue);
+            background-color: rgba(88, 166, 255, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .btn-toggle.active {
+            background-color: var(--accent-blue);
+            color: #0d1117;
+            border-color: var(--accent-blue);
+            box-shadow: 0 4px 15px rgba(88, 166, 255, 0.4);
+        }
+
+        /* Main Workspace Layout */
+        .workspace {
+            display: grid;
+            grid-template-columns: 1.1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+        }
+
+        @media (max-width: 900px) {
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.8rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            border-color: rgba(88, 166, 255, 0.2);
+        }
+
+        .card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.3rem;
+            color: var(--text-heading);
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.8rem;
+        }
+
+        /* Controls Area */
+        .selector-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .selector-title {
+            font-size: 0.85rem;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            font-weight: 600;
+        }
+
+        /* Profile Selection List */
+        .profile-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .btn-profile {
+            background-color: rgba(22, 27, 34, 0.6);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn-profile:hover {
+            background-color: rgba(48, 54, 61, 0.3);
+            border-color: #8b949e;
+        }
+
+        .btn-profile.active {
+            border-color: var(--accent-blue);
+            background-color: rgba(88, 166, 255, 0.1);
+            color: #a5d6ff;
+        }
+
+        .btn-profile i {
+            font-size: 1.5rem;
+            color: var(--accent-blue);
+            width: 30px;
+            text-align: center;
+        }
+
+        .btn-profile div {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .btn-profile strong {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+        }
+
+        .btn-profile span {
+            font-size: 0.75rem;
+            color: #8b949e;
+        }
+
+        /* Gender Selection Area */
+        .gender-selector {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn-gender {
+            flex: 1;
+            background-color: rgba(22, 27, 34, 0.6);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+        }
+
+        .btn-gender:hover {
+            border-color: #8b949e;
+        }
+
+        .btn-gender.active.male {
+            border-color: var(--accent-blue);
+            background-color: rgba(88, 166, 255, 0.1);
+            color: #a5d6ff;
+        }
+
+        .btn-gender.active.female {
+            border-color: #ff8da1;
+            background-color: rgba(255, 141, 161, 0.1);
+            color: #ffc0cb;
+        }
+
+        .btn-gender i {
+            font-size: 2rem;
+        }
+
+        /* Dynamic Visual Screen Area */
+        .visual-screen {
+            background-color: #07090e;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            height: 300px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.2rem;
+        }
+
+        .perspective-view {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 1.2rem;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .perspective-view.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* 1. Pathology Visual Overlay */
+        .visual-heart-container {
+            width: 120px;
+            height: 120px;
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .cardiac-model {
+            font-size: 5rem;
+            color: var(--accent-green);
+            transition: var(--transition);
+        }
+
+        .vessel-overlay {
+            position: absolute;
+            width: 8px;
+            height: 40px;
+            background-color: var(--accent-red);
+            top: 50%;
+            left: 55%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            border-radius: 4px;
+            display: none;
+            box-shadow: 0 0 10px var(--accent-red);
+        }
+
+        .microvessel-mesh {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background: radial-gradient(circle, transparent 20%, rgba(248, 81, 73, 0.15) 80%);
+            border-radius: 50%;
+            display: none;
+            border: 2px dashed rgba(248, 81, 73, 0.4);
+            animation: pulse-ring 2s infinite;
+        }
+
+        /* 2. Demographic Graph */
+        .demographics-view {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+            align-items: center;
+        }
+
+        .demo-bar-group {
+            width: 90%;
+        }
+
+        .demo-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #8b949e;
+            margin-bottom: 0.2rem;
+        }
+
+        .demo-bar-bg {
+            background-color: #21262d;
+            height: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .demo-bar-fill {
+            height: 100%;
+            width: 0;
+            background-color: var(--accent-blue);
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 6px;
+        }
+
+        /* 3. Overlap Venn diagram */
+        .venn-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            width: 250px;
+            height: 200px;
+        }
+
+        .venn-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            color: #fff;
+            mix-blend-mode: screen;
+            opacity: 0.6;
+            text-align: center;
+            padding: 0.5rem;
+        }
+
+        .venn-circle.obstructive {
+            background-color: rgba(248, 81, 73, 0.6);
+            top: 20px;
+            left: 20px;
+        }
+
+        .venn-circle.vasospastic {
+            background-color: rgba(210, 153, 34, 0.6);
+            top: 20px;
+            right: 20px;
+        }
+
+        .venn-circle.microvascular {
+            background-color: rgba(88, 166, 255, 0.6);
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .venn-overlap-tag {
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            color: #8b949e;
+            text-align: center;
+        }
+
+        /* Clinical Text Descriptions */
+        .clinical-text {
+            background-color: rgba(22, 27, 34, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.2rem;
+            margin-bottom: 1.2rem;
+            font-size: 0.95rem;
+            min-height: 110px;
+        }
+
+        .clinical-text h4 {
+            font-family: 'Outfit', sans-serif;
+            color: var(--text-heading);
+            margin-bottom: 0.4rem;
+        }
+
+        .clinical-text p {
+            color: #8b949e;
+        }
+
+        /* Diagnostic & Decision Box */
+        .decision-box {
+            background-color: rgba(88, 166, 255, 0.05);
+            border: 1px dashed rgba(88, 166, 255, 0.3);
+            border-radius: 8px;
+            padding: 0.8rem;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .decision-box i {
+            font-size: 1.3rem;
+            color: var(--accent-blue);
+        }
+
+        /* Egyptian Arabic Accordion */
+        .accordion {
+            margin-top: 2rem;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            background-color: var(--card-bg);
+        }
+
+        .accordion-header {
+            background-color: rgba(48, 54, 61, 0.2);
+            padding: 1.2rem 1.8rem;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            color: var(--text-heading);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            transition: var(--transition);
+        }
+
+        .accordion-header:hover {
+            background-color: rgba(48, 54, 61, 0.3);
+        }
+
+        .accordion-content {
+            padding: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out, padding 0.4s ease-out;
+            border-top: 0 solid var(--border-color);
+            direction: rtl;
+            text-align: right;
+        }
+
+        .accordion-content.open {
+            padding: 1.8rem;
+            max-height: 2000px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .arabic-text {
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: #d1d5db;
+        }
+
+        .arabic-text h4 {
+            color: var(--accent-blue);
+            font-family: 'Outfit', sans-serif;
+            margin-bottom: 0.6rem;
+            font-size: 1.2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.3rem;
+            display: inline-block;
+        }
+
+        .arabic-case {
+            background-color: rgba(88, 166, 255, 0.05);
+            border-right: 4px solid var(--accent-blue);
+            padding: 1rem 1.5rem;
+            border-radius: 0 8px 8px 0;
+            margin-top: 1rem;
+        }
+
+        /* Animations */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.9); opacity: 0.4; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(0.9); opacity: 0.4; }
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            font-size: 0.8rem;
+            color: #586069;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <span class="badge">Lecture 2: Clinical Presentations</span>
+        <h1>CCS Clinical Presentations</h1>
+        <p>Explore the 5 categories of chronic coronary syndrome outpatients, sex-stratified criteria, and clinical diagnostic overlaps.</p>
+    </header>
+
+    <!-- Perspective Toggles -->
+    <div class="perspective-container">
+        <button class="btn-toggle active" onclick="switchPerspective('clinical')">
+            <i class="fa-solid fa-user-doctor"></i> Clinical Spectrum / Profiles
+        </button>
+        <button class="btn-toggle" onclick="switchPerspective('demographic')">
+            <i class="fa-solid fa-venus-mars"></i> Sex & Age Stratification
+        </button>
+        <button class="btn-toggle" onclick="switchPerspective('diagnostic')">
+            <i class="fa-solid fa-bezier-curve"></i> Diagnostic Overlaps
+        </button>
+    </div>
+
+    <!-- Main Workspace Grid -->
+    <div class="workspace">
+        
+        <!-- Input Selector Card -->
+        <div class="card">
+            <div class="card-title">
+                <i class="fa-solid fa-address-card"></i> Case Selector
+            </div>
+            
+            <div class="selector-group">
+                
+                <!-- 1. Clinical Profiles list -->
+                <div id="controls-clinical">
+                    <div class="selector-title" style="margin-bottom: 0.6rem;">Clinical Presentations Spectrum</div>
+                    <div class="profile-list">
+                        <button class="btn-profile active" data-prof="obstructive" onclick="selectProfile('obstructive')">
+                            <i class="fa-solid fa-user-shield"></i>
+                            <div>
+                                <strong>1. Symptomatic Obstructive CAD</strong>
+                                <span>Typical stress-induced angina & epicardial blockage.</span>
+                            </div>
+                        </button>
+                        <button class="btn-profile" data-prof="anoca" onclick="selectProfile('anoca')">
+                            <i class="fa-solid fa-microchip"></i>
+                            <div>
+                                <strong>2. ANOCA / INOCA</strong>
+                                <span>Angina with no obstructive large vessels (MVA/Spasm).</span>
+                            </div>
+                        </button>
+                        <button class="btn-profile" data-prof="stabilized" onclick="selectProfile('stabilized')">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                            <div>
+                                <strong>3. Stabilized Post-ACS / PCI / CABG</strong>
+                                <span>Post-procedure stable phase, chronic follow-up.</span>
+                            </div>
+                        </button>
+                        <button class="btn-profile" data-prof="hf" onclick="selectProfile('hf')">
+                            <i class="fa-solid fa-heart-crack"></i>
+                            <div>
+                                <strong>4. Heart Failure of Ischemic Origin</strong>
+                                <span>Ischemic or cardiometabolic LV systolic dysfunction.</span>
+                            </div>
+                        </button>
+                        <button class="btn-profile" data-prof="asymptomatic" onclick="selectProfile('asymptomatic')">
+                            <i class="fa-solid fa-user-check"></i>
+                            <div>
+                                <strong>5. Asymptomatic with Detected CAD</strong>
+                                <span>Incidental or screening finding of silent disease.</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. Gender selectors -->
+                <div id="controls-demographic" style="display:none;">
+                    <div class="selector-title" style="margin-bottom: 0.6rem;">Select Gender</div>
+                    <div class="gender-selector">
+                        <button class="btn-gender active male" onclick="selectGender('male')">
+                            <i class="fa-solid fa-mars"></i>
+                            Male Profile
+                        </button>
+                        <button class="btn-gender female" onclick="selectGender('female')">
+                            <i class="fa-solid fa-venus"></i>
+                            Female Profile
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. Overlaps control -->
+                <div id="controls-diagnostic" style="display:none;">
+                    <div class="selector-title" style="margin-bottom: 0.6rem;">Diagnostic Cross-over</div>
+                    <p style="font-size: 0.85rem; color: #8b949e;">Symptoms of dysfunctional microvascular angina (MVA) regularly overlap with those of vasospastic or obstructive epicardial coronary artery disease.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output Visual Display Card -->
+        <div class="card display-card">
+            <div>
+                <div class="status-header">
+                    <span class="selector-title">Visual Context</span>
+                    <span class="status-badge class-I" id="result-badge" style="background-color:rgba(248, 81, 73, 0.15); color: var(--accent-red); border: 1px solid rgba(248,81,73,0.3);">OBSTRUCTIVE CAD</span>
+                </div>
+
+                <!-- Dynamic Viewport -->
+                <div class="visual-screen">
+                    
+                    <!-- 1. Clinical Profiles view -->
+                    <div class="perspective-view active" id="view-clinical">
+                        <div class="visual-heart-container">
+                            <i class="fa-solid fa-heart-pulse cardiac-model" id="cardiac-icon"></i>
+                            <div class="vessel-overlay" id="epicardial-plaque"></div>
+                            <div class="microvessel-mesh" id="capillary-mesh"></div>
+                        </div>
+                        <div id="pathology-label" style="font-size: 0.95rem; font-weight: 700; font-family:'Outfit', sans-serif;">Fixed Epicardial Stenosis</div>
+                    </div>
+
+                    <!-- 2. Demographic Bar Chart view -->
+                    <div class="perspective-view demographics-view" id="view-demographic">
+                        <div class="demo-bar-group">
+                            <div class="demo-label">
+                                <span>Risk Factor Burden</span>
+                                <span id="bar-rf-val">Low-Moderate</span>
+                            </div>
+                            <div class="demo-bar-bg">
+                                <div class="demo-bar-fill" id="bar-rf" style="width: 50%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="demo-bar-group">
+                            <div class="demo-label">
+                                <span>Microvascular Angina (MVA) Prevalence</span>
+                                <span id="bar-mva-val">Low</span>
+                            </div>
+                            <div class="demo-bar-bg">
+                                <div class="demo-bar-fill" id="bar-mva" style="width: 25%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="demo-bar-group">
+                            <div class="demo-label">
+                                <span>Atypical/Non-anginal Symptoms (Dyspnea, Fatigue)</span>
+                                <span id="bar-atypical-val">Less Prevalent</span>
+                            </div>
+                            <div class="demo-bar-bg">
+                                <div class="demo-bar-fill" id="bar-atypical" style="width: 30%;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Overlaps Venn view -->
+                    <div class="perspective-view" id="view-diagnostic">
+                        <div class="venn-container">
+                            <div class="venn-circle obstructive">Obstructive CAD</div>
+                            <div class="venn-circle vasospastic">Vasospastic Spasms</div>
+                            <div class="venn-circle microvascular">MVA / INOCA</div>
+                        </div>
+                        <div class="venn-overlap-tag">Overlapping symptoms can mask the underlying ischemic mechanism.</div>
+                    </div>
+                </div>
+
+                <!-- Clinical Text Descriptions -->
+                <div class="clinical-text">
+                    <h4 id="clinical-desc-title">Focal Epicardial Stenosis</h4>
+                    <p id="clinical-desc-body">A fixed focal stenosis restricts coronary blood flow downstream. Anginal symptoms are reproducible under exertion and emotional stress when myocardial oxygen demand exceeds the restricted supply.</p>
+                </div>
+            </div>
+
+            <!-- Decision Box -->
+            <div class="decision-box">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <div>
+                    <strong>Clinical Symptom Weight:</strong>
+                    <span id="decision-weight-txt">Requires primary non-invasive testing (CCTA / stress imaging) to confirm obstruction.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Egyptian Arabic Explanation (Accordion) -->
+    <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion()">
+            <span><i class="fa-solid fa-chevron-down" id="accordion-icon" style="margin-right: 0.5rem;"></i> الشرح بالعامية المصرية والسيناريو الإكلينيكي</span>
+            <span>تفسير مبسط لميكانيكية الأدلة والتوصيات</span>
+        </div>
+        <div class="accordion-content" id="accordion-content">
+            <div class="arabic-text">
+                <h4>يعني إيه الكلام ده يا دكتور؟ 🤔</h4>
+                <p>بص يا سيدي.. الإرشادات الطبية بتقسم مرضى الشرايين التاجية المزمنة اللي بييجوا العيادة لـ <strong>خمس مجموعات أساسية</strong>، ولازم تفهم إن الأعراض مش دايماً واضحة وممكن تتشابه جداً:</p>
+                
+                <ul>
+                    <li>🟢 <strong>1. مريض عنده ضيق واضح وعنده أعراض (Symptomatic Obstructive):</strong> ده المريض النمطي، بيجيله وجع في الصدر (ذبحة) وقت المجهود، وقسطرته بتبين ضيق واضح في الشرايين الكبيرة.</li>
+                    <li>🟢 <strong>2. مريض عنده وجع بس شرايينه الكبيرة سليمة (ANOCA/INOCA):</strong> ده اللي جدران شرايينه الكبيرة سليمة بس المشكلة في الشعيرات الدقيقة (Microvascular) أو بيحصله تشنجات مفاجئة.</li>
+                    <li>🟢 <strong>3. مريض مستقر بعد عملية (Post-ACS/PCI/CABG):</strong> ده مريض كان عنده جلطة أو عمل دعامة أو قلب مفتوح، وحالته استقرت بس محتاج متابعة مستمرة وجرعات علاج وقائي.</li>
+                    <li>🟢 <strong>4. مريض ضعف عضلة القلب (Heart Failure):</strong> المريض ده بيشتكي من نهجان وضعف العضلة، والسبب الأساسي هو قصور الدورة الدموية القديم اللي أثر على أنسجة القلب.</li>
+                    <li>🟢 <strong>5. مريض بدون أعراض بس اكتشفنا المرض بالصدفة (Asymptomatic):</strong> مريض معندوش أي شكوى خالص، بس عمل أشعة مقطعية على الصدر أو فحص روتيني فبين وجود تكلسات وتصلب في الشرايين.</li>
+                </ul>
+
+                <div class="arabic-case">
+                    <h4>الفروق بين الرجال والنساء (Gender Disparity) 👩‍⚕️👨‍⚕️</h4>
+                    <p>أثبتت الإحصائيات والأبحاث في جايدلاينز 2024 إن:</p>
+                    <p>• <strong>النساء</strong> لما بيشتكوا من قصور الشرايين التاجية، بيكونوا في الغالب <strong>أكبر سناً</strong>، وعندهم <strong>عوامل خطورة أكتر</strong> (زي السكر والضغط)، وبتكون نسبة إصابتهم بـ **قصور الشعيرات الدقيقة (ANOCA/MVA)** أعلى بكتير من الرجال.</p>
+                    <p>• أعراض الذبحة عند النساء ممكن متكونش كلاسيكية (الوجع النمطي في الصدر)، وبتيجي على هيئة <strong>نهجان شديد (Dyspnoea) أو إرهاق مزمن (Fatigue)</strong>، وده بيخلّي تشخيصهم محتاج دقة واهتمام أكبر.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        ESC Guidelines Dashboard • Standalone Interactive Academic Application
+    </footer>
+</div>
+
+<script>
+    // State Variables
+    let selectedProfile = 'obstructive';
+    let selectedGender = 'male';
+    let currentPerspective = 'clinical';
+
+    // UI Mappings for Profiles
+    const profileData = {
+        'obstructive': {
+            title: 'Symptomatic Obstructive CAD',
+            body: 'A fixed focal stenosis restricts coronary blood flow downstream. Anginal symptoms are reproducible under exertion and emotional stress when myocardial oxygen demand exceeds the restricted supply.',
+            badge: 'OBSTRUCTIVE CAD',
+            color: 'var(--accent-red)',
+            heartColor: 'var(--accent-green)',
+            plaque: 'block',
+            mesh: 'none',
+            weight: 'Requires primary non-invasive testing (CCTA / stress imaging) to confirm obstruction.',
+            label: 'Fixed Epicardial Stenosis'
+        },
+        'anoca': {
+            title: 'ANOCA / INOCA Syndrome',
+            body: 'Ischemia with non-obstructive coronary arteries. Perfusion deficits are driven by coronary microvascular dysfunction (CMD) or epicardial/microvascular spasms rather than macroscopic blockage.',
+            badge: 'ANOCA / INOCA',
+            color: 'var(--accent-orange)',
+            heartColor: 'var(--accent-green)',
+            plaque: 'none',
+            mesh: 'block',
+            weight: 'Requires functional assessment of microcirculation (CFR / IMR) or vasospastic provocation.',
+            label: 'Coronary Microvascular Dysfunction'
+        },
+        'stabilized': {
+            title: 'Stabilized Post-ACS / Intervention',
+            body: 'Patients who have experienced an acute event or undergone revascularization (PCI with stents, or CABG surgery) and are now in a stable, chronic management phase.',
+            badge: 'POST-PROCEDURE',
+            color: 'var(--accent-blue)',
+            heartColor: '#a5d6ff',
+            plaque: 'none',
+            mesh: 'none',
+            weight: 'Requires strict secondary prevention (dual antithrombotic, lipid-lowering therapies).',
+            label: 'Stabilized Post-Revascularization'
+        },
+        'hf': {
+            title: 'Heart Failure of Ischemic Origin',
+            body: 'Chronic myocardial hypoperfusion or past infarctions have caused permanent loss of viable myocardium, leading to left ventricular systolic dysfunction (LVEF < 40%) and clinical heart failure.',
+            badge: 'ISCHEMIC HF',
+            color: 'var(--accent-red)',
+            heartColor: '#532c2e',
+            plaque: 'none',
+            mesh: 'none',
+            weight: 'Highly symptomatic. Requires guideline-directed medical therapy (GDMT) for HFrEF.',
+            label: 'Ischemic Cardiomyopathy'
+        },
+        'asymptomatic': {
+            title: 'Asymptomatic Silent CAD',
+            body: 'Silent myocardial ischemia or subclinical CAD detected incidentally via cardiac calcification score (CACS) or imaging done for routine/professional screening. No clinical symptoms present.',
+            badge: 'SILENT CAD',
+            color: '#8b949e',
+            heartColor: 'var(--accent-green)',
+            plaque: 'none',
+            mesh: 'none',
+            weight: 'Requires risk stratification and primary prevention (statins, lifestyle alterations).',
+            label: 'Subclinical Atherosclerosis'
+        }
+    };
+
+    function selectProfile(profileName) {
+        selectedProfile = profileName;
+        document.querySelectorAll('.btn-profile').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-prof="${profileName}"]`).classList.add('active');
+        updateScene();
+    }
+
+    function selectGender(gender) {
+        selectedGender = gender;
+        document.querySelectorAll('.btn-gender').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        if (gender === 'male') {
+            document.querySelector('.btn-gender.male').classList.add('active');
+            
+            // Male data
+            document.getElementById('bar-rf').style.width = '50%';
+            document.getElementById('bar-rf-val').innerText = 'Moderate (Standard Age)';
+            document.getElementById('bar-mva').style.width = '20%';
+            document.getElementById('bar-mva-val').innerText = 'Lower Prevalence';
+            document.getElementById('bar-atypical').style.width = '25%';
+            document.getElementById('bar-atypical-val').innerText = 'Less Common (Typical Angina)';
+        } else {
+            document.querySelector('.btn-gender.female').classList.add('active');
+            
+            // Female data
+            document.getElementById('bar-rf').style.width = '85%';
+            document.getElementById('bar-rf-val').innerText = 'High (Older Age, More Comorbidities)';
+            document.getElementById('bar-mva').style.width = '80%';
+            document.getElementById('bar-mva-val').innerText = 'High Prevalence (ANOCA/MVA)';
+            document.getElementById('bar-atypical').style.width = '75%';
+            document.getElementById('bar-atypical-val').innerText = 'Very Common (Dyspnea, Fatigue)';
+        }
+    }
+
+    function switchPerspective(perspectiveName) {
+        currentPerspective = perspectiveName;
+        document.querySelectorAll('.btn-toggle').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        if (perspectiveName === 'clinical') {
+            document.querySelectorAll('.btn-toggle')[0].classList.add('active');
+            document.getElementById('controls-clinical').style.display = 'block';
+            document.getElementById('controls-demographic').style.display = 'none';
+        }
+        if (perspectiveName === 'demographic') {
+            document.querySelectorAll('.btn-toggle')[1].classList.add('active');
+            document.getElementById('controls-clinical').style.display = 'none';
+            document.getElementById('controls-demographic').style.display = 'block';
+            selectGender(selectedGender); // trigger transition animation
+        }
+        if (perspectiveName === 'diagnostic') {
+            document.querySelectorAll('.btn-toggle')[2].classList.add('active');
+            document.getElementById('controls-clinical').style.display = 'none';
+            document.getElementById('controls-demographic').style.display = 'none';
+        }
+        
+        document.querySelectorAll('.perspective-view').forEach(view => {
+            view.classList.remove('active');
+        });
+        if (perspectiveName === 'clinical') document.getElementById('view-clinical').classList.add('active');
+        if (perspectiveName === 'demographic') document.getElementById('view-demographic').classList.add('active');
+        if (perspectiveName === 'diagnostic') document.getElementById('view-diagnostic').classList.add('active');
+
+        updateScene();
+    }
+
+    function updateScene() {
+        const badge = document.getElementById('result-badge');
+        
+        if (currentPerspective === 'clinical') {
+            const config = profileData[selectedProfile];
+            
+            // Update visual heart
+            document.getElementById('epicardial-plaque').style.display = config.plaque;
+            document.getElementById('capillary-mesh').style.display = config.mesh;
+            document.getElementById('cardiac-icon').style.color = config.heartColor;
+            document.getElementById('pathology-label').innerText = config.label;
+
+            // Details
+            badge.style.backgroundColor = config.color === 'var(--accent-green)' ? 'rgba(63, 185, 80, 0.15)' : (config.color === 'var(--accent-red)' ? 'rgba(248, 81, 73, 0.15)' : 'rgba(210, 153, 34, 0.15)');
+            badge.style.color = config.color;
+            badge.style.borderColor = config.color;
+            badge.innerText = config.badge;
+
+            document.getElementById('clinical-desc-title').innerText = config.title;
+            document.getElementById('clinical-desc-body').innerText = config.body;
+            document.getElementById('decision-weight-txt').innerText = config.weight;
+        } 
+        else if (currentPerspective === 'demographic') {
+            badge.style.backgroundColor = 'rgba(88, 166, 255, 0.15)';
+            badge.style.color = 'var(--accent-blue)';
+            badge.style.borderColor = 'var(--accent-blue)';
+            badge.innerText = 'DEMOGRAPHICS & SEX';
+
+            document.getElementById('clinical-desc-title').innerText = 'Sex-Stratified Criteria';
+            document.getElementById('clinical-desc-body').innerText = 'Clinical trials indicate that female patients presenting with suspected ischemia are typically older, have a heavier cardiovascular risk factor burden (diabetes, hypertension), and show a significantly higher prevalence of microvascular dysfunction (MVA) and atypical symptoms (dyspnea, fatigue) compared to men.';
+            document.getElementById('decision-weight-txt').innerText = 'Tailor diagnostic assessment to account for older onset and higher MVA incidence in women.';
+        }
+        else if (currentPerspective === 'diagnostic') {
+            badge.style.backgroundColor = 'rgba(210, 153, 34, 0.15)';
+            badge.style.color = 'var(--accent-orange)';
+            badge.style.borderColor = 'var(--accent-orange)';
+            badge.innerText = 'OVERLAP ANALYSIS';
+
+            document.getElementById('clinical-desc-title').innerText = 'Overlap of Ischemic Syndromes';
+            document.getElementById('clinical-desc-body').innerText = 'Symptoms do not always specify the underlying cause of ischemia. Microvascular dysfunction (MVA) and epicardial/microvascular vasospasms can mimic or co-exist alongside classical flow-limiting epicardial stenosis.';
+            document.getElementById('decision-weight-txt').innerText = 'Requires specialized physiological testing (FFR/iFR during catheterization, or stress perfusion PET) to correctly map overlapping syndromes.';
+        }
+    }
+
+    // Egyptian Accordion Toggle
+    function toggleAccordion() {
+        const content = document.getElementById('accordion-content');
+        const icon = document.getElementById('accordion-icon');
+        
+        if (content.classList.contains('open')) {
+            content.classList.remove('open');
+            icon.style.transform = 'rotate(0deg)';
+        } else {
+            content.classList.add('open');
+            icon.style.transform = 'rotate(180deg)';
+        }
+    }
+
+    // Initial setup
+    updateScene();
+</script>
+</body>
+</html>

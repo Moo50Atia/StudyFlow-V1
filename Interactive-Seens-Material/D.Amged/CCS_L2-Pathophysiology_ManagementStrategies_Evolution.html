@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Management Strategies Evolution in CCS</title>
+    <!-- Outfit & Inter Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --border-color: #30363d;
+            --text-color: #c9d1d9;
+            --text-heading: #f0f6fc;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-orange: #d29922;
+            --accent-red: #f85149;
+            --glass-bg: rgba(22, 27, 34, 0.7);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 2rem 1rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header Style */
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            position: relative;
+        }
+
+        header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.2rem;
+            color: var(--text-heading);
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #fff 30%, var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            color: #8b949e;
+            font-size: 1rem;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .badge {
+            background-color: rgba(88, 166, 255, 0.15);
+            color: var(--accent-blue);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+
+        /* Perspective Toggles */
+        .perspective-container {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-toggle {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-toggle:hover {
+            border-color: var(--accent-blue);
+            background-color: rgba(88, 166, 255, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .btn-toggle.active {
+            background-color: var(--accent-blue);
+            color: #0d1117;
+            border-color: var(--accent-blue);
+            box-shadow: 0 4px 15px rgba(88, 166, 255, 0.4);
+        }
+
+        /* Main Workspace Layout */
+        .workspace {
+            display: grid;
+            grid-template-columns: 1.15fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+        }
+
+        @media (max-width: 900px) {
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.8rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            border-color: rgba(88, 166, 255, 0.2);
+        }
+
+        .card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.3rem;
+            color: var(--text-heading);
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.8rem;
+        }
+
+        /* Controls Area */
+        .selector-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .selector-title {
+            font-size: 0.85rem;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            font-weight: 600;
+        }
+
+        .grid-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.6rem;
+        }
+
+        .btn-select {
+            background-color: rgba(22, 27, 34, 0.6);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.8rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: left;
+        }
+
+        .btn-select:hover {
+            background-color: rgba(48, 54, 61, 0.3);
+            border-color: #8b949e;
+        }
+
+        .btn-select.active {
+            border-color: var(--accent-blue);
+            background-color: rgba(88, 166, 255, 0.1);
+            color: #a5d6ff;
+        }
+
+        .btn-select strong {
+            display: block;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .btn-select span {
+            font-size: 0.75rem;
+            color: #8b949e;
+            display: block;
+            line-height: 1.2;
+        }
+
+        /* Sliders style */
+        .sliders-group {
+            width: 100%;
+        }
+
+        .control-row {
+            margin-bottom: 1rem;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #8b949e;
+            margin-bottom: 0.3rem;
+        }
+
+        .control-label span.val {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            -webkit-appearance: none;
+            background: #21262d;
+            height: 4px;
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            cursor: pointer;
+        }
+
+        /* Dynamic Visual Screen Area */
+        .visual-screen {
+            background-color: #07090e;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            height: 300px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.2rem;
+        }
+
+        .perspective-view {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 1.2rem;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .perspective-view.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* 1. Pathway Flowchart visual */
+        .flowchart-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            width: 80%;
+        }
+
+        .flow-node {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.6rem 1rem;
+            text-align: center;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            position: relative;
+        }
+
+        .flow-node.active {
+            border-color: var(--accent-blue);
+            background-color: rgba(88, 166, 255, 0.1);
+            color: #a5d6ff;
+            box-shadow: 0 0 10px rgba(88, 166, 255, 0.2);
+        }
+
+        .flow-arrow {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #8b949e;
+        }
+
+        /* 2. FFR/Provocation wire visual */
+        .wire-vessel {
+            width: 85%;
+            height: 60px;
+            background-color: #1a080a;
+            border: 2px solid #4a1215;
+            border-radius: 30px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+        }
+
+        .wire-plaque {
+            position: absolute;
+            width: 30px;
+            height: 25px;
+            background-color: #d29922;
+            border-radius: 50%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .wire-plaque.top { top: -5px; }
+        .wire-plaque.bottom { bottom: -5px; }
+
+        .measuring-wire {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background-color: #8b949e;
+            top: 50%;
+            left: 0;
+            z-index: 10;
+        }
+
+        .wire-sensor {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: #e2b34a;
+            border-radius: 50%;
+            top: 50%;
+            left: 65%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 8px #e2b34a;
+            animation: pulse-ring 1.5s infinite;
+        }
+
+        /* 3. Bar Chart comparison */
+        .comparison-view {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .chart-box {
+            display: flex;
+            align-items: flex-end;
+            gap: 2rem;
+            height: 140px;
+            width: 70%;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.2rem;
+        }
+
+        .chart-bar {
+            flex: 1;
+            background-color: #21262d;
+            border-radius: 4px 4px 0 0;
+            height: 0;
+            transition: height 0.5s ease;
+            position: relative;
+        }
+
+        .chart-bar.gdmt {
+            background: linear-gradient(180deg, var(--accent-blue), rgba(88, 166, 255, 0.2));
+        }
+
+        .chart-bar.revasc {
+            background: linear-gradient(180deg, var(--accent-green), rgba(63, 185, 80, 0.2));
+        }
+
+        .chart-bar span {
+            position: absolute;
+            top: -22px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .chart-bar-labels {
+            display: flex;
+            justify-content: space-around;
+            width: 70%;
+            font-size: 0.8rem;
+            color: #8b949e;
+        }
+
+        /* Clinical Text Descriptions */
+        .clinical-text {
+            background-color: rgba(22, 27, 34, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.2rem;
+            margin-bottom: 1.2rem;
+            font-size: 0.95rem;
+            min-height: 110px;
+        }
+
+        .clinical-text h4 {
+            font-family: 'Outfit', sans-serif;
+            color: var(--text-heading);
+            margin-bottom: 0.4rem;
+        }
+
+        .clinical-text p {
+            color: #8b949e;
+        }
+
+        /* Diagnostic & Decision Box */
+        .decision-box {
+            background-color: rgba(88, 166, 255, 0.05);
+            border: 1px dashed rgba(88, 166, 255, 0.3);
+            border-radius: 8px;
+            padding: 0.8rem;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .decision-box i {
+            font-size: 1.3rem;
+            color: var(--accent-blue);
+        }
+
+        /* Egyptian Arabic Accordion */
+        .accordion {
+            margin-top: 2rem;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            background-color: var(--card-bg);
+        }
+
+        .accordion-header {
+            background-color: rgba(48, 54, 61, 0.2);
+            padding: 1.2rem 1.8rem;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            color: var(--text-heading);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            transition: var(--transition);
+        }
+
+        .accordion-header:hover {
+            background-color: rgba(48, 54, 61, 0.3);
+        }
+
+        .accordion-content {
+            padding: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out, padding 0.4s ease-out;
+            border-top: 0 solid var(--border-color);
+            direction: rtl;
+            text-align: right;
+        }
+
+        .accordion-content.open {
+            padding: 1.8rem;
+            max-height: 2000px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .arabic-text {
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: #d1d5db;
+        }
+
+        .arabic-text h4 {
+            color: var(--accent-blue);
+            font-family: 'Outfit', sans-serif;
+            margin-bottom: 0.6rem;
+            font-size: 1.2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.3rem;
+            display: inline-block;
+        }
+
+        .arabic-case {
+            background-color: rgba(88, 166, 255, 0.05);
+            border-right: 4px solid var(--accent-blue);
+            padding: 1rem 1.5rem;
+            border-radius: 0 8px 8px 0;
+            margin-top: 1rem;
+        }
+
+        /* Animations */
+        @keyframes pulse-ring {
+            0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.4; }
+            50% { transform: translate(-50%, -50%) scale(1.3); opacity: 0.8; }
+            100% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.4; }
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            font-size: 0.8rem;
+            color: #586069;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <span class="badge">Lecture 3: Epidemiology & Management</span>
+        <h1>Management Strategies Evolution</h1>
+        <p>Analyze how modern primary prevention, non-invasive imaging, and invasive functional tests have reshaped survival pathways.</p>
+    </header>
+
+    <!-- Perspective Toggles -->
+    <div class="perspective-container">
+        <button class="btn-toggle active" onclick="switchPerspective('pathway')">
+            <i class="fa-solid fa-diagram-project"></i> Diagnostic Pathway
+        </button>
+        <button class="btn-toggle" onclick="switchPerspective('functional')">
+            <i class="fa-solid fa-stethoscope"></i> ICA Functionalization
+        </button>
+        <button class="btn-toggle" onclick="switchPerspective('survival')">
+            <i class="fa-solid fa-chart-line"></i> Survival Model
+        </button>
+    </div>
+
+    <!-- Main Workspace Grid -->
+    <div class="workspace">
+        
+        <!-- Input Selector Card -->
+        <div class="card">
+            <div class="card-title">
+                <i class="fa-solid fa-gears"></i> Strategy Mappings
+            </div>
+            
+            <div class="selector-group">
+                
+                <!-- 1. Pathway Selectors -->
+                <div id="controls-pathway">
+                    <div class="selector-title" style="margin-bottom: 0.6rem;">Diagnostic Pipeline Evolution</div>
+                    <div class="grid-buttons">
+                        <button class="btn-select active" data-pathway="traditional" onclick="selectPathway('traditional')">
+                            <strong>Traditional</strong>
+                            <span>Exercise ECG or direct ICA for suspected stenosis.</span>
+                        </button>
+                        <button class="btn-select" data-pathway="modern" onclick="selectPathway('modern')">
+                            <strong>Modern Guideline</strong>
+                            <span>Frontline CCTA with selective functional testing.</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. ICA Functional Selectors -->
+                <div id="controls-functional" style="display:none;">
+                    <div class="selector-title" style="margin-bottom: 0.6rem;">Functional ICA Assessments</div>
+                    <div class="grid-buttons">
+                        <button class="btn-select active" data-ica="anatomy" onclick="selectICA('anatomy')">
+                            <strong>Luminography (Anatomical)</strong>
+                            <span>Visual detection of mechanical narrowing.</span>
+                        </button>
+                        <button class="btn-select" data-ica="ffr" onclick="selectICA('ffr')">
+                            <strong>FFR / iFR Wire</strong>
+                            <span>Hyperemic pressure gradient measurement.</span>
+                        </button>
+                        <button class="btn-select" data-ica="provocation" onclick="selectICA('provocation')">
+                            <strong>Spasm Provocation</strong>
+                            <span>Acetylcholine infusion to trigger spasm.</span>
+                        </button>
+                        <button class="btn-select" data-ica="microvascular" onclick="selectICA('microvascular')">
+                            <strong>Microvascular CMD</strong>
+                            <span>IMR & CFR quantitative measurements.</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. Risk Level slider -->
+                <div id="controls-survival" style="display:none;">
+                    <div class="selector-title" style="margin-bottom: 0.6rem;">Patient Risk Level</div>
+                    <div class="sliders-group">
+                        <div class="control-row">
+                            <div class="control-label">
+                                <span>Patient Risk Level (MACE Risk)</span>
+                                <span class="val" id="risk-val">Low Risk</span>
+                            </div>
+                            <input type="range" id="slider-risk" min="1" max="3" step="1" value="1" oninput="updateRisk()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output Visual Display Card -->
+        <div class="card display-card">
+            <div>
+                <div class="status-header">
+                    <span class="selector-title">Pipeline Output</span>
+                    <span class="status-badge class-I" id="result-badge" style="background-color:rgba(210,153,34,0.15); color: var(--accent-orange); border: 1px solid rgba(210,153,34,0.3);">TRADITIONAL ANATOMY</span>
+                </div>
+
+                <!-- Dynamic Viewport -->
+                <div class="visual-screen">
+                    
+                    <!-- 1. Pathway flowchart view -->
+                    <div class="perspective-view active" id="view-pathway">
+                        <div class="flowchart-wrapper">
+                            <div class="flow-node active" id="node-1">Suspected Ischemic Chest Pain</div>
+                            <div class="flow-arrow"><i class="fa-solid fa-arrow-down"></i></div>
+                            <div class="flow-node" id="node-2">Anatomical Testing (Invasive Angiogram)</div>
+                            <div class="flow-arrow"><i class="fa-solid fa-arrow-down"></i></div>
+                            <div class="flow-node" id="node-3">Anatomical Stenosis Intervention (PCI/CABG)</div>
+                        </div>
+                    </div>
+
+                    <!-- 2. ICA Functional wire view -->
+                    <div class="perspective-view" id="view-functional">
+                        <div class="wire-vessel">
+                            <div class="wire-plaque top"></div>
+                            <div class="wire-plaque bottom"></div>
+                            <div class="measuring-wire" id="wire-body" style="display: none;"></div>
+                            <div class="wire-sensor" id="wire-sensor" style="display: none;"></div>
+                        </div>
+                        <div id="vessel-label" style="font-size: 0.95rem; font-weight: 700; font-family:'Outfit', sans-serif; margin-top: 1rem;">Epicardial Vessel Stenosis</div>
+                    </div>
+
+                    <!-- 3. Survival Chart Comparison view -->
+                    <div class="perspective-view comparison-view" id="view-survival">
+                        <div class="chart-box">
+                            <div class="chart-bar gdmt" id="bar-gdmt" style="height: 95%;">
+                                <span id="val-gdmt">95%</span>
+                            </div>
+                            <div class="chart-bar revasc" id="bar-revasc" style="height: 95%;">
+                                <span id="val-revasc">95%</span>
+                            </div>
+                        </div>
+                        <div class="chart-bar-labels">
+                            <span>GDMT Alone</span>
+                            <span>GDMT + Revasc</span>
+                        </div>
+                        <div style="font-size: 0.8rem; color: #8b949e; text-align: center;">5-Year Survival Rate / MACE Avoidance</div>
+                    </div>
+                </div>
+
+                <!-- Clinical Text Descriptions -->
+                <div class="clinical-text">
+                    <h4 id="clinical-desc-title">Traditional Pathway</h4>
+                    <p id="clinical-desc-body">Focused primarily on the detection of epicardial coronary artery anatomical narrowing. Leads to direct referral for invasive angiography and potential over-treatment of hemodynamically insignificant lesions.</p>
+                </div>
+            </div>
+
+            <!-- Decision Box -->
+            <div class="decision-box">
+                <i class="fa-solid fa-arrows-spin"></i>
+                <div>
+                    <strong>Management Direction:</strong>
+                    <span id="decision-weight-txt">Decline in focal CAD prevalence shifts clinical emphasis to initial non-invasive CCTA.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Egyptian Arabic Explanation (Accordion) -->
+    <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion()">
+            <span><i class="fa-solid fa-chevron-down" id="accordion-icon" style="margin-right: 0.5rem;"></i> الشرح بالعامية المصرية والسيناريو الإكلينيكي</span>
+            <span>تفسير مبسط لميكانيكية الأدلة والتوصيات</span>
+        </div>
+        <div class="accordion-content" id="accordion-content">
+            <div class="arabic-text">
+                <h4>يعني إيه الكلام ده يا دكتور؟ 🤔</h4>
+                <p>بص يا سيدي.. إحنا بنمر بـ <strong>ثورة حقيقية</strong> في طريقة تشخيص وعلاج أمراض الشرايين التاجية المزمنة. طريقة تفكير وعمل الدكاترة اتغيرت تماماً للأسباب دي:</p>
+                
+                <ul>
+                    <li>🟢 <strong>1. تراجع نسب الضيق الميكانيكي:</strong> بسبب انتشار أدوية الكوليسترول الحديثة (Statins) والتحكم في عوامل الخطورة، قلت نسبة المرضى اللي عندهم انسداد كلاسيكي واضح، وزادت نسبة المرضى اللي مشكلتهم تشنج وعائي أو قصور شعيرات دقيقة.</li>
+                    <li>🟢 <strong>2. الانتقال من التشريح للوظيفة (Anatomy to Function):</strong> زمان في القسطرة (ICA) كنا بنبص بعنينا على الضيق (Luminography)، لو الضيق شكله 70% نركب دعامة فوراً. دلوقتي القسطرة بقت <strong>فحص وظيفي</strong>؛ بندخل سلك يقيس الضغط قبل وبعد الضيق (FFR/iFR)، ومبنركبش دعامة إلا لو ثبت وظيفياً إن الضيق معطل الدم (FFR ≤ 0.80). وكمان بنحقن مادة الاستيل كولين عشان نشوف لو الشريان بيحصل فيه تشنج مفاجئ.</li>
+                    <li>🟢 <strong>3. الأشعة المقطعية هي الملك (CCTA First):</strong> دلوقتي الأشعة المقطعية بالصبغة على شرايين القلب بقت هي الاختيار الأول لمرضى كتير، لأنها بتفحص الشرايين بوضوح ومن غير عملية، وتستبعد وجود جلطات بنسبة 99%.</li>
+                    <li>🟢 <strong>4. العلاج الدوائي المطور (GDMT):</strong> الأدوية الحديثة زي أدوية الكوليسترول المتطورة، ومضادات الالتهاب للقلب (Colchicine)، وأدوية السكر المفيدة للقلب (SGLT2 inhibitors) رفعت نسب النجاة جداً لدرجة خلت العلاج الدوائي مكافئ للعمليات في الحالات منخفضة ومتوسطة الخطورة.</li>
+                </ul>
+
+                <div class="arabic-case">
+                    <h4>إسقاط إكلينيكي (Clinical Scenario) 🏥</h4>
+                    <p>مريض عنده وجع بسيط في الصدر وطلع عنده ضيق 60% في الشريان التاجي الأيسر النازل (LAD):</p>
+                    <p>• <strong>لو المريض منخفض الخطورة:</strong> أثبتت الدراسات إن المريض ده لو مشي على العلاج الدوائي المكثف والمنظم (GDMT) هيعيش بنفس نسبة النجاة (95% أو أكتر) زي لو ركب دعامة بالظبط، بل وهيتجنب مخاطر القسطرة ومضاعفاتها.</p>
+                    <p>• <strong>لو المريض مرتفع الخطورة جداً:</strong> وعنده ضيق شديد معوق للدم، هنا التدخل وتركيب الدعامة مع العلاج الدوائي بيقلل الأزمات القلبية الحادة وبيحسن جودة الحياة بشكل واضح جداً مقارنة بالدواء لوحده.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        ESC Guidelines Dashboard • Standalone Interactive Academic Application
+    </footer>
+</div>
+
+<script>
+    // State Variables
+    let selectedPathway = 'traditional';
+    let selectedICA = 'anatomy';
+    let selectedRisk = 1;
+    let currentPerspective = 'pathway';
+
+    const pathwayData = {
+        'traditional': {
+            badge: 'TRADITIONAL ANATOMY',
+            color: 'var(--accent-orange)',
+            weight: 'Decline in focal CAD prevalence shifts clinical emphasis to initial non-invasive CCTA.',
+            title: 'Traditional Pathway',
+            body: 'Focused primarily on the detection of epicardial coronary artery anatomical narrowing. Leads to direct referral for invasive angiography and potential over-treatment of hemodynamically insignificant lesions.',
+            node1: 'Suspected Ischemic Chest Pain',
+            node2: 'Anatomical Testing (Invasive Angiogram)',
+            node3: 'Anatomical Stenosis Intervention (PCI/CABG)'
+        },
+        'modern': {
+            badge: 'MODERN FUNCTIONAL',
+            color: 'var(--accent-blue)',
+            weight: 'Initial front-line non-invasive evaluation (CCTA) helps rule out epicardial stenosis safely.',
+            title: 'Modern Guideline Pathway',
+            body: 'Utilizes non-invasive Coronary CT Angiography (CCTA) as the primary gatekeeper for low/moderate likelihood CAD. Directs only functionally significant ischemia (proven via stress test or FFR) to invasive interventions.',
+            node1: 'Risk Factor Clinical Likelihood Assessment',
+            node2: 'First-line non-invasive CCTA (preferred)',
+            node3: 'Selective functional testing & physiology-guided PCI'
+        }
+    };
+
+    const icaData = {
+        'anatomy': {
+            badge: 'LUMINOGRAPHY ONLY',
+            color: 'var(--accent-orange)',
+            weight: 'Anatomical stenosis does not equal functional ischemia.',
+            title: 'Epicardial Angiographic Anatomy',
+            body: 'Invasive coronary angiography showing physical narrowing. Visual assessment alone often leads to clinical discordance, overestimating intermediate (50-90%) stenoses.',
+            wire: 'none',
+            sensor: 'none',
+            label: 'Epicardial Anatomical Stenosis'
+        },
+        'ffr': {
+            badge: 'PHYSIOLOGY WIRE',
+            color: 'var(--accent-green)',
+            weight: 'FFR ≤ 0.80 or iFR ≤ 0.89 dictates revascularization benefits.',
+            title: 'Fractional Flow Reserve (FFR)',
+            body: 'A pressure wire measures pressure distal to the stenosis (Pd) compared to aortic pressure (Pa) during hyperaemia. FFR values ≤ 0.80 indicate flow-limiting ischemia that will benefit from PCI.',
+            wire: 'block',
+            sensor: 'block',
+            label: 'FFR/iFR Pressure Assessment'
+        },
+        'provocation': {
+            badge: 'SPASM PROVOCATION',
+            color: 'var(--accent-orange)',
+            weight: 'Acetylcholine provocation test checks epicardial & microvascular spasms.',
+            title: 'Vasomotor Provocation Testing',
+            body: 'Invasive infusion of acetylcholine (Ach) or ergonovine. A positive result (inducing severe spasm, chest pain, and ischemic ECG changes) diagnoses vasospastic angina.',
+            wire: 'none',
+            sensor: 'none',
+            label: 'Acetylcholine Infusion Spasm Induction'
+        },
+        'microvascular': {
+            badge: 'MICROCIRCULATION CMD',
+            color: 'var(--accent-red)',
+            weight: 'CFR < 2.0 and IMR ≥ 25 confirm Coronary Microvascular Dysfunction.',
+            title: 'Microvascular Functional Assessment',
+            body: 'Measures Coronary Flow Reserve (CFR) and Index of Microcirculatory Resistance (IMR) using temperature/pressure sensors. Confirms CMD/MVA in angiographically normal arteries.',
+            wire: 'block',
+            sensor: 'block',
+            label: 'IMR / CFR Capillary Flow Testing'
+        }
+    };
+
+    function selectPathway(pathway) {
+        selectedPathway = pathway;
+        document.querySelectorAll('#controls-pathway .btn-select').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-pathway="${pathway}"]`).classList.add('active');
+        updateScene();
+    }
+
+    function selectICA(ica) {
+        selectedICA = ica;
+        document.querySelectorAll('#controls-functional .btn-select').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-ica="${ica}"]`).classList.add('active');
+        updateScene();
+    }
+
+    function updateRisk() {
+        const risk = parseInt(document.getElementById('slider-risk').value);
+        selectedRisk = risk;
+
+        const label = document.getElementById('risk-val');
+        const barGdmt = document.getElementById('bar-gdmt');
+        const barRevasc = document.getElementById('bar-revasc');
+        const valGdmt = document.getElementById('val-gdmt');
+        const valRevasc = document.getElementById('val-revasc');
+
+        if (risk === 1) {
+            label.innerText = 'Low Risk (Stable/Single Vessel)';
+            barGdmt.style.height = '96%';
+            barRevasc.style.height = '96%';
+            valGdmt.innerText = '96%';
+            valRevasc.innerText = '96%';
+        } else if (risk === 2) {
+            label.innerText = 'Moderate Risk (Proximal LAD)';
+            barGdmt.style.height = '88%';
+            barRevasc.style.height = '90%';
+            valGdmt.innerText = '88%';
+            valRevasc.innerText = '90%';
+        } else {
+            label.innerText = 'High Risk (Left Main / Multivessel)';
+            barGdmt.style.height = '68%';
+            barRevasc.style.height = '84%';
+            valGdmt.innerText = '68%';
+            valRevasc.innerText = '84%';
+        }
+        updateScene();
+    }
+
+    function switchPerspective(perspectiveName) {
+        currentPerspective = perspectiveName;
+        document.querySelectorAll('.btn-toggle').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        if (perspectiveName === 'pathway') {
+            document.querySelectorAll('.btn-toggle')[0].classList.add('active');
+            document.getElementById('controls-pathway').style.display = 'block';
+            document.getElementById('controls-functional').style.display = 'none';
+            document.getElementById('controls-survival').style.display = 'none';
+        }
+        if (perspectiveName === 'functional') {
+            document.querySelectorAll('.btn-toggle')[1].classList.add('active');
+            document.getElementById('controls-pathway').style.display = 'none';
+            document.getElementById('controls-functional').style.display = 'block';
+            document.getElementById('controls-survival').style.display = 'none';
+        }
+        if (perspectiveName === 'survival') {
+            document.querySelectorAll('.btn-toggle')[2].classList.add('active');
+            document.getElementById('controls-pathway').style.display = 'none';
+            document.getElementById('controls-functional').style.display = 'none';
+            document.getElementById('controls-survival').style.display = 'block';
+            updateRisk(); // trigger transition animation
+        }
+        
+        document.querySelectorAll('.perspective-view').forEach(view => {
+            view.classList.remove('active');
+        });
+        if (perspectiveName === 'pathway') document.getElementById('view-pathway').classList.add('active');
+        if (perspectiveName === 'functional') document.getElementById('view-functional').classList.add('active');
+        if (perspectiveName === 'survival') document.getElementById('view-survival').classList.add('active');
+
+        updateScene();
+    }
+
+    function updateScene() {
+        const badge = document.getElementById('result-badge');
+        
+        if (currentPerspective === 'pathway') {
+            const config = pathwayData[selectedPathway];
+            
+            // Flowchart nodes update
+            document.getElementById('node-1').innerText = config.node1;
+            document.getElementById('node-2').innerText = config.node2;
+            document.getElementById('node-3').innerText = config.node3;
+
+            document.getElementById('node-2').className = selectedPathway === 'modern' ? 'flow-node active' : 'flow-node';
+
+            // Details
+            badge.style.backgroundColor = config.color === 'var(--accent-green)' ? 'rgba(63, 185, 80, 0.15)' : (config.color === 'var(--accent-red)' ? 'rgba(248, 81, 73, 0.15)' : 'rgba(210, 153, 34, 0.15)');
+            badge.style.color = config.color;
+            badge.style.borderColor = config.color;
+            badge.innerText = config.badge;
+
+            document.getElementById('clinical-desc-title').innerText = config.title;
+            document.getElementById('clinical-desc-body').innerText = config.body;
+            document.getElementById('decision-weight-txt').innerText = config.weight;
+        } 
+        else if (currentPerspective === 'functional') {
+            const config = icaData[selectedICA];
+            
+            // Wire visual updates
+            document.getElementById('wire-body').style.display = config.wire;
+            document.getElementById('wire-sensor').style.display = config.sensor;
+            document.getElementById('vessel-label').innerText = config.label;
+
+            // Details
+            badge.style.backgroundColor = config.color === 'var(--accent-green)' ? 'rgba(63, 185, 80, 0.15)' : (config.color === 'var(--accent-red)' ? 'rgba(248, 81, 73, 0.15)' : 'rgba(210, 153, 34, 0.15)');
+            badge.style.color = config.color;
+            badge.style.borderColor = config.color;
+            badge.innerText = config.badge;
+
+            document.getElementById('clinical-desc-title').innerText = config.title;
+            document.getElementById('clinical-desc-body').innerText = config.body;
+            document.getElementById('decision-weight-txt').innerText = config.weight;
+        } 
+        else if (currentPerspective === 'survival') {
+            badge.style.backgroundColor = 'rgba(88, 166, 255, 0.15)';
+            badge.style.color = 'var(--accent-blue)';
+            badge.style.borderColor = 'var(--accent-blue)';
+            badge.innerText = 'SURVIVAL BENEFITS';
+
+            if (selectedRisk === 1) {
+                document.getElementById('clinical-desc-title').innerText = 'Low-Risk Perfusion';
+                document.getElementById('clinical-desc-body').innerText = 'For patients with single-vessel disease and low risk of adverse cardiovascular events, guideline-directed medical therapy (GDMT) alone yields equivalent 5-year survival compared to invasive revascularization (PCI/CABG). Stents provide symptom relief but do not extend survival.';
+                document.getElementById('decision-weight-txt').innerText = 'Prioritize GDMT (lifestyle, antianginal medications, statins) first-line.';
+            } else if (selectedRisk === 2) {
+                document.getElementById('clinical-desc-title').innerText = 'Proximal LAD Stenosis';
+                document.getElementById('clinical-desc-body').innerText = 'Stenosis located in the proximal left anterior descending (LAD) artery carries a moderate risk of adverse events. Combining revascularization with GDMT shows slight benefits in avoiding spontaneous MI and enhancing overall long-term survival.';
+                document.getElementById('decision-weight-txt').innerText = 'Revascularization should be considered if FFR wire verifies significant flow restriction.';
+            } else {
+                document.getElementById('clinical-desc-title').innerText = 'High-Risk Anatomy (Left Main / Multivessel)';
+                document.getElementById('clinical-desc-body').innerText = 'In patients with high-risk CAD (unprotected left main coronary artery disease ≥50%, or 3-vessel disease ≥70%), invasive revascularization combined with GDMT significantly reduces Major Adverse Cardiovascular Events (MACE), spontaneous MI, and improves overall survival compared to medical therapy alone.';
+                document.getElementById('decision-weight-txt').innerText = 'Class I recommendation for early revascularization (heart team decision between PCI and CABG).';
+            }
+        }
+    }
+
+    // Egyptian Accordion Toggle
+    function toggleAccordion() {
+        const content = document.getElementById('accordion-content');
+        const icon = document.getElementById('accordion-icon');
+        
+        if (content.classList.contains('open')) {
+            content.classList.remove('open');
+            icon.style.transform = 'rotate(0deg)';
+        } else {
+            content.classList.add('open');
+            icon.style.transform = 'rotate(180deg)';
+        }
+    }
+
+    // Initial setup
+    updateScene();
+</script>
+</body>
+</html>

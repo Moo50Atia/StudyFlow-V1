@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pathophysiology of Chronic Coronary Syndromes (CCS)</title>
+    <!-- Outfit & Inter Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --border-color: #30363d;
+            --text-color: #c9d1d9;
+            --text-heading: #f0f6fc;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-orange: #d29922;
+            --accent-red: #f85149;
+            --glass-bg: rgba(22, 27, 34, 0.7);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 2rem 1rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header Style */
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            position: relative;
+        }
+
+        header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.2rem;
+            color: var(--text-heading);
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #fff 30%, var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            color: #8b949e;
+            font-size: 1rem;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .badge {
+            background-color: rgba(88, 166, 255, 0.15);
+            color: var(--accent-blue);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+
+        /* Perspective Toggles */
+        .perspective-container {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-toggle {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-toggle:hover {
+            border-color: var(--accent-blue);
+            background-color: rgba(88, 166, 255, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .btn-toggle.active {
+            background-color: var(--accent-blue);
+            color: #0d1117;
+            border-color: var(--accent-blue);
+            box-shadow: 0 4px 15px rgba(88, 166, 255, 0.4);
+        }
+
+        /* Main Workspace Layout */
+        .workspace {
+            display: grid;
+            grid-template-columns: 1.15fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+        }
+
+        @media (max-width: 900px) {
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.8rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            border-color: rgba(88, 166, 255, 0.2);
+        }
+
+        .card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.3rem;
+            color: var(--text-heading);
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.8rem;
+        }
+
+        /* Controls Area */
+        .selector-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .selector-title {
+            font-size: 0.85rem;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            font-weight: 600;
+        }
+
+        .grid-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.6rem;
+        }
+
+        .btn-select {
+            background-color: rgba(22, 27, 34, 0.6);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.8rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: left;
+            position: relative;
+        }
+
+        .btn-select:hover {
+            background-color: rgba(48, 54, 61, 0.3);
+            border-color: #8b949e;
+        }
+
+        .btn-select.active {
+            border-color: var(--accent-blue);
+            background-color: rgba(88, 166, 255, 0.1);
+            color: #a5d6ff;
+        }
+
+        .btn-select strong {
+            display: block;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .btn-select span {
+            font-size: 0.75rem;
+            color: #8b949e;
+            display: block;
+            line-height: 1.2;
+        }
+
+        /* Visual Display Card */
+        .display-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Dynamic Visual Screen Area */
+        .visual-screen {
+            background-color: #07090e;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            height: 320px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.2rem;
+        }
+
+        /* Perspective-based Visuals */
+        .perspective-view {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 1.2rem;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .perspective-view.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* 1. Hemodynamic Vessel Graphic */
+        .vessel-visualizer {
+            width: 90%;
+            height: 120px;
+            background-color: #1a080a;
+            border-radius: 60px;
+            border: 3px solid #4a1215;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+        }
+
+        .blood-stream {
+            display: flex;
+            width: 200%;
+            height: 100%;
+            position: absolute;
+            animation: flow-speed 4s linear infinite;
+        }
+
+        .blood-cell {
+            width: 16px;
+            height: 16px;
+            background-color: #f85149;
+            border-radius: 50%;
+            margin: auto 8px;
+            box-shadow: 0 0 6px #f85149;
+            opacity: 0.8;
+            flex-shrink: 0;
+        }
+
+        /* Focal Plaque block */
+        .plaque-focal {
+            position: absolute;
+            width: 60px;
+            height: 45px;
+            background: linear-gradient(180deg, #d29922, #f3e192);
+            border-radius: 50%;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 0 10px rgba(210,153,34,0.4);
+            display: none;
+        }
+
+        .plaque-focal.top { top: -10px; }
+        .plaque-focal.bottom { bottom: -10px; }
+
+        /* Diffuse Plaque */
+        .plaque-diffuse {
+            position: absolute;
+            width: 70%;
+            height: 15px;
+            background: linear-gradient(90deg, #d29922, #f3e192);
+            left: 15%;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .plaque-diffuse.top { top: 0; }
+        .plaque-diffuse.bottom { bottom: 0; }
+
+        /* Myocardial Bridge band */
+        .muscle-bridge {
+            position: absolute;
+            width: 50px;
+            height: 125%;
+            background-color: rgba(185, 63, 80, 0.4);
+            border: 2px dashed #b93f50;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 5;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            color: #ff9e9a;
+            font-weight: 700;
+        }
+
+        /* Flow animations */
+        @keyframes flow-speed {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* Pressure Indicators */
+        .flow-indicators {
+            display: flex;
+            justify-content: space-between;
+            width: 90%;
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .flow-val {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        /* 2. Vasomotor Screen (Epicardial Spasm) */
+        .spasm-wrapper {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 8px solid #4a1215;
+            background-color: #1a080a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.5s ease, border-width 0.5s ease;
+        }
+
+        .spasm-vessel-lumen {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background-color: #f85149;
+            box-shadow: 0 0 15px rgba(248, 81, 73, 0.6);
+            transition: width 0.5s ease, height 0.5s ease;
+        }
+
+        .spasm-label {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* 3. Systemic Supply-Demand Balance Graphic */
+        .balance-container {
+            display: flex;
+            width: 90%;
+            justify-content: space-around;
+            align-items: center;
+            height: 160px;
+            position: relative;
+        }
+
+        .balance-scale {
+            width: 10px;
+            height: 100px;
+            background-color: var(--border-color);
+            position: relative;
+            display: flex;
+            justify-content: center;
+        }
+
+        .balance-beam {
+            position: absolute;
+            width: 200px;
+            height: 6px;
+            background-color: #8b949e;
+            top: 15px;
+            transform-origin: center;
+            transition: transform 0.4s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .scale-pan {
+            width: 60px;
+            height: 40px;
+            background-color: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            position: absolute;
+            top: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .scale-pan.supply { left: -30px; border-color: var(--accent-green); color: var(--accent-green); }
+        .scale-pan.demand { right: -30px; border-color: var(--accent-red); color: var(--accent-red); }
+
+        .scale-pan span.pan-val {
+            font-size: 0.65rem;
+            color: #8b949e;
+            font-weight: 500;
+        }
+
+        /* Controls for Supply/Demand */
+        .sliders-group {
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .control-row {
+            margin-bottom: 0.8rem;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #8b949e;
+            margin-bottom: 0.2rem;
+        }
+
+        .control-label span.val {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            -webkit-appearance: none;
+            background: #21262d;
+            height: 4px;
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        /* Text Descriptions */
+        .clinical-text {
+            background-color: rgba(22, 27, 34, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.2rem;
+            margin-bottom: 1.2rem;
+            font-size: 0.9rem;
+            min-height: 110px;
+        }
+
+        .clinical-text h4 {
+            font-family: 'Outfit', sans-serif;
+            color: var(--text-heading);
+            margin-bottom: 0.4rem;
+            font-size: 1.05rem;
+        }
+
+        .clinical-text p {
+            color: #8b949e;
+        }
+
+        /* Diagnostic & Decision Box */
+        .decision-box {
+            background-color: rgba(88, 166, 255, 0.05);
+            border: 1px dashed rgba(88, 166, 255, 0.3);
+            border-radius: 8px;
+            padding: 0.8rem;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .decision-box i {
+            font-size: 1.3rem;
+            color: var(--accent-blue);
+        }
+
+        /* Egyptian Arabic Accordion */
+        .accordion {
+            margin-top: 2rem;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            background-color: var(--card-bg);
+        }
+
+        .accordion-header {
+            background-color: rgba(48, 54, 61, 0.2);
+            padding: 1.2rem 1.8rem;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            color: var(--text-heading);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            transition: var(--transition);
+        }
+
+        .accordion-header:hover {
+            background-color: rgba(48, 54, 61, 0.3);
+        }
+
+        .accordion-content {
+            padding: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out, padding 0.4s ease-out;
+            border-top: 0 solid var(--border-color);
+            direction: rtl;
+            text-align: right;
+        }
+
+        .accordion-content.open {
+            padding: 1.8rem;
+            max-height: 2000px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .arabic-text {
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: #d1d5db;
+        }
+
+        .arabic-text p {
+            margin-bottom: 1.2rem;
+        }
+
+        .arabic-text h4 {
+            color: var(--accent-blue);
+            font-family: 'Outfit', sans-serif;
+            margin-bottom: 0.6rem;
+            font-size: 1.2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.3rem;
+            display: inline-block;
+        }
+
+        .arabic-text ul {
+            list-style-position: inside;
+            margin-bottom: 1.2rem;
+            padding-right: 1rem;
+        }
+
+        .arabic-text li {
+            margin-bottom: 0.5rem;
+        }
+
+        .arabic-text strong {
+            color: #fff;
+        }
+
+        .arabic-case {
+            background-color: rgba(88, 166, 255, 0.05);
+            border-right: 4px solid var(--accent-blue);
+            padding: 1rem 1.5rem;
+            border-radius: 0 8px 8px 0;
+            margin-top: 1rem;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            font-size: 0.8rem;
+            color: #586069;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <span class="badge">Lecture 2: Pathophysiology</span>
+        <h1>Pathophysiology of CCS</h1>
+        <p>Explore the transition from focal epicardial stenoses to complex, dynamic macro- and microvascular coronary tree structural & vasomotor syndromes.</p>
+    </header>
+
+    <!-- Perspective Toggles -->
+    <div class="perspective-container">
+        <button class="btn-toggle active" onclick="switchPerspective('clinical')">
+            <i class="fa-solid fa-gauge-high"></i> Mechanical / Hemodynamic
+        </button>
+        <button class="btn-toggle" onclick="switchPerspective('functional')">
+            <i class="fa-solid fa-arrows-spin"></i> Functional / Vasomotor
+        </button>
+        <button class="btn-toggle" onclick="switchPerspective('supply_demand')">
+            <i class="fa-solid fa-scale-balanced"></i> Systemic Supply & Demand
+        </button>
+    </div>
+
+    <!-- Main Workspace Grid -->
+    <div class="workspace">
+        
+        <!-- Input Selector Card -->
+        <div class="card">
+            <div class="card-title">
+                <i class="fa-solid fa-heart-pulse"></i> Pathophysiology Mappings
+            </div>
+            
+            <div class="selector-group">
+                <!-- Mechanical Subheadings -->
+                <div id="controls-mechanical">
+                    <div class="selector-title" style="margin-bottom: 0.6rem;">Coronary Structural Scenarios</div>
+                    <div class="grid-buttons">
+                        <button class="btn-select active" data-path="normal" onclick="selectPathology('normal')">
+                            <strong>Normal Vessel</strong>
+                            <span>Unobstructed hemodynamics & healthy laminar flow.</span>
+                        </button>
+                        <button class="btn-select" data-path="focal" onclick="selectPathology('focal')">
+                            <strong>Focal Stenosis</strong>
+                            <span>Fixed flow-limiting plaque blocking the lumen.</span>
+                        </button>
+                        <button class="btn-select" data-path="diffuse" onclick="selectPathology('diffuse')">
+                            <strong>Diffuse Disease</strong>
+                            <span>Plaque spread all along the vessel, no focal pincer.</span>
+                        </button>
+                        <button class="btn-select" data-path="bridge" onclick="selectPathology('bridge')">
+                            <strong>Myocardial Bridge</strong>
+                            <span>Intramural compression during myocardial systole.</span>
+                        </button>
+                        <button class="btn-select" data-path="micro" onclick="selectPathology('micro')">
+                            <strong>CMD / ANOCA</strong>
+                            <span>Healthy large arteries, blocked/spasming microvessels.</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Functional Subheadings -->
+                <div id="controls-functional" style="display:none;">
+                    <div class="selector-title" style="margin-bottom: 0.6rem;">Coronary Spasms & Vasomotion</div>
+                    <div class="grid-buttons">
+                        <button class="btn-select active" data-spasm="none" onclick="selectSpasm('none')">
+                            <strong>Normal Vasomotion</strong>
+                            <span>Endothelial-regulated flow dilatation.</span>
+                        </button>
+                        <button class="btn-select" data-spasm="epicardial" onclick="selectSpasm('epicardial')">
+                            <strong>Epicardial Spasm</strong>
+                            <span>Vascular smooth muscle cell hyperreactivity.</span>
+                        </button>
+                        <button class="btn-select" data-spasm="micro-spasm" onclick="selectSpasm('micro-spasm')">
+                            <strong>Microvascular Spasm</strong>
+                            <span>Microcirculatory hyper-constriction under stress.</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Supply & Demand Sliders (Active in Supply/Demand View) -->
+                <div id="controls-supply-demand" style="display:none;">
+                    <div class="selector-title" style="margin-bottom: 0.6rem;">Supply-Demand Parameters</div>
+                    <div class="sliders-group">
+                        <div class="control-row">
+                            <div class="control-label">
+                                <span>Coronary Stenosis Severity</span>
+                                <span class="val" id="stenosis-val">0%</span>
+                            </div>
+                            <input type="range" id="slider-stenosis" min="0" max="95" step="5" value="0" oninput="updateSupplyDemand()">
+                        </div>
+
+                        <div class="control-row">
+                            <div class="control-label">
+                                <span>Hemoglobin / Blood Oxygen (Supply)</span>
+                                <span class="val" id="hb-val">14 g/dL</span>
+                            </div>
+                            <input type="range" id="slider-hb" min="5" max="17" step="0.5" value="14" oninput="updateSupplyDemand()">
+                        </div>
+
+                        <div class="control-row">
+                            <div class="control-label">
+                                <span>Heart Rate / Tachycardia (Demand)</span>
+                                <span class="val" id="hr-val">70 bpm</span>
+                            </div>
+                            <input type="range" id="slider-hr" min="50" max="180" value="70" oninput="updateSupplyDemand()">
+                        </div>
+
+                        <div class="control-row">
+                            <div class="control-label">
+                                <span>Afterload / Blood Pressure (Demand)</span>
+                                <span class="val" id="bp-val">120 mmHg</span>
+                            </div>
+                            <input type="range" id="slider-bp" min="80" max="220" step="5" value="120" oninput="updateSupplyDemand()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output Visual Display Card -->
+        <div class="card display-card">
+            <div>
+                <div class="status-header">
+                    <span class="selector-title">Vessel/Heart Scene</span>
+                    <span class="status-badge class-I" id="result-badge" style="background-color:rgba(63, 185, 80, 0.15); color: var(--accent-green); border: 1px solid rgba(63,185,80,0.3);">NORMAL FLOW</span>
+                </div>
+
+                <!-- Dynamic Viewport -->
+                <div class="visual-screen">
+                    
+                    <!-- 1. Mechanical / Hemodynamic View -->
+                    <div class="perspective-view active" id="view-clinical">
+                        <div class="vessel-visualizer" id="vessel-wall">
+                            <!-- Blood Cells stream -->
+                            <div class="blood-stream" id="vessel-cells">
+                                <div class="blood-cell"></div>
+                                <div class="blood-cell"></div>
+                                <div class="blood-cell"></div>
+                                <div class="blood-cell"></div>
+                                <div class="blood-cell"></div>
+                                <div class="blood-cell"></div>
+                                <div class="blood-cell"></div>
+                                <div class="blood-cell"></div>
+                                <div class="blood-cell"></div>
+                                <div class="blood-cell"></div>
+                                <div class="blood-cell"></div>
+                                <div class="blood-cell"></div>
+                                <div class="blood-cell"></div>
+                                <div class="blood-cell"></div>
+                            </div>
+                            
+                            <!-- Plaque overlays -->
+                            <div class="plaque-focal top" id="focal-top"></div>
+                            <div class="plaque-focal bottom" id="focal-bottom"></div>
+                            <div class="plaque-diffuse top" id="diffuse-top"></div>
+                            <div class="plaque-diffuse bottom" id="diffuse-bottom"></div>
+                            
+                            <!-- Muscle Bridge -->
+                            <div class="muscle-bridge" id="muscle-bridge-band">MYO BRIDGE</div>
+                        </div>
+
+                        <div class="flow-indicators">
+                            <div>Proximal Pressure: <span class="flow-val" id="p-prox">120 mmHg</span></div>
+                            <div>Distal Pressure: <span class="flow-val" id="p-dist">120 mmHg</span></div>
+                            <div>Friction Resistance: <span class="flow-val" id="flow-res">Low</span></div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Functional / Vasomotor View -->
+                    <div class="perspective-view" id="view-functional">
+                        <div class="spasm-wrapper" id="vessel-spasm-wall">
+                            <div class="spasm-vessel-lumen" id="vessel-spasm-lumen"></div>
+                        </div>
+                        <div class="spasm-label" id="spasm-status-txt">Normal Vasodilatation</div>
+                    </div>
+
+                    <!-- 3. Systemic Supply-Demand View -->
+                    <div class="perspective-view" id="view-supply-demand">
+                        <div class="balance-container">
+                            <div class="balance-scale">
+                                <div class="balance-beam" id="balance-beam">
+                                    <div class="scale-pan supply">
+                                        Supply
+                                        <span class="pan-val" id="pan-supply-val">100%</span>
+                                    </div>
+                                    <div class="scale-pan demand">
+                                        Demand
+                                        <span class="pan-val" id="pan-demand-val">100%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Clinical Text Descriptions -->
+                <div class="clinical-text">
+                    <h4 id="clinical-desc-title">Physiological Homeostasis</h4>
+                    <p id="clinical-desc-body">The vessel has zero mechanical obstruction. Red blood cells flow smoothly under physiological shear stress. Endothelial nitric oxide release maintains optimal dilator capacity.</p>
+                </div>
+            </div>
+
+            <!-- Decision Box -->
+            <div class="decision-box">
+                <i class="fa-solid fa-circle-exclamation" id="decision-icon"></i>
+                <div>
+                    <strong>Clinical Pathophysiology Weight:</strong>
+                    <span id="decision-weight-txt">Healthy coronary tree perfusion with full vasodilator reserve.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Egyptian Arabic Explanation (Accordion) -->
+    <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion()">
+            <span><i class="fa-solid fa-chevron-down" id="accordion-icon" style="margin-right: 0.5rem;"></i> الشرح بالعامية المصرية والسيناريو الإكلينيكي</span>
+            <span>تفسير مبسط لميكانيكية الأدلة والتوصيات</span>
+        </div>
+        <div class="accordion-content" id="accordion-content">
+            <div class="arabic-text">
+                <h4>يعني إيه الكلام ده يا دكتور؟ 🤔</h4>
+                <p>بص يا سيدي.. زمان كان الدكاترة فاكرين إن قصور الشرايين التاجية (Ischemia) ده عملية ميكانيكية بحتة: يعني حتة دهون مترسبة في شريان كبير، لو سدت الشريان يحصل ألم الصدر، ولو وسعناه بدعامة يبقى المشكلة اتكلت على الله. المفهوم ده اتغير خالص وبقى أوسع بكتير!</p>
+                <p>الإرشادات الأوروبية الجديدة (2024 ESC Guidelines) بتبصلنا للموضوع بنظرة شاملة وعميقة ومقسمة الإشكالية الطبية دي كالتالي:</p>
+                
+                <ul>
+                    <li><strong>1. شرايين القلب الكبيرة (Macrovascular level):</strong>
+                        <ul>
+                            <li>📌 <strong>الانسداد الميكانيكي البؤري (Focal):</strong> ده الضيق الكلاسيكي اللي بنشوفه بوضوح في القسطرة العادية (حتة دهون متجمعة قفلت الشريان).</li>
+                            <li>📌 <strong>الانسداد المنتشر (Diffuse):</strong> هنا الدهون مش متجمعة في حتة واحدة، دي مفروشة على طول الشريان. مش عاملة قفلة واحدة، بس بتسبب سقوط تراكمي في ضغط الدم.</li>
+                            <li>📌 <strong>الجسر العضلي (Myocardial Bridge):</strong> الشريان المفروض يمشي فوق عضلة القلب، لكن هنا بيمشي تحت حزمة عضلية تعصره وقت الانقباض (Systole) وتمنع تدفق الدم.</li>
+                        </ul>
+                    </li>
+                    <li><strong>2. الشعيرات الدقيقة (Coronary Microcirculation - Microvascular):</strong>
+                        <ul>
+                            <li>📌 <strong>الـ CMD (قصور الشعيرات الدقيقة):</strong> دي شبكة دقيقة جداً من الأوعية الدموية بتنظم مقاومة التدفق. ممكن تكون الشرايين الكبيرة سليمة وزي الفل، بس الشبكة دي فيها خلل في الاتساع أو حصل فيها تلف وتآكل (Rarefaction). ده اللي بنسميه متلازمة **ANOCA/INOCA**.</li>
+                        </ul>
+                    </li>
+                    <li><strong>3. اضطراب التشنج والوعاء (Vasomotor Dysfunction):</strong>
+                        <ul>
+                            <li>📌 <strong>تشنج الشريان التاجي (Vasospasm):</strong> جدار الشريان بيحصل فيه تشنج وتقلص حاد فجأة فيقلل تدفق الدم حتى لو مفيش تصلب شرايين، وده مرتبط بفرط نشاط خلايا العضلات الملساء (VSMC Hyperreactivity).</li>
+                        </ul>
+                    </li>
+                    <li><strong>4. الميزان العام (Supply-Demand Balance):</strong>
+                        <ul>
+                            <li>📌 حدوث القصور مش دايماً مشكلة في الشريان نفسه، ده ميزان بين **المعروض (Supply)** و**المطلوب (Demand)**. لو ضربات القلب زادت أوي (Tachycardia) أو ضغط الدم ارتفع جداً (Afterload)، القلب هيحتاج أكسجين أكتر. ولو المريض عنده أنيميا حادة (Anaemia) أو نقص أكسجين، المعروض هيقل جداً حتى لو الشرايين سليمة!</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <div class="arabic-case">
+                    <h4>إسقاط إكلينيكي في العيادة (Clinical Scenario) 🏥</h4>
+                    <p>جلت لك العيادة سيدة في الخمسينات من عمرها، بتشتكي من وجع ضاغط في صدرها بيسمع في دراعها الشمال وبيزيد مع الحركة والتوتر النفسي. عملت رسم قلب بالمجهود وطلع إيجابي جداً، عملت قسطرة تشخيصية والدكتور قالها: "ألف مبروك شرايينك الكبيرة سليمة وبيلمعوا ومفيش أي ضيق!".</p>
+                    <p><strong>تحليل الحالة الطبية:</strong></p>
+                    <p>المريضة دي عندها قصور حقيقي في تروية القلب اسمه **INOCA** (إقفار مع شرايين غير سادة) بسبب خلل في الشعيرات الدقيقة (Microvascular Dysfunction). في المجهود الشرايين الكبيرة بتفتح بس الشعيرات الدقيقة بتفشل في الاتساع (Impaired dilatation)، وده اللي بيعمل وجع الصدر. العلاج هنا مش دعامة أو جراحة، العلاج بيكون أدوية تحسن بطانة الأوعية الدموية (Endothelial function) زي حاصرات قنوات الكالسيوم ومعدلات الضغط الشرياني.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        ESC Guidelines Dashboard • Standalone Interactive Academic Application
+    </footer>
+</div>
+
+<script>
+    // State Variables
+    let selectedPath = 'normal';
+    let selectedSpasm = 'none';
+    let currentPerspective = 'clinical';
+
+    // UI Mappings for pathologies
+    const pathData = {
+        'normal': {
+            title: 'Physiological Homeostasis',
+            body: 'The vessel has zero mechanical obstruction. Red blood cells flow smoothly under physiological shear stress. Endothelial nitric oxide release maintains optimal dilator capacity.',
+            prox: '120 mmHg',
+            dist: '120 mmHg',
+            res: 'Low',
+            weight: 'Healthy coronary tree perfusion with full vasodilator reserve.',
+            color: 'var(--accent-green)',
+            focal_display: 'none',
+            diffuse_display: 'none',
+            bridge_display: 'none',
+            flow_anim: 'flow-speed 4s linear infinite',
+            badge: 'NORMAL FLOW'
+        },
+        'focal': {
+            title: 'Fixed Focal Stenosis',
+            body: 'A discrete, high-grade atherosclerotic plaque invades the lumen. This creates a focal resistance point, leading to a significant drop in pressure distal to the stenosis (FFR < 0.80). Flow speed increases through the pinch point but overall distal perfusion drops.',
+            prox: '120 mmHg',
+            dist: '72 mmHg',
+            res: 'High (Focal)',
+            weight: 'Flow-limiting epicardial obstruction. High risk for inducible ischemia under stress.',
+            color: 'var(--accent-red)',
+            focal_display: 'block',
+            diffuse_display: 'none',
+            bridge_display: 'none',
+            flow_anim: 'flow-speed 6s linear infinite',
+            badge: 'FOCAL BLOCK'
+        },
+        'diffuse': {
+            title: 'Diffuse Atherosclerosis',
+            body: 'Plaque accumulation is spread out along the vessel length. There is no single tight focal stenosis, but the cumulative friction of the rough vessel walls causes a progressive drop in distal pressure, especially under hyperemic flow conditions.',
+            prox: '120 mmHg',
+            dist: '84 mmHg',
+            res: 'Moderate-High (Diffuse)',
+            weight: 'Diffuse epicardial disease. Often harder to treat with focal stents; benefits from medical therapy.',
+            color: 'var(--accent-orange)',
+            focal_display: 'none',
+            diffuse_display: 'block',
+            bridge_display: 'none',
+            flow_anim: 'flow-speed 5.5s linear infinite',
+            badge: 'DIFFUSE DISEASE'
+        },
+        'bridge': {
+            title: 'Myocardial Bridging',
+            body: 'A segment of the epicardial artery runs intramurally beneath a band of myocardial muscle. During ventricular contraction (systole), the muscle band compresses the artery, causing transient dynamic stenosis, while flow normalizes during diastole.',
+            prox: '120 mmHg',
+            dist: '95 mmHg (Systolic drop)',
+            res: 'Dynamic (Systolic)',
+            weight: 'Dynamic mechanical compression. Symptoms often mimic stable angina.',
+            color: 'var(--accent-orange)',
+            focal_display: 'none',
+            diffuse_display: 'none',
+            bridge_display: 'flex',
+            flow_anim: 'flow-speed 4.5s linear infinite',
+            badge: 'MYOCARDIAL BRIDGE'
+        },
+        'micro': {
+            title: 'Coronary Microvascular Dysfunction (CMD)',
+            body: 'Large epicardial arteries are angiographically normal, but structural remodeling (inward arteriolar narrowing) and capillary rarefaction occur in the microcirculation. This increases microvascular resistance, restricting distal tissue perfusion.',
+            prox: '120 mmHg',
+            dist: '110 mmHg',
+            res: 'Very High (Microvascular)',
+            weight: 'Microcirculatory impairment. Foundation of ANOCA/INOCA syndromes.',
+            color: 'var(--accent-red)',
+            focal_display: 'none',
+            diffuse_display: 'none',
+            bridge_display: 'none',
+            flow_anim: 'flow-speed 7s linear infinite',
+            badge: 'CMD / ANOCA'
+        }
+    };
+
+    const spasmData = {
+        'none': {
+            title: 'Normal Vasomotor Tone',
+            body: 'The vessel dilates and constricts dynamically under healthy endothelial nitric oxide and shear stress regulation. No hyper-reactivity present.',
+            lumen_w: '70px',
+            lumen_h: '70px',
+            status: 'Normal Vasodilation',
+            color: 'var(--accent-green)',
+            weight: 'Physiological vasomotor regulation. Free vasodilator reserve.'
+        },
+        'epicardial': {
+            title: 'Epicardial Coronary Vasospasm',
+            body: 'Sudden, severe hyper-reactivity of vascular smooth muscle cells (VSMCs) causes intense localized constriction of a major epicardial coronary artery. This leads to transient total occlusion, ST-segment shifts on ECG, and acute ischemic chest pain at rest (Prinzmetal Angina).',
+            lumen_w: '20px',
+            lumen_h: '20px',
+            status: 'Epicardial Spasm / Occlusion',
+            color: 'var(--accent-red)',
+            weight: 'Critical transient epicardial constriction. Treat with CCBs/nitrates; avoid beta-blockers.'
+        },
+        'micro-spasm': {
+            title: 'Microvascular Vasospasm',
+            body: 'Abnormal hyper-constriction occurs at the level of the small resistance arterioles (<200 µm) rather than large arteries. Angiograms show clean epicardial arteries, but tissue flow slows down (slow-flow phenomenon) causing ischemia.',
+            lumen_w: '45px',
+            lumen_h: '45px',
+            status: 'Microvascular Constriction',
+            color: 'var(--accent-orange)',
+            weight: 'Transient microvascular spasm. Contributes to microvascular angina (MVA).'
+        }
+    };
+
+    function selectPathology(pathName) {
+        selectedPath = pathName;
+        document.querySelectorAll('#controls-mechanical .btn-select').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-path="${pathName}"]`).classList.add('active');
+        updateScene();
+    }
+
+    function selectSpasm(spasmName) {
+        selectedSpasm = spasmName;
+        document.querySelectorAll('#controls-functional .btn-select').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-spasm="${spasmName}"]`).classList.add('active');
+        updateScene();
+    }
+
+    function switchPerspective(perspectiveName) {
+        currentPerspective = perspectiveName;
+        document.querySelectorAll('.btn-toggle').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // Activate button
+        if (perspectiveName === 'clinical') {
+            document.querySelectorAll('.btn-toggle')[0].classList.add('active');
+            document.getElementById('controls-mechanical').style.display = 'block';
+            document.getElementById('controls-functional').style.display = 'none';
+            document.getElementById('controls-supply-demand').style.display = 'none';
+        }
+        if (perspectiveName === 'functional') {
+            document.querySelectorAll('.btn-toggle')[1].classList.add('active');
+            document.getElementById('controls-mechanical').style.display = 'none';
+            document.getElementById('controls-functional').style.display = 'block';
+            document.getElementById('controls-supply-demand').style.display = 'none';
+        }
+        if (perspectiveName === 'supply_demand') {
+            document.querySelectorAll('.btn-toggle')[2].classList.add('active');
+            document.getElementById('controls-mechanical').style.display = 'none';
+            document.getElementById('controls-functional').style.display = 'none';
+            document.getElementById('controls-supply-demand').style.display = 'block';
+        }
+        
+        // Switch view containers
+        document.querySelectorAll('.perspective-view').forEach(view => {
+            view.classList.remove('active');
+        });
+        if (perspectiveName === 'clinical') document.getElementById('view-clinical').classList.add('active');
+        if (perspectiveName === 'functional') document.getElementById('view-functional').classList.add('active');
+        if (perspectiveName === 'supply_demand') document.getElementById('view-supply-demand').classList.add('active');
+
+        updateScene();
+    }
+
+    function updateSupplyDemand() {
+        const stenosis = parseInt(document.getElementById('slider-stenosis').value);
+        const hb = parseFloat(document.getElementById('slider-hb').value);
+        const hr = parseInt(document.getElementById('slider-hr').value);
+        const bp = parseInt(document.getElementById('slider-bp').value);
+
+        // Update labels
+        document.getElementById('stenosis-val').innerText = stenosis + '%';
+        document.getElementById('hb-val').innerText = hb.toFixed(1) + ' g/dL';
+        document.getElementById('hr-val').innerText = hr + ' bpm';
+        document.getElementById('bp-val').innerText = bp + ' mmHg';
+
+        // Calculate Supply vs Demand
+        // Baseline supply is 100%. Affected negatively by stenosis and low Hb.
+        let supplyFactor = 100;
+        if (stenosis > 50) {
+            supplyFactor -= (stenosis - 50) * 1.2; // severe drop past 50%
+        }
+        if (hb < 12) {
+            supplyFactor -= (12 - hb) * 8; // Anaemia effect
+        }
+        supplyFactor = Math.max(10, Math.min(100, supplyFactor));
+
+        // Demand is 100% baseline. Affected positively by HR and BP.
+        let demandFactor = 100;
+        if (hr > 80) {
+            demandFactor += (hr - 80) * 0.8;
+        }
+        if (bp > 130) {
+            demandFactor += (bp - 130) * 0.5;
+        }
+
+        // Draw balance scale rotation angle
+        // Tilt is proportional to difference
+        let diff = demandFactor - supplyFactor; // positive means demand > supply
+        let angle = diff * 0.15; // scale factor
+        angle = Math.max(-25, Math.min(25, angle)); // cap angle
+
+        document.getElementById('balance-beam').style.transform = `rotate(${angle}deg)`;
+        
+        // Update scales text
+        document.getElementById('pan-supply-val').innerText = supplyFactor.toFixed(0) + '%';
+        document.getElementById('pan-demand-val').innerText = demandFactor.toFixed(0) + '%';
+
+        updateScene();
+    }
+
+    function updateScene() {
+        const badge = document.getElementById('result-badge');
+        const icon = document.getElementById('decision-icon');
+        
+        if (currentPerspective === 'clinical') {
+            const config = pathData[selectedPath];
+            
+            // Visual elements
+            document.getElementById('focal-top').style.display = config.focal_display;
+            document.getElementById('focal-bottom').style.display = config.focal_display;
+            document.getElementById('diffuse-top').style.display = config.diffuse_display;
+            document.getElementById('diffuse-bottom').style.display = config.diffuse_display;
+            document.getElementById('muscle-bridge-band').style.display = config.bridge_display;
+            
+            // Flow animation speed
+            document.getElementById('vessel-cells').style.animation = config.flow_anim;
+            
+            // Pressure indicators
+            document.getElementById('p-prox').innerText = config.prox;
+            document.getElementById('p-dist').innerText = config.dist;
+            document.getElementById('flow-res').innerText = config.res;
+
+            // Details
+            badge.style.backgroundColor = config.color === 'var(--accent-green)' ? 'rgba(63, 185, 80, 0.15)' : (config.color === 'var(--accent-red)' ? 'rgba(248, 81, 73, 0.15)' : 'rgba(210, 153, 34, 0.15)');
+            badge.style.color = config.color;
+            badge.style.borderColor = config.color;
+            badge.innerText = config.badge;
+
+            document.getElementById('clinical-desc-title').innerText = config.title;
+            document.getElementById('clinical-desc-body').innerText = config.body;
+            document.getElementById('decision-weight-txt').innerText = config.weight;
+
+            // Bridge pulsate simulation
+            if (selectedPath === 'bridge') {
+                document.getElementById('muscle-bridge-band').style.animation = 'pulse-ring 1s cubic-bezier(0.215, 0.610, 0.355, 1) infinite';
+            } else {
+                document.getElementById('muscle-bridge-band').style.animation = 'none';
+            }
+        } 
+        else if (currentPerspective === 'functional') {
+            const config = spasmData[selectedSpasm];
+            
+            // Update circular vessel spasm
+            document.getElementById('vessel-spasm-lumen').style.width = config.lumen_w;
+            document.getElementById('vessel-spasm-lumen').style.height = config.lumen_h;
+            document.getElementById('spasm-status-txt').innerText = config.status;
+            document.getElementById('spasm-status-txt').style.color = config.color;
+            
+            badge.style.backgroundColor = config.color === 'var(--accent-green)' ? 'rgba(63, 185, 80, 0.15)' : (config.color === 'var(--accent-red)' ? 'rgba(248, 81, 73, 0.15)' : 'rgba(210, 153, 34, 0.15)');
+            badge.style.color = config.color;
+            badge.style.borderColor = config.color;
+            badge.innerText = config.status.toUpperCase();
+
+            document.getElementById('clinical-desc-title').innerText = config.title;
+            document.getElementById('clinical-desc-body').innerText = config.body;
+            document.getElementById('decision-weight-txt').innerText = config.weight;
+        } 
+        else if (currentPerspective === 'supply_demand') {
+            const supplyVal = parseInt(document.getElementById('pan-supply-val').innerText);
+            const demandVal = parseInt(document.getElementById('pan-demand-val').innerText);
+
+            if (supplyVal < demandVal) {
+                // Ischemia!
+                badge.style.backgroundColor = 'rgba(248, 81, 73, 0.15)';
+                badge.style.color = 'var(--accent-red)';
+                badge.style.borderColor = 'var(--accent-red)';
+                badge.innerText = 'ISCHEMIA ALERT';
+
+                document.getElementById('clinical-desc-title').innerText = 'Myocardial Demand Mismatch';
+                document.getElementById('clinical-desc-body').innerText = 'Oxygen demand is higher than supply. The myocardium is experiencing perfusion deficits (hypoperfusion). This will lead to transient reversible ischemia, presenting as chest pain (angina) or exertional dyspnea.';
+                document.getElementById('decision-weight-txt').innerText = 'Active cellular ischemia. Requires immediate lowering of heart rate (beta-blockade), correcting anemia, or dilating epicardial/microvascular pathways.';
+                icon.className = 'fa-solid fa-triangle-exclamation';
+                icon.style.color = 'var(--accent-red)';
+            } else {
+                // Stabilized
+                badge.style.backgroundColor = 'rgba(63, 185, 80, 0.15)';
+                badge.style.color = 'var(--accent-green)';
+                badge.style.borderColor = 'var(--accent-green)';
+                badge.innerText = 'HEMODYNAMIC STABILITY';
+
+                document.getElementById('clinical-desc-title').innerText = 'Supply-Demand Equilibrium';
+                document.getElementById('clinical-desc-body').innerText = 'Oxygen supply to the cardiac myocytes matches or exceeds metabolic demand. Perfusion is stable, and tissue lactic acidosis is absent.';
+                document.getElementById('decision-weight-txt').innerText = 'Perfusion parameters are within normal physiological reserves.';
+                icon.className = 'fa-solid fa-circle-check';
+                icon.style.color = 'var(--accent-green)';
+            }
+        }
+    }
+
+    // Egyptian Accordion Toggle
+    function toggleAccordion() {
+        const content = document.getElementById('accordion-content');
+        const icon = document.getElementById('accordion-icon');
+        
+        if (content.classList.contains('open')) {
+            content.classList.remove('open');
+            icon.style.transform = 'rotate(0deg)';
+        } else {
+            content.classList.add('open');
+            icon.style.transform = 'rotate(180deg)';
+        }
+    }
+
+    // Initial setup
+    updateSupplyDemand();
+    updateScene();
+</script>
+</body>
+</html>

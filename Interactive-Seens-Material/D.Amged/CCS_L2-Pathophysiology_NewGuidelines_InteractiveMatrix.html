@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2024 ESC Guidelines: What is New</title>
+    <!-- Outfit & Inter Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --border-color: #30363d;
+            --text-color: #c9d1d9;
+            --text-heading: #f0f6fc;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-orange: #d29922;
+            --accent-red: #f85149;
+            --glass-bg: rgba(22, 27, 34, 0.7);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 2rem 1rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header Style */
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            position: relative;
+        }
+
+        header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.2rem;
+            color: var(--text-heading);
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #fff 30%, var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            color: #8b949e;
+            font-size: 1rem;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .badge {
+            background-color: rgba(88, 166, 255, 0.15);
+            color: var(--accent-blue);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+
+        /* Perspective Toggles */
+        .perspective-container {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-toggle {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-toggle:hover {
+            border-color: var(--accent-blue);
+            background-color: rgba(88, 166, 255, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .btn-toggle.active {
+            background-color: var(--accent-blue);
+            color: #0d1117;
+            border-color: var(--accent-blue);
+            box-shadow: 0 4px 15px rgba(88, 166, 255, 0.4);
+        }
+
+        /* Main Workspace Layout */
+        .workspace {
+            display: grid;
+            grid-template-columns: 1.15fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+        }
+
+        @media (max-width: 900px) {
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.8rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            border-color: rgba(88, 166, 255, 0.2);
+        }
+
+        .card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.3rem;
+            color: var(--text-heading);
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.8rem;
+        }
+
+        /* Controls Area */
+        .selector-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .selector-title {
+            font-size: 0.85rem;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            font-weight: 600;
+        }
+
+        .grid-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.6rem;
+        }
+
+        .btn-select {
+            background-color: rgba(22, 27, 34, 0.6);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.8rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: left;
+        }
+
+        .btn-select:hover {
+            background-color: rgba(48, 54, 61, 0.3);
+            border-color: #8b949e;
+        }
+
+        .btn-select.active {
+            border-color: var(--accent-blue);
+            background-color: rgba(88, 166, 255, 0.1);
+            color: #a5d6ff;
+        }
+
+        .btn-select.active.class-I { border-color: var(--accent-green); background-color: rgba(63, 185, 80, 0.1); color: #88ff9a; }
+        .btn-select.active.class-IIa { border-color: var(--accent-orange); background-color: rgba(210, 153, 34, 0.1); color: #ffda73; }
+        .btn-select.active.class-IIb { border-color: var(--accent-orange); background-color: rgba(210, 153, 34, 0.05); color: #ffe6a3; }
+        .btn-select.active.class-III { border-color: var(--accent-red); background-color: rgba(248, 81, 73, 0.1); color: #ff9e9a; }
+
+        .btn-select strong {
+            display: block;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .btn-select span {
+            font-size: 0.75rem;
+            color: #8b949e;
+            display: block;
+            line-height: 1.2;
+        }
+
+        /* Sliders style */
+        .sliders-group {
+            width: 100%;
+        }
+
+        .control-row {
+            margin-bottom: 1rem;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #8b949e;
+            margin-bottom: 0.3rem;
+        }
+
+        .control-label span.val {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            -webkit-appearance: none;
+            background: #21262d;
+            height: 4px;
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            cursor: pointer;
+        }
+
+        /* Dynamic Visual Screen Area */
+        .visual-screen {
+            background-color: #07090e;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            height: 300px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.2rem;
+        }
+
+        .perspective-view {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 1.2rem;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .perspective-view.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* 1. Calculator visual */
+        .calc-visual-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            text-align: center;
+        }
+
+        .radial-progress {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: conic-gradient(var(--accent-blue) 0%, #21262d 0%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .radial-progress::after {
+            content: '';
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            background-color: #07090e;
+            position: absolute;
+        }
+
+        .radial-val {
+            position: relative;
+            z-index: 10;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--text-heading);
+        }
+
+        /* 2. Modality SVG / visual */
+        .modality-visualizer {
+            font-size: 4.5rem;
+            color: var(--accent-blue);
+            margin-bottom: 1rem;
+            animation: pulse-ring 2s infinite;
+        }
+
+        .modality-desc {
+            font-size: 0.95rem;
+            font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+            margin-bottom: 0.2rem;
+        }
+
+        /* 3. Risk Thresholds Card Grid */
+        .risk-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.8rem;
+            width: 90%;
+        }
+
+        .risk-tag {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.6rem;
+            font-size: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .risk-tag.active {
+            border-color: var(--accent-red);
+            background-color: rgba(248, 81, 73, 0.1);
+        }
+
+        .risk-tag strong {
+            color: var(--text-heading);
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .risk-tag span {
+            color: #8b949e;
+        }
+
+        /* Clinical Text Descriptions */
+        .clinical-text {
+            background-color: rgba(22, 27, 34, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.2rem;
+            margin-bottom: 1.2rem;
+            font-size: 0.95rem;
+            min-height: 110px;
+        }
+
+        .clinical-text h4 {
+            font-family: 'Outfit', sans-serif;
+            color: var(--text-heading);
+            margin-bottom: 0.4rem;
+        }
+
+        .clinical-text p {
+            color: #8b949e;
+        }
+
+        /* Diagnostic & Decision Box */
+        .decision-box {
+            background-color: rgba(88, 166, 255, 0.05);
+            border: 1px dashed rgba(88, 166, 255, 0.3);
+            border-radius: 8px;
+            padding: 0.8rem;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .decision-box i {
+            font-size: 1.3rem;
+            color: var(--accent-blue);
+        }
+
+        /* Egyptian Arabic Accordion */
+        .accordion {
+            margin-top: 2rem;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            background-color: var(--card-bg);
+        }
+
+        .accordion-header {
+            background-color: rgba(48, 54, 61, 0.2);
+            padding: 1.2rem 1.8rem;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            color: var(--text-heading);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            transition: var(--transition);
+        }
+
+        .accordion-header:hover {
+            background-color: rgba(48, 54, 61, 0.3);
+        }
+
+        .accordion-content {
+            padding: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out, padding 0.4s ease-out;
+            border-top: 0 solid var(--border-color);
+            direction: rtl;
+            text-align: right;
+        }
+
+        .accordion-content.open {
+            padding: 1.8rem;
+            max-height: 2000px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .arabic-text {
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: #d1d5db;
+        }
+
+        .arabic-text h4 {
+            color: var(--accent-blue);
+            font-family: 'Outfit', sans-serif;
+            margin-bottom: 0.6rem;
+            font-size: 1.2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.3rem;
+            display: inline-block;
+        }
+
+        .arabic-case {
+            background-color: rgba(88, 166, 255, 0.05);
+            border-right: 4px solid var(--accent-blue);
+            padding: 1rem 1.5rem;
+            border-radius: 0 8px 8px 0;
+            margin-top: 1rem;
+        }
+
+        /* Animations */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            font-size: 0.8rem;
+            color: #586069;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <span class="badge">Lecture 4: What is New</span>
+        <h1>2024 ESC Recommendations</h1>
+        <p>Interactive calculator for clinical pre-test likelihood, imaging modalities selector, and adverse MACE risk thresholds.</p>
+    </header>
+
+    <!-- Perspective Toggles -->
+    <div class="perspective-container">
+        <button class="btn-toggle active" onclick="switchPerspective('calculator')">
+            <i class="fa-solid fa-calculator"></i> Pre-Test Likelihood Calculator
+        </button>
+        <button class="btn-toggle" onclick="switchPerspective('modalities')">
+            <i class="fa-solid fa-circle-nodes"></i> Diagnostic Modality Selector
+        </button>
+        <button class="btn-toggle" onclick="switchPerspective('mace')">
+            <i class="fa-solid fa-triangle-exclamation"></i> MACE Adverse Risk
+        </button>
+    </div>
+
+    <!-- Main Workspace Grid -->
+    <div class="workspace">
+        
+        <!-- Input Selector Card -->
+        <div class="card">
+            <div class="card-title" id="controls-title">
+                <i class="fa-solid fa-square-poll-vertical"></i> Clinical Parameters
+            </div>
+            
+            <div class="selector-group">
+                
+                <!-- 1. Calculator sliders -->
+                <div id="controls-calculator">
+                    <div class="selector-title" style="margin-bottom: 0.6rem;">Clinical Likelihood Model</div>
+                    <div class="sliders-group">
+                        <div class="control-row">
+                            <div class="control-label">
+                                <span>Patient Age / Demographics</span>
+                                <span class="val" id="age-val">55 Years</span>
+                            </div>
+                            <input type="range" id="slider-age" min="30" max="85" step="5" value="55" oninput="updateCalculators()">
+                        </div>
+
+                        <div class="control-row">
+                            <div class="control-label">
+                                <span>Risk Factor Burden (Diabetes, Smoking, HTN)</span>
+                                <span class="val" id="rf-val">2 Factors</span>
+                            </div>
+                            <input type="range" id="slider-rf" min="0" max="4" step="1" value="2" oninput="updateCalculators()">
+                        </div>
+
+                        <div class="control-row">
+                            <div class="control-label">
+                                <span>Coronary Calcium Score (CACS)</span>
+                                <span class="val" id="cacs-val">100 Agatston</span>
+                            </div>
+                            <input type="range" id="slider-cacs" min="0" max="1000" step="50" value="100" oninput="updateCalculators()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Modality Selectors -->
+                <div id="controls-modalities" style="display:none;">
+                    <div class="selector-title" style="margin-bottom: 0.6rem;">Modality Selection</div>
+                    <div class="grid-buttons">
+                        <button class="btn-select active" data-mod="ccta" onclick="selectModality('ccta')">
+                            <strong>Coronary CTA (CCTA)</strong>
+                            <span>Non-invasive gatekeeper for 5-50% likelihood.</span>
+                        </button>
+                        <button class="btn-select" data-mod="stress-echo" onclick="selectModality('stress-echo')">
+                            <strong>Contrast Stress Echo</strong>
+                            <span>Ischemia test for 15-85% likelihood.</span>
+                        </button>
+                        <button class="btn-select" data-mod="pet-spect" onclick="selectModality('pet-spect')">
+                            <strong>PET / SPECT</strong>
+                            <span>Ischemia quantification.</span>
+                        </button>
+                        <button class="btn-select" data-mod="stress-cmr" onclick="selectModality('stress-cmr')">
+                            <strong>Stress CMR</strong>
+                            <span>Scar & perfusion assessment.</span>
+                        </button>
+                        <button class="btn-select" data-mod="ica" onclick="selectModality('ica')">
+                            <strong>Invasive Angio (ICA)</strong>
+                            <span>Radial access with wire FFR.</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. MACE Thresholds -->
+                <div id="controls-mace" style="display:none;">
+                    <div class="selector-title" style="margin-bottom: 0.6rem;">Toggle High-Risk Metrics</div>
+                    <div class="grid-buttons">
+                        <button class="btn-select" id="mace-duke" onclick="toggleMace('duke')">
+                            <strong>Duke Score &lt; -10</strong>
+                            <span>High-risk treadmill metric.</span>
+                        </button>
+                        <button class="btn-select" id="mace-pet" onclick="toggleMace('pet')">
+                            <strong>PET/SPECT Ischemia ≥10%</strong>
+                            <span>LV myocardium area hypoperfusion.</span>
+                        </button>
+                        <button class="btn-select" id="mace-echo" onclick="toggleMace('echo')">
+                            <strong>Stress Echo ≥3 Segments</strong>
+                            <span>Inducible wall motion deficit.</span>
+                        </button>
+                        <button class="btn-select" id="mace-ccta" onclick="toggleMace('ccta')">
+                            <strong>CCTA Left Main ≥50%</strong>
+                            <span>Or 3-vessel stenosis ≥70%.</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output Visual Display Card -->
+        <div class="card display-card">
+            <div>
+                <div class="status-header">
+                    <span class="selector-title">Guidelines Recommendation</span>
+                    <span class="status-badge class-I" id="result-badge" style="background-color:rgba(63, 185, 80, 0.15); color: var(--accent-green); border: 1px solid rgba(63,185,80,0.3);">CLASS I (LEVEL B)</span>
+                </div>
+
+                <!-- Dynamic Viewport -->
+                <div class="visual-screen">
+                    
+                    <!-- 1. Calculator Radial View -->
+                    <div class="perspective-view active" id="view-calculator">
+                        <div class="calc-visual-box">
+                            <div class="radial-progress" id="radial-bg">
+                                <div class="radial-val" id="pretest-pct">35%</div>
+                            </div>
+                            <div id="likelihood-tier" style="font-family:'Outfit', sans-serif; font-size: 0.95rem; font-weight: 700;">Moderate Likelihood</div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Modalities Detail View -->
+                    <div class="perspective-view" id="view-modalities">
+                        <i class="fa-solid fa-laptop-medical modality-visualizer" id="mod-icon"></i>
+                        <div class="modality-desc" id="mod-name-label">Coronary CTA</div>
+                        <div style="font-size: 0.8rem; color: #8b949e;" id="mod-spec-txt">Preferred gatekeeper to rule out CAD.</div>
+                    </div>
+
+                    <!-- 3. MACE Thresholds list view -->
+                    <div class="perspective-view" id="view-mace">
+                        <div class="risk-grid">
+                            <div class="risk-tag" id="tag-duke">
+                                <strong>Duke Score</strong>
+                                <span>High-risk threshold: &lt; -10</span>
+                            </div>
+                            <div class="risk-tag" id="tag-pet">
+                                <strong>SPECT / PET Perfusion</strong>
+                                <span>Ischemic area ≥ 10% of LV</span>
+                            </div>
+                            <div class="risk-tag" id="tag-echo">
+                                <strong>Stress Echo</strong>
+                                <span>≥ 3 segments inducible deficit</span>
+                            </div>
+                            <div class="risk-tag" id="tag-ccta">
+                                <strong>CCTA Anatomy</strong>
+                                <span>Left Main ≥ 50% / 3-Vessel ≥ 70%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Clinical Text Descriptions -->
+                <div class="clinical-text">
+                    <h4 id="clinical-desc-title">CCTA Recommendation</h4>
+                    <p id="clinical-desc-body">CCTA is recommended as the preferred diagnostic modality to rule out obstructive CAD in individuals with a low or moderate (5-50%) pre-test clinical likelihood.</p>
+                </div>
+            </div>
+
+            <!-- Decision Box -->
+            <div class="decision-box">
+                <i class="fa-solid fa-circle-check" id="decision-icon" style="color: var(--accent-green);"></i>
+                <div>
+                    <strong>Class & Level Wording:</strong>
+                    <span id="decision-weight-txt">Strongly recommended (Is indicated). Radial access is preferred for ICA.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Egyptian Arabic Explanation (Accordion) -->
+    <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion()">
+            <span><i class="fa-solid fa-chevron-down" id="accordion-icon" style="margin-right: 0.5rem;"></i> الشرح بالعامية المصرية والسيناريو الإكلينيكي</span>
+            <span>تفسير مبسط لميكانيكية الأدلة والتوصيات</span>
+        </div>
+        <div class="accordion-content" id="accordion-content">
+            <div class="arabic-text">
+                <h4>يعني إيه الكلام ده يا دكتور؟ 🤔</h4>
+                <p>بص يا سيدي.. إرشادات عام 2024 (ESC Guidelines) منزلة <strong>توصيات جديدة ومعدلة</strong> في غاية الأهمية بتغير طريقة التشخيص خالص:</p>
+                
+                <ul>
+                    <li>🟢 <strong>1. حساب الاحتمالية قبل الفحص (Pre-test Likelihood):</strong> دلوقتي بنستخدم نموذج حديث معتمد على عوامل الخطورة (Risk Factor-weighted Clinical Likelihood).
+                        <ul>
+                            <li>• لو الاحتمالية <strong>ضعيفة جداً (≤5%)</strong>، بنفكر جدياً في تأجيل الفحوصات ومبنعملش قسطرة أو فحوصات مجهود من أساسه (Deferral).</li>
+                            <li>• لو الاحتمالية <strong>قليلة (5-15%)</strong>، بنعمل اختبار الكالسيوم لشرايين القلب (CACS) عشان نعيد تصنيف المريض ونتأكد هل هو سليم تماماً لو الكالسيوم صفر.</li>
+                            <li>• لو الاحتمالية <strong>متوسطة (5-50%)</strong>، الأفضل نعمل أشعة مقطعية بالصبغة على الشرايين (CCTA) لأنها دقيقة وسريعة وبتستبعد الانسداد.</li>
+                            <li>• لو الاحتمالية <strong>عالية (15-85%)</strong>، بنعمل فحوصات المجهود الوظيفية (Stress Echo / Stress CMR / PET).</li>
+                        </ul>
+                    </li>
+                    <li>🟢 <strong>2. استخدام المواد المباينة (Microbubbles):</strong> في فحص رسم القلب بالمجهود لصور الإيكو (Stress Echo)، لو الدكتور مش شايف جدار العضلة بوضوح (سجمنتين أو أكتر مش واضحين)، التوصيات بتوصي بشدة (Class I) بحقن مادة مباينة (فقاعات دقيقة) عشان تحسن الرؤية.</li>
+                    <li>🟢 <strong>3. القسطرة التشخيصية من اليد (Radial Access):</strong> دي بقت توصية قوية (Class I, Level A)؛ يفضل دائماً الدخول للشرايين من اليد مش الفخذ لتقليل النزيف والمضاعفات.</li>
+                    <li>🟢 <strong>4. شروط الخطورة المرتفعة (High MACE Risk):</strong> حددت الجايدلاينز أرقام دقيقة تثبت إن المريض معرض لخطر شديد ويحتاج دعامة أو جراحة عاجلة:
+                        <ul>
+                            <li>• Duke Treadmill Score أقل من -10.</li>
+                            <li>• مساحة القصور في فحص الـ PET أو SPECT تزيد عن 10% من عضلة القلب.</li>
+                            <li>• وجود 3 مقاطع أو أكتر في عضلة القلب مش بتنقبض كويس وقت المجهود (Stress Echo).</li>
+                            <li>• وجود ضيق ≥ 50% في الشريان الرئيسي الأيسر (Left Main) أو ضيق ≥ 70% في 3 شرايين رئيسية في الأشعة المقطعية.</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        ESC Guidelines Dashboard • Standalone Interactive Academic Application
+    </footer>
+</div>
+
+<script>
+    // State Variables
+    let selectedModality = 'ccta';
+    let currentPerspective = 'calculator';
+
+    // MACE toggles
+    let maceStates = {
+        duke: false,
+        pet: false,
+        echo: false,
+        ccta: false
+    };
+
+    const modData = {
+        'ccta': {
+            icon: 'fa-laptop-medical',
+            name: 'Coronary CT Angiography (CCTA)',
+            spec: 'Rule-out Gatekeeper for 5-50% likelihood. Class I (Level A).',
+            title: 'CCTA Recommendation',
+            body: 'CCTA is recommended as the preferred diagnostic modality to rule out obstructive CAD in individuals with a low or moderate (5-50%) pre-test clinical likelihood.',
+            badge: 'CLASS I (LEVEL A)',
+            color: 'var(--accent-green)',
+            dec: 'Strongly recommended (Is indicated). Non-invasive rule-out tool.'
+        },
+        'stress-echo': {
+            icon: 'fa-heart-circle-exclamation',
+            name: 'Contrast Stress Echocardiography',
+            spec: 'Ischemia detection for 15-85% likelihood. Class I (Level B).',
+            title: 'Stress Echo Contrast Agents',
+            body: 'Stress echocardiography is recommended for diagnosing ischemia in moderate/high likelihood. If two or more contiguous myocardial segments are poorly visualized, intravenous contrast microbubbles are recommended (Class I, Level B).',
+            badge: 'CLASS I (LEVEL B)',
+            color: 'var(--accent-green)',
+            dec: 'Strongly recommended. Microbubble contrast enhances border resolution.'
+        },
+        'pet-spect': {
+            icon: 'fa-gauge-high',
+            name: 'SPECT / PET Perfusion Imaging',
+            spec: 'Myocardial blood flow quantification. Class I (Level B).',
+            title: 'SPECT / PET Recommendation',
+            body: 'Recommended to diagnose and quantify myocardial ischemia/scar in moderate-to-high likelihood. PET is preferred for quantitative myocardial blood flow mapping.',
+            badge: 'CLASS I (LEVEL B)',
+            color: 'var(--accent-green)',
+            dec: 'Strongly recommended. Quantifies ischemic territory.'
+        },
+        'stress-cmr': {
+            icon: 'fa-magnet',
+            name: 'Stress Cardiac MRI',
+            spec: 'High-resolution perfusion imaging. Class I (Level B).',
+            title: 'Stress CMR Recommendation',
+            body: 'CMR perfusion imaging is recommended to diagnose and quantify myocardial ischemia or scar and estimate Major Adverse Cardiovascular Events (MACE) risk in moderate/high likelihood.',
+            badge: 'CLASS I (LEVEL B)',
+            color: 'var(--accent-green)',
+            dec: 'Strongly recommended. Superior resolution for subendocardial perfusion.'
+        },
+        'ica': {
+            icon: 'fa-syringe',
+            name: 'Invasive Coronary Angiography (ICA)',
+            spec: 'Radial access preferred. FFR required for intermediate stenoses.',
+            title: 'ICA Wording & Access Sites',
+            body: 'When ICA is indicated, radial access is recommended as the preferred site (Class I, Level A). Selective FFR/iFR wire assessment of functional severity of intermediate stenoses is recommended (Class I, Level A).',
+            badge: 'CLASS I (LEVEL A)',
+            color: 'var(--accent-green)',
+            dec: 'Radial access is indicated. Wire-based pressure assessment required before PCI.'
+        }
+    };
+
+    function selectModality(modName) {
+        selectedModality = modName;
+        document.querySelectorAll('#controls-modalities .btn-select').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-mod="${modName}"]`).classList.add('active');
+        updateScene();
+    }
+
+    function toggleMace(metric) {
+        maceStates[metric] = !maceStates[metric];
+        const btn = document.getElementById(`mace-${metric}`);
+        const tag = document.getElementById(`tag-${metric}`);
+        
+        if (maceStates[metric]) {
+            btn.classList.add('active');
+            tag.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+            tag.classList.remove('active');
+        }
+        updateScene();
+    }
+
+    function updateCalculators() {
+        const age = parseInt(document.getElementById('slider-age').value);
+        const rf = parseInt(document.getElementById('slider-rf').value);
+        const cacs = parseInt(document.getElementById('slider-cacs').value);
+
+        // Update labels
+        document.getElementById('age-val').innerText = age + ' Years';
+        document.getElementById('rf-val').innerText = rf + ' Factors';
+        document.getElementById('cacs-val').innerText = cacs + ' Agatston';
+
+        // Calculate pretest likelihood
+        // Rough estimation formula
+        let score = (age - 30) * 0.8 + (rf * 12);
+        if (cacs > 0) score += (cacs * 0.05);
+        score = Math.max(1, Math.min(99, score));
+
+        document.getElementById('pretest-pct').innerText = score.toFixed(0) + '%';
+        document.getElementById('radial-bg').style.background = `conic-gradient(var(--accent-blue) ${score}%, #21262d ${score}%)`;
+
+        const label = document.getElementById('likelihood-tier');
+        if (score <= 5) {
+            label.innerText = 'Very Low Likelihood (≤5%)';
+            label.style.color = 'var(--accent-green)';
+        } else if (score > 5 && score <= 15) {
+            label.innerText = 'Low Likelihood (5-15%)';
+            label.style.color = '#ffda73';
+        } else if (score > 15 && score <= 50) {
+            label.innerText = 'Moderate Likelihood (15-50%)';
+            label.style.color = 'var(--accent-orange)';
+        } else {
+            label.innerText = 'High Likelihood (>50%)';
+            label.style.color = 'var(--accent-red)';
+        }
+
+        updateScene();
+    }
+
+    function switchPerspective(perspectiveName) {
+        currentPerspective = perspectiveName;
+        document.querySelectorAll('.btn-toggle').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        if (perspectiveName === 'calculator') {
+            document.querySelectorAll('.btn-toggle')[0].classList.add('active');
+            document.getElementById('controls-calculator').style.display = 'block';
+            document.getElementById('controls-modalities').style.display = 'none';
+            document.getElementById('controls-mace').style.display = 'none';
+            document.getElementById('controls-title').innerHTML = '<i class="fa-solid fa-square-poll-vertical"></i> Clinical Parameters';
+        }
+        if (perspectiveName === 'modalities') {
+            document.querySelectorAll('.btn-toggle')[1].classList.add('active');
+            document.getElementById('controls-calculator').style.display = 'none';
+            document.getElementById('controls-modalities').style.display = 'block';
+            document.getElementById('controls-mace').style.display = 'none';
+            document.getElementById('controls-title').innerHTML = '<i class="fa-solid fa-circle-nodes"></i> Modality Selection';
+        }
+        if (perspectiveName === 'mace') {
+            document.querySelectorAll('.btn-toggle')[2].classList.add('active');
+            document.getElementById('controls-calculator').style.display = 'none';
+            document.getElementById('controls-modalities').style.display = 'none';
+            document.getElementById('controls-mace').style.display = 'block';
+            document.getElementById('controls-title').innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Toggle High-Risk Metrics';
+        }
+        
+        document.querySelectorAll('.perspective-view').forEach(view => {
+            view.classList.remove('active');
+        });
+        if (perspectiveName === 'calculator') document.getElementById('view-calculator').classList.add('active');
+        if (perspectiveName === 'modalities') document.getElementById('view-modalities').classList.add('active');
+        if (perspectiveName === 'mace') document.getElementById('view-mace').classList.add('active');
+
+        updateScene();
+    }
+
+    function updateScene() {
+        const badge = document.getElementById('result-badge');
+        const icon = document.getElementById('decision-icon');
+        
+        if (currentPerspective === 'calculator') {
+            const pct = parseInt(document.getElementById('pretest-pct').innerText);
+            
+            badge.style.backgroundColor = 'rgba(88, 166, 255, 0.15)';
+            badge.style.color = 'var(--accent-blue)';
+            badge.style.borderColor = 'var(--accent-blue)';
+            badge.innerText = 'PRE-TEST LIKELIHOOD';
+
+            document.getElementById('clinical-desc-title').innerText = 'Clinical Pre-Test Likelihood Model';
+            
+            if (pct <= 5) {
+                document.getElementById('clinical-desc-body').innerText = 'In individuals with a very low (≤5%) pre-test likelihood of obstructive CAD, deferral of further diagnostic testing should be considered (Class IIa, Level B).';
+                document.getElementById('decision-weight-txt').innerText = 'Class IIa: Deferring diagnostic testing is suggested.';
+                icon.className = 'fa-solid fa-circle-info';
+                icon.style.color = 'var(--accent-green)';
+            } else if (pct > 5 && pct <= 15) {
+                document.getElementById('clinical-desc-body').innerText = 'In individuals with a low (>5%-15%) likelihood, CACS (Coronary Artery Calcium Score) should be considered to reclassify subjects and identify more low likelihood patients (Class IIa, Level B). Exercise ECG or non-coronary atherosclerosis checks may be considered (Class IIb, Level C).';
+                document.getElementById('decision-weight-txt').innerText = 'Class IIa: Perform CACS check for reclassification.';
+                icon.className = 'fa-solid fa-circle-info';
+                icon.style.color = '#ffda73';
+            } else if (pct > 15 && pct <= 50) {
+                document.getElementById('clinical-desc-body').innerText = 'In individuals with low or moderate (>5%-50%) likelihood, CCTA is recommended as the preferred diagnostic modality (Class I, Level A).';
+                document.getElementById('decision-weight-txt').innerText = 'Class I: CCTA is indicated to diagnose/exclude CAD.';
+                icon.className = 'fa-solid fa-circle-check';
+                icon.style.color = 'var(--accent-blue)';
+            } else {
+                document.getElementById('clinical-desc-body').innerText = 'In moderate or high (>15%-85%) likelihood, stress echocardiography, SPECT/PET, or stress CMR are recommended to diagnose myocardial ischemia and MACE risk (Class I, Level B).';
+                document.getElementById('decision-weight-txt').innerText = 'Class I: Stress imaging (perfusion/wall motion) is indicated.';
+                icon.className = 'fa-solid fa-circle-check';
+                icon.style.color = 'var(--accent-red)';
+            }
+        } 
+        else if (currentPerspective === 'modalities') {
+            const config = modData[selectedModality];
+            
+            // Visual elements
+            document.getElementById('mod-icon').className = `fa-solid ${config.icon} modality-visualizer`;
+            document.getElementById('mod-name-label').innerText = config.name;
+            document.getElementById('mod-spec-txt').innerText = config.spec;
+
+            // Details
+            badge.style.backgroundColor = config.color === 'var(--accent-green)' ? 'rgba(63, 185, 80, 0.15)' : (config.color === 'var(--accent-red)' ? 'rgba(248, 81, 73, 0.15)' : 'rgba(210, 153, 34, 0.15)');
+            badge.style.color = config.color;
+            badge.style.borderColor = config.color;
+            badge.innerText = config.badge;
+
+            document.getElementById('clinical-desc-title').innerText = config.title;
+            document.getElementById('clinical-desc-body').innerText = config.body;
+            document.getElementById('decision-weight-txt').innerText = config.dec;
+            icon.className = 'fa-solid fa-circle-check';
+            icon.style.color = 'var(--accent-green)';
+        } 
+        else if (currentPerspective === 'mace') {
+            // Count active high risk criteria
+            let activeCount = 0;
+            for (let key in maceStates) {
+                if (maceStates[key]) activeCount++;
+            }
+
+            if (activeCount >= 1) {
+                badge.style.backgroundColor = 'rgba(248, 81, 73, 0.15)';
+                badge.style.color = 'var(--accent-red)';
+                badge.style.borderColor = 'var(--accent-red)';
+                badge.innerText = `HIGH MACE RISK (${activeCount} CRITERIA)`;
+
+                document.getElementById('clinical-desc-title').innerText = 'High Risk of Adverse Events';
+                document.getElementById('clinical-desc-body').innerText = 'The patient meets one or more key diagnostic thresholds that identify high risk of spontaneous MI, cardiovascular death, or major events. Immediate therapeutic revascularization (PCI or CABG) is indicated.';
+                document.getElementById('decision-weight-txt').innerText = 'Class I recommendation for invasive angiography with a view to revascularize.';
+                icon.className = 'fa-solid fa-triangle-exclamation';
+                icon.style.color = 'var(--accent-red)';
+            } else {
+                badge.style.backgroundColor = 'rgba(63, 185, 80, 0.15)';
+                badge.style.color = 'var(--accent-green)';
+                badge.style.borderColor = 'var(--accent-green)';
+                badge.innerText = 'STABLE / LOW MACE RISK';
+
+                document.getElementById('clinical-desc-title').innerText = 'No High-Risk Metrics Met';
+                document.getElementById('clinical-desc-body').innerText = 'The patient does not fulfill any high-risk MACE criteria. Treadmill, stress echo, perfusion scans, and anatomy indicate a lower risk of imminent cardiovascular events.';
+                document.getElementById('decision-weight-txt').innerText = 'Manage with guideline-directed medical therapy (GDMT).';
+                icon.className = 'fa-solid fa-circle-check';
+                icon.style.color = 'var(--accent-green)';
+            }
+        }
+    }
+
+    // Egyptian Accordion Toggle
+    function toggleAccordion() {
+        const content = document.getElementById('accordion-content');
+        const icon = document.getElementById('accordion-icon');
+        
+        if (content.classList.contains('open')) {
+            content.classList.remove('open');
+            icon.style.transform = 'rotate(0deg)';
+        } else {
+            content.classList.add('open');
+            icon.style.transform = 'rotate(180deg)';
+        }
+    }
+
+    // Initial setup
+    updateCalculators();
+</script>
+</body>
+</html>
