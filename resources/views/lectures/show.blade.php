@@ -63,6 +63,15 @@
                         </a>
                     </div>
                     @endif
+
+                    <!-- Navigation Footer -->
+                    @if($nextLecture)
+                    <div class="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+                        <a href="{{ route('lectures.show', $nextLecture) }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
+                            Start Next Lecture: {{ $nextLecture->title }} ➔
+                        </a>
+                    </div>
+                    @endif
                 </div>
             </div>
 

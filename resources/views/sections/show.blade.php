@@ -227,6 +227,32 @@
                         </div>
                     </div>
                     @endif
+
+                    <!-- Navigation Footer -->
+                    <div class="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <div>
+                            <a href="{{ route('lectures.show', $section->lecture_id) }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+                                👈 Back to Lecture Overview
+                            </a>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            @if($nextSection)
+                            <a href="{{ route('sections.show', $nextSection) }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
+                                Next Section: {{ $nextSection->title }} ➔
+                            </a>
+                            @endif
+
+                            @if($nextLecture)
+                            <a href="{{ route('lectures.show', $nextLecture) }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
+                                @if(!$nextSection)
+                                    Start Next Lecture: {{ $nextLecture->title }} ➔
+                                @else
+                                    Skip to Next Lecture: {{ $nextLecture->title }} ➔
+                                @endif
+                            </a>
+                            @endif
+                        </div>
+                    </div>
                 </div>
             </div>
 

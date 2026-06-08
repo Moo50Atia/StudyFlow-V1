@@ -1,0 +1,26 @@
+First, I want you to act as a Data Architect. Your task is to structurally divide the provided textbook into a strict hierarchy.
+Do NOT summarize or explain the content. ONLY map out the structure.
+Ensure every piece of information is logically connected without losing any data points.
+
+Follow this strict hierarchical mapping:
+Chapter =>
+Mini Chapter (if applicable) =>
+Lesson (if applicable)
+
+Output Format: Provide ONLY the structural map. Do NOT output any actual educational data or explanations from the lessons.
+
+==================================================
+EXECUTION PROTOCOL (LESSON BY LESSON)
+You have successfully mapped the document structure. Now, we will process the content precisely.
+
+1. I have provided the Advanced Medical 3-Step Framework (First, Second, Third) above.
+2. You will strictly apply these 3 steps ONLY to the content of the very first "Lesson" in your structural map. Do NOT read ahead or summarize other lessons.
+3. Once you generate the final Dynamic View prompt for this Lesson, STOP completely.
+4. End your response with: "✅ Lesson [X] Completed. Awaiting 'Continue' for the next lesson."
+5. Whenever I type ONLY the word "Continue", you will automatically move to the next Lesson in your map and apply the exact same 3 steps.
+6. Note that if you didn't find a lesson in the mini Chapter Treat The Mini  Chapter as a lesson 
+7. you will find the steps in Folder "Steps"
+
+Based on the Material You Choose The Best Steps From the Folder 
+
+Replay only With The Name Of the File You Choose as Steps And The Divided Content 

@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biomechanical Kinematics: TMJ & Dentition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #050505; color: #e5e7eb; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #canvas-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; }
+        
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Custom Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+        input[type=range]:focus { outline: none; }
+
+        .btn-active { background-color: #0284c7; border-color: #38bdf8; color: white; }
+        .btn-inactive { background-color: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: #cbd5e1; }
+        
+        .highlight-text { color: #38bdf8; }
+        .trace-text { color: #4ade80; }
+        .croc-text { color: #facc15; }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <!-- UI Overlay -->
+    <div class="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-6">
+        
+        <!-- Header & Controls -->
+        <div class="flex justify-between items-start w-full">
+            <div class="glass-panel p-6 rounded-2xl w-96 pointer-events-auto">
+                <h1 class="text-2xl font-bold mb-1 text-white tracking-wide">Biomechanical Kinematics</h1>
+                <p class="text-xs text-gray-400 mb-6 uppercase tracking-widest border-b border-gray-700 pb-2">TMJ & Dentition Comparative Analysis</p>
+                
+                <div class="space-y-6">
+                    <!-- Kinematic Slider -->
+                    <div>
+                        <label class="flex justify-between text-sm font-semibold text-gray-300 mb-2">
+                            <span>Jaw Opening (Kinematics)</span>
+                            <span id="opening-val">0%</span>
+                        </label>
+                        <input type="range" id="kinematic-slider" min="0" max="100" value="0">
+                        <div class="text-[10px] text-gray-500 mt-1 flex justify-between">
+                            <span>Closed (Occlusion)</span>
+                            <span>Max Opening</span>
+                        </div>
+                    </div>
+
+                    <!-- Growth Slider -->
+                    <div class="pt-2 border-t border-gray-700">
+                        <label class="flex justify-between text-sm font-semibold text-gray-300 mb-2">
+                            <span class="highlight-text">Facial Skeleton Growth (Age)</span>
+                            <span id="growth-val">Child</span>
+                        </label>
+                        <input type="range" id="growth-slider" min="100" max="150" value="100">
+                        <div class="text-[10px] text-gray-500 mt-1">Simulates jaw expansion. Observe tooth spatial relationship.</div>
+                    </div>
+
+                    <!-- Toggles -->
+                    <div class="flex flex-col gap-3 pt-2 border-t border-gray-700">
+                        <button id="btn-transparency" class="pointer-events-auto w-full py-2 px-4 rounded-lg text-sm font-medium transition-all duration-300 btn-inactive border">
+                            Toggle Fossa/Skull Transparency
+                        </button>
+                        <button id="btn-dentition" class="pointer-events-auto w-full py-2 px-4 rounded-lg text-sm font-medium transition-all duration-300 btn-inactive border hidden">
+                            Erupt Permanent Dentition
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Legend / View Labels -->
+            <div class="flex gap-12 pointer-events-auto">
+                <div class="glass-panel px-4 py-2 rounded-lg text-center border-t-2 border-[#38bdf8]">
+                    <span class="block text-sm font-bold">Human (Diphyodont)</span>
+                    <span class="text-xs text-gray-400">Complex Translation/Rotation</span>
+                </div>
+                <div class="glass-panel px-4 py-2 rounded-lg text-center border-t-2 border-[#facc15]">
+                    <span class="block text-sm font-bold">Crocodile (Polyphyodont)</span>
+                    <span class="text-xs text-gray-400">Simple Hinge Axis</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Educational Info Panel -->
+        <div class="glass-panel p-6 rounded-2xl w-[28rem] pointer-events-auto self-end backdrop-blur-md">
+            <h2 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Kinematic & Biological Analysis
+            </h2>
+            <div id="info-content" class="text-sm text-gray-300 space-y-3 leading-relaxed">
+                <p><strong>Kinematic Contrast:</strong> The <span class="croc-text">crocodile (haplodont) jaw</span> utilizes a simple hinge rotation. In contrast, the <span class="highlight-text">human TMJ</span> requires complex <em>condylar translation</em> combined with rotation.</p>
+                <p>Use the <span class="text-white font-semibold">Jaw Opening slider</span> to observe the <span class="trace-text">green kinematic tracing line</span> tracking the 3D pathway of the human condyle along the articular eminence of the Glenoid Fossa.</p>
+                <p class="text-blue-200 mt-2 p-2 bg-blue-900/30 rounded border border-blue-800/50"><strong>Interaction Required:</strong> Advance the "Facial Skeleton Growth" slider to reveal the necessity of human diphyodonty.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        window.onload = function() {
+            initApp();
+        };
+
+        function initApp() {
+            // Scene Setup
+            const container = document.getElementById('canvas-container');
+            const scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x050505, 0.02);
+
+            const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 2, 12);
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(0, 0, 0);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 10, 7);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+            
+            const backLight = new THREE.DirectionalLight(0x38bdf8, 0.5);
+            backLight.position.set(-5, -5, -5);
+            scene.add(backLight);
+
+            // Materials
+            const boneMat = new THREE.MeshStandardMaterial({ 
+                color: 0xeae5d9, roughness: 0.7, metalness: 0.1 
+            });
+            const transBoneMat = new THREE.MeshStandardMaterial({ 
+                color: 0x88aacc, roughness: 0.2, metalness: 0.1, transparent: true, opacity: 0.2, depthWrite: false 
+            });
+            const primaryTeethMat = new THREE.MeshStandardMaterial({ 
+                color: 0xffffff, roughness: 0.2, metalness: 0.1 
+            });
+            const permanentTeethMat = new THREE.MeshStandardMaterial({ 
+                color: 0xfdfdfd, roughness: 0.1, metalness: 0.2 
+            });
+            const crocTeethMat = new THREE.MeshStandardMaterial({ 
+                color: 0xdcd0ba, roughness: 0.6, metalness: 0.1 
+            });
+            const condyleMat = new THREE.MeshStandardMaterial({ 
+                color: 0xef4444, roughness: 0.4, metalness: 0.2 
+            });
+
+            // --- 1. HUMAN MODEL (Left) ---
+            const humanGroup = new THREE.Group();
+            humanGroup.position.set(-3.5, 0, 0);
+            scene.add(humanGroup);
+
+            // Human Maxilla / Fossa
+            const skullBaseGeo = new THREE.BoxGeometry(2.5, 1.5, 3);
+            const skullBase = new THREE.Mesh(skullBaseGeo, boneMat);
+            skullBase.position.set(0, 2.5, -0.5);
+            skullBase.castShadow = true;
+            skullBase.userData.isFossa = true;
+            humanGroup.add(skullBase);
+
+            // Human Mandible
+            const humanMandibleGroup = new THREE.Group();
+            // Origin at TMJ Condyle
+            humanMandibleGroup.position.set(0, 1.8, -1.2); 
+            
+            const ramusGeo = new THREE.BoxGeometry(0.8, 1.8, 0.6);
+            const ramus = new THREE.Mesh(ramusGeo, boneMat);
+            ramus.position.set(0, -0.9, 0);
+            humanMandibleGroup.add(ramus);
+
+            const jawBodyGeo = new THREE.BoxGeometry(2.2, 0.7, 2.5);
+            const jawBody = new THREE.Mesh(jawBodyGeo, boneMat);
+            jawBody.position.set(0.7, -1.6, 1.0);
+            humanMandibleGroup.add(jawBody);
+
+            const condyleGeo = new THREE.SphereGeometry(0.35, 16, 16);
+            const condyle = new THREE.Mesh(condyleGeo, condyleMat);
+            humanMandibleGroup.add(condyle); // At origin 0,0,0
+
+            humanGroup.add(humanMandibleGroup);
+
+            // Human Dentition
+            const primaryTeeth = [];
+            const permanentTeeth = [];
+            
+            function createTeeth(isUpper, isPermanent) {
+                const group = new THREE.Group();
+                const count = isPermanent ? 8 : 5; // Half arch simplified
+                const scale = isPermanent ? 1.4 : 1.0;
+                const mat = isPermanent ? permanentTeethMat : primaryTeethMat;
+                
+                for(let i=0; i<count; i++) {
+                    const tGeo = new THREE.BoxGeometry(0.25 * scale, 0.4 * scale, 0.25 * scale);
+                    const tooth = new THREE.Mesh(tGeo, mat);
+                    // Arranging in a simple curve
+                    const angle = (i / (count-1)) * Math.PI/2 - Math.PI/4;
+                    const radius = 1.0;
+                    tooth.position.x = 1.2 + radius * Math.cos(angle);
+                    tooth.position.z = 1.0 + radius * Math.sin(angle);
+                    tooth.position.y = isUpper ? -0.2 : 0.2;
+                    
+                    if(!isPermanent) primaryTeeth.push(tooth);
+                    else {
+                        tooth.visible = false;
+                        permanentTeeth.push(tooth);
+                    }
+                    group.add(tooth);
+                }
+                return group;
+            }
+
+            const upperPrimary = createTeeth(true, false);
+            upperPrimary.position.set(-0.5, 1.75, 0.5);
+            humanGroup.add(upperPrimary);
+
+            const lowerPrimary = createTeeth(false, false);
+            lowerPrimary.position.set(-0.5, -1.25, 0);
+            humanMandibleGroup.add(lowerPrimary);
+
+            const upperPerm = createTeeth(true, true);
+            upperPerm.position.set(-0.5, 1.75, 0.5);
+            humanGroup.add(upperPerm);
+
+            const lowerPerm = createTeeth(false, true);
+            lowerPerm.position.set(-0.5, -1.25, 0);
+            humanMandibleGroup.add(lowerPerm);
+
+            // Kinematic Tracing Line (Human)
+            const tracePoints = [];
+            const START_Y = 1.8;
+            const START_Z = -1.2;
+            for(let i=0; i<=20; i++) {
+                let t = i/20;
+                // Translation path: moves forward and down
+                tracePoints.push(new THREE.Vector3(0, START_Y - t*0.4, START_Z + t*0.6));
+            }
+            const traceGeo = new THREE.BufferGeometry().setFromPoints(tracePoints);
+            const traceMat = new THREE.LineBasicMaterial({ color: 0x4ade80, linewidth: 3, transparent: true, opacity: 0.8 });
+            const traceLine = new THREE.Line(traceGeo, traceMat);
+            humanGroup.add(traceLine);
+
+            // Glowing marker at current condyle position
+            const markerGeo = new THREE.SphereGeometry(0.1, 16, 16);
+            const markerMat = new THREE.MeshBasicMaterial({ color: 0x4ade80 });
+            const traceMarker = new THREE.Mesh(markerGeo, markerMat);
+            humanGroup.add(traceMarker);
+
+            // --- 2. CROCODILE MODEL (Right) ---
+            const crocGroup = new THREE.Group();
+            crocGroup.position.set(3.5, 0, 0);
+            scene.add(crocGroup);
+
+            // Croc Skull
+            const crocSkullGeo = new THREE.BoxGeometry(4.5, 1.0, 2);
+            const crocSkull = new THREE.Mesh(crocSkullGeo, boneMat);
+            crocSkull.position.set(0.5, 2.0, 0);
+            crocSkull.userData.isFossa = true;
+            crocGroup.add(crocSkull);
+
+            // Croc Mandible
+            const crocMandibleGroup = new THREE.Group();
+            // Origin at Hinge
+            crocMandibleGroup.position.set(-1.5, 1.5, 0); 
+            
+            const crocJawGeo = new THREE.BoxGeometry(4.5, 0.8, 2.2);
+            const crocJaw = new THREE.Mesh(crocJawGeo, boneMat);
+            crocJaw.position.set(2.0, -0.4, 0);
+            crocMandibleGroup.add(crocJaw);
+
+            const crocHingeGeo = new THREE.CylinderGeometry(0.3, 0.3, 2.4, 16);
+            const crocHinge = new THREE.Mesh(crocHingeGeo, condyleMat);
+            crocHinge.rotation.x = Math.PI / 2;
+            crocMandibleGroup.add(crocHinge);
+
+            crocGroup.add(crocMandibleGroup);
+
+            // Croc Teeth (Polyphyodont - mixed sizes)
+            function createCrocTeeth(isUpper) {
+                const group = new THREE.Group();
+                for(let i=0; i<12; i++) {
+                    const scale = 0.5 + Math.random() * 0.8; // Random sizes simulating continuous replacement
+                    const tGeo = new THREE.ConeGeometry(0.15 * scale, 0.6 * scale, 8);
+                    const tooth = new THREE.Mesh(tGeo, crocTeethMat);
+                    tooth.position.x = -1.0 + i * 0.4;
+                    tooth.position.z = isUpper ? 0.8 : 0.9; 
+                    if(i%2==0) tooth.position.z = -tooth.position.z; // zig zag rough
+                    tooth.position.y = isUpper ? -0.3 : 0.3;
+                    if(isUpper) tooth.rotation.z = Math.PI;
+                    group.add(tooth);
+                }
+                return group;
+            }
+
+            const crocUpperTeeth = createCrocTeeth(true);
+            crocUpperTeeth.position.set(1.0, 1.5, 0);
+            crocGroup.add(crocUpperTeeth);
+
+            const crocLowerTeeth = createCrocTeeth(false);
+            crocLowerTeeth.position.set(2.0, 0, 0);
+            crocMandibleGroup.add(crocLowerTeeth);
+
+
+            // --- INTERACTION LOGIC ---
+            
+            const kinSlider = document.getElementById('kinematic-slider');
+            const openingVal = document.getElementById('opening-val');
+            const growthSlider = document.getElementById('growth-slider');
+            const growthVal = document.getElementById('growth-val');
+            const btnTrans = document.getElementById('btn-transparency');
+            const btnDent = document.getElementById('btn-dentition');
+            const infoContent = document.getElementById('info-content');
+
+            let isTransparent = false;
+            let showPermanent = false;
+            let currentGrowth = 1.0;
+
+            function updateKinematics() {
+                const t = parseInt(kinSlider.value) / 100;
+                openingVal.innerText = `${kinSlider.value}%`;
+
+                // Human Kinematics: Translation + Rotation
+                // Translation down eminence
+                const humanX = 0;
+                const humanY = START_Y - t * 0.4;
+                const humanZ = START_Z + t * 0.6;
+                humanMandibleGroup.position.set(humanX, humanY, humanZ);
+                // Rotation
+                humanMandibleGroup.rotation.x = t * (Math.PI / 6); // 30 deg
+
+                // Update marker
+                traceMarker.position.set(humanX, humanY, humanZ);
+
+                // Croc Kinematics: Pure Hinge Rotation
+                crocMandibleGroup.rotation.z = -t * (Math.PI / 4); // 45 deg, z-axis based on layout
+            }
+
+            function updateEducationalText(growthLevel) {
+                if(showPermanent) {
+                    infoContent.innerHTML = `
+                        <h3 class="text-white font-bold mb-1 border-b border-gray-600 pb-1">Final State: Biological Necessity</h3>
+                        <p class="text-green-400 font-semibold mb-2">Misconception Corrected: Teeth do NOT grow with the jaw.</p>
+                        <p>Because enamel cannot undergo cellular remodeling to increase in size once formed, <span class="highlight-text">Diphyodonty</span> is mechanically required.</p>
+                        <p>The primary teeth are shed to accommodate a larger, more numerous secondary set, perfectly sized for the adult facial skeleton.</p>
+                    `;
+                } else if(growthLevel > 1.1) {
+                    infoContent.innerHTML = `
+                        <h3 class="text-white font-bold mb-1">Growth Phase</h3>
+                        <p>Notice how the skeletal arches expand, but the <strong>primary teeth remain fixed in absolute size.</strong></p>
+                        <p class="text-red-400 mt-2">Visually evident: Massive interdental gaps are forming. The current dentition is mechanically insufficient for the expanding jaw.</p>
+                        <p class="mt-2 text-sm italic">Click 'Erupt Permanent Dentition' to resolve this biomechanical constraint.</p>
+                    `;
+                } else {
+                    infoContent.innerHTML = `
+                        <p><strong>Kinematic Contrast:</strong> The <span class="croc-text">crocodile (haplodont) jaw</span> utilizes a simple hinge rotation. In contrast, the <span class="highlight-text">human TMJ</span> requires complex <em>condylar translation</em> combined with rotation.</p>
+                        <p>Use the <span class="text-white font-semibold">Jaw Opening slider</span> to observe the <span class="trace-text">green kinematic tracing line</span> tracking the 3D pathway of the human condyle along the articular eminence of the Glenoid Fossa.</p>
+                        <p class="text-blue-200 mt-2 p-2 bg-blue-900/30 rounded border border-blue-800/50"><strong>Interaction Required:</strong> Advance the "Facial Skeleton Growth" slider to reveal the necessity of human diphyodonty.</p>
+                    `;
+                }
+            }
+
+            function updateGrowth() {
+                const scale = parseInt(growthSlider.value) / 100; // 1.0 to 1.5
+                currentGrowth = scale;
+                growthVal.innerText = scale === 1.0 ? "Child" : scale === 1.5 ? "Adult" : "Growing...";
+
+                // Scale skeletal bones of the human
+                skullBase.scale.set(scale, scale, scale);
+                ramus.scale.set(scale, scale, scale);
+                jawBody.scale.set(scale, scale, scale);
+                
+                // CRUCIAL BIOMECHANICAL POINT:
+                // Primary teeth MUST NOT SCALE. We inverse-scale them relative to the growing jaw 
+                // to maintain absolute size, creating the realistic spacing/gaps.
+                primaryTeeth.forEach(tooth => {
+                    tooth.scale.set(1/scale, 1/scale, 1/scale);
+                });
+
+                if(scale > 1.1 && !showPermanent) {
+                    btnDent.classList.remove('hidden');
+                } else if (scale <= 1.1) {
+                    btnDent.classList.add('hidden');
+                }
+
+                updateEducationalText(scale);
+            }
+
+            // Event Listeners
+            kinSlider.addEventListener('input', updateKinematics);
+            growthSlider.addEventListener('input', updateGrowth);
+
+            btnTrans.addEventListener('click', () => {
+                isTransparent = !isTransparent;
+                if(isTransparent) {
+                    skullBase.material = transBoneMat;
+                    crocSkull.material = transBoneMat;
+                    btnTrans.classList.replace('btn-inactive', 'btn-active');
+                } else {
+                    skullBase.material = boneMat;
+                    crocSkull.material = boneMat;
+                    btnTrans.classList.replace('btn-active', 'btn-inactive');
+                }
+            });
+
+            btnDent.addEventListener('click', () => {
+                showPermanent = !showPermanent;
+                if(showPermanent) {
+                    primaryTeeth.forEach(t => t.visible = false);
+                    permanentTeeth.forEach(t => t.visible = true);
+                    btnDent.innerText = "Revert to Primary Dentition";
+                    btnDent.classList.replace('btn-inactive', 'btn-active');
+                } else {
+                    primaryTeeth.forEach(t => t.visible = true);
+                    permanentTeeth.forEach(t => t.visible = false);
+                    btnDent.innerText = "Erupt Permanent Dentition";
+                    btnDent.classList.replace('btn-active', 'btn-inactive');
+                }
+                updateEducationalText(currentGrowth);
+            });
+
+            // Handle Resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            // Animation Loop
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            }
+            animate();
+        }
+    </script>
+</body>
+</html>

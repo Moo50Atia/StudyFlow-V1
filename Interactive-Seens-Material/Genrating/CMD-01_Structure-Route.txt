@@ -1,0 +1,43 @@
+╔══════════════════════════════════════════════════════════════╗
+║                  CMD-01 — READ MANIFEST                      ║
+╚══════════════════════════════════════════════════════════════╝
+
+CONTEXT:
+- The user has already run: python preprocessor.py "path\to\user-folder"
+- This generated a manifest.json inside the user folder.
+
+YOUR TASK:
+
+STEP 1 — READ THE MANIFEST:
+Read the manifest.json file provided by the user.
+It contains the full structure + route + content, already parsed.
+
+STEP 2 — CONFIRM THE STRUCTURE:
+Print the full lesson map exactly as found in the manifest:
+
+MATERIAL: [file]
+───────────────────────────────────────
+Chapter 1: [title]
+  Mini Chapter 1.1: [title]
+    Lesson 1.1.1: [title]  ← view_name: [view_name]
+    Lesson 1.1.2: [title]  ← view_name: [view_name]
+  Mini Chapter 1.2: [title] ← (treated as lesson)
+Chapter 2: [title]
+  ...
+
+TOTAL LESSONS: [total_lessons from manifest]
+ROUTE: [route from manifest]
+
+STEP 3 — CONFIRM READY:
+Print:
+  ✅ Manifest loaded. [N] lessons ready to process.
+  ✅ Route: [General / Medical]
+  ✅ Output will be saved to: [output_path from manifest]
+  
+  Type 'Run CMD-02' to start generating.
+
+══════════════════════════════════════════════════════════════
+STRICT RULES:
+- Do NOT re-parse or re-read the original PDF/TXT files.
+- The manifest.json is the single source of truth.
+- Do NOT modify or summarize any content from the manifest.

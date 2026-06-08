@@ -29,8 +29,19 @@ class SectionController extends Controller
 
     public function show(Section $section): \Illuminate\Contracts\View\View
     {
-        $section->load('lecture.subject');
-        return view('sections.show', compact('section'));
+        $section->load(['lecture.subject', 'lecture.sections', 'lecture.questions', 'lecture.examQuestions']);
+        
+        $nextSection = Section::where('lecture_id', $section->lecture_id)
+            ->where('id', '>', $section->id)
+            ->orderBy('id', 'asc')
+            ->first();
+
+        $nextLecture = Lecture::where('subject_id', $section->lecture->subject_id)
+            ->where('id', '>', $section->lecture_id)
+            ->orderBy('id', 'asc')
+            ->first();
+
+        return view('sections.show', compact('section', 'nextSection', 'nextLecture'));
     }
 
     public function edit(Section $section): \Illuminate\Contracts\View\View

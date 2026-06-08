@@ -43,7 +43,13 @@ class LectureController extends Controller
     public function show(Lecture $lecture): \Illuminate\Contracts\View\View
     {
         $lecture->load(['subject', 'sections', 'questions', 'examQuestions']);
-        return view('lectures.show', compact('lecture'));
+        
+        $nextLecture = Lecture::where('subject_id', $lecture->subject_id)
+            ->where('id', '>', $lecture->id)
+            ->orderBy('id', 'asc')
+            ->first();
+
+        return view('lectures.show', compact('lecture', 'nextLecture'));
     }
 
     public function edit(Lecture $lecture): \Illuminate\Contracts\View\View
