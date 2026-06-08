@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coronary Microvascular Dysfunction (CMD) Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background-color: #050510; color: #e2e8f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; }
+        .interactive { pointer-events: auto; }
+        .glass-panel { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; }
+        
+        /* Custom Toggle Switch */
+        .switch { position: relative; display: inline-block; width: 50px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #475569; transition: .4s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #ef4444; }
+        input:checked + .slider:before { transform: translateX(26px); }
+
+        /* Custom Range Slider */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #3b82f6; cursor: pointer; margin-top: -6px; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #475569; border-radius: 2px; }
+        
+        #ecg-container { position: relative; width: 100%; height: 120px; background: rgba(0, 20, 0, 0.8); border: 1px solid #00ff0033; border-radius: 8px; overflow: hidden; }
+        #ecg-canvas { width: 100%; height: 100%; display: block; }
+        .ecg-grid { position: absolute; top:0; left:0; width: 100%; height: 100%; background-image: linear-gradient(rgba(0, 255, 0, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 0, 0.1) 1px, transparent 1px); background-size: 20px 20px; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <!-- 3D Canvas -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Overlay -->
+    <div id="ui-layer" class="p-6">
+        
+        <!-- Header & Top Controls -->
+        <div class="flex justify-between items-start gap-6">
+            <div class="glass-panel p-5 w-80 interactive shadow-xl">
+                <h1 class="text-xl font-bold text-white mb-1">INOCA / CMD Explorer</h1>
+                <p class="text-xs text-slate-400 mb-4">Ischemia with No Obstructive Coronary Arteries</p>
+                
+                <div class="space-y-4">
+                    <!-- Stress Slider -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <label class="text-sm font-semibold text-blue-200">Physical Stress</label>
+                            <span id="stress-value" class="text-sm font-bold text-blue-400">Resting</span>
+                        </div>
+                        <input type="range" id="stress-slider" min="0" max="100" value="0">
+                    </div>
+
+                    <!-- Dysfunction Toggle -->
+                    <div class="flex items-center justify-between mt-4 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
+                        <div>
+                            <div class="text-sm font-semibold text-red-200">Endothelial Dysfunction</div>
+                            <div class="text-xs text-slate-400">Microvascular impairment</div>
+                        </div>
+                        <label class="switch interactive">
+                            <input type="checkbox" id="dysfunction-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View Selector -->
+            <div class="glass-panel p-2 flex space-x-2 interactive shadow-xl">
+                <button class="view-btn px-4 py-2 rounded-lg bg-blue-600 text-white font-medium text-sm transition-colors hover:bg-blue-500" data-view="diagnostic">Diagnostic View</button>
+                <button class="view-btn px-4 py-2 rounded-lg bg-slate-700 text-slate-300 font-medium text-sm transition-colors hover:bg-blue-500 hover:text-white" data-view="mechanical">Mechanical View</button>
+                <button class="view-btn px-4 py-2 rounded-lg bg-slate-700 text-slate-300 font-medium text-sm transition-colors hover:bg-blue-500 hover:text-white" data-view="chemical">Chemical View</button>
+            </div>
+        </div>
+
+        <!-- Bottom Area: Info & ECG -->
+        <div class="flex gap-6 items-end">
+            <!-- Info Panel -->
+            <div class="glass-panel p-5 w-96 interactive shadow-xl mb-2">
+                <h2 id="info-title" class="text-lg font-bold text-white mb-2">Diagnostic View: Epicardial Artery</h2>
+                <p id="info-desc" class="text-sm text-slate-300 leading-relaxed">
+                    Showing a clear, unblocked major coronary artery. Notice that even under physical stress, the main artery remains wide open. Traditional angiograms look normal here.
+                </p>
+                <div id="clinical-note" class="mt-3 p-2 bg-slate-800 rounded border border-slate-600 text-xs text-yellow-300 hidden">
+                    Warning: Patient shows signs of Ischemia on ECG despite clear arteries.
+                </div>
+            </div>
+
+            <!-- ECG Monitor -->
+            <div class="flex-1 max-w-2xl interactive mb-2">
+                <div class="text-xs font-mono text-green-400 mb-1 ml-1 flex justify-between">
+                    <span>LIVE ECG II</span>
+                    <span id="heart-rate-display">HR: 60 BPM</span>
+                </div>
+                <div id="ecg-container">
+                    <div class="ecg-grid"></div>
+                    <canvas id="ecg-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+/**
+ * Application Logic & 3D Setup
+ */
+const AppState = {
+    view: 'diagnostic', // diagnostic, mechanical, chemical
+    stress: 0, // 0 to 100
+    dysfunction: false
+};
+
+// UI Elements
+const stressSlider = document.getElementById('stress-slider');
+const stressValueDisplay = document.getElementById('stress-value');
+const dysfunctionToggle = document.getElementById('dysfunction-toggle');
+const viewBtns = document.querySelectorAll('.view-btn');
+const infoTitle = document.getElementById('info-title');
+const infoDesc = document.getElementById('info-desc');
+const clinicalNote = document.getElementById('clinical-note');
+const hrDisplay = document.getElementById('heart-rate-display');
+
+// View Descriptions
+const ViewContent = {
+    diagnostic: {
+        title: "Diagnostic View: Epicardial Artery",
+        desc: "Showing a clear, unblocked major coronary artery (like a normal CCTA scan). Notice that even under physical stress, the main artery remains wide open."
+    },
+    mechanical: {
+        title: "Mechanical View: Microcirculation",
+        desc: "Deep inside the heart muscle. Healthy micro-vessels dilate during stress to increase blood flow. If endothelial dysfunction is present, they fail to dilate, starving the muscle of oxygen."
+    },
+    chemical: {
+        title: "Chemical View: Endothelium & NO",
+        desc: "At the cellular wall. The inner layer (endothelium) releases Nitric Oxide (NO) particles to signal the outer smooth muscle to relax (dilate). Dysfunction prevents NO release."
+    }
+};
+
+// Update UI logic
+function updateUI() {
+    // Stress Text
+    if (AppState.stress < 30) stressValueDisplay.innerText = "Resting";
+    else if (AppState.stress < 70) stressValueDisplay.innerText = "Moderate";
+    else stressValueDisplay.innerText = "High Stress";
+    
+    // Heart Rate calculation (base 60, up to 160)
+    const hr = Math.floor(60 + (AppState.stress * 1.0));
+    hrDisplay.innerText = `HR: ${hr} BPM`;
+
+    // Ischemia logic (High stress + Dysfunction = Ischemia)
+    const isIschemic = AppState.stress > 50 && AppState.dysfunction;
+    
+    if (isIschemic && AppState.view === 'diagnostic') {
+        clinicalNote.classList.remove('hidden');
+        clinicalNote.innerHTML = "<strong>Paradox:</strong> ECG shows ST-depression (Ischemia), but main artery is completely clear!";
+    } else if (isIschemic && AppState.view === 'mechanical') {
+        clinicalNote.classList.remove('hidden');
+        clinicalNote.innerHTML = "<strong>Mechanism:</strong> Micro-vessels are constricted. Blood flow cannot meet the high demand of the stressed heart.";
+    } else if (isIschemic && AppState.view === 'chemical') {
+        clinicalNote.classList.remove('hidden');
+        clinicalNote.innerHTML = "<strong>Root Cause:</strong> Lack of Nitric Oxide (NO) signaling prevents smooth muscle relaxation.";
+    } else {
+        clinicalNote.classList.add('hidden');
+    }
+}
+
+// Event Listeners
+stressSlider.addEventListener('input', (e) => {
+    AppState.stress = parseInt(e.target.value);
+    updateUI();
+});
+
+dysfunctionToggle.addEventListener('change', (e) => {
+    AppState.dysfunction = e.target.checked;
+    updateUI();
+});
+
+viewBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        // Update Buttons
+        viewBtns.forEach(b => {
+            b.classList.remove('bg-blue-600', 'text-white');
+            b.classList.add('bg-slate-700', 'text-slate-300');
+        });
+        const target = e.target;
+        target.classList.remove('bg-slate-700', 'text-slate-300');
+        target.classList.add('bg-blue-600', 'text-white');
+
+        // Update State
+        AppState.view = target.dataset.view;
+        infoTitle.innerText = ViewContent[AppState.view].title;
+        infoDesc.innerText = ViewContent[AppState.view].desc;
+        updateUI();
+        
+        // Trigger 3D Camera Move
+        moveCameraToView(AppState.view);
+    });
+});
+
+
+/**
+ * Three.js 3D Simulation setup
+ */
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x050510, 0.02);
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+container.appendChild(renderer.domElement);
+
+// Lighting
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+scene.add(ambientLight);
+const dirLight = new THREE.DirectionalLight(0xffddaa, 0.8);
+dirLight.position.set(10, 20, 10);
+scene.add(dirLight);
+const pointLight = new THREE.PointLight(0xff2222, 1, 50);
+scene.add(pointLight);
+
+// Global Groups for the 3 Views
+const diagnosticGroup = new THREE.Group();
+const mechanicalGroup = new THREE.Group();
+const chemicalGroup = new THREE.Group();
+scene.add(diagnosticGroup);
+scene.add(mechanicalGroup);
+scene.add(chemicalGroup);
+
+// Materials
+const arteryMat = new THREE.MeshPhysicalMaterial({ 
+    color: 0xaa1111, transmission: 0.5, opacity: 1, transparent: true,
+    roughness: 0.2, metalness: 0.1, clearcoat: 0.8, side: THREE.DoubleSide
+});
+const rbcMat = new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.4 });
+const endotheliumMat = new THREE.MeshStandardMaterial({ color: 0xdca68b, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
+const smoothMuscleMat = new THREE.MeshStandardMaterial({ color: 0x8a3324, wireframe: true, transparent: true, opacity: 0.6 });
+
+// --- View 1: Diagnostic (Macro Artery) ---
+// Create a curving thick tube
+const macroCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-10, 0, 0), new THREE.Vector3(-5, 2, 2),
+    new THREE.Vector3(0, 0, 4), new THREE.Vector3(5, -2, 2), new THREE.Vector3(10, 0, 0)
+]);
+const macroGeo = new THREE.TubeGeometry(macroCurve, 64, 1.5, 32, false);
+const macroArtery = new THREE.Mesh(macroGeo, arteryMat);
+diagnosticGroup.add(macroArtery);
+diagnosticGroup.position.set(0, 0, 0);
+
+// --- View 2: Mechanical (Microcirculation / Capillary Bed) ---
+mechanicalGroup.position.set(0, -20, 0); // Positioned below
+const microPaths = [];
+const microVessels = [];
+const rbcs = [];
+
+// Generate fractal-like branches
+function createBranch(start, dir, length, radius, depth) {
+    if (depth === 0) return;
+    const end = start.clone().add(dir.clone().multiplyScalar(length));
+    
+    // Add random curve
+    const mid = start.clone().lerp(end, 0.5).add(new THREE.Vector3(
+        (Math.random()-0.5)*length*0.5, (Math.random()-0.5)*length*0.5, (Math.random()-0.5)*length*0.5
+    ));
+    
+    const curve = new THREE.CatmullRomCurve3([start, mid, end]);
+    microPaths.push(curve);
+    
+    const tubeGeo = new THREE.TubeGeometry(curve, 20, radius, 8, false);
+    const vessel = new THREE.Mesh(tubeGeo, arteryMat.clone()); // clone to manipulate scale later
+    microVessels.push({ mesh: vessel, baseRadius: radius });
+    mechanicalGroup.add(vessel);
+
+    // Create RBCs for this path
+    for(let i=0; i<3; i++) {
+        const rbc = new THREE.Mesh(new THREE.SphereGeometry(radius * 0.6, 16, 16), rbcMat);
+        rbc.scale.z = 0.4; // flat disc shape
+        mechanicalGroup.add(rbc);
+        rbcs.push({ mesh: rbc, path: curve, progress: Math.random() });
+    }
+
+    // Branch out
+    const numBranches = 2;
+    for(let i=0; i<numBranches; i++) {
+        const newDir = dir.clone().applyAxisAngle(new THREE.Vector3(Math.random(), Math.random(), Math.random()).normalize(), (Math.random()*0.8 + 0.2));
+        createBranch(end, newDir.normalize(), length * 0.7, radius * 0.7, depth - 1);
+    }
+}
+createBranch(new THREE.Vector3(-8, 0, 0), new THREE.Vector3(1, 0, 0), 5, 0.4, 4);
+
+// --- View 3: Chemical (Vessel Wall Cross-section) ---
+chemicalGroup.position.set(0, -40, 0); // Positioned further below
+
+// Inner Endothelium Layer
+const endoGeo = new THREE.CylinderGeometry(4, 4, 10, 32, 1, true);
+const endoMesh = new THREE.Mesh(endoGeo, endotheliumMat);
+endoMesh.rotation.z = Math.PI / 2;
+chemicalGroup.add(endoMesh);
+
+// Outer Smooth Muscle Layer
+const muscleGeo = new THREE.CylinderGeometry(4.5, 4.5, 10, 32, 1, true);
+const muscleMesh = new THREE.Mesh(muscleGeo, smoothMuscleMat);
+muscleMesh.rotation.z = Math.PI / 2;
+chemicalGroup.add(muscleMesh);
+
+// NO Particles
+const particleCount = 200;
+const particleGeo = new THREE.BufferGeometry();
+const particlePos = new Float32Array(particleCount * 3);
+const particleVel = [];
+
+for(let i=0; i<particleCount; i++) {
+    // Start on inner wall (radius 4)
+    const theta = Math.random() * Math.PI * 2;
+    const y = (Math.random() - 0.5) * 10;
+    
+    particlePos[i*3] = Math.cos(theta) * 4; // x
+    particlePos[i*3+1] = y; // y (along cylinder length due to rotation)
+    particlePos[i*3+2] = Math.sin(theta) * 4; // z
+    
+    // Velocity pointing outward
+    particleVel.push(new THREE.Vector3(Math.cos(theta), 0, Math.sin(theta)).multiplyScalar(0.02));
+}
+particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePos, 3));
+
+// Custom shader material for glowing NO particles
+const particleMat = new THREE.PointsMaterial({
+    color: 0x00ffff,
+    size: 0.3,
+    transparent: true,
+    opacity: 0.8,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+});
+const noParticles = new THREE.Points(particleGeo, particleMat);
+noParticles.rotation.z = Math.PI / 2; // Match cylinder
+chemicalGroup.add(noParticles);
+
+
+// Camera Setup & Transitions
+const CameraPositions = {
+    diagnostic: { pos: new THREE.Vector3(0, 0, 15), target: new THREE.Vector3(0, 0, 0) },
+    mechanical: { pos: new THREE.Vector3(0, -20, 10), target: new THREE.Vector3(0, -20, 0) },
+    chemical: { pos: new THREE.Vector3(8, -40, 6), target: new THREE.Vector3(0, -40, 0) }
+};
+
+camera.position.copy(CameraPositions.diagnostic.pos);
+camera.lookAt(CameraPositions.diagnostic.target);
+let currentLookAt = CameraPositions.diagnostic.target.clone();
+
+function moveCameraToView(viewName) {
+    const targetConfig = CameraPositions[viewName];
+    
+    gsap.to(camera.position, {
+        x: targetConfig.pos.x, y: targetConfig.pos.y, z: targetConfig.pos.z,
+        duration: 1.5, ease: "power2.inOut"
+    });
+    
+    gsap.to(currentLookAt, {
+        x: targetConfig.target.x, y: targetConfig.target.y, z: targetConfig.target.z,
+        duration: 1.5, ease: "power2.inOut",
+        onUpdate: () => { camera.lookAt(currentLookAt); }
+    });
+}
+
+// Mouse Parallax Effect
+let mouseX = 0; let mouseY = 0;
+document.addEventListener('mousemove', (e) => {
+    mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+    mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+});
+
+// Resize Handler
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    resizeEcgCanvas();
+});
+
+
+/**
+ * Main 3D Animation Loop
+ */
+const clock = new THREE.Clock();
+
+function animate3D() {
+    requestAnimationFrame(animate3D);
+    const delta = clock.getDelta();
+    const time = clock.getElapsedTime();
+
+    // Base physics values based on UI state
+    // Stress 0-100 maps to flow multiplier 1.0 to 3.0
+    let flowSpeedMultiplier = 1.0 + (AppState.stress / 50.0); 
+    
+    // Calculate if Ischemia occurs in microcirculation
+    // Healthy: stress increases -> vessels dilate (scale > 1) -> flow is fast.
+    // Dysfunction: stress increases -> vessels fail to dilate/constrict -> flow gets bottlenecked.
+    let vesselDilation = 1.0;
+    if (AppState.stress > 0) {
+        if (!AppState.dysfunction) {
+            vesselDilation = 1.0 + (AppState.stress * 0.005); // Max 1.5x dilation
+        } else {
+            vesselDilation = 1.0 - (AppState.stress * 0.002); // Slight constriction
+            // Flow speed gets restricted if dysfunctional under stress
+            flowSpeedMultiplier *= Math.max(0.2, (1.0 - (AppState.stress / 100))); 
+        }
+    }
+
+    // --- Update Diagnostic View ---
+    macroArtery.rotation.x = Math.sin(time) * 0.05;
+    pointLight.position.x = Math.sin(time * 2) * 5;
+
+    // --- Update Mechanical View (RBC flow & Vessel size) ---
+    // Update vessel thickness smoothly
+    microVessels.forEach(v => {
+        v.mesh.scale.set(1, vesselDilation, vesselDilation); 
+    });
+
+    // Move RBCs along paths
+    rbcs.forEach(rbc => {
+        rbc.progress += delta * 0.2 * flowSpeedMultiplier;
+        if(rbc.progress > 1) rbc.progress = 0;
+        
+        // Get position and tangent
+        const pos = rbc.path.getPointAt(rbc.progress);
+        const tangent = rbc.path.getTangentAt(rbc.progress);
+        
+        rbc.mesh.position.copy(pos);
+        
+        // Rotate flat RBC to face direction of travel with some tumbling
+        const axis = new THREE.Vector3(0, 1, 0);
+        rbc.mesh.quaternion.setFromUnitVectors(axis, tangent);
+        rbc.mesh.rotateZ(time * 5 + rbc.progress * 10);
+    });
+
+    // --- Update Chemical View (NO Particles) ---
+    // If dysfunction is true, NO production severely drops
+    const targetParticleOpacity = AppState.dysfunction ? 0.05 : (0.5 + (AppState.stress/200));
+    particleMat.opacity += (targetParticleOpacity - particleMat.opacity) * 0.1;
+
+    // Smooth Muscle thickness reaction
+    const targetMuscleScale = AppState.dysfunction ? 1.0 : (1.0 + (AppState.stress * 0.002));
+    muscleMesh.scale.x += (targetMuscleScale - muscleMesh.scale.x) * 0.1;
+    muscleMesh.scale.z += (targetMuscleScale - muscleMesh.scale.z) * 0.1;
+
+    // Move particles outward
+    const positions = noParticles.geometry.attributes.position.array;
+    for(let i=0; i<particleCount; i++) {
+        // Reset particles that move too far out
+        const x = positions[i*3];
+        const z = positions[i*3+2];
+        const dist = Math.sqrt(x*x + z*z);
+        
+        if (dist > 5.5) {
+            // Respawn at inner radius (4)
+            const theta = Math.random() * Math.PI * 2;
+            positions[i*3] = Math.cos(theta) * 4;
+            positions[i*3+2] = Math.sin(theta) * 4;
+        } else {
+            // Move outward based on velocity, slower if dysfunctional
+            const speedMod = AppState.dysfunction ? 0.2 : 1.0;
+            positions[i*3] += particleVel[i].x * speedMod;
+            positions[i*3+2] += particleVel[i].z * speedMod;
+        }
+    }
+    noParticles.geometry.attributes.position.needsUpdate = true;
+
+
+    // Slight camera parallax
+    camera.position.x += (CameraPositions[AppState.view].pos.x + mouseX * 0.5 - camera.position.x) * 0.05;
+    camera.position.y += (CameraPositions[AppState.view].pos.y + mouseY * 0.5 - camera.position.y) * 0.05;
+
+    renderer.render(scene, camera);
+}
+
+
+/**
+ * 2D Canvas Live ECG Monitor Logic
+ */
+const ecgCanvas = document.getElementById('ecg-canvas');
+const ctx = ecgCanvas.getContext('2d');
+let ecgData = [];
+let ecgX = 0;
+const MAX_ECG_POINTS = 500;
+
+function resizeEcgCanvas() {
+    const rect = ecgCanvas.parentElement.getBoundingClientRect();
+    ecgCanvas.width = rect.width;
+    ecgCanvas.height = rect.height;
+}
+resizeEcgCanvas();
+
+let ecgTime = 0;
+
+function generateEcgPoint() {
+    // Base heart rate factor
+    const hrFactor = 1.0 + (AppState.stress / 100); 
+    ecgTime += 0.02 * hrFactor; // Speed of time progression
+    
+    // Cycle goes from 0 to 1
+    const cycle = ecgTime % 1.0; 
+    
+    // Y base level
+    let y = 0;
+
+    // Determine Ischemia (ST Segment depression)
+    // Occurs when high stress AND dysfunction
+    const isIschemic = AppState.stress > 50 && AppState.dysfunction;
+    const stDepressionDepth = isIschemic ? (AppState.stress - 50) * 0.02 : 0; // Max depression based on stress
+
+    // Build the P-QRS-T complex mathematically
+    if (cycle > 0.1 && cycle < 0.2) {
+        // P Wave
+        y = Math.sin((cycle - 0.1) * Math.PI * 10) * 0.15;
+    } else if (cycle > 0.3 && cycle < 0.35) {
+        // Q Wave (small dip)
+        y = -0.1;
+    } else if (cycle > 0.35 && cycle < 0.38) {
+        // R Wave (huge spike)
+        y = 1.2;
+    } else if (cycle > 0.38 && cycle < 0.42) {
+        // S Wave (deep dip)
+        y = -0.3;
+    } else if (cycle > 0.42 && cycle < 0.6) {
+        // ST Segment
+        // ** THIS IS THE CRITICAL CLINICAL INDICATION OF ISCHEMIA **
+        if (isIschemic) {
+            y = -stDepressionDepth; // ST Depression
+        } else {
+            y = 0; // Normal baseline
+        }
+    } else if (cycle > 0.6 && cycle < 0.8) {
+        // T Wave
+        const tWaveHeight = isIschemic ? 0.1 : 0.25; // T-wave inversion/flattening accompanies ischemia
+        y = Math.sin((cycle - 0.6) * Math.PI * 5) * tWaveHeight;
+        
+        // Blend ST depression smoothly into T wave
+        if (isIschemic) {
+            const blend = 1.0 - ((cycle - 0.6) / 0.2);
+            y -= stDepressionDepth * blend;
+        }
+    }
+
+    // Add slight natural noise
+    y += (Math.random() - 0.5) * 0.03;
+
+    return y;
+}
+
+function animateECG() {
+    requestAnimationFrame(animateECG);
+    
+    // Generate new point
+    const value = generateEcgPoint();
+    
+    // Shift data array
+    if (ecgData.length >= ecgCanvas.width / 2) {
+        ecgData.shift();
+    }
+    ecgData.push(value);
+
+    // Draw
+    ctx.clearRect(0, 0, ecgCanvas.width, ecgCanvas.height);
+    
+    ctx.beginPath();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#00ff44'; // Bright green monitor color
+    ctx.lineJoin = 'round';
+    
+    const h = ecgCanvas.height;
+    const centerY = h * 0.6; // Baseline a bit lower than middle
+    const scaleY = h * 0.4;
+    
+    for(let i=0; i<ecgData.length; i++) {
+        const x = i * 2; // Spacing
+        const y = centerY - (ecgData[i] * scaleY);
+        
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    
+    // Glow effect
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = '#00ff44';
+    ctx.stroke();
+    ctx.shadowBlur = 0; // reset
+    
+    // Draw leading dot
+    if (ecgData.length > 0) {
+        const lastX = (ecgData.length - 1) * 2;
+        const lastY = centerY - (ecgData[ecgData.length - 1] * scaleY);
+        ctx.beginPath();
+        ctx.arc(lastX, lastY, 3, 0, Math.PI*2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+    }
+}
+
+// Start Loops
+updateUI();
+animate3D();
+animateECG();
+
+</script>
+</body>
+</html>
