@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Accumulation: Building the Linear Predictor</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020617;
+    --border: #334155;
+    --text: #f8fafc;
+    --eta: #eab308;
+    --x: #3b82f6;
+    --j: #10b981;
+    --poly: #8b5cf6;
+  }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: 'Outfit', sans-serif; height: 100vh;
+    display: flex; justify-content: center; align-items: center;
+    overflow: hidden;
+  }
+
+  .container {
+    width: 100%; height: 100%; position: relative;
+  }
+
+  .header {
+    position: absolute; top: 40px; width: 100%; text-align: center; z-index: 10;
+  }
+  .header p { color: #94a3b8; max-width: 800px; margin: 0 auto; line-height: 1.5; }
+
+  .eta-container {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 600px; height: 150px;
+    border: 3px dashed var(--eta); border-radius: 24px;
+    display: flex; justify-content: center; align-items: center; gap: 15px;
+    transition: all 0.5s; background: rgba(234, 179, 8, 0.05);
+  }
+  .eta-container.filled {
+    border-style: solid; background: rgba(234, 179, 8, 0.1);
+    box-shadow: 0 0 40px rgba(234, 179, 8, 0.3);
+  }
+
+  .notation {
+    font-family: monospace; font-size: 32px; font-weight: bold; color: var(--eta);
+    display: none; letter-spacing: 2px;
+  }
+
+  /* Blocks */
+  .block {
+    width: 80px; height: 80px; position: absolute;
+    display: flex; justify-content: center; align-items: center;
+    font-weight: bold; font-size: 20px; cursor: pointer;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+    transition: transform 1s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s;
+    z-index: 5;
+  }
+  .b-x { background: var(--x); border-radius: 50%; top: 20%; left: 10%; }
+  .b-j { background: var(--j); clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); top: 70%; left: 20%; }
+  .b-poly { background: var(--poly); border-radius: 12px; top: 40%; right: 15%; }
+
+  .block.merged {
+    transform: translate(0, 0) scale(0.5) !important;
+    top: 50%; left: 50%; opacity: 0;
+  }
+
+  .operator {
+    width: 40px; height: 40px; background: #fff; color: #000;
+    border-radius: 50%; display: flex; justify-content: center; align-items: center;
+    font-size: 24px; font-weight: bold; position: absolute; opacity: 0;
+    transform: scale(0); transition: all 0.5s; z-index: 6;
+  }
+  .op-1 { top: 35%; left: 35%; }
+  .op-2 { top: 60%; right: 35%; }
+
+  .operator.show {
+    opacity: 1; transform: scale(1);
+  }
+
+  .action-btn {
+    position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);
+    background: transparent; border: 2px solid #fff; color: #fff;
+    padding: 15px 40px; border-radius: 30px; font-weight: bold; font-size: 16px;
+    cursor: pointer; transition: 0.3s;
+  }
+  .action-btn:hover { background: #fff; color: #000; }
+
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h2>Building the Linear Predictor η</h2>
+    <p>"Blocks representing metrical x, categorical j, and polynomial x² move into a central η container. Operator icons act as connectors, transforming the blocks into a Wilkinson-Rogers notation string."</p>
+  </div>
+
+  <div class="eta-container" id="eta-box">
+    <div class="notation" id="notation"></div>
+  </div>
+
+  <div class="block b-x" id="bx">x</div>
+  <div class="block b-j" id="bj">j</div>
+  <div class="block b-poly" id="bp">x²</div>
+
+  <div class="operator op-1" id="op1">+</div>
+  <div class="operator op-2" id="op2">:</div>
+
+  <button class="action-btn" onclick="assemble()">Assemble Predictor</button>
+</div>
+
+<script>
+  function assemble() {
+    const box = document.getElementById('eta-box');
+    const boxRect = box.getBoundingClientRect();
+    
+    const bx = document.getElementById('bx');
+    const bj = document.getElementById('bj');
+    const bp = document.getElementById('bp');
+    
+    // Move towards center
+    bx.style.transform = `translate(${boxRect.left + 150 - bx.offsetLeft}px, ${boxRect.top + 35 - bx.offsetTop}px)`;
+    bj.style.transform = `translate(${boxRect.left + 260 - bj.offsetLeft}px, ${boxRect.top + 35 - bj.offsetTop}px)`;
+    bp.style.transform = `translate(${boxRect.left + 370 - bp.offsetLeft}px, ${boxRect.top + 35 - bp.offsetTop}px)`;
+
+    setTimeout(() => {
+      document.getElementById('op1').classList.add('show');
+      document.getElementById('op2').classList.add('show');
+    }, 1000);
+
+    setTimeout(() => {
+      // Morph into formula
+      bx.classList.add('merged');
+      bj.classList.add('merged');
+      bp.classList.add('merged');
+      document.getElementById('op1').classList.remove('show');
+      document.getElementById('op2').classList.remove('show');
+      
+      box.classList.add('filled');
+      const notation = document.getElementById('notation');
+      notation.style.display = 'block';
+      
+      let text = "η = x + j + x²";
+      let idx = 0;
+      let typeInt = setInterval(() => {
+        if(idx < text.length) {
+          notation.innerText += text.charAt(idx);
+          idx++;
+        } else {
+          clearInterval(typeInt);
+        }
+      }, 100);
+
+    }, 2500);
+  }
+</script>
+</body>
+</html>

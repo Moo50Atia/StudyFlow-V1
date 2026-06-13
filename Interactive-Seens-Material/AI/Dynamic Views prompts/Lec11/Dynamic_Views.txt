@@ -1,0 +1,60 @@
+Lecture: Deviance in Generalized Linear Models
+Lec6 (Sec1): "Comparison: A saturated log-likelihood peak l(y, 
+y
+^
+​
+ ) and a fitted model peak l(y, 
+μ
+^
+​
+ ) move onto a vertical coordinate grid
+. A discrepancy gauge highlights the vertical gap between the peaks, transformed by a ϕ dispersion signal
+. Final State: Deviance visualized as the scaled vertical distance from a perfect fit, correcting the misconception that deviance is an absolute rather than a relative measure of goodness-of-fit
+."
+Lec6 (Sec2): "Comparison: Individual binary data points on a spatial graph merge and transform into aggregated blocks for grouped data
+. As the transformation occurs, a jagged deviance signal highlights and stabilizes into a smooth χ 
+G−p−1
+2
+​
+  distribution curve
+. Final State: Asymptotic χ 
+2
+  distribution valid only for grouped data structures, correcting the misconception that deviance provides a reliable formal test statistic for non-grouped individual outcomes
+."
+Lec6 (Sec3): "Accumulation: Squared differences between observed signals y 
+i
+​
+  and fitted signals  
+μ
+^
+​
+  
+i
+​
+  move through a variance function filter v( 
+μ
+^
+​
+  
+i
+​
+ )
+. The weighted signals accumulate into a Pearson χ 
+2
+  block on a spatial graph
+. Final State: A residual-based goodness-of-fit metric equivalent to the deviance in large samples, correcting the misconception that deviance is the sole mathematical framework for measuring GLM discrepancy
+."
+Lec6 (Sec4): "Parallel Flow: A restricted model deviance block D( 
+M
+~
+ ) splits into a complex model deviance block D(M) and a difference signal D( 
+M
+~
+ ∣M)
+. The difference signal transforms into a log-likelihood ratio statistic and moves toward a χ 
+r
+2
+​
+  distribution target
+. Final State: Partitioned deviance variation representing a formal model comparison test, correcting the misconception that hierarchical model selection is independent of the log-likelihood ratio testing framework
+."

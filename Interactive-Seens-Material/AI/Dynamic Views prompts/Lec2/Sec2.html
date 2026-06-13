@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Process: Bayes' Theorem Class-Conditional Distributions</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Outfit', sans-serif; }
+  .smooth-transition { transition: all 1s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+  
+  .bell-0 { stroke: #3b82f6; stroke-width: 3; fill: rgba(59, 130, 246, 0.2); transition: transform 2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 1s; }
+  .bell-1 { stroke: #f97316; stroke-width: 3; fill: rgba(249, 115, 22, 0.2); transition: transform 2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 1s; }
+  
+  .slider-group { transition: transform 2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .meter-fill { transition: height 0.5s ease-out; }
+  
+  .highlight-pulse { animation: flashText 2s infinite; }
+  @keyframes flashText { 0% { color: #f97316; text-shadow: 0 0 10px #f97316; } 50% { color: #fed7aa; text-shadow: 0 0 20px #fed7aa; } 100% { color: #f97316; text-shadow: 0 0 10px #f97316; } }
+
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-6xl h-[700px] bg-slate-900 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col overflow-hidden">
+  
+  <div class="absolute top-6 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-2xl font-bold text-slate-100 tracking-wider">Class-Conditional Distributions</h1>
+    <p class="text-cyan-400 mt-2 text-sm max-w-2xl mx-auto h-8 font-medium" id="narrator">
+      Click "Start Simulation" to explore Bayes' Theorem.
+    </p>
+  </div>
+
+  <div class="relative flex-1 w-full mt-24 mb-20 px-8 flex items-center justify-between gap-6">
+    
+    <div class="flex-2 w-2/3 h-[450px] bg-slate-950/50 rounded-2xl border border-slate-800/50 relative shadow-inner overflow-hidden p-6 backdrop-blur-sm">
+      <svg id="svg" viewBox="0 0 600 400" preserveAspectRatio="none" class="w-full h-full overflow-visible">
+        <line x1="20" y1="360" x2="580" y2="360" stroke="#4b5563" stroke-width="2" />
+        
+        <!-- Bell Curves -->
+        <path id="path0" class="bell-0" d="" opacity="0" transform="translate(0, -50)" />
+        <path id="path1" class="bell-1" d="" opacity="0" transform="translate(0, -50)" />
+
+        <!-- Interactive Slider -->
+        <g id="slider-group" class="slider-group" transform="translate(300, 0)" opacity="0">
+          <line x1="0" y1="20" x2="0" y2="360" stroke="#fff" stroke-width="2" stroke-dasharray="5 5" />
+          <polygon points="-10,360 10,360 0,340" fill="#fff" />
+          <circle cx="0" cy="0" id="dot0" r="6" fill="#3b82f6" class="smooth-transition" />
+          <circle cx="0" cy="0" id="dot1" r="6" fill="#f97316" class="smooth-transition" />
+        </g>
+      </svg>
+      
+      <div class="absolute top-6 left-6 flex gap-4 text-sm font-bold">
+        <div class="flex items-center gap-2 opacity-0" id="leg0"><div class="w-4 h-4 rounded bg-blue-500"></div> x | y=0</div>
+        <div class="flex items-center gap-2 opacity-0" id="leg1"><div class="w-4 h-4 rounded bg-orange-500"></div> x | y=1</div>
+      </div>
+    </div>
+
+    <div class="flex-1 w-1/3 h-[450px] flex flex-col gap-6">
+      
+      <div class="bg-slate-950/50 rounded-2xl p-6 border border-slate-800/50 flex flex-col items-center justify-center relative shadow-inner">
+        <div class="font-bold text-slate-400 mb-4 tracking-widest text-sm uppercase">Bayes' Theorem</div>
+        <div class="font-serif text-xl italic text-center bg-black/50 p-4 rounded-xl border border-slate-800 w-full" id="formula">
+          <div class="border-b border-slate-600 pb-2 mb-2" id="f-top">P(x | y=1) · P(y=1)</div>
+          <div id="f-bot">P(x|y=0)P(y=0) + P(x|y=1)P(y=1)</div>
+        </div>
+      </div>
+
+      <div class="bg-slate-950/50 rounded-2xl p-6 border border-slate-800/50 flex-1 flex flex-col items-center shadow-inner relative">
+        <div class="font-bold text-slate-400 mb-2 tracking-widest text-sm uppercase">Posterior P(y=1 | x)</div>
+        <div class="w-16 flex-1 bg-slate-900 border-2 border-slate-700 rounded-full relative overflow-hidden my-4">
+          <div id="meter-fill" class="absolute bottom-0 left-0 w-full h-[50%] bg-gradient-to-t from-blue-500 to-orange-500 meter-fill rounded-full"></div>
+        </div>
+        <div id="prob-val" class="font-mono text-3xl font-bold text-white">0.500</div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <div id="final-message" class="absolute bottom-32 left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none">
+    <div class="bg-orange-950/90 border border-orange-500/50 backdrop-blur-md rounded-xl p-5 text-center mx-auto max-w-3xl shadow-[0_0_30px_rgba(249,115,22,0.15)]">
+      <h3 class="text-orange-300 font-bold mb-2 text-lg">Misconception Corrected</h3>
+      <p class="text-slate-200 text-sm leading-relaxed">
+        Posterior probability is derived directly from the underlying class-conditional distributions. This corrects the misconception that <strong class="text-orange-400">binary classification is independent of input data density</strong>. Classification is entirely driven by where the input features fall relative to the distributions.
+      </p>
+    </div>
+  </div>
+
+  <div class="absolute bottom-0 left-0 w-full h-24 bg-slate-800/80 border-t border-slate-700 flex items-center justify-center px-8 z-50 backdrop-blur-md">
+    <button id="start-btn" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-all">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  
+  const path0 = document.getElementById('path0');
+  const path1 = document.getElementById('path1');
+  const sliderGroup = document.getElementById('slider-group');
+  const dot0 = document.getElementById('dot0');
+  const dot1 = document.getElementById('dot1');
+  const meterFill = document.getElementById('meter-fill');
+  const probVal = document.getElementById('prob-val');
+  
+  const leg0 = document.getElementById('leg0');
+  const leg1 = document.getElementById('leg1');
+  
+  const fTop = document.getElementById('f-top');
+  
+  // Gaussian
+  function gaussian(x, mean, std) { return Math.exp(-0.5 * Math.pow((x - mean) / std, 2)) / (std * Math.sqrt(2 * Math.PI)); }
+  const m0 = 200, s0 = 60; 
+  const m1 = 400, s1 = 60; 
+
+  function generatePath(mean, std) {
+    let d = `M 20 360 `;
+    for(let x=20; x<=580; x+=5) {
+      let y = 360 - (gaussian(x, mean, std) * 15000); 
+      d += `L ${x} ${y} `;
+    }
+    d += `L 580 360 Z`;
+    return d;
+  }
+  
+  path0.setAttribute('d', generatePath(m0, s0));
+  path1.setAttribute('d', generatePath(m1, s1));
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+
+  function setSliderState(x) {
+    sliderGroup.setAttribute('transform', `translate(${x}, 0)`);
+    let h0 = gaussian(x, m0, s0);
+    let h1 = gaussian(x, m1, s1);
+    
+    dot0.setAttribute('cy', 360 - (h0 * 15000));
+    dot1.setAttribute('cy', 360 - (h1 * 15000));
+
+    let prior0 = 0.5, prior1 = 0.5;
+    let evidence = (h0 * prior0) + (h1 * prior1);
+    let posterior = (h1 * prior1) / evidence;
+
+    meterFill.style.height = `${posterior * 100}%`;
+    probVal.innerText = posterior.toFixed(3);
+  }
+
+  function resetScene() {
+    path0.setAttribute('opacity', '0'); path0.setAttribute('transform', 'translate(0, -50)');
+    path1.setAttribute('opacity', '0'); path1.setAttribute('transform', 'translate(0, -50)');
+    
+    sliderGroup.setAttribute('opacity', '0');
+    setSliderState(300); // center
+    
+    leg0.classList.remove('opacity-100');
+    leg1.classList.remove('opacity-100');
+    
+    fTop.classList.remove('highlight-pulse');
+
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    narrator.textContent = "Simulation starting...";
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(800);
+
+    narrator.textContent = "Stage 1: Two overlapping Gaussian bell curve graphs move onto the coordinate system.";
+    
+    path0.setAttribute('opacity', '1'); path0.setAttribute('transform', 'translate(0, 0)');
+    path1.setAttribute('opacity', '1'); path1.setAttribute('transform', 'translate(0, 0)');
+    leg0.classList.add('opacity-100'); leg1.classList.add('opacity-100');
+
+    await sleep(2500);
+
+    narrator.textContent = "Stage 2: A vertical signal slider appears on the x-axis, representing a specific input value.";
+    
+    sliderGroup.setAttribute('opacity', '1');
+
+    await sleep(2000);
+
+    narrator.textContent = "Stage 3: The slider moves toward the y=1 density peak. Bayes' Theorem overlays highlight the calculation.";
+    
+    fTop.classList.add('highlight-pulse');
+    setSliderState(400); // Move right
+
+    await sleep(2500);
+
+    narrator.textContent = "Stage 4: As P(x|y=1) dominates, the probability meter accumulates value rapidly.";
+    
+    setSliderState(450);
+
+    await sleep(2000);
+
+    narrator.textContent = "Final State: Posterior probability derived from class-conditional distributions.";
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    fTop.classList.remove('highlight-pulse');
+    startBtn.classList.remove('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  // Init
+  resetScene();
+  narrator.textContent = 'Click "Start Simulation" to explore Bayes\' Theorem.';
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>

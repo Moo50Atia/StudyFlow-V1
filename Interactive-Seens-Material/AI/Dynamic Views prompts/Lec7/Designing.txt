@@ -1,0 +1,87 @@
+Lecture: GLMs for Continuous, Discrete, and Grouped Data
+=========================================================
+
+--- Scene 1 Design (Sec1): Comparison – Normal vs Exponential for Non-Negative Duration Data ---
+
+LAYOUT:
+- A coordinate graph (SVG) with a horizontal x-axis and a vertical y-axis. A bold horizontal barrier line at y=0 divides the graph.
+- Two distribution curves: Normal (symmetric bell curve extending into negative territory below y=0) and Exponential (right-skewed curve constrained to y ≥ 0).
+- A log-link formula overlay "log(μ) = xᵀβ" positioned on the coordinate grid as a styled div.
+
+ANIMATIONS:
+- Both curves draw themselves simultaneously using SVG stroke-dashoffset animation.
+- The Normal curve extends below y=0: the portion below the barrier flashes red with a CSS pulse animation, and a "⚠ Negative prediction" warning label fades in.
+- The Exponential curve hugs the y=0 barrier, and its constrained region glows green to show validity.
+- The log-link formula overlay slides in from the right and highlights with a glow effect, connecting to the Exponential curve with an animated SVG connector line.
+
+INTERACTIVITY:
+- A μ slider adjusts the mean; the Normal curve shifts and its negative-region violation grows/shrinks visually. The Exponential curve's shape (rate) changes accordingly.
+- Toggle "Show Normal" / "Show Exponential" to compare each in isolation or overlay both.
+- Clicking the log-link formula shows an animated breakdown: linear predictor → exp() → always positive μ.
+- Hovering below y=0 on the Normal curve shows tooltip: "P(y < 0) = [calculated value] — impossible for duration data."
+
+COLOR PALETTE:
+- Normal curve in blue (#3b82f6) with red violation zone (rgba(239, 68, 68, 0.3)). Exponential curve in emerald (#10b981). y=0 barrier in bright white (#f8fafc) thick line. Log-link formula in gold (#eab308). Background (#0f172a).
+
+VARIABLE NAMING:
+- coordinateGraph_SVG, normalCurve_distribution, exponentialCurve_distribution, yZeroBarrier, negativeZone_violation, logLinkFormula, meanSlider_mu, warningLabel_negativePrediction, exponentialRate_lambda, durationData, linkFunction_log.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required.
+
+
+--- Scene 2 Design (Sec2): Process – Poisson Distribution for Count Data ---
+
+LAYOUT:
+- A horizontal axis (SVG) with discrete integer positions y ∈ {0, 1, 2, 3, ...} marked.
+- Probability spikes (SVG <rect> bars) at each integer position, heights proportional to P(Y=y).
+- A λ signal slider on the left controlling the Poisson parameter.
+- Two vertical meters on the right: Expectation E(Y) meter and Variance Var(Y) meter.
+- A log-link formula overlay "log(λ) = xᵀβ" at the top.
+
+ANIMATIONS:
+- As the λ slider moves, all probability spikes animate their heights simultaneously (CSS height transition) to reflect the updated Poisson PMF: P(Y=y) = (λ^y × e^(-λ)) / y!.
+- The Expectation and Variance meters fill to identical levels (since E(Y) = Var(Y) = λ for Poisson), with a visual connector line between them labeled "=" that pulses to emphasize mean-variance equality.
+- The log-link overlay glows when λ changes, with an animated signal path from the formula to the distribution.
+
+INTERACTIVITY:
+- The λ slider is the primary control (range 0.5 to 10). All spikes and meters update in real-time via JS Poisson PMF calculation.
+- Hovering over any spike shows the exact P(Y=y) value and the calculation breakdown.
+- Clicking the "=" connector between E and Var meters shows a tooltip: "Mean-Variance Equality: a key Poisson property."
+- A "Show Overdispersion" toggle adds a second set of spikes (different color) showing a distribution where Var > E, for contrast.
+
+COLOR PALETTE:
+- Probability spikes in gradient cyan (#06b6d4 at base → #67e8f9 at top). λ slider in amber (#f59e0b). E(Y) meter in green (#22c55e), Var(Y) meter in green (#22c55e) matching to show equality. Equality connector in gold. Overdispersion spikes in rose (#f43f5e). Background (#020617).
+
+VARIABLE NAMING:
+- horizontalAxis_SVG, discretePosition_y, probabilitySpike_rect, poissonParameter_lambda, lambdaSlider, expectationMeter_E_Y, varianceMeter_Var_Y, meanVarianceEquality, poissonPMF_calculation, logLinkFormula_log_lambda, overdispersionToggle, canonicalLink_log.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required. JS math for Poisson PMF (factorial, exp, pow).
+
+
+--- Scene 3 Design (Sec3): Accumulation – Individual to Grouped Data Aggregation ---
+
+LAYOUT:
+- Left side: a scatter of individual observation blocks (small labeled cards showing yᵢ* with covariate values xᵢ), arranged loosely.
+- Center: a central aggregation device (funnel-shaped SVG or CSS clip-path element).
+- Right side: grouped average blocks (larger cards showing ȳ with group covariate pattern).
+- Bottom: memory and processing meters (horizontal bar gauges), and a dispersion overlay showing "ϕ/n" scaling.
+
+ANIMATIONS:
+- Individual blocks animate from left toward the aggregation funnel (CSS translateX with staggered delays). Blocks with matching covariates cluster together before entering.
+- Inside the funnel, blocks merge (scale down and overlap), then a single grouped block emerges on the right (scale up animation with a glow).
+- Memory and processing meters on the bottom fade from high (red) to low (green) as individual data compresses to grouped data, using CSS width + background-color transitions.
+- The dispersion overlay "ϕ/n" fades in with group size n incrementing (JS counter animation).
+
+INTERACTIVITY:
+- A "Group Size" slider (n) controls how many individual blocks merge per group. Larger n = more compression = smaller dispersion.
+- User can click individual blocks to see their data; click grouped blocks to see the aggregated mean.
+- A "Step Through" button processes one group at a time.
+- Toggle "Individual / Grouped" view to compare the two representations side by side.
+
+COLOR PALETTE:
+- Individual blocks in light blue (#93c5fd). Grouped blocks in deep blue (#1d4ed8) with white text. Aggregation funnel gradient from blue to indigo. Memory meter from red (#ef4444) → green (#22c55e). Dispersion overlay text in amber (#fbbf24). Background (#0f172a).
+
+VARIABLE NAMING:
+- individualObservation_yStar_i, covariateSignal_x_i, aggregationDevice_funnel, groupedAverage_yBar, memoryMeter, processingMeter, dispersionOverlay_phi_n, groupSize_n, groupSizeSlider, scalingEffect, consolidatedData, groupAggregation.
+
+TECHNOLOGY: HTML + CSS + JS. No 3D required.

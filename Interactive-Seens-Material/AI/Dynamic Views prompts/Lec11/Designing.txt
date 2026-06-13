@@ -1,0 +1,127 @@
+Lecture: Deviance in Generalized Linear Models
+=================================================
+
+--- Scene 1 Design (Sec1): Comparison – Deviance as Scaled Distance from Perfect Fit ---
+
+LAYOUT:
+- A vertical coordinate grid (SVG) with l(β) (log-likelihood) on the y-axis.
+- Two peaks on the grid: saturated model peak l(y, ŷ) at the top (perfect fit) and fitted model peak l(y, μ̂) below.
+- A discrepancy gauge (vertical bar between the peaks) showing the gap.
+- A ϕ dispersion signal slider on the side that scales the gap.
+
+ANIMATIONS:
+- The coordinate grid draws its axes (SVG line animation).
+- The saturated peak appears at the top with a golden crown icon and star burst animation — representing "perfect fit."
+- The fitted model peak appears lower with a standard marker.
+- The discrepancy gauge extends between them (CSS height animation) with tick marks counting the distance.
+- As the ϕ slider adjusts, the gauge scales: higher ϕ = gauge value decreases (dispersion scaling), with CSS transition on the gauge label value.
+
+INTERACTIVITY:
+- The ϕ dispersion slider adjusts the deviance scaling in real-time: D = 2(l_saturated - l_fitted) / ϕ.
+- User can drag the fitted model peak up/down to simulate better/worse fit; the discrepancy gauge updates.
+- Clicking the saturated peak shows: "Saturated model: one parameter per observation, perfect fit."
+- Clicking the gap gauge shows: "Deviance = RELATIVE measure — how far from perfect, not absolute goodness."
+- A "Compare Two Models" button adds a second fitted peak for side-by-side deviance comparison.
+
+COLOR PALETTE:
+- Saturated peak in gold (#eab308) with crown icon. Fitted model peak in cyan (#06b6d4). Discrepancy gauge fill in rose gradient (#f43f5e → #fbbf24). ϕ slider in purple (#8b5cf6). Grid lines in subtle gray (#374151). Background (#020617).
+
+VARIABLE NAMING:
+- coordinateGrid_SVG, saturatedPeak_l_y_yHat, fittedPeak_l_y_muHat, discrepancyGauge, devianceValue_D, dispersionSlider_phi, scaledDeviance, saturatedModel, fittedModel, relativeGoodness, crownIcon, tickMarks.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required.
+
+
+--- Scene 2 Design (Sec2): Comparison – Deviance Distribution: Individual vs Grouped Data ---
+
+LAYOUT:
+- Left panel: individual binary data points scattered on a graph (SVG circles at 0/1).
+- Right panel: aggregated grouped data blocks (larger rectangles with count labels).
+- Bottom: a deviance signal line that transforms from jagged (individual) to smooth (grouped).
+- A χ²(G-p-1) distribution curve (SVG) that the smooth signal converges to.
+
+ANIMATIONS:
+- Individual data points appear scattered on the left panel.
+- A "Group" transformation wave sweeps left-to-right: individual points cluster together, merge, and transform into grouped blocks on the right panel (CSS scale-down + translateX of individuals, scale-up + appearance of groups).
+- The deviance signal below: initially jagged and erratic (SVG polyline with many sharp angles), smooths out as grouping occurs (SVG path d-attribute interpolation via JS to reduce vertices).
+- The smoothed signal overlays onto the χ² curve, aligning with it. A "Valid ✓" badge appears for grouped, "Invalid ✗" for individual.
+
+INTERACTIVITY:
+- A "Group / Ungroup" toggle switches between individual and grouped views with full animation.
+- A group size slider adjusts how many individuals merge per group (larger groups = smoother signal).
+- Hovering over the jagged signal shows: "Deviance NOT χ² distributed for individual binary data."
+- Hovering over the smooth signal shows: "Deviance ≈ χ²(G-p-1) for grouped data."
+- Clicking the χ² curve shows its degrees of freedom calculation.
+
+COLOR PALETTE:
+- Individual data points in scattered colors (teal #14b8a6 for y=1, gray #6b7280 for y=0). Grouped blocks in deep blue (#1d4ed8). Jagged signal in red (#ef4444). Smooth signal in green (#22c55e). χ² curve in white (#e2e8f0). Valid badge green, Invalid badge red. Background (#0f172a).
+
+VARIABLE NAMING:
+- individualDataPoints_SVG, groupedDataBlocks, groupTransformationWave, devianceSignal_jagged, devianceSignal_smooth, chiSquaredCurve_G_p_1, groupToggle, groupSizeSlider, validBadge, invalidBadge, degreesOfFreedom_G_minus_p_minus_1, binaryData_individual, aggregatedData_grouped.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required.
+
+
+--- Scene 3 Design (Sec3): Accumulation – Pearson χ² Statistic Assembly ---
+
+LAYOUT:
+- Left: rows of observed (yᵢ) and fitted (μ̂ᵢ) value pairs as labeled blocks.
+- Center: a squared difference computation zone where (yᵢ − μ̂ᵢ)² is calculated.
+- A variance function filter v(μ̂ᵢ) (mesh/grid styled div) that each squared difference passes through.
+- A summation accumulator (χ² bucket container) on the right.
+- Final Pearson χ² value display.
+
+ANIMATIONS:
+- For each observation pair:
+  1. yᵢ and μ̂ᵢ blocks slide toward each other, collide (CSS translateX converge + flash), producing a (yᵢ − μ̂ᵢ)² block (new div pops in with the squared value).
+  2. The squared block moves downward through the v(μ̂ᵢ) filter (CSS translateY). The filter visually "weighs" it (block size adjusts based on v(μ̂ᵢ) value — larger variance = smaller weighted residual).
+  3. The weighted block slides right into the summation bucket (CSS translateX + opacity fade into the bucket fill level).
+- Bucket fill level rises with each added residual (CSS height transition).
+- After all observations are processed, the bucket transforms into the Pearson χ² value with a glow.
+
+INTERACTIVITY:
+- "Process Next" button handles one observation at a time.
+- "Process All" button runs the full sequence automatically.
+- Hovering over the filter for each observation shows v(μ̂ᵢ) value and the weighting applied.
+- A side panel compares Pearson χ² with Deviance: "Equivalent in large samples."
+- Clicking the final χ² value shows the degrees of freedom and distributional reference.
+
+COLOR PALETTE:
+- Observed yᵢ in teal (#14b8a6). Fitted μ̂ᵢ in violet (#8b5cf6). Squared residual in amber (#f59e0b). Variance filter in gray mesh. Weighted residual in cyan (#06b6d4). Bucket fill in gradient green (#22c55e). Final χ² in gold (#eab308). Background (#0f172a).
+
+VARIABLE NAMING:
+- observedValue_y_i, fittedValue_muHat_i, squaredDifference_y_minus_muHat_sq, varianceFunctionFilter_v_muHat_i, weightedResidual, summationBucket_chiSquared, pearsonChiSquared_X2, bucketFillLevel, processNextButton, processAllButton, degreesOfFreedom, largesampleEquivalence.
+
+TECHNOLOGY: HTML + CSS + JS. No 3D required.
+
+
+--- Scene 4 Design (Sec4): Parallel Flow – Deviance Partitioning for Model Comparison ---
+
+LAYOUT:
+- A horizontal bar representing total deviance D(M̃) of the restricted model (full width).
+- The bar splits into two segments: D(M) (complex model deviance) and D(M̃|M) (difference/reduction).
+- The difference segment D(M̃|M) transforms into a log-likelihood ratio statistic.
+- A χ²ᵣ distribution target curve (SVG) on the right.
+
+ANIMATIONS:
+- The full deviance bar D(M̃) appears at full width (CSS width animation from 0 to 100%).
+- A vertical split line appears and animates across the bar, dividing it into D(M) on the left and D(M̃|M) on the right (CSS border + width transition).
+- The D(M̃|M) segment detaches and floats upward (CSS translateY + slight rotation).
+- The detached segment transforms into a styled "Log-Likelihood Ratio" badge (CSS shape morph via border-radius + background-color change).
+- The badge slides rightward toward the χ²ᵣ distribution curve and docks at the test statistic position.
+- If the statistic exceeds the critical value, a "REJECT: Models significantly different" badge appears.
+
+INTERACTIVITY:
+- A slider adjusts the relative sizes of D(M) and D(M̃|M) to show how adding predictors reduces deviance.
+- Clicking D(M) shows: "Deviance of the more complex model."
+- Clicking D(M̃|M) shows: "Improvement from adding predictors — this is what we test."
+- A "Critical Value" line toggle on the χ² curve shows the rejection boundary.
+- A dropdown selects different model comparisons (e.g., Null vs Full, Reduced vs Full).
+
+COLOR PALETTE:
+- Full deviance bar D(M̃) in rose (#f43f5e). Complex model D(M) in cyan (#06b6d4). Difference D(M̃|M) in amber (#f59e0b). Log-LR badge in gold (#eab308). χ²ᵣ curve in white. Critical value line in red dashed. Background (#020617).
+
+VARIABLE NAMING:
+- totalDeviance_D_Mtilde, complexModelDeviance_D_M, devianceDifference_D_Mtilde_given_M, splitLine, logLikelihoodRatioBadge, chiSquaredTarget_r, criticalValueLine, modelComparisonDropdown, rejectBadge, devianceBar_full, deviancePartition, improvementTest.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required.

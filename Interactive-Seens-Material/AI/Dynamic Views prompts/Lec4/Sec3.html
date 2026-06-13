@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Accumulation: Multiplicative Scaling</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Outfit', sans-serif; }
+  
+  .smooth-transition { transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+
+  .x-block { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .odds-fill { transition: height 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .flash { animation: flashAnim 0.5s ease-out; }
+  
+  @keyframes flashAnim {
+    0% { filter: brightness(1); }
+    50% { filter: brightness(2) drop-shadow(0 0 10px #eab308); transform: scale(1.1); }
+    100% { filter: brightness(1); transform: scale(1); }
+  }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-5xl h-[700px] bg-slate-900 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col overflow-hidden">
+  
+  <!-- Header / Narrator -->
+  <div class="absolute top-6 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-2xl font-bold text-slate-100 tracking-wider">Multiplicative Scaling of Odds</h1>
+    <p class="text-cyan-400 mt-2 text-sm max-w-2xl mx-auto h-8 font-medium" id="narrator">
+      Click "Start Simulation" to observe odds accumulation.
+    </p>
+  </div>
+
+  <!-- Central Workspace -->
+  <div class="relative flex-1 w-full mt-24 mb-20 flex items-center justify-center gap-12 px-8">
+    
+    <!-- X Axis Panel -->
+    <div class="bg-slate-800/80 rounded-2xl p-8 border border-slate-700 backdrop-blur-sm text-center flex flex-col items-center">
+      <div class="text-slate-400 font-bold mb-6">Predictor (x)</div>
+      <div class="x-block w-24 h-24 bg-blue-600 rounded-2xl flex justify-center items-center text-4xl font-bold mb-4 shadow-[0_10px_30px_rgba(37,99,235,0.4)]" id="x-block">0</div>
+      <div class="text-slate-500 font-mono" id="x-delta">Start</div>
+    </div>
+
+    <!-- Multiplier Icon -->
+    <div class="flex flex-col items-center text-slate-400 font-bold" id="multiplier-section">
+      <div class="text-6xl mb-4 text-slate-600 transition-colors" id="arrow-icon">➔</div>
+      <div class="bg-slate-800/50 px-4 py-2 rounded-xl border border-slate-700 transition-colors" id="mul-badge">× exp(β₁)</div>
+      <div class="text-sm mt-2 text-slate-500">(Assuming exp(β₁) = 1.5)</div>
+    </div>
+
+    <!-- Odds Panel -->
+    <div class="bg-slate-800/80 rounded-2xl p-8 border border-slate-700 backdrop-blur-sm flex flex-col items-center relative h-[400px] justify-end min-w-[250px]">
+      <div class="absolute top-6 right-6 bg-emerald-900/30 border border-emerald-500/50 p-2 rounded-xl text-emerald-400 font-bold font-mono shadow-[0_0_15px_rgba(16,185,129,0.2)]" id="prob-overlay">π(x) = 50.0%</div>
+      
+      <div class="w-16 bg-slate-900/80 rounded-full border-2 border-slate-600 relative overflow-hidden h-[250px] shadow-inner mb-6">
+        <div class="odds-fill absolute bottom-0 left-0 w-full bg-gradient-to-t from-amber-500 to-yellow-400" id="odds-fill" style="height: 6.6%;"></div>
+      </div>
+      
+      <div class="text-xl text-slate-400 font-semibold">Odds</div>
+      <div class="text-3xl font-bold font-mono text-amber-500 mt-1" id="odds-val">1.00</div>
+    </div>
+
+  </div>
+
+  <!-- Final Message Overlay -->
+  <div id="final-message" class="absolute bottom-32 left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none">
+    <div class="bg-amber-950/90 border border-amber-500/50 backdrop-blur-md rounded-xl p-5 text-center mx-auto max-w-3xl shadow-[0_0_30px_rgba(245,158,11,0.15)]">
+      <h3 class="text-amber-300 font-bold mb-2 text-lg">Misconception Corrected</h3>
+      <p class="text-slate-200 text-sm leading-relaxed">
+        Odds scale multiplicatively while probability shifts non-linearly. This corrects the misconception that <strong class="text-amber-400">β₁ represents a constant additive change to the outcome probability</strong>. The probability change slows down as it approaches 100%.
+      </p>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="absolute bottom-0 left-0 w-full h-24 bg-slate-800/80 border-t border-slate-700 flex items-center justify-center px-8 z-50 backdrop-blur-md">
+    <button id="start-btn" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-all">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  
+  const xBlock = document.getElementById('x-block');
+  const xDelta = document.getElementById('x-delta');
+  const oddsFill = document.getElementById('odds-fill');
+  const oddsVal = document.getElementById('odds-val');
+  const probOverlay = document.getElementById('prob-overlay');
+  
+  const arrowIcon = document.getElementById('arrow-icon');
+  const mulBadge = document.getElementById('mul-badge');
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+
+  const expB1 = 1.5;
+  const maxVisualOdds = 15;
+
+  function updateVisuals(x) {
+    xBlock.innerText = x;
+    
+    let odds = 1.0 * Math.pow(expB1, x);
+    let pct = Math.min((odds / maxVisualOdds) * 100, 100);
+    oddsFill.style.height = `${pct}%`;
+    oddsVal.innerText = odds.toFixed(2);
+    
+    let prob = odds / (1 + odds);
+    probOverlay.innerText = `π(x) = ${(prob*100).toFixed(1)}%`;
+  }
+
+  function resetScene() {
+    updateVisuals(0);
+    xDelta.innerText = "Start";
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    narrator.textContent = "Simulation starting...";
+    
+    arrowIcon.classList.remove('text-cyan-400');
+    mulBadge.classList.remove('border-cyan-500', 'text-cyan-300', 'bg-cyan-900/30');
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(800);
+
+    // Iteration sequence
+    for(let i = 1; i <= 6; i++) {
+      narrator.textContent = `Stage ${i}: Incrementing predictor x by +1.`;
+      
+      // Animate X block
+      xBlock.style.transform = 'scale(1.2)';
+      await sleep(200);
+      xBlock.style.transform = 'scale(1)';
+      xDelta.innerText = "Δx = +1";
+      
+      // Animate multiplier signal
+      arrowIcon.classList.add('text-cyan-400');
+      mulBadge.classList.add('border-cyan-500', 'text-cyan-300', 'bg-cyan-900/30', 'flash');
+      await sleep(300);
+      
+      // Update values
+      updateVisuals(i);
+      
+      // Reset multiplier styling
+      setTimeout(() => {
+        arrowIcon.classList.remove('text-cyan-400');
+        mulBadge.classList.remove('border-cyan-500', 'text-cyan-300', 'bg-cyan-900/30', 'flash');
+      }, 500);
+
+      await sleep(1500);
+    }
+
+    narrator.textContent = "Final State: Multiplicative scaling of odds vs non-linear shift in probability.";
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    startBtn.classList.remove('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  // Init
+  resetScene();
+  narrator.textContent = 'Click "Start Simulation" to observe odds accumulation.';
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>

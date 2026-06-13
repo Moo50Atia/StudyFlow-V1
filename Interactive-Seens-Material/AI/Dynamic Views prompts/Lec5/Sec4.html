@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Time Evolution: Numerical Convergence</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Outfit', sans-serif; }
+  
+  .smooth-transition { transition: all 1s ease-in-out; }
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+
+  .axis { stroke: #334155; stroke-width: 2; }
+  .contour { fill: none; stroke: rgba(59, 130, 246, 0.2); stroke-width: 2; }
+  
+  .target-marker { fill: none; stroke: #10b981; stroke-width: 3; stroke-dasharray: 4 4; }
+  .target-center { fill: #10b981; r: 5; box-shadow: 0 0 10px #10b981; }
+  
+  .jump-path { fill: none; stroke: #3b82f6; stroke-width: 2; stroke-dasharray: 5 5; }
+  
+  .estimate-pt {
+    position: absolute; width: 16px; height: 16px; background: #f59e0b;
+    border-radius: 50%; transform: translate(-50%, -50%);
+    box-shadow: 0 0 15px #f59e0b; transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 10;
+  }
+  
+  /* Meters Styling */
+  input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #06b6d4; margin-top: -6px; box-shadow: 0 0 10px rgba(6, 182, 212, 0.8); }
+  input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: #334155; border-radius: 2px; }
+  
+  /* Traveling dot pulse */
+  .pulse-glow { animation: pulse 1s infinite alternate; }
+  @keyframes pulse { from { box-shadow: 0 0 15px #f59e0b; } to { box-shadow: 0 0 30px #f59e0b, 0 0 10px #fff; } }
+
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-5xl h-[750px] bg-slate-900 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col overflow-hidden">
+  
+  <div class="absolute top-6 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-2xl font-bold text-slate-100 tracking-wider">Numerical Convergence (Fisher Scoring)</h1>
+    <p class="text-cyan-400 mt-2 text-sm max-w-2xl mx-auto h-8 font-medium" id="narrator">
+      Click "Start Simulation" to initiate the Fisher Scoring loop.
+    </p>
+  </div>
+
+  <div class="relative flex-1 w-full mt-24 mb-32 px-12 flex flex-col justify-center items-center">
+    
+    <div class="w-full h-[400px] bg-slate-950/50 rounded-2xl border border-slate-800/50 relative shadow-inner overflow-hidden backdrop-blur-sm">
+      <svg viewBox="0 0 800 400" class="w-full h-full overflow-visible">
+        <line x1="0" y1="200" x2="800" y2="200" class="axis"/>
+        <line x1="400" y1="0" x2="400" y2="400" class="axis"/>
+        
+        <!-- Contours representing likelihood landscape -->
+        <ellipse cx="500" cy="150" rx="40" ry="25" class="contour"/>
+        <ellipse cx="500" cy="150" rx="90" ry="60" class="contour"/>
+        <ellipse cx="500" cy="150" rx="160" ry="110" class="contour"/>
+        <ellipse cx="500" cy="150" rx="250" ry="180" class="contour"/>
+        
+        <circle cx="500" cy="150" r="15" class="target-marker" />
+        <circle cx="500" cy="150" class="target-center" />
+        <text x="525" y="145" fill="#10b981" font-family="monospace" font-weight="bold">Target s(β)=0</text>
+        
+        <path id="jumps" class="jump-path" d="M 100 350" />
+      </svg>
+      <div id="pt" class="estimate-pt pulse-glow"></div>
+    </div>
+
+  </div>
+
+  <!-- Final Message Overlay -->
+  <div id="final-message" class="absolute bottom-40 left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none">
+    <div class="bg-blue-950/90 border border-blue-500/50 backdrop-blur-md rounded-xl p-5 text-center mx-auto max-w-3xl shadow-[0_0_30px_rgba(59,130,246,0.15)]">
+      <h3 class="text-blue-300 font-bold mb-2 text-lg">Misconception Corrected</h3>
+      <p class="text-slate-200 text-sm leading-relaxed">
+        The parameter is found via discrete, iterative steps until convergence. This corrects the misconception that <strong class="text-blue-400">logit models possess a closed-form analytical solution</strong>. They require numerical optimization algorithms like Fisher Scoring.
+      </p>
+    </div>
+  </div>
+
+  <!-- Interactive Meters Panel (B4) -->
+  <div class="absolute bottom-0 left-0 w-full h-28 bg-slate-800/80 border-t border-slate-700 flex items-center justify-between px-8 z-50 backdrop-blur-md">
+    
+    <div class="flex-1 grid grid-cols-2 gap-12 pr-12">
+      <!-- Meter 1 -->
+      <div class="flex flex-col">
+        <div class="flex justify-between text-sm mb-2">
+          <span class="text-slate-400 font-semibold">Fisher Scoring Iteration (k)</span>
+          <span id="val-iter" class="text-cyan-400 font-mono font-bold">0</span>
+        </div>
+        <input type="range" id="meter-iter" min="0" max="6" value="0" class="pointer-events-none">
+      </div>
+      <!-- Meter 2 -->
+      <div class="flex flex-col">
+        <div class="flex justify-between text-sm mb-2">
+          <span class="text-slate-400 font-semibold">Distance to Target (Δβ)</span>
+          <span id="val-dist" class="text-amber-400 font-mono font-bold">447.21</span>
+        </div>
+        <input type="range" id="meter-dist" min="0" max="500" value="447" class="pointer-events-none transform rotate-180">
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <button id="start-btn" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-all flex-shrink-0">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  
+  const pt = document.getElementById('pt');
+  const jumpsPath = document.getElementById('jumps');
+  
+  const mIter = document.getElementById('meter-iter');
+  const mDist = document.getElementById('meter-dist');
+  const vIter = document.getElementById('val-iter');
+  const vDist = document.getElementById('val-dist');
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+
+  const targetX = 500;
+  const targetY = 150;
+  const startX = 100;
+  const startY = 350;
+
+  function resetScene() {
+    pt.style.left = `calc(50% - 400px + ${startX}px)`; // Aligning absolute px to svg viewBox assuming fixed center layout
+    pt.style.top = `calc(50% - 200px + ${startY}px)`;
+    
+    // Better absolute positioning logic for the point relative to the container
+    pt.style.left = `${(startX / 800) * 100}%`;
+    pt.style.top = `${(startY / 400) * 100}%`;
+    
+    jumpsPath.setAttribute('d', `M ${startX} ${startY}`);
+    
+    mIter.value = 0; vIter.textContent = "0";
+    mDist.value = 447; vDist.textContent = "447.21";
+    
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    narrator.textContent = "Simulation starting...";
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(800);
+
+    narrator.textContent = "Stage 1: A beta estimate point moves in discrete Newton increments toward the target.";
+    
+    let currentX = startX;
+    let currentY = startY;
+    let pathD = `M ${currentX} ${currentY} `;
+
+    const steps = [0.6, 0.8, 0.92, 0.98, 0.995, 1.0]; // non-linear progression to target
+
+    for(let k = 1; k <= 6; k++) {
+      let stepFactor = steps[k-1];
+      let wobble = (k < 3) ? (Math.random() * 30 - 15) : 0;
+      
+      currentX = startX + (targetX - startX) * stepFactor + wobble;
+      currentY = startY + (targetY - startY) * stepFactor - wobble;
+      
+      pt.style.left = `${(currentX / 800) * 100}%`;
+      pt.style.top = `${(currentY / 400) * 100}%`;
+      
+      pathD += `L ${currentX} ${currentY} `;
+      jumpsPath.setAttribute('d', pathD);
+      
+      let dist = Math.sqrt(Math.pow(targetX - currentX, 2) + Math.pow(targetY - currentY, 2));
+      
+      // Update meters
+      mIter.value = k; vIter.textContent = k;
+      mDist.value = dist; vDist.textContent = dist.toFixed(2);
+      
+      if(k === 4) {
+        narrator.textContent = "Stage 2: With each step, distance to the target fades as convergence is approached.";
+      }
+
+      await sleep(800);
+    }
+
+    narrator.textContent = "Final State: A stabilized beta estimate after numerical convergence.";
+    vDist.textContent = "0.00";
+    mDist.value = 0;
+    
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    startBtn.classList.remove('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  // Init
+  resetScene();
+  narrator.textContent = 'Click "Start Simulation" to initiate the Fisher Scoring loop.';
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>

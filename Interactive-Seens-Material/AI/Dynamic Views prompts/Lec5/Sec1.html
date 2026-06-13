@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparison: OLS Variance Violation</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Outfit', sans-serif; }
+  
+  .smooth-transition { transition: all 1.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+
+  .point { position: absolute; width: 12px; height: 12px; border-radius: 50%; transform: translate(-50%, -50%); transition: top 1s cubic-bezier(0.34, 1.56, 0.64, 1); z-index: 5; }
+  .ols-line { stroke: #38bdf8; stroke-width: 4; stroke-linecap: round; transition: d 2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+  .var-meter {
+    position: absolute; background: rgba(239, 68, 68, 0.2); border: 2px dashed #ef4444;
+    transform: translateX(-50%); width: 40px; border-radius: 4px;
+    transition: height 1s, top 1s, opacity 1s; opacity: 0;
+  }
+  @keyframes flashRed {
+    from { border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.1); box-shadow: 0 0 0 transparent; }
+    to { border-color: rgba(239, 68, 68, 1); background: rgba(239, 68, 68, 0.4); box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); }
+  }
+  .flash-red { animation: flashRed 0.8s infinite alternate; }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-5xl h-[700px] bg-slate-900 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col overflow-hidden">
+  
+  <div class="absolute top-6 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-2xl font-bold text-slate-100 tracking-wider">Violation of Constant Variance in OLS</h1>
+    <p class="text-cyan-400 mt-2 text-sm max-w-2xl mx-auto h-8 font-medium" id="narrator">
+      Click "Start Simulation" to analyze binary data variance.
+    </p>
+  </div>
+
+  <div class="relative flex-1 w-full mt-24 mb-20 px-12 flex items-center justify-center">
+    
+    <div class="relative w-full h-[400px] bg-slate-950/50 rounded-2xl border border-slate-800/50 shadow-inner overflow-hidden">
+      
+      <!-- Variance Meters -->
+      <div class="var-meter" id="vm1" style="left: 20%;">
+        <div class="absolute -top-8 left-1/2 -translate-x-1/2 text-rose-500 font-bold font-mono">σ²</div>
+      </div>
+      <div class="var-meter" id="vm2" style="left: 50%;">
+        <div class="absolute -top-8 left-1/2 -translate-x-1/2 text-rose-500 font-bold font-mono">σ²</div>
+      </div>
+      <div class="var-meter" id="vm3" style="left: 80%;">
+        <div class="absolute -top-8 left-1/2 -translate-x-1/2 text-rose-500 font-bold font-mono">σ²</div>
+      </div>
+
+      <svg viewBox="0 0 1000 400" preserveAspectRatio="none" class="w-full h-full overflow-visible">
+        <line x1="50" y1="350" x2="950" y2="350" stroke="#475569" stroke-width="2" />
+        <line x1="50" y1="50" x2="50" y2="350" stroke="#475569" stroke-width="2" />
+        <line x1="50" y1="50" x2="950" y2="50" stroke="rgba(255,255,255,0.05)" stroke-width="1" stroke-dasharray="4 4" />
+        
+        <text x="20" y="55" fill="#94a3b8" font-family="monospace">1</text>
+        <text x="20" y="355" fill="#94a3b8" font-family="monospace">0</text>
+        
+        <path id="ols" class="ols-line" d="M 50 350 L 950 350" />
+      </svg>
+      
+      <div id="points" class="absolute inset-0"></div>
+
+    </div>
+
+  </div>
+
+  <div id="final-message" class="absolute bottom-32 left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none">
+    <div class="bg-rose-950/90 border border-rose-500/50 backdrop-blur-md rounded-xl p-5 text-center mx-auto max-w-3xl shadow-[0_0_30px_rgba(244,63,94,0.15)]">
+      <h3 class="text-rose-300 font-bold mb-2 text-lg">Misconception Corrected</h3>
+      <p class="text-slate-200 text-sm leading-relaxed">
+        Binary data variance depends on the probability (σ² = π(1-π)), meaning variance is highest in the middle and lowest at the extremes. This corrects the misconception that <strong class="text-rose-400">standard Least Squares estimation is suitable for binary outcomes</strong>.
+      </p>
+    </div>
+  </div>
+
+  <div class="absolute bottom-0 left-0 w-full h-24 bg-slate-800/80 border-t border-slate-700 flex items-center justify-center px-8 z-50 backdrop-blur-md">
+    <button id="start-btn" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-all">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  const pointsContainer = document.getElementById('points');
+  const ols = document.getElementById('ols');
+  
+  const vm1 = document.getElementById('vm1');
+  const vm2 = document.getElementById('vm2');
+  const vm3 = document.getElementById('vm3');
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+  let pts = [];
+
+  function generatePoints() {
+    pointsContainer.innerHTML = '';
+    pts = [];
+    for(let i=0; i<40; i++) {
+      let pct = 0.1 + (i/40)*0.8; // Spread from 10% to 90%
+      let x = pct * 900 + 50; // Map to 1000px svg width roughly
+      let p = 1 / (1 + Math.exp(-((x - 500)/100)));
+      let y = Math.random() < p ? 1 : 0;
+      
+      let el = document.createElement('div');
+      el.className = `point ${y === 1 ? 'bg-emerald-500' : 'bg-amber-500'}`;
+      el.style.left = `${(x/1000)*100}%`;
+      el.style.top = '350px'; // Start at bottom
+      pointsContainer.appendChild(el);
+      pts.push({ el, y });
+    }
+  }
+
+  function resetScene() {
+    generatePoints();
+    ols.setAttribute('d', 'M 50 350 L 950 350');
+    
+    [vm1, vm2, vm3].forEach(v => {
+      v.style.opacity = '0';
+      v.style.height = '0px';
+      v.classList.remove('flash-red');
+    });
+
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    narrator.textContent = "Simulation starting...";
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(800);
+
+    narrator.textContent = "Stage 1: Binary data clusters move to coordinates 0 and 1.";
+    pts.forEach(p => {
+      // 50px is y=1, 350px is y=0
+      p.el.style.top = p.y === 1 ? '50px' : '350px';
+    });
+    await sleep(1500);
+
+    narrator.textContent = "Stage 2: A linear Least Squares line is fitted to the data.";
+    ols.setAttribute('d', 'M 50 300 L 950 100');
+    await sleep(2000);
+
+    narrator.textContent = "Stage 3: Spatial variance meters highlight fluctuating variance across x-intervals.";
+    
+    vm1.style.opacity = '1'; vm1.style.height = '40px'; vm1.style.top = '310px';
+    vm3.style.opacity = '1'; vm3.style.height = '40px'; vm3.style.top = '50px';
+    
+    await sleep(1000);
+    
+    vm2.style.opacity = '1'; vm2.style.height = '150px'; vm2.style.top = '200px';
+    
+    await sleep(1000);
+
+    narrator.textContent = "Stage 4: Meters flash red indicating violation of OLS constant variance assumption.";
+    [vm1, vm2, vm3].forEach(v => v.classList.add('flash-red'));
+    
+    await sleep(2000);
+
+    narrator.textContent = "Final State: Discrepancy between fixed-variance and binary data variance.";
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    startBtn.classList.remove('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  // Init
+  generatePoints();
+  narrator.textContent = 'Click "Start Simulation" to analyze binary data variance.';
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>

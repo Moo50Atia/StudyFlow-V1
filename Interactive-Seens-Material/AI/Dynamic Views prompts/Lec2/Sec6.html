@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parallel Flow: Systematic Component + Random Error</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #09090b;
+    --sys: #fff;
+    --error: rgba(59, 130, 246, 0.2);
+    --error-border: #60a5fa;
+    --dot: #facc15;
+  }
+  body {
+    margin: 0; background: var(--bg); color: #fff;
+    font-family: 'Outfit', sans-serif; height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    overflow: hidden;
+  }
+
+  .header { margin-top: 40px; text-align: center; z-index: 10; position: relative; }
+  .header p { color: #a1a1aa; max-width: 800px; margin: 0 auto; }
+
+  .graph-container {
+    flex: 1; width: 100%; position: relative; display: flex; align-items: center;
+  }
+
+  svg { width: 100%; height: 600px; position: absolute; top: 50%; transform: translateY(-50%); }
+
+  .sys-line { stroke: var(--sys); stroke-width: 3; stroke-dasharray: 2000; stroke-dashoffset: 2000; fill: none; }
+  .env-path { fill: var(--error); stroke: var(--error-border); stroke-width: 1; stroke-dasharray: 4 4; opacity: 0; transition: opacity 1s, d 0.5s; }
+  
+  .particle {
+    position: absolute; width: 12px; height: 12px; background: var(--dot);
+    border-radius: 50%; box-shadow: 0 0 10px var(--dot);
+    transform: translate(-50%, -50%); transition: top 0.5s ease-in-out;
+  }
+
+  .controls {
+    margin-bottom: 40px; display: flex; gap: 30px; align-items: center;
+    background: rgba(255,255,255,0.05); padding: 20px 40px; border-radius: 20px;
+    backdrop-filter: blur(10px); z-index: 10;
+  }
+  .controls label { font-weight: 600; color: #a1a1aa; display: flex; flex-direction: column; gap: 10px; }
+  
+  input[type=range] { -webkit-appearance: none; width: 200px; background: #3f3f46; height: 4px; border-radius: 2px; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; background: #fff; border-radius: 50%; cursor: pointer; margin-top: -6px; }
+  
+  .btn { background: var(--sys); color: #000; border: none; padding: 10px 20px; font-weight: 600; border-radius: 8px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>Outcome = Systematic Mean + Random Error</h2>
+  <p>"A straight line signal representing the systematic component flows horizontally while random bell-curve waves descend to surround it. Outcome signals fluctuate within the variance width."</p>
+</div>
+
+<div class="graph-container" id="gc">
+  <svg viewBox="0 0 1000 600" preserveAspectRatio="none">
+    <!-- Variance Envelope -->
+    <path id="env" class="env-path" d="M 0 300 L 1000 300 L 1000 300 L 0 300 Z" />
+    <!-- Systematic Line -->
+    <line id="sline" x1="0" y1="300" x2="1000" y2="300" class="sys-line" />
+  </svg>
+</div>
+
+<div class="controls">
+  <button class="btn" onclick="startFlow()">Start Flow</button>
+  <label>
+    Variance (σ²)
+    <input type="range" min="20" max="250" value="80" id="var-slider" oninput="updateVariance()">
+  </label>
+</div>
+
+<script>
+  let particles = [];
+  let variance = 80;
+  let flowInterval;
+
+  function startFlow() {
+    // Animate line
+    const sline = document.getElementById('sline');
+    sline.style.transition = 'stroke-dashoffset 2s ease-out';
+    sline.style.strokeDashoffset = '0';
+
+    setTimeout(() => {
+      document.getElementById('env').style.opacity = '1';
+      updateVariance();
+      
+      // Spawn particles
+      if(particles.length === 0) {
+        for(let i=0; i<15; i++) {
+          let p = document.createElement('div');
+          p.className = 'particle';
+          document.getElementById('gc').appendChild(p);
+          particles.push({
+            el: p,
+            x: (i * 70) + 20, // Spread across width
+            baseY: window.innerHeight / 2
+          });
+        }
+      }
+
+      if(!flowInterval) {
+        flowInterval = setInterval(fluctuate, 600);
+      }
+    }, 2000);
+  }
+
+  function updateVariance() {
+    variance = document.getElementById('var-slider').value;
+    const env = document.getElementById('env');
+    // Draw envelope
+    env.setAttribute('d', `M 0 ${300 - variance} Q 500 ${300 - variance + (Math.random()*20-10)} 1000 ${300 - variance} L 1000 ${300 + parseInt(variance)} Q 500 ${300 + parseInt(variance) + (Math.random()*20-10)} 0 ${300 + parseInt(variance)} Z`);
+  }
+
+  function fluctuate() {
+    // Add some organic movement to the envelope
+    updateVariance();
+
+    particles.forEach(p => {
+      // Box-Muller transform for normal distribution approximation
+      let u = 0, v = 0;
+      while(u === 0) u = Math.random();
+      while(v === 0) v = Math.random();
+      let num = Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
+      
+      // Map to variance pixel range, constrained slightly to stay in envelope mostly
+      let offset = num * (variance / 2.5); 
+      if(offset > variance) offset = variance;
+      if(offset < -variance) offset = -variance;
+
+      p.el.style.left = p.x + 'px';
+      p.el.style.top = (p.baseY + offset) + 'px';
+      
+      // Slowly move right
+      p.x += 10;
+      if(p.x > window.innerWidth) p.x = 0;
+    });
+  }
+</script>
+</body>
+</html>

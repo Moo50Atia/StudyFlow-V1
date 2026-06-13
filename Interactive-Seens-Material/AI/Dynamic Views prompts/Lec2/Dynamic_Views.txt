@@ -1,0 +1,28 @@
+Lecture: Fundamental Concepts of Regression
+Lec1 (Sec1): "Process: x signals move toward a central processor, splitting into three illuminated outputs: a radar graph for Detection, a measuring ruler for Quantification, and a projection curve for Prediction
+. A toggle switch transforms the scene from 'Correlation' to 'Regression' to emphasize functional impact
+. Final State: Three goal-oriented devices operating on the y∣x relationship, correcting the misconception that regression only measures simple association strength
+."
+Lec1 (Sec2): "Comparison: A vertical column of y blocks representing metrical, binary, and multi-categorical scales interacts with a horizontal row of x signal paths representing linear, additive, and interaction terms
+. When a y block is selected, corresponding x paths highlight the required mathematical architecture
+. Final State: A matrix of model structures mapped directly to data types, correcting the misconception that regression architecture is independent of the dependent variable's scale
+."
+Lec1 (Sec3): "Process: A binary toggle and a metrical slider move into a mathematical equation block
+. As the toggle flips, the E(y∣x) graph highlights a discrete jump; as the slider moves, the graph highlights a continuous slope
+. Fixed-variable markers appear to demonstrate the adjustment principle where other variables remain constant
+. Final State: β parameters visualized as conditional effects under fixed constraints, correcting the misconception that β represents an unadjusted marginal change
+."
+Lec1 (Sec4): "Comparison: Two parallel workspaces display Dummy Coding and Effect Encoding
+. In the Dummy workspace, one category block fades to zero as the reference category
+. In the Effect workspace, a balance scale accumulates all β blocks to demonstrate the sum-to-zero restriction
+. Final State: A contrast of parameter restrictions required for model identifiability, correcting the misconception that all k categories can be estimated without constraints
+."
+Lec1 (Sec5): "Accumulation: Blocks representing metrical x, categorical j, and polynomial x 
+2
+  move into a central η container
+. Operator icons for addition and interaction act as connectors, transforming the blocks into a Wilkinson-Rogers notation string
+. Final State: A unified linear predictor η composed of weighted and combined covariates, correcting the misconception that the predictor excludes non-linear variable transformations
+."
+Lec1 (Sec6): "Parallel Flow: A straight line signal representing the systematic component flows horizontally while random bell-curve waves representing error terms descend to surround it
+. Outcome signals move along the line, fluctuating within the constant variance width of the normal distribution
+. Final State: A split visualization of the outcome as a systematic mean plus a normally distributed random error, correcting the misconception that data points must fall exactly on the predicted line

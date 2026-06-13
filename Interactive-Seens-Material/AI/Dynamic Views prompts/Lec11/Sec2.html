@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparison: Grouped vs Individual Data Deviance</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Outfit', sans-serif; }
+  .smooth-transition { transition: all 1.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+
+  .jagged-path { stroke-dasharray: 1000; stroke-dashoffset: 1000; transition: stroke-dashoffset 2s linear; }
+  .smooth-path { stroke-dasharray: 1000; stroke-dashoffset: 1000; transition: stroke-dashoffset 2s linear; }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-6xl h-[700px] bg-slate-900 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col overflow-hidden">
+  
+  <div class="absolute top-6 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-2xl font-bold text-slate-100 tracking-wider">Grouped Data vs Individual Data Asymptotics</h1>
+    <p class="text-cyan-400 mt-2 text-sm max-w-2xl mx-auto h-8 font-medium" id="narrator">
+      Click "Start Simulation" to aggregate data and observe distribution stability.
+    </p>
+  </div>
+
+  <div class="relative flex-1 w-full mt-24 mb-20 px-12 flex items-center justify-center gap-12">
+    
+    <!-- Data Area -->
+    <div class="flex-1 h-[400px] bg-slate-950/50 rounded-2xl border border-slate-800/50 relative shadow-inner overflow-hidden p-6 backdrop-blur-sm flex flex-col items-center justify-center">
+      <div class="font-bold text-slate-400 uppercase tracking-widest text-sm absolute top-6">Data Structure</div>
+      
+      <div id="data-container" class="relative w-full h-[300px]">
+        <!-- Points populated via JS -->
+      </div>
+      
+      <div id="data-lbl" class="font-mono text-lg font-bold text-rose-500 absolute bottom-6 smooth-transition">Individual Binary Data</div>
+    </div>
+
+    <!-- Distribution Area -->
+    <div class="flex-1 h-[400px] bg-slate-950/50 rounded-2xl border border-slate-800/50 relative shadow-inner overflow-hidden p-6 backdrop-blur-sm">
+      <div class="font-bold text-slate-400 uppercase tracking-widest text-sm absolute top-6">Deviance Distribution</div>
+      
+      <svg viewBox="0 0 400 300" class="absolute inset-0 w-full h-full mt-10">
+        <line x1="50" y1="250" x2="350" y2="250" stroke="#475569" stroke-width="2" />
+        <line x1="50" y1="50" x2="50" y2="250" stroke="#475569" stroke-width="2" />
+        
+        <!-- Jagged curve for un-grouped data -->
+        <path id="jagged-curve" d="M 50 250 L 70 180 L 100 230 L 130 150 L 170 210 L 220 120 L 260 190 L 320 240 L 350 250" fill="none" stroke="#ef4444" stroke-width="3" class="jagged-path opacity-0" />
+        
+        <!-- Smooth Chi-sq curve for grouped data -->
+        <path id="smooth-curve" d="M 50 250 Q 80 50 150 100 T 350 240" fill="none" stroke="#10b981" stroke-width="4" class="smooth-path opacity-0" />
+      </svg>
+      
+      <div id="dist-lbl" class="absolute bottom-6 left-1/2 -translate-x-1/2 font-mono text-lg font-bold text-rose-500 smooth-transition opacity-0 whitespace-nowrap">Unreliable Distribution</div>
+
+      <!-- Equation Box -->
+      <div id="eq-box" class="absolute top-16 right-6 bg-emerald-900/20 border-2 border-emerald-500 rounded-lg p-3 opacity-0 smooth-transition">
+        <div class="font-serif text-2xl font-bold text-emerald-500">D ~ χ²_{G-p}</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="final-message" class="absolute bottom-32 left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none">
+    <div class="bg-emerald-950/90 border border-emerald-500/50 backdrop-blur-md rounded-xl p-5 text-center mx-auto max-w-3xl shadow-[0_0_30px_rgba(16,185,129,0.15)]">
+      <h3 class="text-emerald-300 font-bold mb-2 text-lg">Misconception Corrected</h3>
+      <p class="text-slate-200 text-sm leading-relaxed">
+        The asymptotic χ² distribution is valid only for grouped data structures. This corrects the misconception that <strong class="text-emerald-400">deviance provides a reliable formal test statistic for non-grouped individual outcomes</strong>. Individual binary outcomes produce jagged, unreliable deviance approximations.
+      </p>
+    </div>
+  </div>
+
+  <div class="absolute bottom-0 left-0 w-full h-24 bg-slate-800/80 border-t border-slate-700 flex items-center justify-center px-8 z-50 backdrop-blur-md">
+    <button id="start-btn" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-all">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  
+  const dataContainer = document.getElementById('data-container');
+  const dataLbl = document.getElementById('data-lbl');
+  const distLbl = document.getElementById('dist-lbl');
+  const jaggedCurve = document.getElementById('jagged-curve');
+  const smoothCurve = document.getElementById('smooth-curve');
+  const eqBox = document.getElementById('eq-box');
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+  let points = [];
+
+  function initData() {
+    dataContainer.innerHTML = '';
+    points = [];
+    // Create 30 random points
+    for(let i=0; i<30; i++) {
+      let p = document.createElement('div');
+      p.className = 'absolute w-3 h-3 bg-rose-500 rounded-full transition-all duration-1000 ease-in-out';
+      // Random position
+      p.style.left = (10 + Math.random() * 80) + '%';
+      p.style.top = (10 + Math.random() * 80) + '%';
+      dataContainer.appendChild(p);
+      points.push(p);
+    }
+  }
+
+  function resetScene() {
+    initData();
+    dataLbl.innerText = 'Individual Binary Data';
+    dataLbl.classList.replace('text-emerald-500', 'text-rose-500');
+    
+    distLbl.innerText = 'Unreliable Distribution';
+    distLbl.classList.replace('text-emerald-500', 'text-rose-500');
+    distLbl.classList.remove('opacity-100');
+
+    jaggedCurve.style.strokeDashoffset = '1000';
+    jaggedCurve.classList.remove('opacity-100');
+    
+    smoothCurve.style.strokeDashoffset = '1000';
+    smoothCurve.classList.remove('opacity-100');
+    
+    eqBox.classList.remove('opacity-100');
+
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    narrator.textContent = "Simulation starting...";
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(800);
+
+    narrator.textContent = "Stage 1: Individual binary data points yield a jagged, unreliable deviance signal.";
+    jaggedCurve.classList.add('opacity-100');
+    jaggedCurve.style.strokeDashoffset = '0';
+    distLbl.classList.add('opacity-100');
+
+    await sleep(3000);
+
+    narrator.textContent = "Stage 2: Individual points merge and transform into aggregated blocks for grouped data.";
+    
+    // Group points into 3 blocks
+    const groups = ['15%', '50%', '85%'];
+    points.forEach((p, i) => {
+      let g = i % 3;
+      p.style.left = groups[g];
+      p.style.top = '50%';
+      p.style.transform = 'translate(-50%, -50%) scale(2)';
+      p.style.borderRadius = '4px';
+      p.style.backgroundColor = '#10b981'; // emerald
+    });
+
+    dataLbl.innerText = 'Aggregated Grouped Data';
+    dataLbl.classList.replace('text-rose-500', 'text-emerald-500');
+
+    await sleep(2000);
+
+    narrator.textContent = "Stage 3: The deviance signal stabilizes into a smooth χ² distribution curve.";
+    
+    jaggedCurve.classList.remove('opacity-100');
+    
+    smoothCurve.classList.add('opacity-100');
+    smoothCurve.style.strokeDashoffset = '0';
+    
+    distLbl.innerText = 'Stable Asymptotic χ²';
+    distLbl.classList.replace('text-rose-500', 'text-emerald-500');
+    
+    await sleep(1500);
+    eqBox.classList.add('opacity-100');
+
+    await sleep(2500);
+
+    narrator.textContent = "Final State: Asymptotic χ² distribution valid only for grouped data structures.";
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    startBtn.classList.remove('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  // Init
+  resetScene();
+  narrator.textContent = 'Click "Start Simulation" to aggregate data and observe distribution stability.';
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accumulation: Grouped Data Aggregation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .smooth-transition {
+      transition: all 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .smooth-fade {
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+
+    .i-block {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      background: rgba(59, 130, 246, 0.2);
+      border: 2px solid #3b82f6;
+      border-radius: 6px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      font-family: monospace;
+      font-size: 0.75rem;
+      transition: all 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .device-spin {
+      animation: spin 2s linear infinite;
+    }
+
+    @keyframes spin {
+      100% {
+        transform: translate(-50%, -50%) rotate(360deg);
+      }
+    }
+
+    .m-fill {
+      height: 100%;
+      transition: width 1.5s ease-in-out, background-color 1.5s;
+    }
+
+    .bg-danger {
+      background-color: #ef4444;
+    }
+
+    .bg-safe {
+      background-color: #10b981;
+    }
+  </style>
+</head>
+
+<body class="bg-slate-950 text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+  <div
+    class="relative w-full max-w-6xl h-[700px] bg-slate-900 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col overflow-hidden">
+
+    <div class="absolute top-6 left-0 w-full text-center z-50 pointer-events-none">
+      <h1 class="text-2xl font-bold text-slate-100 tracking-wider">Grouped Data Aggregation</h1>
+      <p class="text-cyan-400 mt-2 text-sm max-w-2xl mx-auto h-8 font-medium" id="narrator">
+        Click "Start Simulation" to aggregate individual observations.
+      </p>
+    </div>
+
+    <div class="relative flex-1 w-full mt-24 mb-20 px-8 flex items-center justify-between">
+
+      <!-- Workspace -->
+      <div
+        class="w-full h-[400px] bg-slate-950/50 rounded-2xl border border-slate-800/50 flex relative shadow-inner overflow-hidden backdrop-blur-sm">
+
+        <!-- Left: Individual Data -->
+        <div class="flex-1 relative border-r-2 border-dashed border-slate-700 p-6">
+          <div class="text-slate-400 font-bold uppercase tracking-widest text-sm mb-4 text-center">Individual Data
+            (N=30)</div>
+          <div id="indiv-cont" class="w-full h-full relative"></div>
+        </div>
+
+        <!-- Center Device -->
+        <div id="device"
+          class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-slate-900 border-4 border-slate-600 rounded-full flex flex-col justify-center items-center font-bold text-xl text-white shadow-[0_0_30px_rgba(0,0,0,0.5)] z-20">
+          <span class="z-10">∑ / n</span>
+          <div
+            class="absolute inset-0 border-[4px] border-t-transparent border-slate-400 rounded-full device-spin opacity-0"
+            id="dev-ring"></div>
+        </div>
+
+        <!-- Right: Grouped Data -->
+        <div class="flex-1 relative p-6">
+          <div class="text-slate-400 font-bold uppercase tracking-widest text-sm mb-4 text-center">Grouped Data (G=3)
+          </div>
+
+          <div id="g1"
+            class="absolute bg-purple-900/30 border-2 border-purple-500 rounded-xl w-32 h-20 flex flex-col items-center justify-center font-mono font-bold text-xl text-purple-300 opacity-0 transform scale-50 smooth-transition shadow-[0_10px_20px_rgba(168,85,247,0.3)] z-10"
+            style="top: 80px; left: 120px;">
+            ȳ₁
+            <div class="text-xs font-sans text-purple-400 mt-1">Var: ϕ/10</div>
+          </div>
+          <div id="g2"
+            class="absolute bg-purple-900/30 border-2 border-purple-500 rounded-xl w-32 h-20 flex flex-col items-center justify-center font-mono font-bold text-xl text-purple-300 opacity-0 transform scale-50 smooth-transition shadow-[0_10px_20px_rgba(168,85,247,0.3)] z-10"
+            style="top: 180px; left: 120px;">
+            ȳ₂
+            <div class="text-xs font-sans text-purple-400 mt-1">Var: ϕ/12</div>
+          </div>
+          <div id="g3"
+            class="absolute bg-purple-900/30 border-2 border-purple-500 rounded-xl w-32 h-20 flex flex-col items-center justify-center font-mono font-bold text-xl text-purple-300 opacity-0 transform scale-50 smooth-transition shadow-[0_10px_20px_rgba(168,85,247,0.3)] z-10"
+            style="top: 280px; left: 120px;">
+            ȳ₃
+            <div class="text-xs font-sans text-purple-400 mt-1">Var: ϕ/8</div>
+          </div>
+
+          <!-- Meters -->
+          <div class="absolute right-6 top-6 flex flex-col gap-4 w-40 z-20">
+            <div class="bg-black/30 border border-slate-700 rounded-lg p-3">
+              <div class="text-xs text-slate-400 mb-2 font-bold">Memory Usage</div>
+              <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div id="m-mem" class="m-fill bg-danger" style="width: 95%;"></div>
+              </div>
+            </div>
+            <div class="bg-black/30 border border-slate-700 rounded-lg p-3">
+              <div class="text-xs text-slate-400 mb-2 font-bold">Processing Time</div>
+              <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div id="m-proc" class="m-fill bg-danger" style="width: 90%;"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <div id="final-message"
+      class="absolute bottom-32 left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none">
+      <div
+        class="bg-purple-950/90 border border-purple-500/50 backdrop-blur-md rounded-xl p-5 text-center mx-auto max-w-3xl shadow-[0_0_30px_rgba(168,85,247,0.15)]">
+        <h3 class="text-purple-300 font-bold mb-2 text-lg">Misconception Corrected</h3>
+        <p class="text-slate-200 text-sm leading-relaxed">
+          Aggregating observations preserves statistical equivalence via a scaled dispersion parameter (ϕ/n). This
+          corrects the misconception that <strong class="text-purple-400">individual-level data is strictly required for
+            estimation</strong>. Grouping drastically reduces memory and computation while retaining exact information.
+        </p>
+      </div>
+    </div>
+
+    <div
+      class="absolute bottom-0 left-0 w-full h-24 bg-slate-800/80 border-t border-slate-700 flex items-center justify-center px-8 z-50 backdrop-blur-md">
+      <button id="start-btn"
+        class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-all">
+        Start Simulation
+      </button>
+    </div>
+
+  </div>
+
+  <script>
+    const narrator = document.getElementById('narrator');
+    const startBtn = document.getElementById('start-btn');
+    const finalMessage = document.getElementById('final-message');
+
+    const icont = document.getElementById('indiv-cont');
+    const devRing = document.getElementById('dev-ring');
+    const g1 = document.getElementById('g1');
+    const g2 = document.getElementById('g2');
+    const g3 = document.getElementById('g3');
+
+    const mMem = document.getElementById('m-mem');
+    const mProc = document.getElementById('m-proc');
+
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    let isRunning = false;
+    let blocks = [];
+
+    function generateBlocks() {
+      icont.innerHTML = '';
+      blocks = [];
+      for (let i = 0; i < 30; i++) {
+        let b = document.createElement('div');
+        b.className = 'i-block text-xs text-blue-300';
+        b.innerText = 'y*';
+
+        let x = Math.random() * 80 + 10; // %
+        let y = Math.random() * 80 + 10; // %
+
+        b.style.left = `${x}%`;
+        b.style.top = `${y}%`;
+
+        icont.appendChild(b);
+        blocks.push(b);
+      }
+    }
+
+    function resetScene() {
+      generateBlocks();
+
+      devRing.style.opacity = '0';
+
+      g1.classList.remove('opacity-100', 'scale-100'); g1.classList.add('opacity-0', 'scale-50');
+      g2.classList.remove('opacity-100', 'scale-100'); g2.classList.add('opacity-0', 'scale-50');
+      g3.classList.remove('opacity-100', 'scale-100'); g3.classList.add('opacity-0', 'scale-50');
+
+      mMem.style.width = '95%'; mMem.className = 'm-fill bg-danger';
+      mProc.style.width = '90%'; mProc.className = 'm-fill bg-danger';
+
+      finalMessage.classList.replace('opacity-100', 'opacity-0');
+      finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+      narrator.textContent = "Simulation starting...";
+    }
+
+    async function startSimulation() {
+      if (isRunning) return;
+      isRunning = true;
+      startBtn.classList.add('opacity-50', 'pointer-events-none');
+      startBtn.textContent = "Simulating...";
+
+      resetScene();
+      await sleep(800);
+
+      narrator.textContent = "Stage 1: Individual observation blocks move into a central aggregation device.";
+
+      devRing.style.opacity = '1';
+
+      // Move to center device (which is roughly right 0% and center Y relative to left pane)
+      blocks.forEach(b => {
+        b.style.left = '100%';
+        b.style.top = '50%';
+        b.style.transform = 'translate(-50%, -50%) scale(0.5)';
+        b.style.opacity = '0';
+      });
+
+      await sleep(1500);
+
+      narrator.textContent = "Stage 2: The device processes and compresses the individual data points into group averages.";
+
+      mMem.style.width = '15%'; mMem.classList.replace('bg-danger', 'bg-safe');
+      mProc.style.width = '20%'; mProc.classList.replace('bg-danger', 'bg-safe');
+
+      await sleep(1000);
+
+      narrator.textContent = "Stage 3: Grouped blocks emerge. Dispersion overlays highlight the scaling effect (ϕ/n).";
+
+      devRing.style.opacity = '0';
+
+      g1.classList.replace('opacity-0', 'opacity-100'); g1.classList.replace('scale-50', 'scale-100');
+      await sleep(400);
+      g2.classList.replace('opacity-0', 'opacity-100'); g2.classList.replace('scale-50', 'scale-100');
+      await sleep(400);
+      g3.classList.replace('opacity-0', 'opacity-100'); g3.classList.replace('scale-50', 'scale-100');
+
+      await sleep(2000);
+
+      narrator.textContent = "Final State: A consolidated grouped data structure with scaled dispersion.";
+      finalMessage.classList.replace('opacity-0', 'opacity-100');
+      finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+      await sleep(1500);
+      startBtn.classList.remove('opacity-50', 'pointer-events-none');
+      startBtn.textContent = "Replay Simulation";
+      isRunning = false;
+    }
+
+    // Init
+    resetScene();
+    narrator.textContent = 'Click "Start Simulation" to aggregate individual observations.';
+    startBtn.addEventListener('click', startSimulation);
+
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Process: Exponential Family Formatting</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Outfit', sans-serif; }
+  .smooth-transition { transition: all 1s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+
+  .filter-bar {
+    background: linear-gradient(90deg, transparent, #06b6d4, transparent);
+    box-shadow: 0 0 20px #06b6d4;
+  }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-5xl h-[700px] bg-slate-900 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col overflow-hidden">
+  
+  <div class="absolute top-6 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-2xl font-bold text-slate-100 tracking-wider">Universal Exponential Family Structure</h1>
+    <p class="text-cyan-400 mt-2 text-sm max-w-2xl mx-auto h-8 font-medium" id="narrator">
+      Click "Start Simulation" to process raw density formulas.
+    </p>
+  </div>
+
+  <div class="relative flex-1 w-full mt-24 mb-20 px-12 flex flex-col items-center">
+    
+    <!-- Raw Blocks -->
+    <div class="flex gap-10 z-20 w-full justify-center">
+      <div class="bg-slate-800 border border-slate-600/50 px-8 py-5 rounded-2xl font-serif text-lg shadow-[0_10px_30px_rgba(0,0,0,0.3)] smooth-transition transform opacity-0 translate-y-12" id="r-norm">
+        Normal: f(y) = (2πσ²)⁻¹/² exp( -(y-μ)² / 2σ² )
+      </div>
+      <div class="bg-slate-800 border border-slate-600/50 px-8 py-5 rounded-2xl font-serif text-lg shadow-[0_10px_30px_rgba(0,0,0,0.3)] smooth-transition transform opacity-0 translate-y-12" id="r-bern">
+        Bernoulli: f(y) = πʸ (1-π)¹⁻ʸ
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="w-4/5 h-2 filter-bar rounded-full relative my-10 smooth-transition opacity-0" id="filter">
+      <div class="absolute -top-6 left-1/2 -translate-x-1/2 font-bold text-cyan-400 text-sm tracking-widest uppercase">Exponential Family Template Filter</div>
+    </div>
+
+    <!-- Template Grid -->
+    <div class="grid grid-cols-3 gap-8 w-4/5 smooth-transition opacity-0 translate-y-8" id="template">
+      
+      <div class="flex flex-col gap-4 items-center">
+        <div class="font-bold text-2xl text-slate-300 font-serif italic">yθ</div>
+        <div class="w-full bg-slate-900/50 border-2 border-dashed border-slate-600 rounded-xl p-4 text-center font-serif text-lg min-h-[64px] flex items-center justify-center smooth-transition" id="s-n-1"></div>
+        <div class="w-full bg-slate-900/50 border-2 border-dashed border-slate-600 rounded-xl p-4 text-center font-serif text-lg min-h-[64px] flex items-center justify-center smooth-transition" id="s-b-1"></div>
+      </div>
+      
+      <div class="flex flex-col gap-4 items-center">
+        <div class="font-bold text-2xl text-slate-300 font-serif italic">- b(θ)</div>
+        <div class="w-full bg-slate-900/50 border-2 border-dashed border-slate-600 rounded-xl p-4 text-center font-serif text-lg min-h-[64px] flex items-center justify-center smooth-transition" id="s-n-2"></div>
+        <div class="w-full bg-slate-900/50 border-2 border-dashed border-slate-600 rounded-xl p-4 text-center font-serif text-lg min-h-[64px] flex items-center justify-center smooth-transition" id="s-b-2"></div>
+      </div>
+
+      <div class="flex flex-col gap-4 items-center">
+        <div class="font-bold text-2xl text-slate-300 font-serif italic">/ ϕ</div>
+        <div class="w-full bg-slate-900/50 border-2 border-dashed border-slate-600 rounded-xl p-4 text-center font-serif text-lg min-h-[64px] flex items-center justify-center smooth-transition" id="s-n-3"></div>
+        <div class="w-full bg-slate-900/50 border-2 border-dashed border-slate-600 rounded-xl p-4 text-center font-serif text-lg min-h-[64px] flex items-center justify-center smooth-transition" id="s-b-3"></div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <div id="final-message" class="absolute bottom-32 left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none">
+    <div class="bg-cyan-950/90 border border-cyan-500/50 backdrop-blur-md rounded-xl p-5 text-center mx-auto max-w-3xl shadow-[0_0_30px_rgba(6,182,212,0.15)]">
+      <h3 class="text-cyan-300 font-bold mb-2 text-lg">Misconception Corrected</h3>
+      <p class="text-slate-200 text-sm leading-relaxed">
+        A universal exponential family template structurally aligns seemingly disparate distributions. This corrects the misconception that <strong class="text-cyan-400">different statistical distributions lack a common structural DNA for inference</strong>. They all share the same slots: yθ, b(θ), and ϕ.
+      </p>
+    </div>
+  </div>
+
+  <div class="absolute bottom-0 left-0 w-full h-24 bg-slate-800/80 border-t border-slate-700 flex items-center justify-center px-8 z-50 backdrop-blur-md">
+    <button id="start-btn" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-all">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  
+  const rNorm = document.getElementById('r-norm');
+  const rBern = document.getElementById('r-bern');
+  const filter = document.getElementById('filter');
+  const template = document.getElementById('template');
+
+  const slots = [
+    's-n-1', 's-n-2', 's-n-3',
+    's-b-1', 's-b-2', 's-b-3'
+  ].map(id => document.getElementById(id));
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+
+  function resetScene() {
+    rNorm.classList.remove('opacity-100', 'translate-y-0', 'opacity-0', 'translate-y-24');
+    rNorm.classList.add('opacity-0', 'translate-y-12');
+    rBern.classList.remove('opacity-100', 'translate-y-0', 'opacity-0', 'translate-y-24');
+    rBern.classList.add('opacity-0', 'translate-y-12');
+
+    filter.classList.remove('opacity-100');
+    template.classList.remove('opacity-100', 'translate-y-0');
+    template.classList.add('opacity-0', 'translate-y-8');
+
+    slots.forEach(s => {
+      s.innerText = '';
+      s.className = 'w-full bg-slate-900/50 border-2 border-dashed border-slate-600 rounded-xl p-4 text-center font-serif text-lg min-h-[64px] flex items-center justify-center smooth-transition';
+    });
+
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    narrator.textContent = "Simulation starting...";
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(500);
+
+    narrator.textContent = "Stage 1: Raw density formula blocks for Normal and Bernoulli distributions appear.";
+    
+    rNorm.classList.replace('translate-y-12', 'translate-y-0');
+    rNorm.classList.replace('opacity-0', 'opacity-100');
+    await sleep(400);
+    rBern.classList.replace('translate-y-12', 'translate-y-0');
+    rBern.classList.replace('opacity-0', 'opacity-100');
+    
+    await sleep(1500);
+
+    narrator.textContent = "Stage 2: The blocks move through a formatting filter and map into the standard exponential family slots.";
+    
+    filter.classList.add('opacity-100');
+    template.classList.replace('opacity-0', 'opacity-100');
+    template.classList.replace('translate-y-8', 'translate-y-0');
+
+    await sleep(500);
+
+    // Pass through filter
+    rNorm.classList.replace('translate-y-0', 'translate-y-24');
+    rNorm.classList.replace('opacity-100', 'opacity-0');
+    rBern.classList.replace('translate-y-0', 'translate-y-24');
+    rBern.classList.replace('opacity-100', 'opacity-0');
+
+    await sleep(1000);
+
+    // Populate Normal
+    const n1 = document.getElementById('s-n-1'); n1.innerText = 'y · μ'; n1.classList.add('border-cyan-500', 'bg-cyan-900/20');
+    const n2 = document.getElementById('s-n-2'); n2.innerText = '- μ² / 2'; n2.classList.add('border-cyan-500', 'bg-cyan-900/20');
+    const n3 = document.getElementById('s-n-3'); n3.innerText = '/ σ²'; n3.classList.add('border-cyan-500', 'bg-cyan-900/20');
+    
+    await sleep(800);
+
+    // Populate Bernoulli
+    const b1 = document.getElementById('s-b-1'); b1.innerText = 'y · logit(π)'; b1.classList.add('border-emerald-500', 'bg-emerald-900/20');
+    const b2 = document.getElementById('s-b-2'); b2.innerText = '- log(1/(1-π))'; b2.classList.add('border-emerald-500', 'bg-emerald-900/20');
+    const b3 = document.getElementById('s-b-3'); b3.innerText = '/ 1'; b3.classList.add('border-emerald-500', 'bg-emerald-900/20');
+
+    await sleep(1500);
+
+    narrator.textContent = "Final State: A universal exponential family template containing rearranged parameters.";
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    startBtn.classList.remove('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  // Init
+  resetScene();
+  narrator.textContent = 'Click "Start Simulation" to process raw density formulas.';
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>

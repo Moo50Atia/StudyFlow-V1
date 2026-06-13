@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Platinum Inhibition Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom scrollbar for control panel */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        /* Active button glows */
+        .btn-active-sky { background-color: rgba(12, 74, 110, 0.4); border-color: #0ea5e9; color: #7dd3fc; }
+        .btn-active-amber { background-color: rgba(120, 53, 15, 0.4); border-color: #f59e0b; color: #fcd34d; box-shadow: 0 0 15px rgba(245, 158, 11, 0.2); }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans antialiased overflow-hidden">
+
+    <div class="flex flex-col md:flex-row min-h-screen">
+        
+        <!-- Simulation Viewport -->
+        <div class="flex-1 relative overflow-hidden flex items-center justify-center p-4 min-h-[50vh]">
+            <canvas id="sim-canvas" class="w-full h-full max-w-4xl max-h-[80vh] rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl"></canvas>
+            
+            <!-- Overlay Labels -->
+            <div class="absolute top-8 left-8 bg-slate-800/80 backdrop-blur-sm p-3 rounded-lg border border-slate-700 pointer-events-none">
+                <p class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Live Metrics</p>
+                <div class="flex gap-4 mt-2">
+                    <div class="flex flex-col">
+                        <span id="metric-count" class="text-2xl font-bold text-emerald-400">0</span>
+                        <span class="text-xs text-slate-400">Cell Count</span>
+                    </div>
+                    <div class="flex flex-col border-l border-slate-600 pl-4">
+                        <span id="metric-ions" class="text-2xl font-bold text-sky-400">Off</span>
+                        <span class="text-xs text-slate-400">Pt. Ions</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="w-full md:w-[400px] bg-slate-900 border-l border-slate-800 p-6 flex flex-col gap-6 overflow-y-auto max-h-screen">
+            
+            <header>
+                <h1 class="text-2xl font-bold text-white mb-2 leading-tight">Bacterial Elongation & Platinum</h1>
+                <p class="text-sm text-slate-400">
+                    Simulating Barnett Rosenberg's landmark experiment detailing how specific chemical environments inhibit cell division.
+                </p>
+            </header>
+
+            <div class="space-y-4">
+                <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Experimental Controls</h2>
+                
+                <button id="btn-field-only" class="w-full flex items-center gap-3 p-4 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all text-left">
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    <div>
+                        <div class="font-semibold">Electric Field Only</div>
+                        <div class="text-xs opacity-80">Inert Carbon Electrodes</div>
+                    </div>
+                </button>
+
+                <button id="btn-platinum" class="w-full flex items-center gap-3 p-4 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all text-left">
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <div>
+                        <div class="font-semibold">Electric Field + Platinum</div>
+                        <div class="text-xs opacity-80">Pt Electrodes (Ion Release)</div>
+                    </div>
+                </button>
+
+                <button id="btn-reset" class="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition-all mt-4">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Reset Culture
+                </button>
+            </div>
+
+            <div class="mt-auto pt-6 border-t border-slate-800">
+                <div class="flex gap-3 mb-3 items-center">
+                    <svg class="w-5 h-5 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <h3 class="text-sm font-semibold text-indigo-300">Visual Learning Outcome</h3>
+                </div>
+                
+                <div id="info-box" class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 text-sm text-slate-300 space-y-3 min-h-[120px]">
+                    <!-- Content injected via JS -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Simulation State
+        let mode = 'idle'; // 'idle', 'field_only', 'platinum'
+        let bacteria = [];
+        let ions = [];
+        let time = 0;
+        let animationFrameId;
+
+        // DOM Elements
+        const canvas = document.getElementById('sim-canvas');
+        const ctx = canvas.getContext('2d');
+        const btnFieldOnly = document.getElementById('btn-field-only');
+        const btnPlatinum = document.getElementById('btn-platinum');
+        const btnReset = document.getElementById('btn-reset');
+        const metricCount = document.getElementById('metric-count');
+        const metricIons = document.getElementById('metric-ions');
+        const infoBox = document.getElementById('info-box');
+
+        // Text content for different states
+        const infoTexts = {
+            idle: `<p>Observe the normal E. coli bacteria. In standard nutrient broth, they grow slightly and then divide, multiplying their numbers rapidly.</p>`,
+            field_only: `<p><strong class="text-sky-300 block mb-1">Field Active (Control)</strong>The electric field alone does not hinder biological processes. The bacteria continue normal <span class="text-emerald-400">cell division</span>.</p>`,
+            platinum: `<p><strong class="text-amber-400 block mb-1">Platinum Ion Activation</strong>The field causes the platinum electrodes to release ions into the solution.<br/><br/><strong>Key Highlight:</strong> It is the <span class="text-amber-300 font-bold">platinum byproduct</span>—not the electricity—that inhibits cell division. The cells continue to grow but cannot split, forming massive, elongated filaments.</p>`
+        };
+
+        // Initialize / Reset Bacteria
+        function initSimulation() {
+            bacteria = [];
+            for (let i = 0; i < 12; i++) {
+                bacteria.push({
+                    id: Math.random(),
+                    x: (Math.random() - 0.5) * 150,
+                    y: (Math.random() - 0.5) * 150,
+                    angle: Math.random() * Math.PI * 2,
+                    length: 12 + Math.random() * 8,
+                    speed: 0.2 + Math.random() * 0.3,
+                    generation: 0,
+                });
+            }
+            ions = [];
+            time = 0;
+            updateMetrics();
+        }
+
+        // Handle Canvas Resizing
+        function resizeCanvas() {
+            const parent = canvas.parentElement;
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = parent.clientWidth * dpr;
+            canvas.height = parent.clientHeight * dpr;
+            ctx.scale(dpr, dpr);
+            canvas.style.width = `${parent.clientWidth}px`;
+            canvas.style.height = `${parent.clientHeight}px`;
+        }
+
+        // Update UI based on current mode
+        function updateUI() {
+            // Reset button styles
+            btnFieldOnly.className = "w-full flex items-center gap-3 p-4 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all text-left";
+            btnPlatinum.className = "w-full flex items-center gap-3 p-4 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all text-left";
+
+            // Apply active styles
+            if (mode === 'field_only') {
+                btnFieldOnly.classList.add('btn-active-sky');
+                btnFieldOnly.classList.remove('border-slate-700', 'bg-slate-800', 'text-slate-300');
+                metricIons.innerText = 'Active';
+            } else if (mode === 'platinum') {
+                btnPlatinum.classList.add('btn-active-amber');
+                btnPlatinum.classList.remove('border-slate-700', 'bg-slate-800', 'text-slate-300');
+                metricIons.innerText = 'High';
+            } else {
+                metricIons.innerText = 'Off';
+            }
+
+            // Update info text
+            infoBox.innerHTML = infoTexts[mode];
+        }
+
+        function updateMetrics() {
+            metricCount.innerText = bacteria.length;
+        }
+
+        // Main Animation Loop
+        function drawLoop() {
+            time++;
+            
+            const width = canvas.clientWidth;
+            const height = canvas.clientHeight;
+            const cx = width / 2;
+            const cy = height / 2;
+            const radius = Math.min(width, height) * 0.35;
+            
+            ctx.clearRect(0, 0, width, height);
+
+            // --- 1. Draw Petri Dish ---
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#0f172a';
+            ctx.fill();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#334155';
+            ctx.stroke();
+
+            // Fluid background gradient
+            const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+            gradient.addColorStop(0, 'rgba(16, 185, 129, 0.05)');
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            // --- 2. Draw Electrodes ---
+            const electrodeWidth = 30;
+            const electrodeHeight = radius * 1.5;
+            
+            const isPlatinum = mode === 'platinum';
+            const electrodeColor = isPlatinum ? '#cbd5e1' : '#475569';
+            const electrodeGlow = isPlatinum ? 'rgba(203, 213, 225, 0.4)' : 'rgba(71, 85, 105, 0.4)';
+
+            ctx.fillStyle = electrodeColor;
+            ctx.shadowColor = electrodeGlow;
+            ctx.shadowBlur = 15;
+            // Left (Anode)
+            ctx.fillRect(cx - radius - electrodeWidth/2 + 20, cy - electrodeHeight/2, electrodeWidth, electrodeHeight);
+            // Right (Cathode)
+            ctx.fillRect(cx + radius - electrodeWidth/2 - 20, cy - electrodeHeight/2, electrodeWidth, electrodeHeight);
+            ctx.shadowBlur = 0;
+
+            // --- 3. Draw Electric Field Waves ---
+            if (mode === 'field_only' || mode === 'platinum') {
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.2)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([10, 15]);
+                
+                for (let i = -radius; i < radius; i += 40) {
+                    ctx.beginPath();
+                    const waveOffset = Math.sin(time * 0.05 + i) * 10;
+                    ctx.moveTo(cx - radius + 30, cy + i + waveOffset);
+                    ctx.lineTo(cx + radius - 30, cy + i - waveOffset);
+                    ctx.stroke();
+                }
+                ctx.setLineDash([]);
+            }
+
+            // --- 4. Update & Draw Platinum Ions ---
+            if (mode === 'platinum') {
+                if (Math.random() < 0.3) {
+                    ions.push({
+                        x: cx - radius + 40,
+                        y: cy + (Math.random() - 0.5) * electrodeHeight,
+                        vx: 1 + Math.random() * 2,
+                        vy: (Math.random() - 0.5),
+                        life: 255
+                    });
+                    ions.push({
+                        x: cx + radius - 40,
+                        y: cy + (Math.random() - 0.5) * electrodeHeight,
+                        vx: -1 - Math.random() * 2,
+                        vy: (Math.random() - 0.5),
+                        life: 255
+                    });
+                }
+            }
+
+            ctx.fillStyle = '#e2e8f0';
+            for (let i = ions.length - 1; i >= 0; i--) {
+                const ion = ions[i];
+                ion.x += ion.vx;
+                ion.y += ion.vy;
+                ion.life -= 1;
+                
+                ctx.globalAlpha = Math.max(0, ion.life / 255);
+                ctx.beginPath();
+                ctx.arc(ion.x, ion.y, 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (ion.life <= 0) ions.splice(i, 1);
+            }
+            ctx.globalAlpha = 1.0;
+
+            // --- 5. Update & Draw Bacteria ---
+            for (let i = bacteria.length - 1; i >= 0; i--) {
+                const b = bacteria[i];
+                
+                // Movement
+                b.x += Math.cos(b.angle) * b.speed;
+                b.y += Math.sin(b.angle) * b.speed;
+                b.angle += (Math.random() - 0.5) * 0.3;
+
+                // Constrain
+                const distFromCenter = Math.hypot(b.x, b.y);
+                if (distFromCenter > radius - b.length / 2 - 10) {
+                    const angleToCenter = Math.atan2(-b.y, -b.x);
+                    b.angle = angleToCenter + (Math.random() - 0.5); 
+                    b.x += Math.cos(b.angle) * 2;
+                    b.y += Math.sin(b.angle) * 2;
+                }
+
+                // Logic: Growth vs Filamentation
+                if (mode === 'platinum') {
+                    if (b.length < 180) {
+                        b.length += 0.08; 
+                    }
+                    b.speed = Math.max(0.05, 0.2 - (b.length / 400));
+                } else {
+                    if (b.length < 24) {
+                        b.length += 0.05;
+                    } else if (bacteria.length < 60) {
+                        b.length = 12;
+                        bacteria.push({
+                            id: Math.random(),
+                            x: b.x + Math.cos(b.angle + Math.PI/2) * 4,
+                            y: b.y + Math.sin(b.angle + Math.PI/2) * 4,
+                            angle: b.angle + 0.3,
+                            length: 12,
+                            speed: b.speed,
+                            generation: b.generation + 1
+                        });
+                        b.angle -= 0.3;
+                    }
+                }
+
+                // Render Bacteria
+                ctx.beginPath();
+                const halfL = b.length / 2;
+                const drawX = cx + b.x;
+                const drawY = cy + b.y;
+                
+                ctx.moveTo(drawX - Math.cos(b.angle) * halfL, drawY - Math.sin(b.angle) * halfL);
+                ctx.lineTo(drawX + Math.cos(b.angle) * halfL, drawY + Math.sin(b.angle) * halfL);
+                
+                ctx.lineWidth = 10;
+                ctx.lineCap = 'round';
+                
+                // Stress color
+                const stressIntensity = Math.min(1, (b.length - 24) / 100);
+                const r = 34 + (stressIntensity * 200);
+                const g = 197 - (stressIntensity * 50);
+                const b_color = 94;
+                
+                ctx.strokeStyle = `rgb(${r}, ${g}, ${b_color})`;
+                ctx.shadowColor = `rgba(${r}, ${g}, ${b_color}, 0.5)`;
+                ctx.shadowBlur = 5;
+                
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+
+            if (time % 15 === 0) updateMetrics();
+
+            animationFrameId = requestAnimationFrame(drawLoop);
+        }
+
+        // Setup Event Listeners
+        btnFieldOnly.addEventListener('click', () => {
+            mode = 'field_only';
+            updateUI();
+        });
+
+        btnPlatinum.addEventListener('click', () => {
+            mode = 'platinum';
+            updateUI();
+        });
+
+        btnReset.addEventListener('click', () => {
+            mode = 'idle';
+            updateUI();
+            initSimulation();
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // Boot
+        window.onload = () => {
+            resizeCanvas();
+            initSimulation();
+            updateUI();
+            drawLoop();
+        };
+
+    </script>
+</body>
+</html>

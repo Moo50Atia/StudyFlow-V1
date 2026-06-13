@@ -1,0 +1,37 @@
+Lecture: Logistic Regression
+Lec1 (Sec1): "Parallel Flow: A central x signal splits and moves through three transformation filters representing Probability, Odds, and Logit equations
+. On a three-panel spatial visual, an S-curve, an exponential curve, and a straight diagonal line transform simultaneously as the signal passes. A point-symmetry marker highlights the coordinate (0, 0.5) on the S-curve
+. Final State: Three synchronized mathematical views of a single model state, correcting the misconception that Probability and Logit are distinct, unrelated models."
+Lec1 (Sec2): "Comparison: A β 
+1
+​
+  signal slider moves between negative and positive poles. An S-curve graph transforms its slope direction in response to the slider position, transitioning from a downward curve to an upward curve
+. Directional arrows highlight the increasing or decreasing probability outcome based on the β 
+1
+​
+  sign
+. Final State: β 
+1
+​
+  sign visualized as the probability compass, correcting the misconception that the effect of x on binary probability is always a linear increase."
+Lec1 (Sec3): "Accumulation: A predictor block x increments by +1 along a horizontal axis. A vertical 'Odds' meter accumulates value by transforming the increment through an exp(β 
+1
+​
+ ) multiplier icon
+. A probability curve overlay highlights the resulting non-linear change from π(x) to π( 
+x
+~
+ )
+. Final State: Multiplicative scaling of odds versus non-linear shift in probability, correcting the misconception that β 
+1
+​
+  represents a constant additive change to the outcome probability."
+Lec1 (Sec4): "Comparison: A raw data cloud representing variables like 'Car purchase' income moves horizontally to align its mean value at the zero coordinate
+. The y-axis intercept marker β 
+0
+​
+  transforms, shifting from an extreme outlier position to the center of the data cloud
+. Final State: A centered model architecture where β 
+0
+​
+  represents the probability for an average case, correcting the misconception that the intercept is always an abstract or uninterpretable constant."

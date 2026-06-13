@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Process: Deriving Mean and Variance</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Outfit', sans-serif; }
+  .smooth-transition { transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+
+  .pipe { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 4; }
+  .signal { fill: none; stroke-width: 6; stroke-dasharray: 20; animation: flow 1s linear infinite; opacity: 0; transition: opacity 0.5s; }
+  @keyframes flow { to { stroke-dashoffset: -40; } }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-5xl h-[700px] bg-slate-900 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col overflow-hidden">
+  
+  <div class="absolute top-6 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-2xl font-bold text-slate-100 tracking-wider">Deriving Moments from b(θ)</h1>
+    <p class="text-cyan-400 mt-2 text-sm max-w-2xl mx-auto h-8 font-medium" id="narrator">
+      Click "Start Simulation" to process the b(θ) function.
+    </p>
+  </div>
+
+  <div class="relative flex-1 w-full mt-24 mb-20 px-12 flex items-center justify-center">
+    
+    <div class="w-full h-full max-w-4xl relative bg-slate-950/50 rounded-2xl border border-slate-800/50 shadow-[0_20px_50px_rgba(0,0,0,0.4)] overflow-hidden backdrop-blur-sm">
+      
+      <svg class="absolute inset-0 w-full h-full pointer-events-none z-0">
+        <!-- Input Pipes -->
+        <path class="pipe" d="M 120 200 C 250 200, 250 120, 350 120" />
+        <path class="pipe" d="M 120 200 C 250 200, 250 280, 350 280" />
+        
+        <!-- Output Pipes -->
+        <line class="pipe" x1="550" y1="120" x2="700" y2="120" />
+        <line class="pipe" x1="550" y1="280" x2="700" y2="280" />
+
+        <!-- Animated Signals -->
+        <path id="sig1" class="signal stroke-emerald-500" d="M 120 200 C 250 200, 250 120, 350 120" />
+        <path id="sig2" class="signal stroke-rose-500" d="M 120 200 C 250 200, 250 280, 350 280" />
+        <line id="sig3" class="signal stroke-emerald-500" x1="550" y1="120" x2="700" y2="120" />
+        <line id="sig4" class="signal stroke-rose-500" x1="550" y1="280" x2="700" y2="280" />
+      </svg>
+
+      <!-- Input Block -->
+      <div class="absolute left-10 top-1/2 -translate-y-1/2 bg-purple-900/30 border-2 border-purple-500 px-6 py-4 rounded-xl font-serif text-3xl font-bold text-purple-400 z-10 shadow-[0_0_20px_rgba(168,85,247,0.4)]">
+        b(θ)
+      </div>
+
+      <!-- Processor Center -->
+      <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-80 bg-white/5 border-2 border-dashed border-slate-600 rounded-2xl flex flex-col justify-evenly items-center z-10 backdrop-blur-md">
+        <div class="text-xs font-bold tracking-widest text-slate-500 mb-2">DERIVATIVE PROCESSOR</div>
+        <div id="db1" class="w-4/5 bg-slate-900 border border-slate-600 rounded-xl p-4 text-center font-mono text-lg font-bold text-slate-500 smooth-transition opacity-50">
+          ∂ b(θ) / ∂θ
+        </div>
+        <div id="db2" class="w-4/5 bg-slate-900 border border-slate-600 rounded-xl p-4 text-center font-mono text-lg font-bold text-slate-500 smooth-transition opacity-50">
+          ∂² b(θ) / ∂θ²
+        </div>
+      </div>
+
+      <!-- Output Blocks -->
+      <div id="o-mean" class="absolute right-10 top-24 bg-emerald-900/20 border-2 border-emerald-500 px-6 py-4 rounded-xl font-serif text-2xl font-bold text-emerald-400 z-10 opacity-0 transform translate-x-12 smooth-transition shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+        μ = b'(θ)
+      </div>
+      <div id="o-var" class="absolute right-10 bottom-24 bg-rose-900/20 border-2 border-rose-500 px-6 py-4 rounded-xl font-serif text-2xl font-bold text-rose-400 z-10 opacity-0 transform translate-x-12 smooth-transition shadow-[0_0_20px_rgba(244,63,94,0.3)]">
+        Var(y) = ϕ · b''(θ)
+      </div>
+
+    </div>
+
+  </div>
+
+  <div id="final-message" class="absolute bottom-32 left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none">
+    <div class="bg-purple-950/90 border border-purple-500/50 backdrop-blur-md rounded-xl p-5 text-center mx-auto max-w-3xl shadow-[0_0_30px_rgba(168,85,247,0.15)]">
+      <h3 class="text-purple-300 font-bold mb-2 text-lg">Misconception Corrected</h3>
+      <p class="text-slate-200 text-sm leading-relaxed">
+        Mean and variance are internally derived from the curvature of b(θ). This corrects the misconception that <strong class="text-purple-400">mean and variance are always independent parameters in GLMs</strong>. In the exponential family, the variance is functionally tied to the mean.
+      </p>
+    </div>
+  </div>
+
+  <div class="absolute bottom-0 left-0 w-full h-24 bg-slate-800/80 border-t border-slate-700 flex items-center justify-center px-8 z-50 backdrop-blur-md">
+    <button id="start-btn" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-all">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  
+  const db1 = document.getElementById('db1');
+  const db2 = document.getElementById('db2');
+  const sig1 = document.getElementById('sig1');
+  const sig2 = document.getElementById('sig2');
+  const sig3 = document.getElementById('sig3');
+  const sig4 = document.getElementById('sig4');
+  const oMean = document.getElementById('o-mean');
+  const oVar = document.getElementById('o-var');
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+
+  function resetScene() {
+    sig1.style.opacity = '0'; sig2.style.opacity = '0';
+    sig3.style.opacity = '0'; sig4.style.opacity = '0';
+    
+    db1.className = 'w-4/5 bg-slate-900 border border-slate-600 rounded-xl p-4 text-center font-mono text-lg font-bold text-slate-500 smooth-transition opacity-50';
+    db2.className = 'w-4/5 bg-slate-900 border border-slate-600 rounded-xl p-4 text-center font-mono text-lg font-bold text-slate-500 smooth-transition opacity-50';
+    db1.style.boxShadow = 'none'; db2.style.boxShadow = 'none';
+
+    oMean.classList.remove('opacity-100', 'translate-x-0');
+    oMean.classList.add('opacity-0', 'translate-x-12');
+    oVar.classList.remove('opacity-100', 'translate-x-0');
+    oVar.classList.add('opacity-0', 'translate-x-12');
+
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    narrator.textContent = "Simulation starting...";
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(500);
+
+    narrator.textContent = "Stage 1: A function block b(θ) splits and moves into a derivative processor.";
+    sig1.style.opacity = '1';
+    sig2.style.opacity = '1';
+    await sleep(1500);
+
+    narrator.textContent = "Stage 2: The processor applies first and second-order derivative transformations.";
+    sig1.style.opacity = '0';
+    sig2.style.opacity = '0';
+
+    db1.classList.replace('border-slate-600', 'border-emerald-500');
+    db1.classList.replace('text-slate-500', 'text-emerald-400');
+    db1.classList.replace('opacity-50', 'opacity-100');
+    db1.style.boxShadow = '0 0 20px rgba(16, 185, 129, 0.4)';
+
+    db2.classList.replace('border-slate-600', 'border-rose-500');
+    db2.classList.replace('text-slate-500', 'text-rose-400');
+    db2.classList.replace('opacity-50', 'opacity-100');
+    db2.style.boxShadow = '0 0 20px rgba(244, 63, 94, 0.4)';
+
+    await sleep(1500);
+
+    narrator.textContent = "Stage 3: Transformed signals output as Mean and Variance properties.";
+    sig3.style.opacity = '1';
+    sig4.style.opacity = '1';
+
+    await sleep(1000);
+
+    oMean.classList.replace('opacity-0', 'opacity-100');
+    oMean.classList.replace('translate-x-12', 'translate-x-0');
+    
+    oVar.classList.replace('opacity-0', 'opacity-100');
+    oVar.classList.replace('translate-x-12', 'translate-x-0');
+
+    await sleep(500);
+    sig3.style.opacity = '0';
+    sig4.style.opacity = '0';
+
+    await sleep(1000);
+
+    narrator.textContent = "Final State: Mean and variance visualized as internal properties of the exponential family.";
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    startBtn.classList.remove('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  // Init
+  resetScene();
+  narrator.textContent = 'Click "Start Simulation" to process the b(θ) function.';
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>

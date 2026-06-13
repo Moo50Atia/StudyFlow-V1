@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Isomer Docking Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        .btn-active-highlight { background-color: rgba(139, 92, 246, 0.4); border-color: #a78bfa; color: #ddd6fe; box-shadow: 0 0 15px rgba(139, 92, 246, 0.2); }
+        .btn-active-dock { background-color: rgba(16, 185, 129, 0.4); border-color: #34d399; color: #a7f3d0; box-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans antialiased overflow-hidden">
+
+    <div class="flex flex-col md:flex-row min-h-screen">
+        
+        <!-- Simulation Viewport -->
+        <div class="flex-1 relative overflow-hidden flex items-center justify-center p-4 min-h-[50vh]">
+            <canvas id="sim-canvas" class="w-full h-full max-w-5xl max-h-[85vh] rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl"></canvas>
+            
+            <!-- Dynamic Overlays -->
+            <div id="cis-label" class="absolute top-10 left-[20%] transform -translate-x-1/2 text-center pointer-events-none transition-opacity duration-300">
+                <h2 class="text-2xl font-bold text-white tracking-wide">Cisplatin</h2>
+                <p class="text-xs text-emerald-400 font-semibold uppercase tracking-widest mt-1">Active Isomer</p>
+            </div>
+            
+            <div id="trans-label" class="absolute top-10 left-[80%] transform -translate-x-1/2 text-center pointer-events-none transition-opacity duration-300">
+                <h2 class="text-2xl font-bold text-white tracking-wide">Transplatin</h2>
+                <p class="text-xs text-red-400 font-semibold uppercase tracking-widest mt-1">Inactive Isomer</p>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="w-full md:w-[420px] bg-slate-900 border-l border-slate-800 p-6 flex flex-col gap-6 overflow-y-auto max-h-screen">
+            
+            <header>
+                <h1 class="text-2xl font-bold text-white mb-2 leading-tight">Stereoisomer Biological Activity</h1>
+                <p class="text-sm text-slate-400">
+                    Comparing Cisplatin and Transplatin molecular geometries to understand why only the <i>cis</i> form effectively binds to DNA.
+                </p>
+            </header>
+
+            <div class="space-y-4">
+                <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Simulation Controls</h2>
+                
+                <button id="btn-highlight" class="w-full flex items-center gap-3 p-4 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all text-left">
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    <div>
+                        <div class="font-semibold">Highlight Geometry</div>
+                        <div class="text-xs opacity-80">Show identical group positions</div>
+                    </div>
+                </button>
+
+                <button id="btn-dock" class="w-full flex items-center gap-3 p-4 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all text-left">
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    <div>
+                        <div class="font-semibold">Attempt DNA Docking</div>
+                        <div class="text-xs opacity-80">Test binding compatibility</div>
+                    </div>
+                </button>
+
+                <button id="btn-reset" class="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition-all mt-4">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Reset Simulation
+                </button>
+            </div>
+
+            <div class="mt-auto pt-6 border-t border-slate-800">
+                <div class="flex gap-3 mb-3 items-center">
+                    <svg class="w-5 h-5 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <h3 class="text-sm font-semibold text-indigo-300">Visual Learning Outcome</h3>
+                </div>
+                
+                <div id="info-box" class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 text-sm text-slate-300 space-y-3 min-h-[140px]">
+                    <p>Observe the 3D molecular structures. The central Platinum (Pt) atom is bound to two Green Chlorine (Cl) groups and two Blue Ammonia (NH₃) groups.</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Simulation State
+        let mode = 'idle'; // 'idle', 'highlight', 'docking', 'docked'
+        let baseRotation = 0;
+        let molecYOffset = 0;
+        let transRejectOffset = 0;
+        let animationFrameId;
+
+        // DOM Elements
+        const canvas = document.getElementById('sim-canvas');
+        const ctx = canvas.getContext('2d');
+        const btnHighlight = document.getElementById('btn-highlight');
+        const btnDock = document.getElementById('btn-dock');
+        const btnReset = document.getElementById('btn-reset');
+        const infoBox = document.getElementById('info-box');
+
+        // Content States
+        const infoTexts = {
+            idle: `<p>Observe the molecular structures. Both have a central Platinum atom (Gray), two Chlorine groups (Green), and two Ammonia groups (Blue).</p><p class="text-slate-400 text-xs mt-2">Use the controls above to analyze their geometry.</p>`,
+            highlight: `<p><strong class="text-violet-400 block mb-1">Geometric Difference</strong></p><p>In <strong class="text-white">Cisplatin</strong>, identical groups (like the green Chlorines) are positioned on the <em>same side</em>.</p><p>In <strong class="text-white">Transplatin</strong>, identical groups are on <em>opposite sides</em>.</p>`,
+            docking: `<p>Moving molecules toward the DNA docking device...</p><p class="text-slate-400 text-xs mt-2">The DNA receptor requires two adjacent Chlorine atoms to be displaced for successful binding.</p>`,
+            docked: `<p><strong class="text-emerald-400 block mb-1">Biological Specificity</strong></p><p><strong class="text-white">Transform:</strong> Cisplatin fits perfectly because its two Cl groups align with the DNA receptors. Transplatin is rejected due to its geometry.</p><p class="text-indigo-300 font-semibold mt-2">Outcome: Biological activity is strictly limited to the cis-isomer.</p>`
+        };
+
+        // Molecule Definitions
+        const BOND_LENGTH = 70;
+        const ATOM_RADIUS = 20;
+
+        // Angles defined relative to center. Downward is +Y. 
+        // Cis Cl are at bottom-left and bottom-right.
+        const cisAtoms = [
+            { type: 'Cl', color: '#22c55e', angle: Math.PI/4, label: 'Cl' },       // Bottom Right
+            { type: 'Cl', color: '#22c55e', angle: 3*Math.PI/4, label: 'Cl' },     // Bottom Left
+            { type: 'NH3', color: '#3b82f6', angle: -Math.PI/4, label: 'NH₃' },    // Top Right
+            { type: 'NH3', color: '#3b82f6', angle: -3*Math.PI/4, label: 'NH₃' }   // Top Left
+        ];
+
+        // Trans Cl are opposite. One at bottom-left, one at top-right.
+        const transAtoms = [
+            { type: 'Cl', color: '#22c55e', angle: Math.PI/4, label: 'Cl' },       // Bottom Right
+            { type: 'Cl', color: '#22c55e', angle: -3*Math.PI/4, label: 'Cl' },    // Top Left
+            { type: 'NH3', color: '#3b82f6', angle: 3*Math.PI/4, label: 'NH₃' },   // Bottom Left
+            { type: 'NH3', color: '#3b82f6', angle: -Math.PI/4, label: 'NH₃' }     // Top Right
+        ];
+
+        function resizeCanvas() {
+            const parent = canvas.parentElement;
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = parent.clientWidth * dpr;
+            canvas.height = parent.clientHeight * dpr;
+            ctx.scale(dpr, dpr);
+            canvas.style.width = `${parent.clientWidth}px`;
+            canvas.style.height = `${parent.clientHeight}px`;
+        }
+
+        function updateUI() {
+            btnHighlight.className = "w-full flex items-center gap-3 p-4 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all text-left";
+            btnDock.className = "w-full flex items-center gap-3 p-4 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all text-left";
+
+            if (mode === 'highlight') {
+                btnHighlight.classList.add('btn-active-highlight');
+                btnHighlight.classList.remove('border-slate-700', 'bg-slate-800', 'text-slate-300');
+            } else if (mode === 'docking' || mode === 'docked') {
+                btnDock.classList.add('btn-active-dock');
+                btnDock.classList.remove('border-slate-700', 'bg-slate-800', 'text-slate-300');
+            }
+
+            infoBox.innerHTML = infoTexts[mode];
+        }
+
+        // Render helper for 3D sphere look
+        function drawSphere(x, y, radius, color, label) {
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            
+            const gradient = ctx.createRadialGradient(x - radius/3, y - radius/3, radius/10, x, y, radius);
+            gradient.addColorStop(0, '#ffffff');
+            gradient.addColorStop(0.2, color);
+            gradient.addColorStop(1, '#000000');
+            
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            
+            // Highlight rim
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            if (label) {
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.shadowColor = 'rgba(0,0,0,0.8)';
+                ctx.shadowBlur = 4;
+                ctx.fillText(label, x, y);
+                ctx.shadowBlur = 0; // reset
+            }
+        }
+
+        function drawMolecule(cx, cy, atoms, rotOffset, highlightGroups, isRejected) {
+            ctx.save();
+            ctx.translate(cx, cy);
+            
+            // Add a shaking effect if rejected
+            if (isRejected && mode === 'docked') {
+                ctx.translate(Math.sin(Date.now() * 0.05) * 5, 0);
+            } else {
+                ctx.rotate(rotOffset);
+            }
+
+            // Draw highlight auras
+            if (highlightGroups) {
+                ctx.globalAlpha = 0.3 + Math.sin(Date.now() * 0.005) * 0.2;
+                
+                // Cis Highlight (Arcs enclosing side groups)
+                if (atoms === cisAtoms) {
+                    ctx.fillStyle = '#22c55e'; // Green for Cl side
+                    ctx.beginPath();
+                    ctx.arc(0, 0, BOND_LENGTH + 30, Math.PI/4 - 0.4, 3*Math.PI/4 + 0.4);
+                    ctx.lineTo(0,0);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#3b82f6'; // Blue for NH3 side
+                    ctx.beginPath();
+                    ctx.arc(0, 0, BOND_LENGTH + 30, -3*Math.PI/4 - 0.4, -Math.PI/4 + 0.4);
+                    ctx.lineTo(0,0);
+                    ctx.fill();
+                } 
+                // Trans Highlight (Opposing circles)
+                else {
+                    ctx.fillStyle = '#22c55e';
+                    ctx.beginPath();
+                    ctx.arc(Math.cos(Math.PI/4) * BOND_LENGTH, Math.sin(Math.PI/4) * BOND_LENGTH, 35, 0, Math.PI*2);
+                    ctx.arc(Math.cos(-3*Math.PI/4) * BOND_LENGTH, Math.sin(-3*Math.PI/4) * BOND_LENGTH, 35, 0, Math.PI*2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1.0;
+            }
+
+            // Draw Bonds
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = '#94a3b8';
+            atoms.forEach(atom => {
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(Math.cos(atom.angle) * BOND_LENGTH, Math.sin(atom.angle) * BOND_LENGTH);
+                ctx.stroke();
+            });
+
+            // Draw Atoms
+            atoms.forEach(atom => {
+                const ax = Math.cos(atom.angle) * BOND_LENGTH;
+                const ay = Math.sin(atom.angle) * BOND_LENGTH;
+                drawSphere(ax, ay, ATOM_RADIUS, atom.color, atom.label);
+            });
+
+            // Draw Platinum Block (Central)
+            drawSphere(0, 0, ATOM_RADIUS * 1.3, '#94a3b8', 'Pt');
+            
+            ctx.restore();
+        }
+
+        function drawDNADockingSite(cx, cy, isSuccess) {
+            const width = 140;
+            const height = 40;
+            
+            ctx.save();
+            ctx.translate(cx, cy);
+
+            // Glowing aura if successful
+            if (isSuccess && mode === 'docked') {
+                ctx.shadowColor = '#34d399';
+                ctx.shadowBlur = 30;
+            }
+
+            // Draw DNA Device Base
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = isSuccess && mode === 'docked' ? '#34d399' : '#475569';
+            ctx.lineWidth = 3;
+            
+            ctx.beginPath();
+            ctx.roundRect(-width/2, 0, width, height, 10);
+            ctx.fill();
+            ctx.stroke();
+
+            // Draw Receptor Pockets
+            const pocketDist = Math.cos(Math.PI/4) * BOND_LENGTH * 2; // Distance between two downward Cl atoms
+            const leftPocketX = -pocketDist/2;
+            const rightPocketX = pocketDist/2;
+
+            ctx.fillStyle = '#0f172a';
+            
+            // Left Pocket
+            ctx.beginPath();
+            ctx.arc(leftPocketX, 0, ATOM_RADIUS + 5, 0, Math.PI, false);
+            ctx.fill();
+            ctx.stroke();
+
+            // Right Pocket
+            ctx.beginPath();
+            ctx.arc(rightPocketX, 0, ATOM_RADIUS + 5, 0, Math.PI, false);
+            ctx.fill();
+            ctx.stroke();
+
+            // DNA Helix motif inside block
+            ctx.strokeStyle = '#3b82f6';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for(let i = -width/2 + 10; i < width/2 - 10; i+= 5) {
+                ctx.moveTo(i, height/2 + Math.sin(i * 0.1) * 8);
+                ctx.lineTo(i+2, height/2 + Math.cos(i * 0.1) * 8);
+            }
+            ctx.stroke();
+
+            // Rejection Cross
+            if (!isSuccess && mode === 'docked') {
+                ctx.strokeStyle = '#ef4444';
+                ctx.lineWidth = 6;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(-20, -30);
+                ctx.lineTo(20, 10);
+                ctx.moveTo(20, -30);
+                ctx.lineTo(-20, 10);
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+
+        // Main Animation Loop
+        function drawLoop() {
+            const width = canvas.clientWidth;
+            const height = canvas.clientHeight;
+            
+            ctx.clearRect(0, 0, width, height);
+
+            // Split screen visual divider
+            ctx.beginPath();
+            ctx.moveTo(width / 2, 40);
+            ctx.lineTo(width / 2, height - 40);
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([10, 10]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Physics / Animation State Updates
+            if (mode === 'idle' || mode === 'highlight') {
+                baseRotation += 0.005; // Slow spin
+                molecYOffset = 0;
+                transRejectOffset = 0;
+            } else if (mode === 'docking') {
+                // Return to 0 rotation to align with docks
+                baseRotation *= 0.9;
+                
+                // Move downwards
+                const targetY = height * 0.35; // Docking distance
+                molecYOffset += (targetY - molecYOffset) * 0.05;
+                
+                if (targetY - molecYOffset < 2) {
+                    mode = 'docked';
+                    updateUI();
+                }
+            } else if (mode === 'docked') {
+                // Cis is docked (stays in place)
+                // Trans is rejected (bounces back slightly)
+                transRejectOffset = -30; 
+            }
+
+            // Positions
+            const cisCenter = { x: width * 0.25, y: height * 0.35 + molecYOffset };
+            const transCenter = { x: width * 0.75, y: height * 0.35 + molecYOffset + transRejectOffset };
+            const dockY = height * 0.75;
+
+            // Draw DNA Docking Sites
+            drawDNADockingSite(width * 0.25, dockY, true); // Cis fits
+            drawDNADockingSite(width * 0.75, dockY, false); // Trans fails
+
+            // Draw Molecules
+            const highlightActive = mode === 'highlight';
+            drawMolecule(cisCenter.x, cisCenter.y, cisAtoms, baseRotation, highlightActive, false);
+            drawMolecule(transCenter.x, transCenter.y, transAtoms, baseRotation, highlightActive, true);
+
+            animationFrameId = requestAnimationFrame(drawLoop);
+        }
+
+        // Event Listeners
+        btnHighlight.addEventListener('click', () => {
+            mode = mode === 'highlight' ? 'idle' : 'highlight';
+            updateUI();
+        });
+
+        btnDock.addEventListener('click', () => {
+            if (mode !== 'docking' && mode !== 'docked') {
+                mode = 'docking';
+                updateUI();
+            }
+        });
+
+        btnReset.addEventListener('click', () => {
+            mode = 'idle';
+            baseRotation = 0;
+            updateUI();
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // Initialization
+        window.onload = () => {
+            resizeCanvas();
+            updateUI();
+            drawLoop();
+        };
+
+    </script>
+</body>
+</html>

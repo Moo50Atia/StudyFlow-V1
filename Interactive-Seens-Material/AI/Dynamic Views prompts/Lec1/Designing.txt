@@ -1,0 +1,75 @@
+Lecture: Course Overview and Structure
+=====================================
+
+--- Scene 1 Design (Sec1): Time Evolution – Course Timeline & Digital Access ---
+
+LAYOUT:
+- Use a full-width horizontal timeline bar as the main axis, built with CSS flexbox.
+- Each node (Wednesday, Thursday, Monday) is a rounded pill-shaped div with a pulsing border animation (CSS @keyframes).
+- The Moodle login field is a styled <input> element centered on the timeline; characters "GLMs20/21" auto-type using a JS setInterval typewriter effect.
+
+ANIMATIONS:
+- The digital clock and calendar blocks slide in from the left using CSS transform: translateX() with staggered animation-delay values.
+- Exam blocks at January and March/April markers use a CSS pulse animation (scale + box-shadow glow) triggered by IntersectionObserver or a timed JS callback.
+- Literature and slides repository fades in with opacity transition after the typewriter completes.
+
+INTERACTIVITY:
+- User can click any timeline node to highlight its connected resource access points using JS classList.toggle().
+- A "Play/Pause" button controls the entire timeline animation sequence via JS animation.playState toggling.
+
+COLOR PALETTE:
+- Dark background (#0f172a), timeline accent gradient (linear-gradient from #3b82f6 to #8b5cf6), exam pulse glow in amber (#f59e0b), Moodle field in green (#10b981).
+
+VARIABLE NAMING:
+- timelineAxis, courseNode_Wednesday, courseNode_Thursday, courseNode_Monday, moodleLoginField, examBlock_January, examBlock_MarchApril, resourceRepository, typewriterInterval, pulseAnimation.
+
+TECHNOLOGY: HTML + CSS + JS only. No 3D required. All animations are 2D transitions and keyframes.
+
+
+--- Scene 2 Design (Sec2): Comparison – Data Types & Model Filters ---
+
+LAYOUT:
+- Three distinct data cluster containers (Panel, Categorical, Longitudinal) positioned in a triangular formation using CSS Grid (grid-template-areas).
+- A central workspace div acts as the processing zone where clusters merge when dragged or clicked.
+- Selection meters are styled range <input> sliders with custom CSS track and thumb.
+
+ANIMATIONS:
+- Data clusters animate toward the central workspace using CSS transition on transform: translate().
+- Penalization waves are horizontal gradient overlays (CSS linear-gradient with background-position animation) that sweep across the clusters, fading irrelevant variables by reducing their opacity.
+- Relevant variables scale up (transform: scale(1.15)) while redundant ones fade (opacity: 0.3).
+
+INTERACTIVITY:
+- User-controlled selection meters (sliders) trigger JS event listeners (oninput) that apply different model filters to the data clusters.
+- Each model filter visually transforms the cluster arrangement and highlights matched variables.
+
+COLOR PALETTE:
+- Panel data in teal (#14b8a6), Categorical data in rose (#f43f5e), Longitudinal data in violet (#8b5cf6). Central workspace has a subtle glass-morphism effect (backdrop-filter: blur + semi-transparent background).
+
+VARIABLE NAMING:
+- dataCluster_Panel, dataCluster_Categorical, dataCluster_Longitudinal, centralWorkspace, selectionMeter_modelType, penalizationWave, relevantVariable, redundantVariable, modelFilter.
+
+TECHNOLOGY: HTML + CSS + JS only. No 3D required.
+
+
+--- Scene 3 Design (Sec3): Accumulation – Curriculum Hierarchy Pillar ---
+
+LAYOUT:
+- A vertical stack of six block divs anchored at the bottom, using CSS flexbox with flex-direction: column-reverse.
+- The foundational block "Basic Concepts" is the widest and sits at the base. Each subsequent block (Binary, GLM, Multi-categorical, Non-parametric, Multivariate) is slightly narrower, creating a pillar/pyramid visual.
+
+ANIMATIONS:
+- Blocks fly in from off-screen top (transform: translateY(-100vh)) and stack with a bounce easing (cubic-bezier(0.34, 1.56, 0.64, 1)) using staggered animation-delay (0.4s increments).
+- Signal lines are animated SVG <line> elements or CSS border-left dashes that pulse upward from the base through the entire stack using stroke-dashoffset animation.
+- On hover, each block transforms to reveal a split overlay showing "Slide" and "Hand-written" labels using a CSS clip-path or width transition on two child divs.
+
+INTERACTIVITY:
+- Clicking any block highlights it and triggers the signal line pulse from base to that block level.
+- A "Build Pillar" button initiates the full stacking animation sequence controlled by JS Promise chains or setTimeout cascades.
+
+COLOR PALETTE:
+- Base block in deep indigo (#312e81), progressive blocks lighten upward (#4338ca → #6366f1 → #818cf8 → #a5b4fc → #c7d2fe). Signal lines in electric cyan (#06b6d4). Overlays use warm amber (#fbbf24) for "Slide" and sage green (#86efac) for "Hand-written".
+
+VARIABLE NAMING:
+- pillarContainer, block_BasicConcepts, block_Binary, block_GLM, block_MultiCategorical, block_NonParametric, block_Multivariate, signalLine, overlaySlide, overlayHandwritten, stackAnimation, bounceEasing.
+
+TECHNOLOGY: HTML + CSS + JS only. No 3D required. SVG lines optional for signal animation.

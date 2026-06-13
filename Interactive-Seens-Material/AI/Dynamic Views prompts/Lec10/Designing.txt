@@ -1,0 +1,152 @@
+Lecture: Hypotheses Testing in Generalized Linear Models
+==========================================================
+
+--- Scene 1 Design (Sec1): Process – Hypothesis Formation with Selection Matrix C ---
+
+LAYOUT:
+- Left side: a full coefficient vector β displayed as a vertical column of labeled blocks (β₀, β₁, β₂, ..., βₚ) inside a styled container.
+- Center: a selection matrix device C (grid-based matrix visualized as a grid of 0/1 cells).
+- Right side: the filtered output blocks matching the hypothesis Cβ = d, with the hypothesized value d displayed alongside.
+
+ANIMATIONS:
+- The full β vector slides in from the left (CSS translateX).
+- The selection matrix C activates: specific cells highlight to 1 (CSS background-color flash from transparent → bright color) while others remain at 0.
+- The C matrix "scans" across the β vector (CSS translateX overlay moving right-to-left across β). Only β-blocks where C has a 1-entry get highlighted and extracted (CSS scale-up + glow).
+- Extracted blocks fly rightward to align with the hypothesized value d (CSS transition to target position).
+- Non-selected β-blocks dim to opacity 0.2.
+
+INTERACTIVITY:
+- User can click cells in the C matrix to toggle 0/1, constructing custom hypotheses.
+- The extracted β-blocks update in real-time based on the C matrix configuration.
+- Preset buttons: "Single Coefficient" (tests one β=0), "Group Test" (tests multiple β=0), "Linear Combination" (tests Cβ=d with non-trivial C).
+- Hovering over the output shows the full mathematical expression Cβ = d.
+- A "Reset" button clears the selection matrix.
+
+COLOR PALETTE:
+- β blocks in gradient blue (#2563eb → #3b82f6). C matrix active cells in gold (#eab308), inactive cells in dark gray (#1f2937). Selected/extracted β-blocks in bright cyan (#06b6d4). Hypothesized d in rose (#f43f5e). Dimmed blocks in muted gray. Background (#0f172a).
+
+VARIABLE NAMING:
+- coefficientVector_beta, selectionMatrix_C, filteredOutput_Cbeta, hypothesizedValue_d, matrixCell_0, matrixCell_1, extractedBlock_beta_j, presetButton_single, presetButton_group, presetButton_linearCombination, scanOverlay, resetButton.
+
+TECHNOLOGY: HTML + CSS + JS. No 3D required.
+
+
+--- Scene 2 Design (Sec2): Comparison – Likelihood-Ratio Test (Vertical Distance on Log-Likelihood) ---
+
+LAYOUT:
+- A log-likelihood curve (SVG) plotted on a vertical graph with β on the x-axis and l(β) on the y-axis.
+- Two peaks marked on the curve: unrestricted MLE l(β̂) at the top, and restricted estimate l(β̃) below.
+- A vertical measurement tape (SVG rectangle with tick marks) between the two peaks showing the gap λ.
+- The test statistic formula λ = -2(l(β̃) - l(β̂)) displayed as a styled label.
+
+ANIMATIONS:
+- The log-likelihood curve draws itself using SVG stroke-dashoffset.
+- The unrestricted peak β̂ appears with a star burst animation (CSS radial gradient expansion) at the maximum.
+- The restricted peak β̃ appears lower on the curve with a constrained pulse (dimmer glow).
+- The vertical measurement tape extends between the two peaks with a CSS height animation (from 0 to full gap distance), tick marks appearing sequentially.
+- The λ formula label fades in and the numerical value counts up to the computed statistic.
+
+INTERACTIVITY:
+- A slider adjusts the restriction severity: moving β̃ further from β̂ increases the gap and λ value. The measurement tape and statistic update in real-time.
+- Clicking the tape shows: "This VERTICAL distance, not horizontal, is the test statistic."
+- A "Critical Value" toggle overlays a χ²ᵣ threshold line on the λ scale; if λ exceeds it, a "REJECT H₀" badge appears.
+- Hovering over each peak shows its l(β) value.
+
+COLOR PALETTE:
+- Log-likelihood curve in white (#e2e8f0). Unrestricted peak in emerald (#10b981) with bright glow. Restricted peak in amber (#f59e0b) with dim glow. Measurement tape in rose (#f43f5e). λ label in bright white. Critical threshold in red dashed. Background (#020617).
+
+VARIABLE NAMING:
+- logLikelihoodCurve_SVG, unrestrictedPeak_l_betaHat, restrictedPeak_l_betaTilde, verticalMeasurementTape, testStatistic_lambda, likelihoodRatioTest_LRT, chiSquaredThreshold, rejectBadge, restrictionSlider, gapDistance, criticalValueLine.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required.
+
+
+--- Scene 3 Design (Sec3): Comparison – Wald Test (Horizontal Distance Scaled by Curvature) ---
+
+LAYOUT:
+- A horizontal axis (SVG) showing the parameter scale.
+- An estimated point Cβ̂ (circle marker) and a hypothesized target d (diamond marker) on the axis.
+- A curvature wave overlay representing Fisher Information F(β̂) (SVG wave pattern over the distance).
+- The weighted Wald statistic w displayed as a scaled bar.
+
+ANIMATIONS:
+- Cβ̂ and d markers appear on the axis with pop-in animations.
+- A horizontal distance line draws between them (SVG line with measurement arrows at both ends).
+- The Fisher Information curvature wave overlays the distance, visually "compressing" or "stretching" the gap (SVG wave amplitude modulation).
+- The raw distance transforms into the Wald statistic w via the curvature scaling: the distance bar morphs (CSS width transition) into a scaled version.
+- A "confidence region" ellipse (SVG) around Cβ̂ visualizes the uncertainty; d inside = accept H₀, d outside = reject H₀.
+
+INTERACTIVITY:
+- User can drag the Cβ̂ point or d point to see how the Wald statistic changes.
+- A curvature (Fisher Information) slider adjusts the scaling: more information = narrower confidence region = larger w for same distance.
+- A "Show Confidence Ellipse" toggle displays the acceptance region.
+- Clicking the curvature wave shows: "F(β̂) = local curvature of the log-likelihood at β̂."
+
+COLOR PALETTE:
+- Cβ̂ marker in cyan (#06b6d4). d marker in gold (#eab308). Distance line in white (#e2e8f0). Curvature wave in purple (#8b5cf6) semi-transparent. Wald statistic bar in emerald (#10b981). Confidence ellipse border in rose (#f43f5e). Background (#0f172a).
+
+VARIABLE NAMING:
+- estimatedPoint_C_betaHat, hypothesizedTarget_d, horizontalDistance, fisherInformation_F_betaHat, curvatureWave_SVG, waldStatistic_w, confidenceEllipse_SVG, waldTest, curvatureSlider, scaledDistance, acceptanceRegion, rejectionRegion.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required.
+
+
+--- Scene 4 Design (Sec4): Process – Score Test (Gradient at Restricted Estimate) ---
+
+LAYOUT:
+- A log-likelihood curve (SVG) with the restricted estimate β̃ marked on it (not at the peak).
+- A tangent line at β̃ representing the score function s(β̃) (SVG line with rotation).
+- A curvature filter F(β̃)⁻¹ (styled processing block) that scales the score signal.
+- The score statistic u output display.
+
+ANIMATIONS:
+- The log-likelihood curve draws itself. β̃ marker appears on the curve away from the peak.
+- A tangent line sprouts at β̃ and rotates based on the local slope (CSS transform: rotate(angle) where angle = arctan(s(β̃))). Steeper slope = further from MLE.
+- The slope value flows as a signal into the curvature filter block (CSS translateX of a signal dot).
+- The filter processes it (gear animation) and outputs the score statistic u with a reveal animation.
+- If the slope is steep (far from peak): u is large → "REJECT H₀" badge. If nearly flat (near peak): u is small → "ACCEPT H₀" badge.
+
+INTERACTIVITY:
+- User can drag β̃ along the curve to different positions. The tangent line, slope, and score statistic update in real-time.
+- Placing β̃ at the unrestricted MLE peak makes the tangent flat (slope = 0, u = 0).
+- A "Evaluate at MLE" button slides β̃ to the peak to show why the score test differs from the Wald test in evaluation point.
+- Tooltip on the filter: "F(β̃)⁻¹ scales by curvature AT the restricted estimate, not the MLE."
+
+COLOR PALETTE:
+- Log-likelihood curve in white (#e2e8f0). β̃ marker in amber (#f59e0b). Tangent line in cyan (#06b6d4). Score signal in green (#22c55e). Curvature filter in metallic gray. Score statistic output in bright magenta (#d946ef). Background (#020617).
+
+VARIABLE NAMING:
+- logLikelihoodCurve_SVG, restrictedEstimate_betaTilde, tangentLine_score, scoreFunction_s_betaTilde, curvatureFilter_F_betaTilde_inv, scoreStatistic_u, slopeAngle, scoreTest, evaluateAtMLEButton, rejectBadge, acceptBadge, localGradient.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required.
+
+
+--- Scene 5 Design (Sec5): Time Evolution – Asymptotic Equivalence of Three Tests ---
+
+LAYOUT:
+- Three statistic blocks labeled λ (LRT), w (Wald), u (Score) arranged horizontally (CSS flexbox).
+- A shared target: the χ²ᵣ distribution curve (SVG) on the right side.
+- A sample size signal n displayed as an accumulating counter at the bottom.
+- A "convergence zone" where all three blocks merge.
+
+ANIMATIONS:
+- Initially, the three blocks are at different positions with different sizes/colors, showing they give different results at small n.
+- As the sample size counter n increments (JS counter animation with CSS transform on the number), the three blocks slide closer together (CSS translateX converging).
+- The blocks also gradually change to matching colors and sizes (CSS transition on background-color and width/height).
+- At large n, all three overlap completely and merge into a single block that docks onto the χ²ᵣ distribution curve target.
+- The label "Asymptotic Equivalence" appears with a fade-in glow.
+
+INTERACTIVITY:
+- A sample size slider (n) controls the convergence: small n = separated blocks, large n = merged blocks.
+- Clicking any block shows its test statistic formula.
+- A "Animate n → ∞" button auto-plays the sample size growth with smooth convergence animation.
+- At small n, hovering shows: "Different results — be careful which test you choose." At large n: "All three tests agree asymptotically."
+- A distribution curve overlay shows where the merged statistic falls relative to the critical value.
+
+COLOR PALETTE:
+- λ (LRT) in emerald (#10b981). w (Wald) in cyan (#06b6d4). u (Score) in rose (#f43f5e). As they merge, all transition to gold (#eab308). χ²ᵣ distribution curve in white (#e2e8f0). Sample size counter in amber. Background (#0f172a).
+
+VARIABLE NAMING:
+- statisticBlock_lambda_LRT, statisticBlock_w_Wald, statisticBlock_u_Score, chiSquaredTarget_distribution, sampleSize_n, sampleSizeSlider, convergenceZone, asymptoticEquivalenceLabel, mergedBlock, animateButton, criticalValue, testFormulaTooltip.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required.

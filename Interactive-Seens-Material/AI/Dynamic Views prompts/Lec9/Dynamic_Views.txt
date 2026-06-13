@@ -1,0 +1,71 @@
+Lecture: Iterative solution of the estimation equation
+Lec4 (Sec1): "Time Evolution: An initial parameter block  
+β
+^
+​
+  
+(0)
+  moves toward a target equation s(β)=0 on a coordinate grid
+. Successive update signals  
+β
+^
+​
+  
+(1)
+ , 
+β
+^
+​
+  
+(2)
+ … 
+β
+^
+​
+  
+(k)
+  accumulate along a directional path
+. A relative improvement meter fades as the numerical difference between steps drops below a convergence threshold ϵ
+. Final State: The parameter block stabilizes at the equation root, correcting the misconception that GLM estimation equations can be solved explicitly with a single algebraic formula
+."
+Lec4 (Sec2): "Process: A score function curve s(β) is displayed on a spatial graph
+. A tangent signal from the current estimate  
+β
+^
+​
+  
+(k)
+  highlights and transforms to intersect the zero-axis using the inverse Observed Fisher Information F 
+obs
+​
+  signal as a directional vector
+. The intersection coordinate transforms into the new estimate  
+β
+^
+​
+  
+(k+1)
+ 
+. Final State: Root discovery via local curvature analysis, correcting the misconception that the Newton-Raphson update direction is independent of the observed gradient of the score function
+."
+Lec4 (Sec3): "Comparison: Two parallel iteration paths move toward a common target
+. Path A highlights the use of an Observed Fisher Information signal block F 
+obs
+​
+ 
+. Path B transforms by substituting an Expected Fisher Information signal block F into the update equation
+. Final State: A stable parameter update driven by expected information, correcting the misconception that Fisher's Scoring and Newton-Raphson are mathematically identical in their information source
+."
+Lec4 (Sec4): "Parallel Flow: Response blocks y and predictor blocks X move through a recurring update loop
+. A weight matrix signal W and a pseudo-variable signal  
+η
+~
+​
+  highlight and transform after each iteration using the current parameter state
+. These signals enter a weighted least squares device to output a updated  
+β
+^
+​
+  block
+. Final State: Parameter stabilization through a sequence of weighted matrix operations, correcting the misconception that GLM estimation is structurally unrelated to the concept of weighted linear regression
+."

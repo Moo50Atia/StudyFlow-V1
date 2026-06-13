@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Process: Discrete Count Distribution (Poisson)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Outfit', sans-serif; }
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+
+  .spike-line { stroke: #10b981; stroke-width: 8; stroke-linecap: round; transition: all 0.1s linear; }
+  .spike-dot { fill: #fff; r: 6; transition: all 0.1s linear; }
+  
+  .pulse-meter { animation: pulseM 0.5s; }
+  @keyframes pulseM { 0% { box-shadow: 0 10px 20px rgba(0,0,0,0.3); transform: scale(1); } 50% { box-shadow: 0 0 30px rgba(16,185,129,0.6); transform: scale(1.05); } 100% { box-shadow: 0 10px 20px rgba(0,0,0,0.3); transform: scale(1); } }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-5xl h-[700px] bg-slate-900 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col overflow-hidden">
+  
+  <div class="absolute top-6 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-2xl font-bold text-slate-100 tracking-wider">Discrete Count Distribution (Poisson)</h1>
+    <p class="text-cyan-400 mt-2 text-sm max-w-2xl mx-auto h-8 font-medium" id="narrator">
+      Click "Start Simulation" to sweep the intensity parameter λ.
+    </p>
+  </div>
+
+  <div class="relative flex-1 w-full mt-24 mb-20 px-12 flex gap-8 items-center justify-center">
+    
+    <!-- Graph -->
+    <div class="flex-[2] h-[350px] bg-slate-950/50 rounded-2xl border border-slate-800/50 relative shadow-inner p-4 backdrop-blur-sm">
+      <div id="link-formula" class="absolute top-4 right-4 bg-blue-900/30 border border-blue-500 px-4 py-2 rounded-xl text-blue-400 font-mono font-bold text-lg opacity-0 transition-opacity duration-1000">
+        log(λ) = xᵀβ
+      </div>
+      <svg viewBox="0 0 600 300" id="svg-graph" class="w-full h-full overflow-visible">
+        <line x1="0" y1="250" x2="600" y2="250" stroke="#334155" stroke-width="2" />
+      </svg>
+    </div>
+
+    <!-- Meters -->
+    <div class="flex-1 flex flex-col gap-6">
+      <div id="m-mean" class="bg-slate-800 border border-slate-700 rounded-2xl p-6 flex flex-col items-center justify-center shadow-[0_10px_20px_rgba(0,0,0,0.3)]">
+        <div class="text-slate-400 font-bold uppercase tracking-widest text-xs mb-4">Expectation E[y]</div>
+        <div id="val-mean" class="text-5xl font-mono font-bold text-slate-100">0.0</div>
+      </div>
+      <div id="m-var" class="bg-slate-800 border border-slate-700 rounded-2xl p-6 flex flex-col items-center justify-center shadow-[0_10px_20px_rgba(0,0,0,0.3)]">
+        <div class="text-slate-400 font-bold uppercase tracking-widest text-xs mb-4">Variance Var(y)</div>
+        <div id="val-var" class="text-5xl font-mono font-bold text-slate-100">0.0</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="final-message" class="absolute bottom-32 left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none">
+    <div class="bg-emerald-950/90 border border-emerald-500/50 backdrop-blur-md rounded-xl p-5 text-center mx-auto max-w-3xl shadow-[0_0_30px_rgba(16,185,129,0.15)]">
+      <h3 class="text-emerald-300 font-bold mb-2 text-lg">Misconception Corrected</h3>
+      <p class="text-slate-200 text-sm leading-relaxed">
+        Expectation and variance meters highlight identical numerical accumulation as the parameter sweeps. This corrects the misconception that <strong class="text-emerald-400">count data variance remains independent of the mean</strong>. In Poisson models, the variance is locked identically to the mean.
+      </p>
+    </div>
+  </div>
+
+  <div class="absolute bottom-0 left-0 w-full h-24 bg-slate-800/80 border-t border-slate-700 flex items-center justify-center px-8 z-50 backdrop-blur-md">
+    <button id="start-btn" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-all">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  
+  const mMean = document.getElementById('m-mean');
+  const mVar = document.getElementById('m-var');
+  const valMean = document.getElementById('val-mean');
+  const valVar = document.getElementById('val-var');
+  const linkFormula = document.getElementById('link-formula');
+  
+  const svg = document.getElementById('svg-graph');
+  const spikes = [];
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+
+  // Build SVG spikes
+  for(let i=0; i<=20; i++) {
+    let x = 30 + (i * 25);
+    let g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    
+    let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute('class', 'spike-line');
+    line.setAttribute('x1', x); line.setAttribute('x2', x);
+    line.setAttribute('y1', 250); line.setAttribute('y2', 250);
+    
+    let dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    dot.setAttribute('class', 'spike-dot');
+    dot.setAttribute('cx', x); dot.setAttribute('cy', 250);
+
+    let txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    txt.setAttribute('fill', '#94a3b8'); txt.setAttribute('font-family', 'monospace'); txt.setAttribute('font-size', '14px');
+    txt.setAttribute('x', x - 4); txt.setAttribute('y', 270);
+    txt.textContent = i;
+
+    g.appendChild(line); g.appendChild(dot); g.appendChild(txt);
+    svg.appendChild(g);
+    spikes.push({line, dot});
+  }
+
+  function factorial(n) { return n <= 1 ? 1 : n * factorial(n-1); }
+  function poisson(k, lam) { return (Math.pow(lam, k) * Math.exp(-lam)) / factorial(k); }
+
+  function updateVisuals(lam) {
+    spikes.forEach((s, k) => {
+      let prob = poisson(k, lam);
+      let h = prob * 1000;
+      let yTop = Math.max(20, 250 - h);
+      s.line.setAttribute('y2', yTop);
+      s.dot.setAttribute('cy', yTop);
+    });
+
+    valMean.innerText = lam.toFixed(1);
+    valVar.innerText = lam.toFixed(1);
+  }
+
+  function resetScene() {
+    updateVisuals(0.5);
+    linkFormula.classList.remove('opacity-100');
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    narrator.textContent = "Simulation starting...";
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(800);
+
+    narrator.textContent = "Stage 1: A lambda signal sweeps, transforming the discrete probability spikes.";
+    
+    let pulseInterval = setInterval(() => {
+      mMean.classList.remove('pulse-meter'); mVar.classList.remove('pulse-meter');
+      void mMean.offsetWidth; // trigger reflow
+      mMean.classList.add('pulse-meter'); mVar.classList.add('pulse-meter');
+    }, 1000);
+
+    for(let l = 0.5; l <= 15; l += 0.2) {
+      updateVisuals(l);
+      
+      if(l > 7 && l < 7.3) {
+        narrator.textContent = "Stage 2: Expectation and variance meters highlight identical numerical accumulation.";
+      }
+      if(l > 12 && l < 12.3) {
+        narrator.textContent = "Stage 3: A log-link formula overlays to represent the canonical link mapping.";
+        linkFormula.classList.add('opacity-100');
+      }
+
+      await sleep(30);
+    }
+    
+    clearInterval(pulseInterval);
+    await sleep(1000);
+
+    narrator.textContent = "Final State: Discrete count distribution with locked mean-variance equality.";
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    startBtn.classList.remove('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  // Init
+  resetScene();
+  narrator.textContent = 'Click "Start Simulation" to sweep the intensity parameter λ.';
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>

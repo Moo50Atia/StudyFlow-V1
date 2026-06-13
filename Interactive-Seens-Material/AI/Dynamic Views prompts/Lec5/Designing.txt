@@ -1,0 +1,116 @@
+Lecture: Estimation in Logit Models
+=====================================
+
+--- Scene 1 Design (Sec1): Comparison – OLS Variance Violation for Binary Data ---
+
+LAYOUT:
+- A coordinate graph (SVG) with x-axis and y-axis (0 and 1 levels marked).
+- Binary data clusters at y=0 and y=1 scattered along x.
+- A linear Least Squares line drawn across the grid.
+- Spatial variance meters: vertical bar gauges at different x-intervals showing the variance of residuals.
+
+ANIMATIONS:
+- Data points scatter into position from center with staggered CSS animations.
+- The OLS line draws itself (SVG stroke-dashoffset animation).
+- Variance meters at different x-positions animate their heights to show fluctuating (heteroscedastic) variance. Each meter fills to a different height and flashes red using CSS @keyframes (background-color oscillating between red shades and normal).
+- A "VIOLATION" stamp appears at each red-flashing meter with a shake animation (CSS transform: translateX alternating ±3px).
+
+INTERACTIVITY:
+- User can drag the OLS line endpoints to see how variance meters change at different fit angles.
+- Hovering over any variance meter shows a tooltip: "Var(ε|x) = π(x)(1 − π(x)) — NOT constant."
+- A toggle shows/hides an ideal constant-variance overlay for comparison.
+- Clicking "Why it fails" triggers a step-by-step annotation sequence highlighting each violation.
+
+COLOR PALETTE:
+- Data points at y=1 in green (#22c55e), at y=0 in slate (#64748b). OLS line in white (#e2e8f0). Variance meters normal state in blue (#3b82f6), violation state in red (#ef4444) with glow. Background (#0f172a).
+
+VARIABLE NAMING:
+- coordinateGraph_SVG, binaryCluster_y0, binaryCluster_y1, olsLine_leastSquares, varianceMeter, heteroscedasticity_violation, residualVariance_pi_x, constantVarianceOverlay, violationStamp, tooltipDiv.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required.
+
+
+--- Scene 2 Design (Sec2): Process – Maximum Likelihood Estimation ---
+
+LAYOUT:
+- A row of individual probability dials (circular gauges, built with SVG arc paths or conic-gradient CSS) representing independent binary observations.
+- A central β slider (styled <input type="range">) controlling the parameter value.
+- A multiplication filter funnel icon (CSS clip-path or SVG) where probability signals converge.
+- A Likelihood curve graph (SVG) on the right showing L(β) with a movable peak.
+
+ANIMATIONS:
+- As the β slider moves, each probability dial rotates its needle proportionally (CSS transform: rotate() updated by JS via the logistic function for each observation).
+- Probability signals (small dots) flow from each dial toward the multiplication filter with CSS translateX/Y animations.
+- The filter processes them and outputs a single signal to the Likelihood graph, where the curve peak shifts in response to β (JS recalculates L(β) = Π πᵢ^yᵢ · (1-πᵢ)^(1-yᵢ) and redraws the SVG path).
+- At the optimal β, the peak glows brightest (CSS box-shadow animation with maximum spread).
+
+INTERACTIVITY:
+- The β slider is the main control; all dials and the likelihood curve update in real-time.
+- Clicking any individual dial shows its observation (yᵢ, xᵢ) and current probability πᵢ.
+- A "Find Maximum" button auto-animates the slider to the MLE position using JS gradient search.
+- A counter shows the current L(β) value, updating in real-time.
+
+COLOR PALETTE:
+- Probability dials in gradient from cyan to blue (#06b6d4 → #2563eb). Multiplication filter in gold (#eab308). Likelihood curve in emerald (#10b981) with peak glow. β slider track in gray (#374151) with active thumb in white. Background (#020617).
+
+VARIABLE NAMING:
+- probabilityDial_observation_i, betaSlider_parameter, multiplicationFilter, likelihoodCurve_SVG, likelihoodValue_L_beta, logisticProbability_pi_i, observationValue_y_i, covariateValue_x_i, maximumLikelihoodEstimate_MLE, peakGlow, findMaximumButton.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required. JS math for likelihood computation.
+
+
+--- Scene 3 Design (Sec3): Parallel Flow – Likelihood → Log-Likelihood → Score Function ---
+
+LAYOUT:
+- Left panel: a formula block showing the product-based Likelihood (Π notation) using styled div with math notation.
+- Center panel: the transformed summation-based Log-Likelihood (Σ notation) block.
+- Right panel: a graph (SVG) showing the log-likelihood curve l(β) with a score function vector (gradient arrow) at the current β.
+- A "Log operator wave" visual connecting left to center panels.
+
+ANIMATIONS:
+- The Likelihood formula block sits on the left. A logarithmic wave (animated SVG sine wave) sweeps from left to right across the Likelihood block, transforming it: the Π symbol morphs into Σ (CSS opacity crossfade between two overlapping divs), and the product terms transform into addition terms.
+- The Score Function vector (SVG arrow) emerges from the log-likelihood curve, pointing in the gradient direction. Its length represents the gradient magnitude.
+- As the arrow converges to the peak, it shrinks to zero length, and a "∇l(β) = 0" marker illuminates at the peak with a glow animation.
+
+INTERACTIVITY:
+- User drags a point along the log-likelihood curve; the score function arrow updates its direction and magnitude in real-time.
+- A "Transform" button replays the Likelihood → Log-Likelihood conversion animation.
+- At the peak, clicking shows why the score equals zero (tooltip with explanation).
+- Toggle to show/hide the original Likelihood curve alongside for comparison.
+
+COLOR PALETTE:
+- Likelihood block in warm amber (#fbbf24). Log-Likelihood block in cool cyan (#06b6d4). Log wave in purple (#a855f7). Score vector arrow in bright green (#22c55e) when pointing uphill, red (#ef4444) when pointing downhill, white at zero. Peak marker in gold (#eab308).
+
+VARIABLE NAMING:
+- likelihoodFormula_product, logLikelihoodFormula_sum, logOperatorWave, scoreFunction_vector, scoreFunctionValue_s_beta, gradientArrow_SVG, gradientMagnitude, zeroGradientMarker, logLikelihoodCurve_SVG, peakPosition, transformButton.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required.
+
+
+--- Scene 4 Design (Sec4): Time Evolution – Fisher Scoring Iterative Convergence ---
+
+LAYOUT:
+- A horizontal path (SVG or CSS) representing the β parameter space, with a target icon at the score function zero (s(β) = 0).
+- A movable β-point (SVG circle) that travels in discrete steps toward the target.
+- An iteration counter display (styled div with monospace font) showing step number.
+- A "distance to target" meter (horizontal progress bar) that shrinks with each step.
+
+ANIMATIONS:
+- The β-point makes discrete jumps toward the target: each jump is animated with CSS transition (transform: translateX) using a decelerating pattern (larger initial jumps, smaller later jumps).
+- After each step, the iteration counter increments with a flip-digit animation (CSS transform: rotateX on digit spans).
+- The distance meter shrinks (CSS width transition) and its color transitions from red → amber → green as convergence approaches.
+- When the β-point reaches within ε of the target, a "CONVERGED ✓" badge appears with a scale-in + glow animation.
+
+INTERACTIVITY:
+- A "Next Step" button advances one iteration at a time, allowing the user to see each Fisher Scoring step individually.
+- An "Auto-Run" button plays all iterations automatically with a configurable speed slider.
+- A convergence threshold ε slider lets the user set how close is "close enough."
+- Hovering over each step position shows the β̂(k) value and the score s(β̂(k)) at that point.
+
+COLOR PALETTE:
+- β-point in bright white (#f8fafc) with trail dots in fading opacity. Target icon in gold (#eab308) with persistent glow. Path line in slate (#475569). Distance meter gradient from red (#ef4444) → amber (#f59e0b) → green (#22c55e). Converged badge in emerald with white text. Background (#0f172a).
+
+VARIABLE NAMING:
+- betaPoint_estimate, targetIcon_scoreZero, iterationCounter, distanceMeter, convergenceThreshold_epsilon, fisherScoringStep, betaEstimate_k, scoreValue_s_beta_k, convergedBadge, nextStepButton, autoRunButton, speedSlider, stepTrailDots.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required.

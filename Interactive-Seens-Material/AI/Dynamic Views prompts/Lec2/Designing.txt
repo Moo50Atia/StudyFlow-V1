@@ -1,0 +1,156 @@
+Lecture: Fundamental Concepts of Regression
+============================================
+
+--- Scene 1 Design (Sec1): Process – Regression Goals (Detection, Quantification, Prediction) ---
+
+LAYOUT:
+- A central processor div in the middle of the canvas, with an x-signal input entering from the left.
+- Three output channels radiate rightward to three device containers: a radar graph (SVG polygon), a measuring ruler (horizontal bar with tick marks), and a projection curve (SVG <path> with a quadratic Bézier).
+- A toggle switch below the processor uses a custom CSS checkbox (label + span slider).
+
+ANIMATIONS:
+- The x signal enters as an animated dot traveling along a CSS-animated path (left to center) using transform: translateX().
+- Upon reaching the processor, the dot splits into three colored signals that travel to each output device simultaneously (CSS animation with different translateX + translateY targets).
+- The radar graph fills its polygon area with a radial sweep animation (SVG stroke-dasharray + stroke-dashoffset).
+- The toggle switch transition between "Correlation" and "Regression" causes the processor to pulse and the output devices to re-illuminate with different intensity levels.
+
+INTERACTIVITY:
+- The toggle switch flips between Correlation and Regression modes; in Correlation mode, only the radar graph highlights. In Regression mode, all three devices activate.
+- Hovering over each output device reveals a tooltip div showing the mathematical relationship (y|x).
+
+COLOR PALETTE:
+- Dark canvas (#0c0a09). Processor in metallic silver gradient. Detection radar in emerald (#10b981), Quantification ruler in sky blue (#0ea5e9), Prediction curve in amber (#f59e0b). Signal paths glow with matching colors.
+
+VARIABLE NAMING:
+- xSignalInput, centralProcessor, outputChannel_Detection, outputChannel_Quantification, outputChannel_Prediction, radarGraph_SVG, measuringRuler, projectionCurve_SVG, toggleSwitch_CorrReg, signalDot, tooltipDiv, conditionalRelationship_y_given_x.
+
+TECHNOLOGY: HTML + CSS + JS + inline SVG. No 3D required.
+
+
+--- Scene 2 Design (Sec2): Comparison – Model Structure Matrix (y-Scale × x-Terms) ---
+
+LAYOUT:
+- A grid matrix using CSS Grid: vertical column on the left for y-scale blocks (metrical, binary, multi-categorical), horizontal row on top for x-term paths (linear, additive, interaction).
+- Each cell in the matrix is a card div that can highlight to show the required mathematical architecture.
+
+ANIMATIONS:
+- y-blocks slide in from the left (translateX(-100%)) and x-paths slide down from the top (translateY(-100%)) with staggered delays.
+- When a y-block is selected (clicked), the corresponding row of x-path cards illuminate with a CSS box-shadow glow and background-color transition.
+- Non-matching cells dim to opacity: 0.2.
+
+INTERACTIVITY:
+- Clicking any y-scale block on the left column triggers JS to highlight the matching row in the matrix.
+- Clicking any x-term header highlights the matching column.
+- Each highlighted cell shows a brief mathematical formula (e.g., "E(y) = β₀ + β₁x") via a CSS ::after pseudo-element or JS innerHTML.
+
+COLOR PALETTE:
+- Matrix background in slate (#1e293b). Metrical y in cyan (#06b6d4), Binary y in pink (#ec4899), Multi-categorical y in lime (#84cc16). Active cells glow with white border (#f8fafc). Inactive cells darken.
+
+VARIABLE NAMING:
+- matrixGrid, yBlock_Metrical, yBlock_Binary, yBlock_MultiCategorical, xPath_Linear, xPath_Additive, xPath_Interaction, matrixCell, architectureFormula, activeRow, activeColumn.
+
+TECHNOLOGY: HTML + CSS + JS only. No 3D required.
+
+
+--- Scene 3 Design (Sec3): Process – Conditional Effects β Visualization ---
+
+LAYOUT:
+- A left panel with a binary toggle (custom styled checkbox for categorical variable) and a metrical slider (<input type="range"> for continuous variable).
+- A right panel with a full-width graph area: an SVG or Canvas-based coordinate system showing E(y|x).
+- A mathematical equation block (styled <div> with MathML or Unicode characters) sits between the two panels.
+
+ANIMATIONS:
+- When the binary toggle flips, the graph animates a discrete vertical jump at the threshold point using JS to update SVG <rect> or <line> positions with CSS transition.
+- When the metrical slider moves, the graph's slope line rotates smoothly, drawn via JS updating SVG <line> x2/y2 attributes.
+- Fixed-variable markers appear as dashed lines (SVG stroke-dasharray: "5,5") with fade-in animation.
+
+INTERACTIVITY:
+- The binary toggle and metrical slider are fully interactive controls that update the graph in real-time via JS event listeners (change/input events).
+- A "Reset" button restores default parameter values.
+- Hovering over the β parameter in the equation highlights the corresponding visual effect on the graph.
+
+COLOR PALETTE:
+- Graph background (#0f172a). Slope line in electric blue (#3b82f6). Discrete jump in coral (#f97316). Fixed-variable dashed markers in muted gray (#64748b). Toggle active state in green (#22c55e).
+
+VARIABLE NAMING:
+- binaryToggle, metricalSlider, graphArea_SVG, coordinateSystem, expectedValue_E_y_x, discreteJump_line, continuousSlope_line, fixedVariableMarker, betaParameter, equationBlock, resetButton.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required.
+
+
+--- Scene 4 Design (Sec4): Comparison – Dummy Coding vs Effect Encoding ---
+
+LAYOUT:
+- Two side-by-side workspace panels using CSS Grid (grid-template-columns: 1fr 1fr), each with a header label ("Dummy Coding" / "Effect Encoding").
+- Dummy workspace: category blocks (colored rectangles) arranged vertically, one designated as reference (faded).
+- Effect workspace: a central balance scale SVG with β-blocks on both sides.
+
+ANIMATIONS:
+- In Dummy workspace, the reference category block fades out (opacity: 0 with CSS transition) while others remain solid.
+- In Effect workspace, β-blocks slide onto the scale pans from above (translateY(-50px)), and the scale tilts then balances to center (CSS transform: rotate() with spring-like animation).
+- A sum indicator "Σβ = 0" appears with a count-up animation when the balance reaches equilibrium.
+
+INTERACTIVITY:
+- User can click to select which category is the reference in the Dummy workspace; the selected block fades and others recalculate.
+- In Effect workspace, user can drag β-blocks to understand the sum-to-zero constraint; if sum ≠ 0, the scale tilts and flashes red.
+
+COLOR PALETTE:
+- Dummy workspace in warm tones (amber #fbbf24, orange #fb923c). Effect workspace in cool tones (blue #3b82f6, indigo #6366f1). Reference category ghost in transparent white (rgba(255,255,255,0.15)). Balance scale in silver metallic gradient.
+
+VARIABLE NAMING:
+- workspacePanel_Dummy, workspacePanel_Effect, categoryBlock, referenceCategory, balanceScale_SVG, betaBlock, sumToZeroIndicator, scalePan_left, scalePan_right, dummyCoding_constraint, effectEncoding_constraint.
+
+TECHNOLOGY: HTML + CSS + JS + SVG for balance scale. No 3D required.
+
+
+--- Scene 5 Design (Sec5): Accumulation – Building the Linear Predictor η ---
+
+LAYOUT:
+- A central η container (large rounded rectangle with dashed border) positioned in the middle.
+- Incoming blocks (metrical x, categorical j, polynomial x²) positioned at screen edges, each with distinct shapes (circle, hexagon, square via CSS clip-path).
+- Operator icons (+, ×, :) between blocks, styled as connector nodes.
+
+ANIMATIONS:
+- Blocks fly toward the η container from different directions using CSS animation with cubic-bezier easing.
+- Operator icons appear at connection points with a pop-in animation (scale(0) → scale(1)).
+- Once all blocks are inside, the entire η container morphs its border from dashed to solid and the content transforms into a Wilkinson-Rogers notation string (e.g., "y ~ x₁ + x₂ + x₁:x₂") via JS innerHTML update with a typewriter effect.
+
+INTERACTIVITY:
+- User can drag blocks into the η container manually (JS drag-and-drop API: dragstart, dragover, drop events).
+- Each dropped block appends to the notation string. Invalid combinations flash a warning.
+- A "Clear" button resets the container.
+
+COLOR PALETTE:
+- η container border in gold (#eab308). Metrical x blocks in blue (#2563eb), Categorical j blocks in green (#16a34a), Polynomial x² blocks in purple (#9333ea). Operators in white (#f8fafc) on dark badges.
+
+VARIABLE NAMING:
+- etaContainer, predictorBlock_metrical_x, predictorBlock_categorical_j, predictorBlock_polynomial_x2, operatorIcon_addition, operatorIcon_interaction, wilkinsonRogersNotation, dragDropHandler, notationString, linearPredictor_eta.
+
+TECHNOLOGY: HTML + CSS + JS with Drag-and-Drop API. No 3D required.
+
+
+--- Scene 6 Design (Sec6): Parallel Flow – Systematic Component + Random Error ---
+
+LAYOUT:
+- A horizontal straight line (systematic component) spans the full width at vertical center, drawn as SVG <line>.
+- Above and below, bell-curve waves (random error) descend from top and ascend from bottom using SVG <path> elements, creating a constant-width "tunnel" around the systematic line.
+- Data point dots scatter along the line within the tunnel boundaries.
+
+ANIMATIONS:
+- The systematic line draws itself left-to-right using SVG stroke-dasharray/stroke-dashoffset animation.
+- Bell curves fade in simultaneously from both sides using opacity + translateY transitions.
+- Outcome signal dots travel along the systematic line with vertical oscillation (JS Math.sin() modulated translateY) to simulate random fluctuation within the normal distribution bounds.
+- The variance width "tunnel" pulses gently (CSS animation on opacity between 0.3 and 0.6).
+
+INTERACTIVITY:
+- A slider controls the variance width (σ²): wider slider value = wider tunnel = more scattered dots, implemented via JS updating SVG path coordinates.
+- Clicking "Add Data Point" spawns a new dot at a random y-position within the variance bounds.
+- A toggle shows/hides the mathematical decomposition label: "yᵢ = μᵢ + εᵢ".
+
+COLOR PALETTE:
+- Systematic line in bright white (#ffffff). Bell curve fill in semi-transparent blue (rgba(59, 130, 246, 0.2)). Data dots in yellow (#facc15). Error zone boundary lines in muted blue (#60a5fa). Background in deep navy (#020617).
+
+VARIABLE NAMING:
+- systematicComponent_line, randomError_bellCurve_upper, randomError_bellCurve_lower, varianceTunnel, outcomeSignalDot, varianceSlider_sigma2, normalDistribution_width, decompositionLabel, dataPointArray, errorTerm_epsilon.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required.

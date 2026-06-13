@@ -1,0 +1,159 @@
+Lecture: Estimation Equation for GLMs
+=======================================
+
+--- Scene 1 Design (Sec1): Process – Maximum Log-Likelihood on 3D Topographic Surface ---
+
+LAYOUT:
+- A 3D topographic surface representing the log-likelihood function l(β) over a 2D parameter space (β₁, β₂).
+- A movable β coordinate point (sphere) on the surface that can travel toward the peak.
+- Contour lines projected below the surface for additional depth perception.
+- A formula transition panel showing ∏f(yᵢ) → ∑log f(yᵢ).
+
+*** 3D MODELING REQUIRED ***
+- Use CSS 3D transforms (transform-style: preserve-3d, perspective) to create a pseudo-3D topographic surface.
+- Build the surface from multiple layered SVG <path> elements at different translateZ depths, creating a wireframe mesh effect.
+- The β-point sphere is a CSS div with border-radius: 50% and box-shadow for 3D depth, positioned using transform: translate3d().
+- Contour lines are concentric SVG paths at the base plane (translateZ(0)).
+- Camera rotation: CSS transform: rotateX() rotateY() on the parent container, controlled by user drag.
+
+ANIMATIONS:
+- The formula panel animates: ∏ symbol morphs into ∑ with CSS crossfade (opacity transitions on overlapping spans). Product terms fade into sum terms sequentially.
+- The β-point moves along the surface toward the peak using JS requestAnimationFrame, following gradient ascent (stepping up the surface). Its shadow on the contour plane below tracks its position.
+- As β approaches the peak, the surface mesh lines around the peak glow brighter (CSS filter: brightness() animation).
+- Contour lines pulse outward from the peak like topographic rings.
+
+INTERACTIVITY:
+- User can drag to rotate the 3D surface view (JS mousedown/mousemove updating CSS rotateX/rotateY on the container).
+- Clicking anywhere on the surface places the β-point there; it then auto-navigates to the peak.
+- A slider controls animation speed.
+- Toggle "Show Contours" to display/hide the projected contour map.
+- Hovering over the β-point shows current l(β) value.
+
+COLOR PALETTE:
+- Surface mesh: gradient from deep blue (low values, #1e3a5f) to bright green (peak, #22c55e) to gold (#eab308) at the very top. β-point in bright white with cyan glow (#06b6d4). Contour lines in semi-transparent cyan. Background (#020617).
+
+VARIABLE NAMING:
+- topographicSurface_3D, logLikelihoodFunction_l_beta, betaPoint_sphere, parameterSpace_beta1_beta2, contourLines_SVG, surfaceMesh_layers, gradientAscentPath, peakPosition_MLE, formulaPanel_product_to_sum, cameraRotation_X, cameraRotation_Y, perspectiveContainer.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. *** 3D CSS transforms used for topographic surface (preserve-3d, perspective, translate3d, rotateX, rotateY). ***
+
+
+--- Scene 2 Design (Sec2): Parallel Flow – Chain Rule Derivative Through β → η → μ → ϑ ---
+
+LAYOUT:
+- Four synchronized gear icons arranged horizontally, labeled β, η, μ, ϑ from left to right.
+- Mathematical blocks for each partial derivative (∂η/∂β, ∂μ/∂η, ∂ϑ/∂μ) positioned between adjacent gears.
+- A backward-flowing derivative signal (animated arrow trail) from ϑ back to β.
+- A central Score Function vector s(β) accumulation area below.
+
+ANIMATIONS:
+- Gears rotate in sequence: ϑ gear starts, drives μ, drives η, drives β (CSS animation: rotate with gear-ratio timing, each gear slightly delayed).
+- Derivative signal flows backward (right-to-left) as animated dots along SVG connector paths between gears (stroke-dashoffset animation in reverse direction).
+- Each partial derivative block highlights as the signal passes through it (CSS background-color flash + scale pulse).
+- All derivative blocks converge downward into the Score Function area, where s(β) assembles piece by piece (each term slides down and docks into position).
+- When fully assembled, s(β) = 0 state triggers a glow and "Score = 0 at MLE" label.
+
+INTERACTIVITY:
+- Clicking any gear highlights the chain of derivatives from that point backward/forward.
+- A "Step Through Chain" button animates one link at a time, showing each partial derivative in isolation.
+- Hovering over any derivative block shows its mathematical formula.
+- A speed control slider adjusts the gear rotation and signal flow speed.
+
+COLOR PALETTE:
+- Gears in metallic silver with colored accents: β in blue (#3b82f6), η in purple (#8b5cf6), μ in teal (#14b8a6), ϑ in amber (#f59e0b). Derivative signal dots in white. Score vector in emerald (#10b981). Background (#0c0a09).
+
+VARIABLE NAMING:
+- gear_beta, gear_eta, gear_mu, gear_theta, partialDerivative_eta_beta, partialDerivative_mu_eta, partialDerivative_theta_mu, derivativeSignal_backward, scoreFunction_s_beta, chainRuleFlow, gearRotation, scoreZero_MLE, accumulationArea.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required.
+
+
+--- Scene 3 Design (Sec3): Comparison – Canonical vs General Score Function Simplification ---
+
+LAYOUT:
+- Two side-by-side panels using CSS Grid: Left = "General Link" path, Right = "Canonical Link" path.
+- Each panel shows the score function formula with its derivative components as separate styled blocks.
+- On the Canonical side, the ∂h/∂η and v(μ) blocks have a "cancellation" visual. The simplified result (y−μ)·x appears.
+
+ANIMATIONS:
+- Both paths start with identical full formula blocks. On the Canonical path:
+  - The ∂h/∂η block and v(μ) block slide toward each other (CSS translateX converging).
+  - They overlap and a "cancel" X mark appears (CSS ::after pseudo-element). Both blocks fade out (opacity: 0).
+  - The remaining residual block (y−μ) and covariate block x highlight and merge with a magnetic snap animation (CSS transform + box-shadow glow).
+- On the General path, all blocks remain, showing the full complexity.
+- A "Complexity meter" bar above each panel: the Canonical side's meter shrinks dramatically while the General side stays full.
+
+INTERACTIVITY:
+- A "Simplify" button triggers the cancellation animation on the Canonical side step-by-step.
+- Clicking any block shows its mathematical meaning in a tooltip.
+- Toggle between "Show Derivation" (animated) and "Show Result" (final state only) modes.
+- Hovering over the cancelled terms shows why they cancel (∂h/∂η × 1/v(μ) = 1 for canonical links).
+
+COLOR PALETTE:
+- General path blocks in warm tones (amber #fbbf24, orange #fb923c). Canonical path blocks in cool tones (cyan #06b6d4, blue #3b82f6). Cancelled blocks fade to transparent gray. Residual (y−μ) in bright green (#22c55e). Covariate x in white. Complexity meter from red (complex) to green (simple). Background (#0f172a).
+
+VARIABLE NAMING:
+- panelGeneral_link, panelCanonical_link, scoreFormula_general, scoreFormula_canonical, derivativeBlock_dh_deta, varianceFunctionBlock_v_mu, cancellationMark, residualBlock_y_minus_mu, covariateBlock_x, simplifiedScore, complexityMeter, simplifyButton.
+
+TECHNOLOGY: HTML + CSS + JS. No 3D required.
+
+
+--- Scene 4 Design (Sec4): Comparison – Fisher Information & Likelihood Curvature ---
+
+LAYOUT:
+- Two likelihood curves on a shared SVG graph: one with a sharp narrow spike, one with a flat broad hill.
+- A Fisher Information gauge (vertical meter with dial) on the right.
+- A Variance meter (horizontal bar) below the gauge.
+- Interactive toggle to switch between the two curves.
+
+ANIMATIONS:
+- When the sharp spike is active: the Fisher Information gauge fills high with a smooth CSS height transition, the Variance meter shrinks to a small width. Both animate simultaneously.
+- When the flat hill is active: the Fisher Information gauge drops low, the Variance meter expands wide. Color transitions accompany: sharp = confident green, flat = uncertain red.
+- The active curve pulses with a CSS glow animation while the inactive one dims.
+- A curvature indicator (SVG arc overlay at the peak) tightens for the sharp spike and widens for the flat hill.
+
+INTERACTIVITY:
+- Toggle switch between "Sharp Peak" (high information) and "Flat Hill" (low information) modes.
+- A slider adjusts the curvature continuously, morphing the curve from sharp to flat. Fisher Information and Variance meters update in real-time.
+- Hovering over the curve peak shows: "−E[∂²l/∂β²] = Fisher Information = [value]."
+- Clicking the variance meter shows the relationship: "Var(β̂) ≈ 1/F(β)."
+
+COLOR PALETTE:
+- Sharp spike curve in emerald (#10b981) with green glow. Flat hill curve in rose (#f43f5e) with red glow. Fisher Information gauge in blue (#2563eb). Variance meter: green when small (#22c55e), red when large (#ef4444). Background (#020617).
+
+VARIABLE NAMING:
+- likelihoodCurve_sharp, likelihoodCurve_flat, fisherInformationGauge, varianceMeter, curvatureIndicator_SVG, curvatureSlider, logLikelihood_secondDerivative, fisherInformation_F_beta, parameterVariance_Var_beta, sharpPeakToggle, flatHillToggle.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required.
+
+
+--- Scene 5 Design (Sec5): Accumulation – Pearson Dispersion Estimator ---
+
+LAYOUT:
+- Left side: pairs of observed (yᵢ) and fitted (μ̂ᵢ) signal blocks arranged in rows.
+- Center: a squared residual computation area where (yᵢ − μ̂ᵢ)² blocks are formed.
+- A variance function filter v(μ̂ᵢ) (styled as a mesh/sieve div) that the squared residuals pass through.
+- A degrees-of-freedom divider "(n−p)" (styled as a division bar).
+- Right: the final ϕ̂ dispersion signal output (a single gauge or display).
+
+ANIMATIONS:
+- Observed and fitted blocks slide together, collide, and produce a squared residual block (CSS: blocks translateX toward each other, overlap, flash, and produce a new block that pops out).
+- Residual blocks queue up and pass through the v(μ̂ᵢ) filter one by one (CSS translateY downward through the filter div). The filter weights each block (some shrink, some grow based on v(μ̂ᵢ) value).
+- Weighted blocks accumulate in a summation bucket (CSS: blocks stack up, bucket fill-level rises).
+- The bucket contents then pass through the (n−p) divider, compressing the total into the final ϕ̂ value (CSS scale-down animation through the divider).
+- The ϕ̂ gauge fills to its final value with a smooth CSS transition.
+
+INTERACTIVITY:
+- A "Process Next Observation" button handles one (yᵢ, μ̂ᵢ) pair at a time.
+- An "Auto-Process All" button runs the full accumulation sequence.
+- Hovering over the filter shows v(μ̂ᵢ) = [value] for the current observation.
+- The (n−p) divider shows its components: n = total observations, p = parameters estimated.
+- Final ϕ̂ value display updates and a "Fixed vs Estimated" toggle explains when ϕ is known (Poisson, Binomial: ϕ=1) vs estimated.
+
+COLOR PALETTE:
+- Observed yᵢ blocks in teal (#14b8a6). Fitted μ̂ᵢ blocks in violet (#8b5cf6). Squared residual blocks in amber (#f59e0b). Filter in metallic gray. Summation bucket in dark blue (#1e3a5f). ϕ̂ gauge in bright green (#22c55e). Background (#0f172a).
+
+VARIABLE NAMING:
+- observedBlock_y_i, fittedBlock_muHat_i, squaredResidual_y_minus_muHat_sq, varianceFunctionFilter_v_muHat, summationBucket, degreesOfFreedom_n_minus_p, dispersionEstimate_phiHat, dispersionGauge, processButton, autoProcessButton, weightedResidual, pearsonChiSquared.
+
+TECHNOLOGY: HTML + CSS + JS. No 3D required.

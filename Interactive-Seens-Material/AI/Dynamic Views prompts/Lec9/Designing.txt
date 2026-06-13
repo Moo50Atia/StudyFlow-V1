@@ -1,0 +1,130 @@
+Lecture: Iterative Solution of the Estimation Equation
+========================================================
+
+--- Scene 1 Design (Sec1): Time Evolution – Iterative Convergence to s(β) = 0 ---
+
+LAYOUT:
+- A horizontal coordinate axis (SVG) representing the β parameter space.
+- A target equation marker "s(β) = 0" at the convergence point (styled icon with crosshair).
+- Successive estimate markers β̂⁽⁰⁾, β̂⁽¹⁾, β̂⁽²⁾, ..., β̂⁽ᵏ⁾ as numbered circles along the path.
+- A relative improvement meter (vertical bar gauge) that fades as convergence approaches.
+- A convergence threshold ε line (dashed horizontal line on the improvement meter).
+
+ANIMATIONS:
+- β̂⁽⁰⁾ appears at the initial position with a pop-in animation (CSS scale(0) → scale(1)).
+- Each successive β̂⁽ᵏ⁾ jumps toward the target: early jumps are large (CSS translateX with large value), later jumps are small. Trail lines connect each step (SVG <line> elements drawn with stroke-dashoffset).
+- The relative improvement meter's fill height decreases with each step (CSS height transition). When it drops below ε, the threshold line flashes green.
+- A "CONVERGED" badge animates in at the final position with scale + glow (CSS box-shadow animation).
+- Step number counter animates with a rolling digit effect.
+
+INTERACTIVITY:
+- "Next Iteration" button advances one step at a time, showing the jump from β̂⁽ᵏ⁾ to β̂⁽ᵏ⁺¹⁾.
+- An ε slider adjusts the convergence threshold; tighter ε = more iterations needed.
+- Hovering over each step marker shows: β̂⁽ᵏ⁾ value, s(β̂⁽ᵏ⁾) value, and relative improvement.
+- A "Run All" button auto-plays the full iteration sequence.
+- Reset button starts over from a new random initial β̂⁽⁰⁾.
+
+COLOR PALETTE:
+- Step markers gradient from red (initial, #ef4444) through amber (#f59e0b) to green (converged, #22c55e). Trail lines in fading white opacity. Target crosshair in gold (#eab308) with persistent glow. Improvement meter from red → green. Background (#0f172a).
+
+VARIABLE NAMING:
+- parameterAxis_beta, targetMarker_score_zero, estimateMarker_betaHat_k, relativeImprovementMeter, convergenceThreshold_epsilon, iterationCounter, trailLine_SVG, convergenceBadge, nextIterationButton, runAllButton, resetButton, jumpDistance, stepNumber.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required.
+
+
+--- Scene 2 Design (Sec2): Process – Newton-Raphson Root Finding via Tangent Lines ---
+
+LAYOUT:
+- A full graph (SVG) showing the score function curve s(β) crossing zero at the MLE.
+- A current estimate point β̂⁽ᵏ⁾ on the curve (SVG circle).
+- A tangent line at the current point (SVG <line>) that extends to intersect the zero-axis.
+- An inverse Observed Fisher Information vector F_obs (styled as a directional arrow) showing the step direction and magnitude.
+- The intersection point becomes β̂⁽ᵏ⁺¹⁾.
+
+ANIMATIONS:
+- The score function curve draws itself (SVG stroke-dashoffset animation).
+- At β̂⁽ᵏ⁾, a tangent line sprouts from the point (SVG line extending in both directions using JS calculated slope = -F_obs).
+- The tangent line extends until it hits the zero-axis; an intersection flash occurs (CSS pulse animation at the intersection point).
+- The intersection transforms into β̂⁽ᵏ⁺¹⁾ (new SVG circle pops in). The old tangent fades and a new tangent at the new point appears.
+- F_obs arrow animates its length based on the curvature at each point (larger curvature = shorter arrow = smaller step).
+
+INTERACTIVITY:
+- "Take Step" button performs one Newton-Raphson iteration: draw tangent → find intersection → move to new point.
+- User can click anywhere on the s(β) curve to place the initial β̂⁽⁰⁾ point.
+- Hovering over the tangent line shows the slope value (= -Observed Fisher Information).
+- A "Show Curvature" toggle overlays the second derivative |s'(β)| as a color heat map on the curve.
+- Speed slider for auto-iteration mode.
+
+COLOR PALETTE:
+- Score curve in white (#e2e8f0). Current estimate point in bright cyan (#06b6d4). Tangent line in amber (#f59e0b) dashed. Zero-axis in subtle gray (#475569). Intersection flash in gold. F_obs arrow in emerald (#10b981). New estimate in magenta (#d946ef). Background (#020617).
+
+VARIABLE NAMING:
+- scoreFunctionCurve_s_beta, currentEstimate_betaHat_k, tangentLine_SVG, zeroAxisIntersection, newEstimate_betaHat_k1, observedFisherInfo_F_obs, tangentSlope, newtonRaphsonStep, curvatureHeatmap, takeStepButton, intersectionFlash.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required.
+
+
+--- Scene 3 Design (Sec3): Comparison – Newton-Raphson vs Fisher's Scoring (Observed vs Expected Information) ---
+
+LAYOUT:
+- Two parallel horizontal iteration paths using CSS Grid (grid-template-rows: 1fr 1fr), each with step markers moving toward a common β-target.
+- Path A (top): labeled "Newton-Raphson" with an Observed Fisher Information block F_obs.
+- Path B (bottom): labeled "Fisher's Scoring" with an Expected Fisher Information block F.
+- A shared target line on the right.
+
+ANIMATIONS:
+- Both paths animate simultaneously but with different step sizes/patterns:
+  - Path A steps may oscillate slightly (observed info varies per point) — step markers jitter before stabilizing.
+  - Path B steps are smoother (expected info is averaged) — step markers move more uniformly.
+- F_obs block on Path A flickers slightly (CSS opacity oscillation) to show data-dependent variation.
+- F block on Path B maintains steady brightness to show stability.
+- Both paths converge to the same target; when they arrive, a "Same Destination, Different Paths" label appears.
+
+INTERACTIVITY:
+- "Start Race" button launches both paths simultaneously for visual comparison.
+- Individual "Step" buttons for each path allow manual comparison of step-by-step behavior.
+- Hovering over F_obs shows: "Uses second derivative of observed log-likelihood at current β̂."
+- Hovering over F shows: "Uses expected value of Fisher Information at current β̂."
+- A toggle shows/hides the mathematical update equations for each method side-by-side.
+
+COLOR PALETTE:
+- Path A (Newton-Raphson) in cyan (#06b6d4). Path B (Fisher's Scoring) in rose (#f43f5e). F_obs block in cyan with flickering glow. F block in rose with steady glow. Target in gold (#eab308). Shared background divider in dark gray. Background (#0f172a).
+
+VARIABLE NAMING:
+- pathA_NewtonRaphson, pathB_FisherScoring, observedFisherInfo_F_obs, expectedFisherInfo_F, stepMarker_A, stepMarker_B, commonTarget_beta, startRaceButton, stepButton_A, stepButton_B, updateEquation_NR, updateEquation_FS, convergenceComparison.
+
+TECHNOLOGY: HTML + CSS + JS. No 3D required.
+
+
+--- Scene 4 Design (Sec4): Parallel Flow – Iteratively Reweighted Least Squares (IRLS) ---
+
+LAYOUT:
+- Input blocks on the left: response vector y (vertical column of values) and predictor matrix X (grid of values).
+- A recurring update loop visualized as a circular pipeline (SVG arc path forming a loop with directional arrows).
+- Inside the loop: Weight matrix W block and pseudo-variable η̃ block that update each iteration.
+- A "Weighted Least Squares Device" (styled processing box) inside the loop that outputs an updated β̂.
+
+ANIMATIONS:
+- y and X blocks slide into the loop entrance (CSS translateX).
+- The loop rotates: W and η̃ blocks highlight and update their values each iteration (CSS flash + JS innerHTML value update).
+- These feed into the WLS device which pulses and outputs a new β̂ block (CSS scale animation on output).
+- The new β̂ feeds back into W and η̃ calculation (arrow along the loop path animates using SVG stroke-dashoffset).
+- Each iteration, the β̂ output value changes less (displayed number converges). When stable, the loop slows and stops.
+- Iteration counter increments each cycle.
+
+INTERACTIVITY:
+- "Run Iteration" button performs one loop cycle.
+- "Auto-Run" button continuously iterates until convergence.
+- Clicking the W block shows the diagonal weight matrix values for the current iteration.
+- Clicking the η̃ block shows the pseudo-variable computation: η̃ = η + (y − μ) × (∂η/∂μ).
+- A panel shows the WLS equation: β̂⁽ᵏ⁺¹⁾ = (XᵀWX)⁻¹ XᵀWη̃.
+- Speed slider controls iteration speed.
+
+COLOR PALETTE:
+- y vector in teal (#14b8a6). X matrix in sky blue (#0ea5e9). Loop pipeline in gradient purple (#7c3aed → #a855f7). W block in amber (#f59e0b). η̃ block in rose (#f43f5e). WLS device in metallic silver. β̂ output in bright green (#22c55e). Background (#0c0a09).
+
+VARIABLE NAMING:
+- responseVector_y, predictorMatrix_X, updateLoop_pipeline, weightMatrix_W, pseudoVariable_etaTilde, weightedLeastSquaresDevice, betaHat_output, iterationCounter, convergenceCheck, runIterationButton, autoRunButton, speedSlider, diagonalWeights, irlsAlgorithm.
+
+TECHNOLOGY: HTML + CSS + JS + SVG for loop pipeline. No 3D required.

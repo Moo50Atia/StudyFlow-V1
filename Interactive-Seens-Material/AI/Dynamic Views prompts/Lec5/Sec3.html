@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parallel Flow: Log-Likelihood and Score Function</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Outfit', sans-serif; }
+  
+  .smooth-transition { transition: all 1s ease-in-out; }
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+
+  .log-wave {
+    position: absolute; top: -50px; bottom: -50px; width: 100px;
+    background: linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.4), transparent);
+    transform: translateX(-200px) skewX(-20deg); filter: blur(5px);
+  }
+  @keyframes passWave {
+    0% { transform: translateX(-200px) skewX(-20deg); }
+    100% { transform: translateX(600px) skewX(-20deg); }
+  }
+
+  .axis { stroke: #334155; stroke-width: 2; }
+  .ll-curve { fill: none; stroke: #a855f7; stroke-width: 4; stroke-linecap: round; }
+  .tangent-line { stroke: #facc15; stroke-width: 3; transition: all 0.1s linear; }
+  .point { fill: #fff; r: 6; }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-5xl h-[700px] bg-slate-900 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col overflow-hidden">
+  
+  <div class="absolute top-6 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-2xl font-bold text-slate-100 tracking-wider">Log-Likelihood and the Score Function</h1>
+    <p class="text-cyan-400 mt-2 text-sm max-w-2xl mx-auto h-8 font-medium" id="narrator">
+      Click "Start Simulation" to apply the logarithmic transformation.
+    </p>
+  </div>
+
+  <div class="relative flex-1 w-full mt-24 mb-20 flex flex-col items-center">
+    
+    <!-- Formula Block -->
+    <div class="mt-8 mb-12">
+      <div id="fb" class="relative bg-slate-900 border-2 border-slate-700 px-10 py-6 rounded-2xl font-serif text-3xl italic shadow-xl overflow-hidden smooth-transition">
+        <div class="log-wave" id="wave"></div>
+        <span id="fp" class="text-slate-400 smooth-transition">L(β) = ∏ f(yᵢ | β)</span>
+        <span id="fs" class="absolute top-6 left-10 text-purple-500 opacity-0 smooth-transition">l(β) = ∑ log f(yᵢ | β)</span>
+      </div>
+    </div>
+
+    <!-- Graph Area -->
+    <div id="graph-area" class="w-4/5 h-[300px] relative opacity-0 smooth-transition">
+      <svg viewBox="0 0 1000 300" preserveAspectRatio="none" class="w-full h-full overflow-visible">
+        <line x1="50" y1="250" x2="950" y2="250" class="axis" />
+        <path class="ll-curve" d="M 100 250 Q 500 -100 900 250" />
+        
+        <g id="tangent-group">
+          <line class="tangent-line" id="t-line" x1="0" y1="0" x2="0" y2="0" />
+          <circle class="point" id="t-dot" cx="0" cy="0" />
+          <text id="s-lbl" class="font-mono font-bold fill-yellow-400 text-lg transition-all" x="0" y="0">s(β)</text>
+        </g>
+      </svg>
+    </div>
+
+  </div>
+
+  <div id="final-message" class="absolute bottom-32 left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none">
+    <div class="bg-purple-950/90 border border-purple-500/50 backdrop-blur-md rounded-xl p-5 text-center mx-auto max-w-3xl shadow-[0_0_30px_rgba(168,85,247,0.15)]">
+      <h3 class="text-purple-300 font-bold mb-2 text-lg">Misconception Corrected</h3>
+      <p class="text-slate-200 text-sm leading-relaxed">
+        The Log operator transforms a difficult product (∏) into a manageable sum (∑). The peak remains the same, where the Score Function gradient is zero. This corrects the misconception that <strong class="text-purple-400">the likelihood product is mathematically simpler to derive</strong> than the log-likelihood sum.
+      </p>
+    </div>
+  </div>
+
+  <div class="absolute bottom-0 left-0 w-full h-24 bg-slate-800/80 border-t border-slate-700 flex items-center justify-center px-8 z-50 backdrop-blur-md">
+    <button id="start-btn" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-all">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  
+  const wave = document.getElementById('wave');
+  const fb = document.getElementById('fb');
+  const fp = document.getElementById('fp');
+  const fs = document.getElementById('fs');
+  const graphArea = document.getElementById('graph-area');
+  
+  const tLine = document.getElementById('t-line');
+  const tDot = document.getElementById('t-dot');
+  const sLbl = document.getElementById('s-lbl');
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+
+  function resetScene() {
+    wave.style.animation = 'none';
+    fp.style.opacity = '1';
+    fs.style.opacity = '0';
+    fb.style.borderColor = '#334155';
+    fb.style.boxShadow = 'none';
+    
+    graphArea.style.opacity = '0';
+    
+    tLine.setAttribute('x1', '0'); tLine.setAttribute('y1', '0');
+    tLine.setAttribute('x2', '0'); tLine.setAttribute('y2', '0');
+    tDot.setAttribute('cx', '0'); tDot.setAttribute('cy', '0');
+    sLbl.setAttribute('x', '0'); sLbl.setAttribute('y', '0');
+    sLbl.textContent = 's(β)';
+    sLbl.style.fontSize = '18px';
+
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    narrator.textContent = "Simulation starting...";
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(500);
+
+    narrator.textContent = "Stage 1: A Log operator wave transforms the product-based Likelihood into a summation.";
+    wave.style.animation = 'passWave 1.5s ease-in-out forwards';
+    
+    await sleep(750); // mid wave
+    fp.style.opacity = '0';
+    fs.style.opacity = '1';
+    fb.style.borderColor = '#a855f7';
+    fb.style.boxShadow = '0 0 40px rgba(168,85,247,0.4)';
+    
+    await sleep(1000);
+
+    narrator.textContent = "Stage 2: A Score Function vector moves along the log-likelihood curve, highlighting local gradients.";
+    graphArea.style.opacity = '1';
+    
+    await sleep(1000);
+
+    // Trace Score Animation loop
+    let x = 100;
+    while(x <= 900) {
+      let t = (x - 100) / 800;
+      let p0y = 250, p1y = -100, p2y = 250;
+      let y = Math.pow(1-t, 2)*p0y + 2*(1-t)*t*p1y + Math.pow(t, 2)*p2y;
+      
+      let dy_dt = 2*(1-t)*(p1y-p0y) + 2*t*(p2y-p1y);
+      let dx_dt = 800; 
+      let slope = dy_dt / dx_dt;
+
+      tDot.setAttribute('cx', x);
+      tDot.setAttribute('cy', y);
+
+      let lineLen = 120;
+      let angle = Math.atan(slope);
+      
+      tLine.setAttribute('x1', x - Math.cos(angle)*lineLen);
+      tLine.setAttribute('y1', y - Math.sin(angle)*lineLen);
+      tLine.setAttribute('x2', x + Math.cos(angle)*lineLen);
+      tLine.setAttribute('y2', y + Math.sin(angle)*lineLen);
+
+      sLbl.setAttribute('x', x + 20);
+      sLbl.setAttribute('y', y - 30);
+      
+      let visualSlope = (-slope * 10).toFixed(1);
+      sLbl.textContent = `s(β) = ${visualSlope > 0 ? '+' : ''}${visualSlope}`;
+      
+      if(Math.abs(slope) < 0.05) {
+        narrator.textContent = "Stage 3: The Score Function reaches exactly zero at the peak.";
+        sLbl.textContent = 's(β) = 0 (Peak)';
+        sLbl.style.fontSize = '30px';
+        await sleep(1500); // Pause at peak
+      } else {
+        sLbl.style.fontSize = '18px';
+      }
+
+      x += 8;
+      await sleep(20);
+    }
+
+    await sleep(500);
+
+    narrator.textContent = "Final State: Zero-gradient marker at the peak of the log-likelihood function.";
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    startBtn.classList.remove('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  // Init
+  resetScene();
+  narrator.textContent = 'Click "Start Simulation" to apply the logarithmic transformation.';
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>

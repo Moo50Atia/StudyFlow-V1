@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parallel Flow: The Chain Rule (Score Function)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Outfit', sans-serif; }
+  .smooth-transition { transition: all 0.5s ease-in-out; }
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+
+  .gear { border: 4px dashed #64748b; transition: all 0.5s; }
+  .gear.spin { animation: spin 4s linear infinite reverse; border-color: #f59e0b; background-color: rgba(245, 158, 11, 0.2); box-shadow: 0 0 30px rgba(245, 158, 11, 0.4); }
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+
+  .wire { fill: none; stroke: rgba(255,255,255,0.05); stroke-width: 4; }
+  .pulse { fill: none; stroke: #f59e0b; stroke-width: 4; stroke-dasharray: 20; stroke-dashoffset: 200; transition: stroke-dashoffset 1s linear; opacity: 0; }
+  
+  .m-block::before { content: '×'; position: absolute; left: -30px; top: 50%; transform: translateY(-50%); font-size: 24px; color: #64748b; font-family: 'Outfit'; }
+  .m-block.first::before { display: none; }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-6xl h-[700px] bg-slate-900 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col overflow-hidden">
+  
+  <div class="absolute top-6 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-2xl font-bold text-slate-100 tracking-wider">The Chain Rule: Accumulating the Score Function</h1>
+    <p class="text-cyan-400 mt-2 text-sm max-w-2xl mx-auto h-8 font-medium" id="narrator">
+      Click "Start Simulation" to flow the derivative signal backward.
+    </p>
+  </div>
+
+  <div class="relative flex-1 w-full mt-24 mb-20 px-8 flex flex-col items-center justify-center">
+    
+    <div class="w-full h-[450px] bg-slate-950/50 rounded-2xl border border-slate-800/50 relative shadow-inner overflow-hidden">
+      
+      <!-- Wires -->
+      <svg class="absolute inset-0 w-full h-full pointer-events-none z-0">
+        <!-- Top horizontal wires connecting gears backward -->
+        <path class="wire" d="M 85% 100 L 65% 100 M 55% 100 L 35% 100 M 25% 100 L 15% 100" />
+        
+        <path class="pulse" id="p1" d="M 85% 100 L 65% 100" />
+        <path class="pulse" id="p2" d="M 55% 100 L 35% 100" />
+        <path class="pulse" id="p3" d="M 25% 100 L 15% 100" />
+
+        <!-- Vertical wires to blocks -->
+        <line class="wire" x1="15%" y1="140" x2="15%" y2="250" />
+        <line class="wire" x1="45%" y1="140" x2="45%" y2="250" />
+        <line class="wire" x1="75%" y1="140" x2="75%" y2="250" />
+        <line class="wire" x1="85%" y1="140" x2="85%" y2="250" />
+      </svg>
+
+      <!-- Gears Layer -->
+      <div class="w-full flex justify-between px-[15%] mt-12 z-10 relative">
+        <div class="flex flex-col items-center"><div class="gear w-20 h-20 rounded-full flex items-center justify-center font-serif font-bold text-3xl bg-slate-800" id="g-beta">β</div></div>
+        <div class="flex flex-col items-center"><div class="gear w-20 h-20 rounded-full flex items-center justify-center font-serif font-bold text-3xl bg-slate-800" id="g-eta">η</div></div>
+        <div class="flex flex-col items-center"><div class="gear w-20 h-20 rounded-full flex items-center justify-center font-serif font-bold text-3xl bg-slate-800" id="g-mu">μ</div></div>
+        <div class="flex flex-col items-center"><div class="gear w-20 h-20 rounded-full flex items-center justify-center font-serif font-bold text-3xl bg-slate-800" id="g-theta">θ</div></div>
+      </div>
+
+      <!-- Math Blocks Layer -->
+      <div class="w-full flex justify-between px-[10%] mt-24 z-10 relative">
+        <div class="m-block first bg-slate-900 border-2 border-slate-700 px-6 py-3 rounded-xl font-serif text-2xl font-bold opacity-0 translate-y-8 smooth-transition" id="mb1">∂η / ∂β</div>
+        <div class="m-block bg-slate-900 border-2 border-slate-700 px-6 py-3 rounded-xl font-serif text-2xl font-bold opacity-0 translate-y-8 smooth-transition" id="mb2">∂μ / ∂η</div>
+        <div class="m-block bg-slate-900 border-2 border-slate-700 px-6 py-3 rounded-xl font-serif text-2xl font-bold opacity-0 translate-y-8 smooth-transition" id="mb3">∂θ / ∂μ</div>
+        <div class="m-block bg-slate-900 border-2 border-slate-700 px-6 py-3 rounded-xl font-serif text-2xl font-bold opacity-0 translate-y-8 smooth-transition" id="mb4">∂l / ∂θ</div>
+      </div>
+
+      <!-- Central Score Vector -->
+      <div id="score" class="absolute bottom-10 left-1/2 -translate-x-1/2 bg-rose-900/20 border-2 border-rose-500 px-10 py-4 rounded-2xl font-serif text-3xl font-bold text-rose-400 opacity-0 transform translate-y-12 smooth-transition shadow-[0_0_30px_rgba(244,63,94,0.4)] z-20">
+        s(β) = ∂l / ∂β
+      </div>
+
+    </div>
+
+  </div>
+
+  <div id="final-message" class="absolute bottom-32 left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none">
+    <div class="bg-rose-950/90 border border-rose-500/50 backdrop-blur-md rounded-xl p-5 text-center mx-auto max-w-3xl shadow-[0_0_30px_rgba(244,63,94,0.15)]">
+      <h3 class="text-rose-300 font-bold mb-2 text-lg">Misconception Corrected</h3>
+      <p class="text-slate-200 text-sm leading-relaxed">
+        The partial derivatives accumulate into a central Score Function vector. This corrects the misconception that <strong class="text-rose-400">β influences the likelihood directly</strong> without intermediate structural mapping. It passes through the chain: β → η → μ → θ.
+      </p>
+    </div>
+  </div>
+
+  <div class="absolute bottom-0 left-0 w-full h-24 bg-slate-800/80 border-t border-slate-700 flex items-center justify-center px-8 z-50 backdrop-blur-md">
+    <button id="start-btn" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-all">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  
+  const gears = ['g-beta', 'g-eta', 'g-mu', 'g-theta'].map(id => document.getElementById(id));
+  const mBlocks = ['mb1', 'mb2', 'mb3', 'mb4'].map(id => document.getElementById(id));
+  const pulses = ['p1', 'p2', 'p3'].map(id => document.getElementById(id));
+  const score = document.getElementById('score');
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+
+  function resetScene() {
+    gears.forEach(g => g.classList.remove('spin'));
+    mBlocks.forEach(m => {
+      m.classList.remove('opacity-100', 'translate-y-0', 'border-amber-500', 'translate-y-24', 'scale-50');
+      m.classList.add('opacity-0', 'translate-y-8');
+      m.style.transform = '';
+      m.style.position = '';
+      m.style.left = '';
+    });
+    pulses.forEach(p => {
+      p.style.opacity = '0'; p.style.strokeDashoffset = '200';
+    });
+    score.classList.remove('opacity-100', 'translate-y-0', 'scale-110');
+    score.classList.add('opacity-0', 'translate-y-12');
+
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    narrator.textContent = "Simulation starting...";
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(800);
+
+    narrator.textContent = "Stage 1: A derivative signal flows backward through the chain of synchronized gears.";
+
+    // Flow 1
+    gears[3].classList.add('spin');
+    mBlocks[3].classList.replace('opacity-0', 'opacity-100');
+    mBlocks[3].classList.replace('translate-y-8', 'translate-y-0');
+    mBlocks[3].classList.replace('border-slate-700', 'border-amber-500');
+    await sleep(800);
+    pulses[0].style.opacity = '1'; pulses[0].style.strokeDashoffset = '0';
+    await sleep(1000);
+
+    // Flow 2
+    gears[2].classList.add('spin');
+    mBlocks[2].classList.replace('opacity-0', 'opacity-100');
+    mBlocks[2].classList.replace('translate-y-8', 'translate-y-0');
+    mBlocks[2].classList.replace('border-slate-700', 'border-amber-500');
+    await sleep(800);
+    pulses[1].style.opacity = '1'; pulses[1].style.strokeDashoffset = '0';
+    await sleep(1000);
+
+    // Flow 3
+    gears[1].classList.add('spin');
+    mBlocks[1].classList.replace('opacity-0', 'opacity-100');
+    mBlocks[1].classList.replace('translate-y-8', 'translate-y-0');
+    mBlocks[1].classList.replace('border-slate-700', 'border-amber-500');
+    await sleep(800);
+    pulses[2].style.opacity = '1'; pulses[2].style.strokeDashoffset = '0';
+    await sleep(1000);
+
+    // Final Gear
+    gears[0].classList.add('spin');
+    mBlocks[0].classList.replace('opacity-0', 'opacity-100');
+    mBlocks[0].classList.replace('translate-y-8', 'translate-y-0');
+    mBlocks[0].classList.replace('border-slate-700', 'border-amber-500');
+    await sleep(1500);
+
+    narrator.textContent = "Stage 2: Mathematical blocks transform and accumulate into the central Score Function vector.";
+    
+    // Collapse into center
+    mBlocks.forEach(m => {
+      m.style.transform = 'translateY(100px) scale(0.5)';
+      m.style.opacity = '0';
+    });
+
+    await sleep(800);
+
+    score.classList.replace('opacity-0', 'opacity-100');
+    score.classList.replace('translate-y-12', 'translate-y-0');
+    score.classList.add('scale-110');
+
+    await sleep(2000);
+
+    narrator.textContent = "Final State: A score vector that reaches zero-magnitude at the optimal parameter peak.";
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    startBtn.classList.remove('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  // Init
+  resetScene();
+  narrator.textContent = 'Click "Start Simulation" to flow the derivative signal backward.';
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+Lecture: Estimation Equation for GLMs
+Lec3 (Sec1): "Process: Individual observation signals move through a Likelihood filter transforming from a product string ∏f(y 
+i
+​
+ ) to a summation block ∑logf(y 
+i
+​
+ ) on a 3D topographic graph. A β coordinate point moves across the surface toward the highest peak. Final State: Optimal β point at the maximum log-likelihood peak, correcting the misconception that estimation seeks to match data points exactly rather than maximizing the probability of the observed sample
+."
+Lec3 (Sec2): "Parallel Flow: A derivative signal flows backward through a chain of four synchronized gears labeled β, η, μ, and ϑ. Mathematical blocks for each partial derivative transform and accumulate into a central Score Function vector s(β). Final State: A score vector reaching a zero-magnitude state at the parameter peak, correcting the misconception that β influences the likelihood directly without intermediate structural mapping
+."
+Lec3 (Sec3): "Comparison: Two formula paths for the score function are displayed side-by-side. On the Canonical path, blocks for ∂h/∂η and v(μ) move together and fade out through cancellation, while the residual block (y−μ) and covariate block x highlight and merge. Final State: A simplified linear summation of weighted residuals, correcting the misconception that all link functions involve equally complex derivative chains
+."
+Lec3 (Sec4): "Comparison: Two likelihood curves move onto a spatial grid—one with a sharp spike and one with a flat hill. As the sharp spike highlights, a Fisher Information gauge fills and a Variance meter shrinks; as the flat hill highlights, the gauge empties and the meter expands. Final State: High information density visualized as a sharp peak with minimal parameter variance, correcting the misconception that parameter estimates are point values without quantifiable uncertainty
+."
+Lec3 (Sec5): "Accumulation: Squared residual blocks (y− 
+μ
+^
+​
+ ) 
+2
+  move into a summation bucket, passing through a v( 
+μ
+^
+​
+ ) filter block and a degrees-of-freedom (n−p) divider. The accumulated mass transforms into a single  
+ϕ
+^
+​
+  dispersion signal. Final State: Estimated dispersion value representing model noise levels, correcting the misconception that the dispersion parameter ϕ is always a fixed constant known before estimation
+."

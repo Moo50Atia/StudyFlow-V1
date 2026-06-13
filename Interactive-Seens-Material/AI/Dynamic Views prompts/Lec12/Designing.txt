@@ -1,0 +1,138 @@
+Lecture: Quasi-likelihood and Generalized Estimation Equations (GEEs)
+======================================================================
+
+--- Scene 1 Design (Sec1): Comparison – Quasi-Likelihood as Distribution Repair Module ---
+
+LAYOUT:
+- A diagnostic dashboard on the left (styled as a dark panel with three warning indicator lights: "Distribution", "Link", "Covariates").
+- A failing model icon in the center (styled div with an error state — red border, shake animation).
+- A Quasi-Likelihood repair module on the right (styled as a tool/wrench card that can be dragged toward the model).
+
+ANIMATIONS:
+- The three warning lights illuminate sequentially (CSS @keyframes: off → amber → red). The "Distribution" light stays red while "Link" and "Covariates" dim to green (correctly specified).
+- The model icon shakes continuously (CSS transform: translateX alternating ±4px) with a red pulsing border.
+- The Quasi-Likelihood module slides toward the model (CSS translateX) and docks onto the "Distribution" light.
+- Upon docking: the "Distribution" light fades from red to "bypassed" state (transparent/gray with strikethrough label "Not Required"). The rigid distribution shells around the model fade out (CSS opacity: 0).
+- The model icon transforms from red error state to green active state (border-color + background transition + shake stops).
+
+INTERACTIVITY:
+- User drags the Quasi-Likelihood module toward the dashboard (JS drag-and-drop). It only docks on the "Distribution" light — dragging to "Link" or "Covariates" lights shows a "Wrong Target" tooltip.
+- Clicking each warning light shows what it checks: "Distribution: Is the assumed probability distribution correct?"
+- A "Break Model" button re-activates the distribution error for replay.
+- A comparison panel shows: "Full Likelihood: needs correct distribution. Quasi-Likelihood: needs only correct mean and variance structure."
+
+COLOR PALETTE:
+- Dashboard in dark charcoal (#1c1917). Warning lights: red (#ef4444), amber (#f59e0b), green (#22c55e). Failing model red glow. Quasi-Likelihood module in bright teal (#14b8a6) with wrench icon. Repaired model green glow. Background (#0c0a09).
+
+VARIABLE NAMING:
+- diagnosticDashboard, warningLight_Distribution, warningLight_Link, warningLight_Covariates, failingModelIcon, quasiLikelihoodModule, dockingTarget, distributionShells, repairedModelState, errorState_shake, greenActiveState, dragDropHandler, breakModelButton.
+
+TECHNOLOGY: HTML + CSS + JS with Drag-and-Drop API. No 3D required.
+
+
+--- Scene 2 Design (Sec2): Process – Moment-Based Specification (Mean & Variance Only) ---
+
+LAYOUT:
+- Left side: a complex probability density formula block (styled math div with full PDF notation — many terms, integrals, etc.).
+- Center: a transformation processor (styled div with a "decompose" icon/gears).
+- Right side: two primary signal blocks — "E(yᵢ) = μᵢ = h(ηᵢ)" (mean block) and "Var(yᵢ) = ϕ·v(μᵢ)" (variance block).
+- The original formula area fades away.
+
+ANIMATIONS:
+- The complex PDF formula block sits prominently on the left, fully detailed and visually dense.
+- It slides into the transformation processor (CSS translateX). Gears animate inside (CSS rotate).
+- The processor splits the formula into two clean blocks that emerge on the right:
+  - Mean block slides out top-right with a clean fade-in.
+  - Variance block slides out bottom-right with a clean fade-in.
+- The original PDF formula fades to opacity: 0.1 (ghost state) while the two moment blocks highlight with bright borders and glow.
+- A dividing label "No full distribution needed — only moments" appears between the faded PDF and the bright blocks.
+
+INTERACTIVITY:
+- Clicking the original PDF shows: "Traditional approach: specify the entire probability distribution."
+- Clicking the Mean block shows the response function h(ηᵢ) and how it maps the linear predictor to the mean.
+- Clicking the Variance block shows the variance function v(μᵢ) examples: Poisson → v(μ) = μ, Gaussian → v(μ) = 1.
+- A "Restore Full Distribution" button reverses the animation.
+- A dropdown selects different variance functions to see how the variance block changes.
+
+COLOR PALETTE:
+- Complex PDF in muted gray/silver (indicating it will be discarded). Mean block in bright cyan (#06b6d4) with blue border. Variance block in bright amber (#f59e0b) with gold border. Processor in metallic gray. Faded PDF ghost in transparent white (rgba(255,255,255,0.1)). Background (#0f172a).
+
+VARIABLE NAMING:
+- complexPDF_formula, transformationProcessor, meanBlock_E_yi_mu, varianceBlock_Var_yi_phi_v, responseFunction_h_eta, varianceFunctionv_mu, dispersionParameter_phi, momentBasedSpecification, fullDistribution_ghost, restoreButton, varianceFunctionDropdown.
+
+TECHNOLOGY: HTML + CSS + JS. No 3D required.
+
+
+--- Scene 3 Design (Sec3): Comparison – ML vs Quasi-ML Estimator Efficiency ---
+
+LAYOUT:
+- Two parallel horizontal paths toward a true β target line (SVG vertical line on the right).
+- Path A (top): β̂_ML signal traveling toward the target.
+- Path B (bottom): β̂_QML signal traveling toward the target.
+- Above the paths: two normal distribution curves centered on the target — one narrow (ML), one wider (QML).
+- Labels: "Consistent ✓" on both, "Efficient ✓" only on ML.
+
+ANIMATIONS:
+- Both signals travel from left toward the true β target simultaneously (CSS translateX).
+- Both arrive at the target (they're both consistent — unbiased), triggering arrival checkmarks.
+- The distribution curves above animate: ML curve draws itself as a tall narrow spike (SVG path with tight standard deviation), QML curve draws as a shorter wider wave (SVG path with larger standard deviation).
+- Efficiency comparison: an "Efficiency Gap" measurement bracket appears between the two curve widths with a label showing the relative efficiency.
+- Both "Consistent ✓" labels appear with green checkmarks. The "Efficient ✓" label appears only on ML; QML gets "Less Efficient ~" in amber.
+
+INTERACTIVITY:
+- A "Sample Size" slider: as n increases, both curves narrow (but ML stays narrower). This demonstrates both are consistent but ML is more efficient.
+- Clicking the ML curve shows: "Uses full distributional information — maximum efficiency."
+- Clicking the QML curve shows: "Uses only moments — consistent but wider confidence intervals."
+- A "Overlap" toggle superimposes both curves for direct comparison.
+- A numeric display shows the asymptotic relative efficiency (ARE) ratio.
+
+COLOR PALETTE:
+- ML signal and curve in emerald (#10b981). QML signal and curve in amber (#f59e0b). True β target in white (#f8fafc) dashed line. Consistent checkmarks in green. Efficiency labels: green for ML, amber for QML. Background (#020617).
+
+VARIABLE NAMING:
+- estimatorPath_ML, estimatorPath_QML, trueBeta_targetLine, betaHat_ML_signal, betaHat_QML_signal, distributionCurve_ML_narrow, distributionCurve_QML_wide, consistencyLabel, efficiencyLabel, sampleSizeSlider, efficiencyGap_bracket, asymptoticRelativeEfficiency_ARE, overlapToggle.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required.
+
+
+--- Scene 4 Design (Sec4): Accumulation – Sandwich Estimator Construction ---
+
+LAYOUT:
+- Center: a "Working Variance" block V (large styled div with a subtle warning icon indicating potential misspecification).
+- Left and Right: two robust information blocks F_Q⁻¹ approaching from both sides.
+- The assembly forms a "bread-meat-bread" sandwich structure.
+
+*** CONSIDER 3D FOR SANDWICH VISUAL ***
+- Use CSS 3D transforms (perspective, translateZ, rotateX) to create a layered sandwich structure:
+  - Bottom bread layer: F_Q⁻¹ left (translateZ(-20px))
+  - Middle meat layer: V working variance (translateZ(0))
+  - Top bread layer: F_Q⁻¹ right (translateZ(20px))
+- Slight rotateX tilt on the parent container to show depth.
+
+ANIMATIONS:
+- The central V block sits in the middle, pulsing with a warning amber glow (CSS box-shadow animation) to indicate "potentially wrong variance."
+- From the left: the first F_Q⁻¹ block slides in (CSS translateX + translateZ) and positions itself below V as the bottom "bread."
+- From the right: the second F_Q⁻¹ block slides in and positions above V as the top "bread."
+- The three layers compress together (CSS translateZ converging) to form the sandwich structure.
+- A label "Sandwich Estimator: F_Q⁻¹ · V · F_Q⁻¹" materializes above the completed sandwich.
+- The warning glow on V transforms from amber to green: "Robust despite misspecification."
+
+ANIMATIONS (3D):
+- Parent container has perspective: 800px and a slight rotateX(10deg) tilt for depth view.
+- Layers slide in with translateZ depth offsets, then compress to form the sandwich.
+- A rotation animation slowly rotates the completed sandwich on the Y-axis (rotateY 0° → 15° → -15° → 0°) to show the 3D layered structure.
+
+INTERACTIVITY:
+- A "Build Sandwich" button triggers the assembly sequence step by step.
+- Clicking V shows: "Working Variance — may be incorrectly specified, but sandwich corrects for this."
+- Clicking either F_Q⁻¹ block shows: "Robust (empirical) information matrix — provides correction."
+- A "Rotate View" control lets the user spin the sandwich to see all layers.
+- A comparison toggle shows "Naive Variance (just V)" vs "Sandwich Variance (F⁻¹VF⁻¹)" — the naive one flashes red, the sandwich glows green.
+
+COLOR PALETTE:
+- V working variance block in amber (#f59e0b) with warning state, transitioning to green (#22c55e) when sandwiched. F_Q⁻¹ blocks in deep blue (#1d4ed8) representing robustness. Sandwich assembled state has a golden border (#eab308). Label in white. Background (#0c0a09).
+
+VARIABLE NAMING:
+- workingVarianceBlock_V, robustInfoBlock_FQ_inv_left, robustInfoBlock_FQ_inv_right, sandwichEstimator_structure, sandwichLabel, bottomBread_layer, topBread_layer, meatLayer_V, perspectiveContainer, buildButton, rotateControl, naiveVariance_comparison, robustVariance_sandwich, misspecificationWarning, correctionGlow.
+
+TECHNOLOGY: HTML + CSS + JS. *** 3D CSS transforms used for sandwich layered structure (perspective, preserve-3d, translateZ, rotateX, rotateY). ***

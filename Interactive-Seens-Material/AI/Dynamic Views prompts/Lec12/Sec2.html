@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Process: Moment-Based Model Specification</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Outfit', sans-serif; }
+  .smooth-transition { transition: all 1.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+
+  .bg-grid { background-size: 40px 40px; background-image: linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px); }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-6xl h-[700px] bg-slate-900 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col overflow-hidden">
+  
+  <div class="absolute top-6 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-2xl font-bold text-slate-100 tracking-wider">Moment-Based Specification</h1>
+    <p class="text-cyan-400 mt-2 text-sm max-w-2xl mx-auto h-8 font-medium" id="narrator">
+      Click "Start Simulation" to deconstruct the density formula.
+    </p>
+  </div>
+
+  <div class="relative flex-1 w-full mt-24 mb-20 px-12 flex items-center justify-center">
+    
+    <div class="w-full h-[450px] bg-slate-950/80 rounded-2xl border border-slate-800/50 relative shadow-inner overflow-hidden flex justify-center items-center bg-grid backdrop-blur-sm">
+      
+      <!-- Complex Density Formula -->
+      <div id="full-density" class="absolute w-[500px] bg-blue-900/20 border-2 border-blue-500 rounded-2xl p-8 flex flex-col items-center justify-center shadow-[0_0_40px_rgba(59,130,246,0.3)] smooth-transition z-20">
+        <div class="font-bold text-blue-400 mb-4 tracking-widest uppercase text-sm">Full Probability Density</div>
+        <div class="font-serif text-3xl font-bold text-blue-300">
+          f(yᵢ|θᵢ,ϕ) = exp<span class="text-4xl">[</span><span class="text-blue-200 text-2xl mx-2">(yᵢθᵢ - b(θᵢ)) / a(ϕ) + c(yᵢ,ϕ)</span><span class="text-4xl">]</span>
+        </div>
+      </div>
+
+      <!-- Left Block: Mean -->
+      <div id="mean-block" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-80 bg-emerald-900/20 border-2 border-emerald-500 rounded-xl p-6 flex flex-col items-center shadow-[0_0_30px_rgba(16,185,129,0.3)] opacity-0 transform scale-50 smooth-transition z-10">
+        <div class="font-bold text-emerald-500 mb-2 text-sm uppercase">First Moment (Mean)</div>
+        <div class="font-serif text-2xl font-bold text-emerald-300 text-center">
+          E(yᵢ) = μᵢ = h(ηᵢ)
+        </div>
+      </div>
+
+      <!-- Right Block: Variance -->
+      <div id="var-block" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-80 bg-amber-900/20 border-2 border-amber-500 rounded-xl p-6 flex flex-col items-center shadow-[0_0_30px_rgba(245,158,11,0.3)] opacity-0 transform scale-50 smooth-transition z-10">
+        <div class="font-bold text-amber-500 mb-2 text-sm uppercase">Second Moment (Variance)</div>
+        <div class="font-serif text-2xl font-bold text-amber-300 text-center">
+          Var(yᵢ) = ϕ v(μᵢ)
+        </div>
+      </div>
+
+      <!-- Connection Line -->
+      <svg class="absolute inset-0 w-full h-full pointer-events-none z-0">
+        <line id="conn-line" x1="300" y1="225" x2="600" y2="225" stroke="#475569" stroke-width="4" stroke-dasharray="8 8" class="opacity-0 smooth-transition" />
+      </svg>
+
+    </div>
+
+  </div>
+
+  <div id="final-message" class="absolute bottom-32 left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none">
+    <div class="bg-indigo-950/90 border border-indigo-500/50 backdrop-blur-md rounded-xl p-5 text-center mx-auto max-w-3xl shadow-[0_0_30px_rgba(99,102,241,0.15)]">
+      <h3 class="text-indigo-300 font-bold mb-2 text-lg">Misconception Corrected</h3>
+      <p class="text-slate-200 text-sm leading-relaxed">
+        Quasi-likelihood relies purely on the first two moments (mean and variance). This corrects the misconception that <strong class="text-indigo-400">variance and mean can only be defined through a formal probability density function</strong>. You do not need the full density f(y) to estimate parameters correctly.
+      </p>
+    </div>
+  </div>
+
+  <div class="absolute bottom-0 left-0 w-full h-24 bg-slate-800/80 border-t border-slate-700 flex items-center justify-center px-8 z-50 backdrop-blur-md">
+    <button id="start-btn" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-all">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  
+  const fullDensity = document.getElementById('full-density');
+  const meanBlock = document.getElementById('mean-block');
+  const varBlock = document.getElementById('var-block');
+  const connLine = document.getElementById('conn-line');
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+
+  function resetScene() {
+    fullDensity.style.opacity = '1';
+    fullDensity.style.transform = 'scale(1)';
+    
+    meanBlock.style.opacity = '0';
+    meanBlock.style.transform = 'translate(-50%, -50%) scale(0.5)';
+    meanBlock.style.left = '50%';
+    
+    varBlock.style.opacity = '0';
+    varBlock.style.transform = 'translate(-50%, -50%) scale(0.5)';
+    varBlock.style.left = '50%';
+
+    connLine.classList.remove('opacity-100');
+
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    narrator.textContent = "Simulation starting...";
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(800);
+
+    narrator.textContent = "Stage 1: A complex probability density formula provides a full mathematical specification.";
+    
+    fullDensity.classList.add('pulse');
+    await sleep(2000);
+
+    narrator.textContent = "Stage 2: The full density formula splits and transforms into two primary signal blocks.";
+    
+    fullDensity.style.opacity = '0';
+    fullDensity.style.transform = 'scale(1.2)';
+
+    meanBlock.style.opacity = '1';
+    meanBlock.style.transform = 'translate(-50%, -50%) scale(1)';
+    
+    varBlock.style.opacity = '1';
+    varBlock.style.transform = 'translate(-50%, -50%) scale(1)';
+
+    await sleep(1500);
+
+    narrator.textContent = "Stage 3: The moment blocks separate to highlight the core requirements for Quasi-Likelihood.";
+    
+    meanBlock.style.left = '30%';
+    varBlock.style.left = '70%';
+
+    await sleep(1500);
+    
+    connLine.classList.add('opacity-100');
+
+    await sleep(2000);
+
+    narrator.textContent = "Final State: A moment-based model specification independent of a full distribution.";
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    startBtn.classList.remove('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  // Init
+  resetScene();
+  narrator.textContent = 'Click "Start Simulation" to deconstruct the density formula.';
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+Lecture: Rationale and Basic Concept of Generalized Linear Models (GLM)
+========================================================================
+
+--- Scene 1 Design (Sec1): Comparison – Unified GLM Framework (Multiple Distributions, One Linear Predictor) ---
+
+LAYOUT:
+- A central linear predictor socket labeled "xᵀβ" (large rounded rectangle, centered) acting as the universal connection point.
+- Three distribution blocks positioned around the socket: Normal (bell curve icon), Bernoulli (binary coin icon), Gamma (skewed curve icon), each as styled card divs.
+- Modular link cables (SVG curved paths) connecting each distribution to the central socket.
+
+ANIMATIONS:
+- Distribution blocks slide in from three different directions (left, top, right) using CSS transform: translate() with staggered delays.
+- Link cables draw themselves from each distribution toward the socket using SVG stroke-dashoffset animation, each cable morphing into a different shape (identity link = straight, logit link = S-bend, log link = curved) to represent different link functions.
+- When a cable connects, the socket pulses with the distribution's color, and a label appears showing the link function name.
+- A unified glow effect radiates from the socket once all three are connected, symbolizing the unified framework.
+
+INTERACTIVITY:
+- Clicking any distribution block highlights its link cable and dims the others, showing the specific model structure (Normal → Identity, Bernoulli → Logit, Gamma → Log).
+- A "Connect All" button animates the full sequence.
+- Hovering over a link cable shows the mathematical link function formula.
+- A "Disconnect" button reverses the animation to show how each distribution is separate without GLM.
+
+COLOR PALETTE:
+- Central socket in gold/amber gradient (#eab308 → #f59e0b). Normal distribution in sky blue (#0ea5e9), Bernoulli in rose (#f43f5e), Gamma in violet (#8b5cf6). Link cables match their distribution color. Background (#0c0a09).
+
+VARIABLE NAMING:
+- linearPredictorSocket_xTbeta, distributionBlock_Normal, distributionBlock_Bernoulli, distributionBlock_Gamma, linkCable_identity, linkCable_logit, linkCable_log, unifiedFrameworkGlow, connectionPulse, linkFunctionLabel.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required.
+
+
+--- Scene 2 Design (Sec2): Process – Exponential Family Rearrangement ---
+
+LAYOUT:
+- Left side: two raw density formula blocks (Normal and Bernoulli PDFs) as styled code/math divs with distinct borders.
+- Center: a formatting filter (funnel/processor icon div with animated gears).
+- Right side: a universal exponential family template with labeled slots: "yϑ", "b(ϑ)", "ϕ" as empty container divs with dashed borders.
+
+ANIMATIONS:
+- The raw formula blocks slide rightward into the formatting filter (CSS translateX).
+- Inside the filter, gears rotate (CSS animation: rotate 360deg infinite) while processing.
+- Output: the formula terms split apart and fly into their respective template slots (JS controlling individual term divs with CSS transitions to specific grid positions).
+- A highlight overlay sweeps across both rearranged formulas simultaneously, showing their identical structural alignment (CSS linear-gradient background animation moving left-to-right).
+
+INTERACTIVITY:
+- User can click "Process Normal" or "Process Bernoulli" buttons to see each distribution rearranged individually into the exponential family form.
+- After both are processed, a "Compare" button aligns them vertically and highlights matching structural slots with connecting lines.
+- Hovering over any slot shows the specific parameter that fills it for each distribution.
+- A "Reset" button reverses the rearrangement.
+
+COLOR PALETTE:
+- Normal PDF block in blue (#3b82f6). Bernoulli PDF block in pink (#ec4899). Formatting filter in metallic gray gradient. Template slots in white dashed borders on dark background. Alignment highlight in gold (#fbbf24). Background (#0f172a).
+
+VARIABLE NAMING:
+- rawFormula_Normal_PDF, rawFormula_Bernoulli_PDF, formattingFilter, exponentialFamilyTemplate, slot_yTheta, slot_bTheta, slot_phi_dispersion, structuralAlignmentOverlay, processButton_Normal, processButton_Bernoulli, compareButton, naturalParameter_theta.
+
+TECHNOLOGY: HTML + CSS + JS. No 3D required.
+
+
+--- Scene 3 Design (Sec3): Parallel Flow – Link Function & Response Function Mapping ---
+
+LAYOUT:
+- Left side: a linear predictor signal bar labeled "xᵀβ" (horizontal progress-bar style div).
+- Center: a toggleable link/response function block with two states (styled as a flip-card with front = "Link g(μ)" and back = "Response h(η)").
+- Right side: a spatial gauge (semicircular meter built with SVG arc) showing μ on a probability or count scale.
+- A "Canonical" badge overlay that illuminates conditionally.
+
+ANIMATIONS:
+- The linear predictor signal flows rightward as an animated gradient bar (CSS background-position animation).
+- The signal enters the function block, which processes it (flip animation when toggled: CSS transform: rotateY(180deg) with perspective).
+- The output signal transforms the gauge needle position (SVG arc path update via JS, with smooth CSS transition on the needle rotation).
+- When the natural parameter ϑ matches the linear predictor (canonical link), the "Canonical" badge illuminates with a golden glow animation (CSS box-shadow + opacity).
+
+INTERACTIVITY:
+- Toggle button switches between Link function view (g: μ→η) and Response function view (h: η→μ), flipping the center card and reversing the signal flow direction.
+- A dropdown selects different link functions (Identity, Log, Logit); each selection updates the gauge scale and the canonical badge state.
+- The linear predictor value is adjustable via a slider; the gauge updates in real-time.
+
+COLOR PALETTE:
+- Linear predictor bar in electric blue gradient (#2563eb → #3b82f6). Function block in dark glass with cyan border (#06b6d4). Gauge in emerald (#10b981) arc on dark face. Canonical badge in gold (#eab308) with radial glow. Non-canonical state is dim gray. Background (#020617).
+
+VARIABLE NAMING:
+- linearPredictor_xTbeta, linkFunctionBlock, responseFunctionBlock, toggleButton_linkResponse, spatialGauge_mu, gaugeNeedle_SVG, canonicalBadge, naturalParameter_theta, linkFunction_g, responseFunction_h, dropdownSelect_linkType, predictorSlider.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required. CSS 3D transform for card flip only.
+
+
+--- Scene 4 Design (Sec4): Process – Deriving Mean and Variance from b(ϑ) ---
+
+LAYOUT:
+- A central function block labeled "b(ϑ)" (large styled div with mathematical notation) as the source.
+- A derivative processor machine (styled div with gear/cog icons and a pipeline visual).
+- Two output channels: one for mean signal μ (left output gauge) and one for variance signal (right output gauge).
+- A graph overlay showing the curvature of b(ϑ) as an SVG parabolic curve.
+
+ANIMATIONS:
+- The b(ϑ) block enters the derivative processor (CSS translateX into the processor div).
+- First-order derivative: a "d/dϑ" operator icon stamps onto b(ϑ) with a press animation (scale down then up), producing μ = b'(ϑ) which flows left into the mean gauge (gauge needle rises via CSS rotation).
+- Second-order derivative: a "d²/dϑ²" operator stamps again, combined with a ϕ dispersion signal (sliding in from above), producing Var = ϕ·b''(ϑ) which flows right into the variance gauge.
+- The curvature overlay graph highlights: sharper curvature = larger variance, visualized by the SVG curve's bend intensity changing.
+
+INTERACTIVITY:
+- A ϑ slider adjusts the natural parameter value; both mean and variance outputs update in real-time.
+- A ϕ slider adjusts the dispersion parameter; only the variance output changes.
+- Clicking "1st Derivative" or "2nd Derivative" buttons isolates each step of the derivation with highlighted animation.
+- Hovering over the curvature graph at any point shows the local b''(ϑ) value.
+
+COLOR PALETTE:
+- b(ϑ) block in deep purple (#7c3aed). Derivative processor in metallic silver-gray. Mean output gauge in teal (#14b8a6). Variance output gauge in rose (#f43f5e). Curvature graph line in amber (#f59e0b). Dispersion ϕ signal in cyan (#06b6d4). Background (#0f172a).
+
+VARIABLE NAMING:
+- functionBlock_bTheta, derivativeProcessor, firstDerivative_bPrime, secondDerivative_bDoublePrime, meanSignal_mu, varianceSignal_var, dispersionParameter_phi, meanGauge, varianceGauge, curvatureGraph_SVG, thetaSlider, phiSlider, derivativeOperator_first, derivativeOperator_second.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required.

@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Time Evolution - Course Timeline</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-dark: #0f172a;
+    --card-bg: rgba(30, 41, 59, 0.6);
+    --accent-blue: #3b82f6;
+    --accent-purple: #8b5cf6;
+    --accent-amber: #f59e0b;
+    --accent-green: #10b981;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Outfit', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .dashboard {
+    width: 90%;
+    max-width: 1400px;
+    height: 80vh;
+    background: var(--card-bg);
+    border-radius: 24px;
+    border: 1px solid rgba(255,255,255,0.05);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(20px);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 40px;
+    box-sizing: border-box;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .header h1 {
+    font-weight: 700;
+    font-size: 32px;
+    margin: 0 0 10px 0;
+    background: linear-gradient(90deg, #60a5fa, #c084fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .header p {
+    color: var(--text-muted);
+    font-size: 16px;
+    max-width: 800px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  .timeline-area {
+    flex-grow: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .axis {
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, rgba(59,130,246,0.2), rgba(139,92,246,0.2));
+    position: relative;
+    border-radius: 2px;
+  }
+  .axis-fill {
+    position: absolute;
+    top: 0; left: 0; height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+    border-radius: 2px;
+    transition: width 4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .node {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    background: var(--bg-dark);
+    border: 4px solid #475569;
+    border-radius: 50%;
+    transition: all 0.4s ease;
+    z-index: 2;
+  }
+  .node.active {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 20px var(--accent-blue);
+    background: var(--accent-blue);
+  }
+  .node-label {
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    white-space: nowrap;
+    transition: color 0.3s;
+  }
+  .node.active .node-label { color: #fff; }
+
+  .n-wed { left: 15%; }
+  .n-thu { left: 30%; }
+  .n-mon { left: 45%; }
+  .n-jan { left: 70%; border-color: #78350f; }
+  .n-mar { left: 85%; border-color: #78350f; }
+
+  .n-jan.exam-pulse, .n-mar.exam-pulse {
+    border-color: var(--accent-amber);
+    background: var(--bg-dark);
+    animation: pulse 2s infinite;
+  }
+  .n-jan.exam-pulse .node-label, .n-mar.exam-pulse .node-label { color: var(--accent-amber); }
+
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6); }
+    70% { box-shadow: 0 0 0 20px rgba(245, 158, 11, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+  }
+
+  .central-hub {
+    position: absolute;
+    top: -120px;
+    left: 45%;
+    transform: translateX(-50%);
+    width: 350px;
+    height: 100px;
+    background: rgba(16, 185, 129, 0.05);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 5;
+    overflow: hidden;
+  }
+
+  .moodle-login {
+    font-family: monospace;
+    font-size: 28px;
+    color: var(--accent-green);
+    letter-spacing: 3px;
+    position: absolute;
+    transition: opacity 0.5s;
+  }
+  .cursor {
+    display: inline-block;
+    width: 12px;
+    height: 28px;
+    background: var(--accent-green);
+    vertical-align: middle;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .resources {
+    display: flex;
+    gap: 20px;
+    opacity: 0;
+    position: absolute;
+    transition: opacity 0.8s;
+  }
+  .resource-card {
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.5);
+    padding: 12px 24px;
+    border-radius: 12px;
+    color: #93c5fd;
+    font-weight: 500;
+    box-shadow: 0 5px 15px rgba(59, 130, 246, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .controls {
+    display: flex;
+    justify-content: center;
+    margin-top: auto;
+  }
+  .play-btn {
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+    color: white;
+    border: none;
+    padding: 14px 40px;
+    font-size: 16px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .play-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 30px rgba(99, 102, 241, 0.6);
+  }
+</style>
+</head>
+<body>
+
+<div class="dashboard">
+  <div class="header">
+    <h1>Instructional Timings & Digital Access</h1>
+    <p>"A synchronized map of instructional timings and digital resource access points, correcting the misconception that course materials are only available during physical lectures."</p>
+  </div>
+
+  <div class="timeline-area">
+    <div class="axis">
+      <div class="axis-fill" id="axis-fill"></div>
+      
+      <div class="node n-wed" id="n1"><div class="node-label">Wednesday</div></div>
+      <div class="node n-thu" id="n2"><div class="node-label">Thursday</div></div>
+      <div class="node n-mon" id="n3"><div class="node-label">Monday</div></div>
+      
+      <div class="central-hub" id="hub">
+        <div class="moodle-login" id="login-view"><span id="typed"></span><span class="cursor"></span></div>
+        <div class="resources" id="resources-view">
+          <div class="resource-card">📚 Literature</div>
+          <div class="resource-card">📊 Slides</div>
+        </div>
+      </div>
+
+      <div class="node n-jan" id="n4"><div class="node-label">January Exam</div></div>
+      <div class="node n-mar" id="n5"><div class="node-label">March/April Exam</div></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="play-btn" onclick="startSequence()">Visualize Timeline</button>
+  </div>
+</div>
+
+<script>
+  function startSequence() {
+    // Reset
+    document.getElementById('axis-fill').style.width = '0%';
+    document.querySelectorAll('.node').forEach(n => { n.classList.remove('active'); n.classList.remove('exam-pulse'); });
+    document.getElementById('hub').style.opacity = '0';
+    document.getElementById('hub').style.background = 'rgba(16, 185, 129, 0.05)';
+    document.getElementById('hub').style.borderColor = 'rgba(16, 185, 129, 0.3)';
+    document.getElementById('login-view').style.opacity = '1';
+    document.getElementById('resources-view').style.opacity = '0';
+    document.getElementById('typed').innerText = '';
+
+    setTimeout(() => {
+      // Step 1: Time flows
+      document.getElementById('axis-fill').style.width = '100%';
+      
+      // Activate nodes progressively
+      setTimeout(() => document.getElementById('n1').classList.add('active'), 600);
+      setTimeout(() => document.getElementById('n2').classList.add('active'), 1200);
+      setTimeout(() => {
+        document.getElementById('n3').classList.add('active');
+        showHub();
+      }, 1800);
+
+      // Pulse Exams
+      setTimeout(() => document.getElementById('n4').classList.add('exam-pulse'), 2800);
+      setTimeout(() => document.getElementById('n5').classList.add('exam-pulse'), 3400);
+
+    }, 100);
+  }
+
+  function showHub() {
+    const hub = document.getElementById('hub');
+    hub.style.opacity = '1';
+    
+    // Typewriter
+    const text = 'GLMs20/21';
+    let typed = document.getElementById('typed');
+    let idx = 0;
+    let typeInt = setInterval(() => {
+      if(idx < text.length) {
+        typed.innerText += text.charAt(idx);
+        idx++;
+      } else {
+        clearInterval(typeInt);
+        setTimeout(morphHub, 1000);
+      }
+    }, 120);
+  }
+
+  function morphHub() {
+    document.getElementById('login-view').style.opacity = '0';
+    const hub = document.getElementById('hub');
+    hub.style.width = '450px';
+    hub.style.background = 'rgba(30, 41, 59, 0.8)';
+    hub.style.borderColor = 'var(--accent-blue)';
+    hub.style.boxShadow = '0 10px 40px rgba(59, 130, 246, 0.3)';
+    hub.style.backdropFilter = 'blur(10px)';
+
+    setTimeout(() => {
+      document.getElementById('resources-view').style.opacity = '1';
+    }, 500);
+  }
+</script>
+</body>
+</html>

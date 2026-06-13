@@ -1,0 +1,110 @@
+Lecture: Models for Binary Outcome
+===================================
+
+--- Scene 1 Design (Sec1): Comparison – Linear Model Failure for Binary Data ---
+
+LAYOUT:
+- A full-width coordinate graph (SVG-based) with x-axis and y-axis (0 to 1 scale marked).
+- Binary data point clusters rendered as small circle SVG elements at y=0 and y=1 positions, scattered along the x-axis.
+- A linear trend line (SVG <line>) that extends beyond the [0,1] bounds.
+- Red danger zones above y=1 and below y=0 rendered as semi-transparent SVG <rect> overlays.
+
+ANIMATIONS:
+- Data points scatter into position from a central cluster using CSS transform + random translateX/translateY values, animated with staggered delays.
+- The linear trend line draws itself using stroke-dasharray/stroke-dashoffset animation from left to right.
+- As the line enters the red zones (y < 0 or y > 1), the red overlay rectangles flash with a CSS @keyframes pulse animation (opacity oscillating 0.3 ↔ 0.7).
+- Warning icons (⚠) appear at the intersection points where the line crosses the y=0 and y=1 boundaries, scaling in with a pop animation.
+
+INTERACTIVITY:
+- User can drag the linear trend line's slope by clicking and dragging one endpoint; JS updates the line's y2 attribute and dynamically shows/hides the red zone warnings based on whether the line extends out of bounds.
+- Hovering over red zones reveals a tooltip: "Predicted probability outside [0, 1] — physically impossible."
+- A "Reset" button snaps the line back to the default OLS fit.
+
+COLOR PALETTE:
+- Graph background (#0f172a). Data points at y=1 in emerald (#10b981), data points at y=0 in rose (#f43f5e). Linear trend line in white (#e2e8f0). Red danger zones in semi-transparent crimson (rgba(239, 68, 68, 0.25)). Warning icons in bright yellow (#fbbf24).
+
+VARIABLE NAMING:
+- coordinateGraph_SVG, binaryDataPoint_y0, binaryDataPoint_y1, linearTrendLine, redDangerZone_above, redDangerZone_below, warningIcon, slopeEndpoint, probabilityBounds, olsFit_line, tooltipDiv.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required.
+
+
+--- Scene 2 Design (Sec2): Process – Bayes' Theorem & Class-Conditional Distributions ---
+
+LAYOUT:
+- A coordinate system (SVG) with two overlapping Gaussian bell curves: one for x|y=0 (left-shifted) and one for x|y=1 (right-shifted).
+- A vertical slider line (SVG <line>) that the user can drag horizontally along the x-axis.
+- A probability meter (vertical bar gauge) on the right side that fills based on the posterior probability P(y=1|x).
+- A Bayes' Theorem formula overlay (styled div with math notation) at the top.
+
+ANIMATIONS:
+- Bell curves draw themselves using SVG path animation (stroke-dashoffset) with smooth easing.
+- As the vertical slider moves right toward the y=1 density peak, the probability meter fills upward with a fluid CSS transition (height + background gradient shift from blue to green).
+- Bayes' Theorem overlay highlights each term sequentially (prior, likelihood, evidence) using CSS background-color transitions triggered by JS setTimeout.
+
+INTERACTIVITY:
+- The vertical slider is fully draggable (JS mousedown/mousemove/mouseup or pointer events). Its x-position calculates posterior probability via JS Gaussian PDF evaluation and updates the probability meter in real-time.
+- Clicking either bell curve highlights it and shows its distribution parameters (μ, σ) in a popup.
+- A "Show Calculation" button steps through the Bayes' formula term by term with animated highlights.
+
+COLOR PALETTE:
+- Bell curve y=0 in cool blue (#3b82f6, fill opacity 0.3). Bell curve y=1 in warm orange (#f97316, fill opacity 0.3). Slider line in white (#f8fafc). Probability meter gradient from navy to emerald. Formula overlay on frosted glass (backdrop-filter: blur(10px)).
+
+VARIABLE NAMING:
+- gaussianCurve_x_given_y0, gaussianCurve_x_given_y1, verticalSlider_xPosition, probabilityMeter_posterior, bayesFormula_overlay, priorProbability, likelihoodTerm, evidenceTerm, posteriorProbability_P_y1_x, gaussianPDF_evaluation.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required. JS math functions for Gaussian PDF calculation.
+
+
+--- Scene 3 Design (Sec3): Parallel Flow – Latent Variable & Threshold Model ---
+
+LAYOUT:
+- Background plane: a continuous wavy line (SVG <path>) representing the latent variable y* following a linear model equation, spanning the full width.
+- A fixed horizontal threshold line at value θ (SVG <line> with dashed stroke).
+- Foreground plane: binary signal blocks (small rectangles) positioned below the latent wave, showing 0 or 1 states.
+
+ANIMATIONS:
+- The latent wave draws itself continuously from left to right using SVG path animation.
+- Binary blocks below default to state "0" (dark color). When the latent wave's amplitude crosses above the threshold θ, the corresponding binary block triggers a flip animation (CSS transform: rotateX(180deg) with perspective) changing from 0 to 1, with a color change from gray to green.
+- The threshold line pulses with a subtle glow (CSS box-shadow animation).
+
+INTERACTIVITY:
+- User can drag the threshold line θ up/down (JS drag on SVG <line> y1/y2 attributes). Moving it lower causes more blocks to flip to 1; moving it higher causes fewer flips.
+- A slider controls the noise level of the latent wave, adding JS Math.random() perturbations to the wave path.
+- Hovering over any binary block shows the latent value y* at that point and whether y* > θ.
+
+COLOR PALETTE:
+- Background plane in dark navy (#020617). Latent wave in electric purple (#a855f7). Threshold line in amber-gold dashed (#eab308). Binary blocks state 0 in dark gray (#374151), state 1 in bright green (#22c55e). Flip animation uses a slight glow effect.
+
+VARIABLE NAMING:
+- latentVariable_yStar, latentWave_SVGPath, thresholdLine_theta, binaryBlock, binaryState_0, binaryState_1, thresholdCrossing, flipAnimation, noiseLevel_slider, linearModelEquation, foregroundPlane, backgroundPlane.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required. CSS 3D transform (rotateX) for card-flip effect on binary blocks only.
+
+
+--- Scene 4 Design (Sec4): Accumulation – Logit/Probit S-Curve Link Function ---
+
+LAYOUT:
+- A coordinate graph (SVG or Canvas) with x-axis representing the linear predictor η and y-axis representing probability π ∈ [0,1].
+- Linear predictor signal blocks entering from the left, passing through a central "distribution filter" box (styled div with icon).
+- Toggle buttons for "Logit" and "Probit" link functions above the filter.
+- The output S-curve wave displayed on the graph.
+
+ANIMATIONS:
+- Linear predictor blocks slide in from the left (CSS translateX) and enter the filter box.
+- The filter box pulses on receipt, then the S-curve draws itself on the graph using SVG path stroke-dashoffset animation.
+- When toggling between Logit and Probit, the S-curve morphs smoothly from one shape to the other using JS interpolation of SVG path control points (d attribute) with requestAnimationFrame.
+- The [0,1] interval boundaries highlight with glowing horizontal lines to emphasize the constraint.
+
+INTERACTIVITY:
+- Toggle between Logit and Probit link functions via styled radio buttons; each selection recalculates and redraws the S-curve using the respective CDF formula in JS (logistic function: 1/(1+exp(-η)) or normal CDF approximation).
+- A slider adjusts the steepness/spread of the curve by modifying the scale parameter.
+- Hovering over any point on the S-curve shows a tooltip with the exact (η, π) coordinate values.
+
+COLOR PALETTE:
+- Graph background (#0f172a). Logit S-curve in cyan (#06b6d4). Probit S-curve in magenta (#d946ef). Distribution filter box in dark glass with border glow. [0,1] boundary lines in subtle white (#94a3b8). Toggle active state highlighted.
+
+VARIABLE NAMING:
+- linearPredictor_eta, probabilityOutput_pi, distributionFilter, logitFunction, probitFunction, sCurve_SVGPath, toggleButton_Logit, toggleButton_Probit, cumulativeDistributionFunction_CDF, logisticFunction, normalCDF, intervalBound_0, intervalBound_1, steepnessSlider.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required. JS math for logistic and normal CDF calculations.

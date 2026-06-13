@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cisplatin Resistance & Toxicity</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        /* Custom Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #facc15; /* yellow-400 */
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 0 10px rgba(250, 204, 21, 0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 2px;
+        }
+        
+        .meter-bar { transition: width 0.3s ease; }
+        .glow-text-amber { text-shadow: 0 0 10px rgba(245, 158, 11, 0.6); }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans antialiased overflow-hidden">
+
+    <div class="flex flex-col lg:flex-row min-h-screen">
+        
+        <!-- Simulation Viewport -->
+        <div class="flex-1 relative overflow-hidden flex flex-col p-4 bg-[#050b14]">
+            
+            <div class="flex-1 relative rounded-3xl border border-slate-800 shadow-2xl overflow-hidden bg-[#0a1128]">
+                <canvas id="sim-canvas" class="w-full h-full absolute inset-0"></canvas>
+                
+                <!-- Environmental Labels -->
+                <div class="absolute top-4 left-4 text-slate-400 font-bold tracking-widest uppercase text-sm opacity-60 pointer-events-none">
+                    Extracellular<br><span class="text-xs text-sky-400">Drug Influx</span>
+                </div>
+                <div class="absolute top-4 left-[35%] text-slate-400 font-bold tracking-widest uppercase text-sm opacity-60 pointer-events-none text-center">
+                    Cytoplasm<br><span class="text-xs text-yellow-400">GSH & MT Sponges</span>
+                </div>
+                <div class="absolute top-4 right-4 text-slate-400 font-bold tracking-widest uppercase text-sm opacity-60 pointer-events-none text-right">
+                    Nucleus<br><span class="text-xs text-purple-400">DNA Target</span>
+                </div>
+                
+                <!-- Success Metric Overlay -->
+                <div class="absolute bottom-6 right-6 bg-slate-900/80 backdrop-blur border border-slate-700 p-4 rounded-xl text-center shadow-lg">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">DNA Reached</p>
+                    <p id="dna-hits" class="text-3xl font-black text-purple-400">0</p>
+                    <p class="text-[10px] text-slate-500 mt-1">Therapeutic Efficacy</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="w-full lg:w-[420px] bg-slate-900 border-l border-slate-800 p-6 flex flex-col gap-6 overflow-y-auto max-h-screen z-10 shadow-[-10px_0_20px_rgba(0,0,0,0.3)]">
+            
+            <header>
+                <h1 class="text-2xl font-bold text-white mb-2 leading-tight">Resistance & Toxicity</h1>
+                <p class="text-sm text-slate-400">
+                    Observe how Sulfur-donor molecules trap Cisplatin, causing resistance and contributing to systemic side effects upon export.
+                </p>
+            </header>
+
+            <div class="space-y-5 bg-slate-800/50 p-5 rounded-2xl border border-slate-700">
+                <div>
+                    <div class="flex justify-between items-end mb-2">
+                        <label class="text-sm font-bold text-yellow-400 uppercase tracking-widest flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                            Cytoplasmic S-Donors
+                        </label>
+                        <span id="gsh-value" class="text-xs font-mono text-slate-300 bg-slate-950 px-2 py-1 rounded">Normal</span>
+                    </div>
+                    <input type="range" id="gsh-slider" min="0" max="100" value="50">
+                    <div class="flex justify-between text-[10px] text-slate-500 mt-1 font-bold uppercase">
+                        <span>Low (Sensitive)</span>
+                        <span>High (Resistant)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                    <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    Systemic Toxicity Accumulation
+                </h3>
+
+                <!-- Kidney Toxicity -->
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded bg-red-900/30 flex items-center justify-center text-red-400 border border-red-900/50">
+                                <!-- Abstract Kidney Icon -->
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 8c0 3.866-3 6-3 6s-1.5 2-4 2-4-2-4-2c0-3.866-1.5-6-3-6 0-3.866 2.5-6 6-6 3.5 0 6 2.134 6 6z"></path><path d="M5 8c0 3.866 3 6 3 6s1.5 2 4 2 4-2 4-2c0-3.866 1.5-6 3-6 0-3.866-2.5-6-6-6C7.5 2 5 4.134 5 8z"></path></svg>
+                            </div>
+                            <span class="text-sm font-bold text-slate-300">Kidney <span class="text-[10px] text-slate-500 font-normal ml-1">Nephrotoxicity</span></span>
+                        </div>
+                        <span id="tox-kidney-val" class="text-xs font-mono text-red-400">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                        <div id="tox-kidney-bar" class="bg-gradient-to-r from-red-600 to-red-400 h-2 rounded-full meter-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Nerve Toxicity -->
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded bg-orange-900/30 flex items-center justify-center text-orange-400 border border-orange-900/50">
+                                <!-- Abstract Nerve Icon -->
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            </div>
+                            <span class="text-sm font-bold text-slate-300">Nerve <span class="text-[10px] text-slate-500 font-normal ml-1">Neurotoxicity</span></span>
+                        </div>
+                        <span id="tox-nerve-val" class="text-xs font-mono text-orange-400">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                        <div id="tox-nerve-bar" class="bg-gradient-to-r from-orange-600 to-orange-400 h-2 rounded-full meter-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Ear Toxicity -->
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded bg-amber-900/30 flex items-center justify-center text-amber-400 border border-amber-900/50">
+                                <!-- Abstract Ear Icon -->
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                            </div>
+                            <span class="text-sm font-bold text-slate-300">Ear <span class="text-[10px] text-slate-500 font-normal ml-1">Ototoxicity</span></span>
+                        </div>
+                        <span id="tox-ear-val" class="text-xs font-mono text-amber-400">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                        <div id="tox-ear-bar" class="bg-gradient-to-r from-amber-600 to-amber-400 h-2 rounded-full meter-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-auto pt-6 border-t border-slate-800">
+                <div class="flex gap-3 mb-3 items-center">
+                    <svg class="w-5 h-5 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <h3 class="text-sm font-bold text-indigo-300 uppercase tracking-widest">Visual Learning Outcome</h3>
+                </div>
+                
+                <div class="bg-indigo-950/30 p-5 rounded-xl border border-indigo-900/50 text-sm text-indigo-200 shadow-inner leading-relaxed">
+                    Drug sequestration by cytoplasmic molecules (<strong class="text-yellow-400">GSH & MT</strong>) traps active Pt before it reaches the DNA, leading to <strong class="text-white">tumor resistance</strong>. Export of these neutralized Pt-S complexes contributes to cumulative <strong class="text-red-400">systemic toxicity</strong> in organs like the kidneys.
+                </div>
+                
+                <button id="btn-reset" class="w-full py-3 mt-4 rounded-xl font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all border border-slate-700">
+                    Reset Simulation
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('sim-canvas');
+        const ctx = canvas.getContext('2d');
+        const slider = document.getElementById('gsh-slider');
+        const gshValueText = document.getElementById('gsh-value');
+        
+        // Meters
+        const toxKidneyBar = document.getElementById('tox-kidney-bar');
+        const toxKidneyVal = document.getElementById('tox-kidney-val');
+        const toxNerveBar = document.getElementById('tox-nerve-bar');
+        const toxNerveVal = document.getElementById('tox-nerve-val');
+        const toxEarBar = document.getElementById('tox-ear-bar');
+        const toxEarVal = document.getElementById('tox-ear-val');
+        const dnaHitsEl = document.getElementById('dna-hits');
+
+        // Simulation State
+        let width, height;
+        let nucleusX;
+        let drugs = [];
+        let sponges = [];
+        let exportedComplexes = []; // Particles flying to the UI
+        
+        let dnaHits = 0;
+        let toxicity = { kidney: 0, nerve: 0, ear: 0 };
+        const TOX_MAX = 100;
+
+        // Config
+        let spawnRate = 60; // Frames between drug spawns
+        let frameCount = 0;
+        
+        class Sponge {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.baseRadius = 25 + Math.random() * 15;
+                this.angleOffset = Math.random() * Math.PI * 2;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+                this.trappedPt = 0; // Number of trapped drugs
+                this.maxCapacity = 3;
+                this.pulse = Math.random() * Math.PI;
+            }
+
+            update() {
+                // Gentle floating
+                this.x += this.vx;
+                this.y += this.vy;
+                this.pulse += 0.05;
+
+                // Keep within cytoplasm bounds
+                if (this.x < width * 0.2) this.vx *= -1;
+                if (this.x > nucleusX - 100) this.vx *= -1;
+                if (this.y < 50 || this.y > height - 50) this.vy *= -1;
+                
+                // Export logic: If full, it triggers export animation
+                if (this.trappedPt >= this.maxCapacity) {
+                    exportComplex(this.x, this.y);
+                    this.trappedPt = 0; // Reset after export
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                
+                // Amorphous blob shape
+                ctx.beginPath();
+                const points = 8;
+                for (let i = 0; i <= points; i++) {
+                    const a = (i / points) * Math.PI * 2;
+                    const r = this.baseRadius + Math.sin(a * 3 + this.angleOffset + this.pulse * 0.5) * 5;
+                    const px = Math.cos(a) * r;
+                    const py = Math.sin(a) * r;
+                    if (i === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+
+                // Coloring
+                const isFull = this.trappedPt >= this.maxCapacity;
+                ctx.fillStyle = isFull ? '#b45309' : 'rgba(234, 179, 8, 0.4)'; // amber-600 or yellow-500/40
+                ctx.strokeStyle = isFull ? '#f59e0b' : '#facc15';
+                ctx.lineWidth = 2;
+                ctx.fill();
+                ctx.stroke();
+
+                // Draw trapped Pt
+                for (let i = 0; i < this.trappedPt; i++) {
+                    const a = (i / this.maxCapacity) * Math.PI * 2 + this.pulse;
+                    const px = Math.cos(a) * (this.baseRadius * 0.6);
+                    const py = Math.sin(a) * (this.baseRadius * 0.6);
+                    
+                    ctx.beginPath();
+                    ctx.arc(px, py, 6, 0, Math.PI*2);
+                    ctx.fillStyle = '#94a3b8'; // Pt color
+                    ctx.fill();
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+
+                // Text Label
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.shadowColor = 'rgba(0,0,0,0.8)';
+                ctx.shadowBlur = 4;
+                ctx.fillText(isFull ? 'Pt-S' : 'SH', 0, 0);
+                
+                ctx.restore();
+            }
+        }
+
+        class PtDrug {
+            constructor() {
+                this.x = 0; // Starts at left
+                this.y = 50 + Math.random() * (height - 100);
+                this.vx = 2 + Math.random() * 1.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+                this.active = true;
+                this.wobble = Math.random() * Math.PI * 2;
+            }
+
+            update() {
+                if (!this.active) return;
+                
+                this.wobble += 0.1;
+                this.x += this.vx;
+                this.y += this.vy + Math.sin(this.wobble) * 0.5;
+
+                // Check Nucleus Hit
+                if (this.x > nucleusX) {
+                    this.active = false;
+                    dnaHits++;
+                    updateMetrics();
+                }
+
+                // Collision with Sponges
+                for (let sponge of sponges) {
+                    if (sponge.trappedPt < sponge.maxCapacity) {
+                        const dx = this.x - sponge.x;
+                        const dy = this.y - sponge.y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        
+                        if (dist < sponge.baseRadius + 10) {
+                            this.active = false; // Trapped
+                            sponge.trappedPt++;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            draw() {
+                if (!this.active) return;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 6, 0, Math.PI * 2);
+                
+                const grad = ctx.createRadialGradient(this.x-2, this.y-2, 1, this.x, this.y, 6);
+                grad.addColorStop(0, '#ffffff');
+                grad.addColorStop(0.4, '#38bdf8'); // Sky blue active hue
+                grad.addColorStop(1, '#0f172a');
+                
+                ctx.fillStyle = grad;
+                ctx.fill();
+                
+                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+        }
+
+        class ExportComplex {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                // Fly towards the bottom right (towards the control panel conceptually)
+                const targetX = width + 50;
+                const targetY = height * 0.8;
+                const angle = Math.atan2(targetY - this.y, targetX - this.x);
+                this.vx = Math.cos(angle) * 8;
+                this.vy = Math.sin(angle) * 8;
+                this.active = true;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                if (this.x > width || this.y > height) {
+                    this.active = false;
+                    increaseToxicity();
+                }
+            }
+
+            draw() {
+                if (!this.active) return;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 8, 0, Math.PI*2);
+                ctx.fillStyle = '#b45309'; // Trapped color
+                ctx.fill();
+                
+                // Trail
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(this.x - this.vx * 3, this.y - this.vy * 3);
+                ctx.strokeStyle = 'rgba(180, 83, 9, 0.5)';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+            }
+        }
+
+        function resizeCanvas() {
+            const parent = canvas.parentElement;
+            const dpr = window.devicePixelRatio || 1;
+            width = parent.clientWidth;
+            height = parent.clientHeight;
+            
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            ctx.scale(dpr, dpr);
+            
+            nucleusX = width * 0.75;
+            
+            updateSponges(); // Readjust based on size
+        }
+
+        function updateSponges() {
+            const val = parseInt(slider.value);
+            
+            // Text Update
+            if (val < 30) {
+                gshValueText.innerText = "Low";
+                gshValueText.className = "text-xs font-mono text-emerald-400 bg-slate-950 px-2 py-1 rounded";
+            } else if (val < 70) {
+                gshValueText.innerText = "Normal";
+                gshValueText.className = "text-xs font-mono text-slate-300 bg-slate-950 px-2 py-1 rounded";
+            } else {
+                gshValueText.innerText = "High";
+                gshValueText.className = "text-xs font-mono text-red-400 bg-slate-950 px-2 py-1 rounded font-bold";
+            }
+
+            // Calculate target sponge count (0 to ~30 depending on width)
+            const maxSponges = Math.floor((width * height) / 15000); 
+            const targetCount = Math.floor((val / 100) * maxSponges);
+            
+            // Add or remove sponges
+            while (sponges.length < targetCount) {
+                // Spawn randomly in middle section
+                const sx = (width * 0.2) + Math.random() * (width * 0.5);
+                const sy = 50 + Math.random() * (height - 100);
+                sponges.push(new Sponge(sx, sy));
+            }
+            while (sponges.length > targetCount) {
+                sponges.pop();
+            }
+        }
+
+        function exportComplex(x, y) {
+            exportedComplexes.push(new ExportComplex(x, y));
+        }
+
+        function increaseToxicity() {
+            // Distribution of toxicity
+            toxicity.kidney += 3.0; // Most affected
+            toxicity.nerve += 1.5;
+            toxicity.ear += 1.0;
+            
+            updateMetrics();
+        }
+
+        function updateMetrics() {
+            dnaHitsEl.innerText = dnaHits;
+            
+            const k = Math.min(100, toxicity.kidney);
+            const n = Math.min(100, toxicity.nerve);
+            const e = Math.min(100, toxicity.ear);
+
+            toxKidneyBar.style.width = `${k}%`;
+            toxKidneyVal.innerText = `${Math.floor(k)}%`;
+            
+            toxNerveBar.style.width = `${n}%`;
+            toxNerveVal.innerText = `${Math.floor(n)}%`;
+            
+            toxEarBar.style.width = `${e}%`;
+            toxEarVal.innerText = `${Math.floor(e)}%`;
+        }
+
+        function drawBackground() {
+            // Cytoplasm Gradient
+            const grad = ctx.createLinearGradient(0, 0, width, 0);
+            grad.addColorStop(0, '#0a1128');
+            grad.addColorStop(0.75, '#050b14');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, width, height);
+
+            // Cell Membrane (Left)
+            ctx.beginPath();
+            ctx.moveTo(width * 0.15, 0);
+            ctx.lineTo(width * 0.15, height);
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 4;
+            ctx.setLineDash([10, 10]);
+            ctx.stroke();
+
+            // Nucleus Boundary (Right)
+            ctx.beginPath();
+            ctx.arc(width + 100, height/2, height * 0.6, 0, Math.PI*2);
+            ctx.fillStyle = 'rgba(88, 28, 135, 0.2)'; // purple-900 with alpha
+            ctx.fill();
+            ctx.strokeStyle = '#9333ea';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([]);
+            ctx.stroke();
+            
+            // Draw subtle DNA helical shapes inside nucleus
+            ctx.strokeStyle = 'rgba(168, 85, 247, 0.3)';
+            ctx.lineWidth = 2;
+            for(let j=0; j<3; j++) {
+                ctx.beginPath();
+                const offset = j * 80;
+                for (let i = 0; i < height; i+=10) {
+                    const x = width - 40 + Math.sin(i * 0.05 + Date.now()*0.002) * 20 - offset;
+                    if (i===0) ctx.moveTo(x, i); else ctx.lineTo(x, i);
+                }
+                ctx.stroke();
+            }
+        }
+
+        function drawLoop() {
+            frameCount++;
+            ctx.clearRect(0, 0, width, height);
+            
+            drawBackground();
+
+            // Spawn Drugs
+            if (frameCount % spawnRate === 0) {
+                drugs.push(new PtDrug());
+            }
+
+            // Update & Draw
+            sponges.forEach(s => { s.update(); s.draw(); });
+            
+            drugs = drugs.filter(d => d.active);
+            drugs.forEach(d => { d.update(); d.draw(); });
+
+            exportedComplexes = exportedComplexes.filter(e => e.active);
+            exportedComplexes.forEach(e => { e.update(); e.draw(); });
+
+            requestAnimationFrame(drawLoop);
+        }
+
+        // Event Listeners
+        slider.addEventListener('input', updateSponges);
+        
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            dnaHits = 0;
+            toxicity = { kidney: 0, nerve: 0, ear: 0 };
+            drugs = [];
+            exportedComplexes = [];
+            sponges.forEach(s => s.trappedPt = 0);
+            updateMetrics();
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // Init
+        window.onload = () => {
+            resizeCanvas();
+            updateSponges();
+            drawLoop();
+        };
+
+    </script>
+</body>
+</html>

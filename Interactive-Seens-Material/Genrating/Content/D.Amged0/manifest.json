@@ -1,0 +1,384 @@
+{
+  "material": "Cardiovascular Assessment and Management of Patients Undergoing Non Cardiac Surgery",
+  "source_file": "Cardiovascular Assessment and Management of Patients Undergoing Non Cardiac Surgery.txt",
+  "route": "Medical",
+  "user": "D.Amged0",
+  "output_path": "D:\\projects\\laravel_projects\\college_project\\Interactive-Seens-Material\\D.Amged0",
+  "total_lessons": 22,
+  "chapters": [
+    {
+      "id": "ch1",
+      "title": "Preamble & Introduction",
+      "mini_chapters": [
+        {
+          "id": "mc1.1",
+          "title": "Guidelines Framework & What's New",
+          "lessons": [
+            {
+              "id": "L1",
+              "title": "Preamble, Purpose & What's New (2022 Updates)",
+              "view_name": "Preamble_GuidelinesOverview",
+              "line_start": 413,
+              "line_end": 1049,
+              "sections_in_txt": ["1. Preamble", "2. Introduction", "2.1 What is new"]
+            }
+          ]
+        },
+        {
+          "id": "mc1.2",
+          "title": "Magnitude & Outcomes",
+          "lessons": [
+            {
+              "id": "L2",
+              "title": "Magnitude of the Problem, Demographics & Outcomes",
+              "view_name": "NCS_EpidemiologyScope",
+              "line_start": 1051,
+              "line_end": 1165,
+              "sections_in_txt": ["2.2 Magnitude of the problem", "2.3 Change in demographics", "2.4 Purpose", "2.5 Outcomes we want to prevent"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch2",
+      "title": "Clinical Risk Evaluation",
+      "mini_chapters": [
+        {
+          "id": "mc2.1",
+          "title": "Surgery-Related Risk",
+          "lessons": [
+            {
+              "id": "L3",
+              "title": "Surgery-Related Risk: Timing, Type & Approach",
+              "view_name": "SurgicalRisk_TimingApproach",
+              "line_start": 1166,
+              "line_end": 1263,
+              "sections_in_txt": ["3.1 Surgery-related risk", "3.1.1 Timing of surgery", "3.2 Type of surgical approach", "3.2.1 Laparoscopy", "3.2.1.1 Vascular/endovascular", "3.2.1.2 VATS"]
+            }
+          ]
+        },
+        {
+          "id": "mc2.2",
+          "title": "Patient-Related Risk",
+          "lessons": [
+            {
+              "id": "L4",
+              "title": "Patient-Related Risk: Initial Assessment by Age & CVD Status",
+              "view_name": "PatientRisk_AgeAssessment",
+              "line_start": 1264,
+              "line_end": 1450,
+              "sections_in_txt": ["3.3 Patient-related risk", "3.3.1 Initial assessment", "3.3.1.1 Patients <65y", "3.3.1.2 Patients ≥65y", "3.3.1.3 Established CVD", "3.3.2 Murmurs/chest pain/dyspnoea"]
+            }
+          ]
+        },
+        {
+          "id": "mc2.3",
+          "title": "Decision Making",
+          "lessons": [
+            {
+              "id": "L5",
+              "title": "Timing, Avoidance & Patient Perspective",
+              "view_name": "RiskDecision_PatientFlow",
+              "line_start": 1451,
+              "line_end": 1591,
+              "sections_in_txt": ["3.4 Timing of adequate risk evaluation", "3.5 Avoidance or allowance for surgery", "3.6 The patient perspective"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch3",
+      "title": "Pre-operative Assessment Tools",
+      "mini_chapters": [
+        {
+          "id": "mc3.1",
+          "title": "Risk Scores & Functional Capacity",
+          "lessons": [
+            {
+              "id": "L6",
+              "title": "Risk Scores, Frailty & Functional Capacity",
+              "view_name": "RiskScores_FrailtyCapacity",
+              "line_start": 1592,
+              "line_end": 1783,
+              "sections_in_txt": ["4.1 Risk scores", "4.1.1 General risk calculators", "4.1.2 Frailty", "4.2 Functional capacity"]
+            }
+          ]
+        },
+        {
+          "id": "mc3.2",
+          "title": "Diagnostics",
+          "lessons": [
+            {
+              "id": "L7",
+              "title": "ECG, Biomarkers & Imaging Assessment",
+              "view_name": "PreOp_DiagnosticWorkup",
+              "line_start": 1784,
+              "line_end": 2116,
+              "sections_in_txt": ["4.3 Electrocardiography", "4.4 Biomarkers", "4.5 Non-invasive and invasive procedures", "4.5.1 TTE", "4.5.2 Stress tests", "4.5.3 Angiography"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch4",
+      "title": "Risk-Reduction: Pharmacological",
+      "mini_chapters": [
+        {
+          "id": "mc4.1",
+          "title": "Lifestyle & Drug Therapy",
+          "lessons": [
+            {
+              "id": "L8",
+              "title": "CV Risk Factors, Beta-Blockers & Statins",
+              "view_name": "Pharma_BetaBlockersStatins",
+              "line_start": 2117,
+              "line_end": 2280,
+              "sections_in_txt": ["5.1 CV risk factors & lifestyle", "5.2 Pharmacological", "5.2.1 Beta-blockers", "5.2.2 Amiodarone", "5.2.3 Statins"]
+            }
+          ]
+        },
+        {
+          "id": "mc4.2",
+          "title": "Other Agents",
+          "lessons": [
+            {
+              "id": "L9",
+              "title": "RAAS Inhibitors, CCBs, Diuretics & SGLT-2i",
+              "view_name": "Pharma_RAAStoSGLT2",
+              "line_start": 2281,
+              "line_end": 2410,
+              "sections_in_txt": ["5.2.4 RAAS inhibitors", "5.2.5 CCBs", "5.2.6 Alpha-2 agonists", "5.2.7 Diuretics", "5.2.8 Ivabradine", "5.2.9 SGLT-2 inhibitors"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch5",
+      "title": "Risk-Reduction: Antithrombotic",
+      "mini_chapters": [
+        {
+          "id": "mc5.1",
+          "title": "Antiplatelet Therapy",
+          "lessons": [
+            {
+              "id": "L10",
+              "title": "Single & Dual Antiplatelet Therapy (SAPT/DAPT)",
+              "view_name": "Antiplatelets_SAPTandDAPT",
+              "line_start": 2411,
+              "line_end": 2759,
+              "sections_in_txt": ["5.3 Antithrombotic agents", "5.3.1 Antiplatelets", "5.3.1.1 SAPT", "5.3.1.2 DAPT", "5.3.1.3 De-escalation", "5.3.1.4 Platelet function guided"]
+            }
+          ]
+        },
+        {
+          "id": "mc5.2",
+          "title": "Oral Anticoagulants",
+          "lessons": [
+            {
+              "id": "L11",
+              "title": "VKA & NOAC Management Peri-operatively",
+              "view_name": "Anticoagulants_VKAandNOAC",
+              "line_start": 2760,
+              "line_end": 3197,
+              "sections_in_txt": ["5.3.2 OAC", "5.3.2.1 VKA", "5.3.2.2 NOACs", "5.3.2.3 Combination therapy"]
+            }
+          ]
+        },
+        {
+          "id": "mc5.3",
+          "title": "Blood Management",
+          "lessons": [
+            {
+              "id": "L12",
+              "title": "Thromboprophylaxis & Patient Blood Management",
+              "view_name": "BloodMgmt_ThromboPBM",
+              "line_start": 3198,
+              "line_end": 3427,
+              "sections_in_txt": ["5.4 Thromboprophylaxis", "5.5 Patient blood management", "5.5.1 Anaemia", "5.5.2 Blood loss", "5.5.3 Blood component use"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch6",
+      "title": "Specific Diseases: Coronary & Heart Failure",
+      "mini_chapters": [
+        {
+          "id": "mc6.1",
+          "title": "Coronary Artery Disease",
+          "lessons": [
+            {
+              "id": "L13",
+              "title": "CAD: Risk, Assessment & Revascularization",
+              "view_name": "CAD_RiskRevasc",
+              "line_start": 3428,
+              "line_end": 3592,
+              "sections_in_txt": ["6.1 CAD", "6.1.1 Risk", "6.1.2 Pre-op assessment", "6.1.3 Revascularization", "6.1.3.1 CCS", "6.1.3.2 ACS"]
+            }
+          ]
+        },
+        {
+          "id": "mc6.2",
+          "title": "Heart Failure",
+          "lessons": [
+            {
+              "id": "L14",
+              "title": "Chronic Heart Failure, HOCM & VADs",
+              "view_name": "HeartFailure_ManagementVAD",
+              "line_start": 3593,
+              "line_end": 3724,
+              "sections_in_txt": ["6.2 CHF", "6.2.1 Risk", "6.2.2 Management", "6.2.3 HOCM", "6.2.4 VADs"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch7",
+      "title": "Specific Diseases: Valvular & Arrhythmias",
+      "mini_chapters": [
+        {
+          "id": "mc7.1",
+          "title": "Valvular Heart Disease",
+          "lessons": [
+            {
+              "id": "L15",
+              "title": "VHD: Aortic & Mitral Valve Management",
+              "view_name": "VHD_AorticMitralValves",
+              "line_start": 3725,
+              "line_end": 3985,
+              "sections_in_txt": ["6.3 VHD", "6.3.1 Risk", "6.3.2 Management", "6.3.2.1 AS", "6.3.2.2 MS", "6.3.2.3 AR", "6.3.2.4 MR", "6.3.2.5 Prosthetics", "6.3.2.6 IE prophylaxis"]
+            }
+          ]
+        },
+        {
+          "id": "mc7.2",
+          "title": "Arrhythmias & Devices",
+          "lessons": [
+            {
+              "id": "L16",
+              "title": "Arrhythmias: SVT, AF, VT & CIED Management",
+              "view_name": "Arrhythmias_AFtoDevices",
+              "line_start": 3986,
+              "line_end": 4276,
+              "sections_in_txt": ["6.4 Arrhythmias", "6.4.1 General", "6.4.2 SVT", "6.4.3 AF/Flutter", "6.4.4 VT", "6.4.5 Brady", "6.4.6 CIEDs"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch8",
+      "title": "Specific Diseases: Other Conditions",
+      "mini_chapters": [
+        {
+          "id": "mc8.1",
+          "title": "Structural & Pulmonary",
+          "lessons": [
+            {
+              "id": "L17",
+              "title": "Congenital HD, Pericardial & Pulmonary Disease",
+              "view_name": "StructuralPulm_ACHD_PAH",
+              "line_start": 4277,
+              "line_end": 4596,
+              "sections_in_txt": ["6.5 ACHD", "6.6 Pericardial diseases", "6.7 Pulmonary/PAH", "6.8 Arterial hypertension"]
+            }
+          ]
+        },
+        {
+          "id": "mc8.2",
+          "title": "Vascular & Metabolic",
+          "lessons": [
+            {
+              "id": "L18",
+              "title": "PAD, Cerebrovascular, Renal, Obesity, DM, Cancer & COVID",
+              "view_name": "VascMetabolic_PADtoCOVID",
+              "line_start": 4597,
+              "line_end": 4952,
+              "sections_in_txt": ["6.9 PAD", "6.10 Cerebrovascular", "6.11 Renal", "6.12 Obesity", "6.13 Diabetes", "6.14 Cancer", "6.15 COVID-19"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch9",
+      "title": "Peri-operative Monitoring & Anaesthesia",
+      "mini_chapters": [
+        {
+          "id": "mc9.1",
+          "title": "Monitoring & Anaesthesia",
+          "lessons": [
+            {
+              "id": "L19",
+              "title": "Monitoring, Anaesthesia & Haemodynamic Therapy",
+              "view_name": "PeriOp_MonitorAnaesthesia",
+              "line_start": 4953,
+              "line_end": 5154,
+              "sections_in_txt": ["7.1 Monitoring", "7.2 Anaesthesia", "7.2.1 Haemodynamics", "7.2.2 Anaesthetic agent", "7.3 Locoregional", "7.4 Goal-directed therapy", "7.5 Post-op management"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch10",
+      "title": "Peri-operative Cardiovascular Complications",
+      "mini_chapters": [
+        {
+          "id": "mc10.1",
+          "title": "Myocardial & Cardiac Complications",
+          "lessons": [
+            {
+              "id": "L20",
+              "title": "PMI, Takotsubo, Acute HF & VTE",
+              "view_name": "Complications_PMI_AcuteHF",
+              "line_start": 5155,
+              "line_end": 5430,
+              "sections_in_txt": ["8.1 PMI", "8.2 Spontaneous MI", "8.3 Takotsubo", "8.4 Acute HF", "8.5 VTE"]
+            }
+          ]
+        },
+        {
+          "id": "mc10.2",
+          "title": "Arrhythmia & Stroke Complications",
+          "lessons": [
+            {
+              "id": "L21",
+              "title": "Post-operative AF & Peri-operative Stroke",
+              "view_name": "Complications_AFStroke",
+              "line_start": 5431,
+              "line_end": 5600,
+              "sections_in_txt": ["8.6 AF & arrhythmias", "8.6.1 Prevention of post-op AF", "8.6.2 Management of post-op AF", "8.7 Peri-operative stroke"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch11",
+      "title": "Key Messages & Evidence Gaps",
+      "mini_chapters": [
+        {
+          "id": "mc11.1",
+          "title": "Summary",
+          "lessons": [
+            {
+              "id": "L22",
+              "title": "Key Messages, Evidence Gaps & Sex Differences",
+              "view_name": "Summary_KeyMessages",
+              "line_start": 5601,
+              "line_end": 5701,
+              "sections_in_txt": ["9. Key messages", "10. Gaps in evidence", "11. Sex differences"]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

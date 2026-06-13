@@ -1,0 +1,16 @@
+Lecture: Estimation in Logit Models
+Lec2 (Sec1): "Comparison: Binary data clusters move to coordinates 0 and 1 on a graph while a linear Least Squares line transforms across the grid. Spatial variance meters highlight fluctuating heights at different x-intervals, flashing red to indicate the violation of the constant variance assumption
+. Final State: Discrepancy between fixed-variance linear models and binary data variance, correcting the misconception that standard Least Squares estimation is suitable for binary outcomes
+."
+Lec2 (Sec2): "Process: Individual probability dials representing independent binary observations rotate as a central beta slider moves
+. Probability signal blocks accumulate into a multiplication filter to generate a Likelihood peak on a spatial graph
+. Final State: A maximized Likelihood curve at the optimal beta parameter, correcting the misconception that observations are variable rather than fixed during the parameter estimation process
+."
+Lec2 (Sec3): "Parallel Flow: A product-based Likelihood formula block transforms into a summation-based Log-Likelihood block as a Log operator wave passes over it
+. A Score Function vector splits from the log-likelihood to move along the curve, highlighting local gradients with spatial arrows
+. Final State: A zero-gradient marker at the peak of the log-likelihood function, correcting the misconception that the likelihood product is mathematically simpler to derive than the log-likelihood sum
+."
+Lec2 (Sec4): "Time Evolution: A beta point moves in discrete increments toward a target icon where the Score Function equals zero
+. With each step in the Fisher Scoring loop, the iteration counter accumulates and the distance to the target fades
+. Final State: A stabilized beta estimate after numerical convergence, correcting the misconception that logit models possess a closed-form analytical solution
+."

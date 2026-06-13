@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Accumulation: CDF Link Function S-Curve</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Outfit', sans-serif; }
+  .smooth-transition { transition: all 1.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+
+  .s-curve { fill: none; stroke-width: 5; stroke-linecap: round; transition: d 1.5s cubic-bezier(0.34, 1.56, 0.64, 1), stroke 1s; }
+  
+  .filter-glow-logit { box-shadow: 0 0 40px rgba(6, 182, 212, 0.5); border-color: #06b6d4; }
+  .filter-glow-probit { box-shadow: 0 0 40px rgba(217, 70, 239, 0.5); border-color: #d946ef; }
+
+  .scan-effect::after {
+    content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    animation: scan 2s infinite linear;
+  }
+  @keyframes scan { 100% { left: 200%; } }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-6xl h-[700px] bg-slate-900 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col overflow-hidden">
+  
+  <div class="absolute top-6 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-2xl font-bold text-slate-100 tracking-wider">CDF Link Functions: Logit vs Probit</h1>
+    <p class="text-cyan-400 mt-2 text-sm max-w-2xl mx-auto h-8 font-medium" id="narrator">
+      Click "Start Simulation" to process the linear predictor.
+    </p>
+  </div>
+
+  <div class="relative flex-1 w-full mt-24 mb-20 px-12 flex items-center justify-between gap-8">
+    
+    <!-- Left: Linear Predictor -->
+    <div class="flex flex-col gap-6 w-48 z-20">
+      <div class="text-slate-400 font-bold uppercase tracking-widest text-xs text-right border-b border-slate-700 pb-2">Linear Predictor η</div>
+      
+      <div class="signal-block bg-slate-800 p-4 rounded-xl border border-slate-600 font-mono font-bold text-right shadow-lg transform -translate-x-10 opacity-0 smooth-transition" id="b1">η = -2.5</div>
+      <div class="signal-block bg-slate-800 p-4 rounded-xl border border-slate-600 font-mono font-bold text-right shadow-lg transform -translate-x-10 opacity-0 smooth-transition" id="b2">η =  0.0</div>
+      <div class="signal-block bg-slate-800 p-4 rounded-xl border border-slate-600 font-mono font-bold text-right shadow-lg transform -translate-x-10 opacity-0 smooth-transition" id="b3">η =  2.5</div>
+    </div>
+
+    <!-- Center: Distribution Filter -->
+    <div id="filter-box" class="w-32 h-64 bg-slate-950/80 border-2 border-slate-600 rounded-2xl flex flex-col justify-center items-center gap-4 relative backdrop-blur-md smooth-transition z-20 opacity-0 scale-50">
+      <div class="text-[10px] text-slate-400 font-bold tracking-widest absolute top-4">LINK FUNCTION</div>
+      
+      <div id="btn-logit" class="w-24 py-2 bg-slate-800 text-slate-400 font-bold text-center rounded-lg border border-transparent smooth-transition">Logit</div>
+      <div id="btn-probit" class="w-24 py-2 bg-slate-800 text-slate-400 font-bold text-center rounded-lg border border-transparent smooth-transition">Probit</div>
+    </div>
+
+    <!-- Right: Graph Area -->
+    <div class="flex-1 h-[450px] bg-slate-950/50 rounded-2xl border border-slate-800/50 relative shadow-inner overflow-hidden backdrop-blur-sm opacity-0 translate-x-10 smooth-transition" id="graph-panel">
+      
+      <!-- Bounds Labels -->
+      <div class="absolute top-4 left-4 font-mono font-bold text-slate-300 z-10 bg-slate-900/80 px-2 py-1 rounded">π = 1.0 (Upper Bound)</div>
+      <div class="absolute bottom-4 left-4 font-mono font-bold text-slate-300 z-10 bg-slate-900/80 px-2 py-1 rounded">π = 0.0 (Lower Bound)</div>
+
+      <svg viewBox="0 0 600 450" preserveAspectRatio="none" class="absolute inset-0 w-full h-full">
+        <!-- Grid/Bounds -->
+        <line x1="0" y1="40" x2="600" y2="40" stroke="#475569" stroke-width="2" stroke-dasharray="6 6" />
+        <line x1="0" y1="410" x2="600" y2="410" stroke="#475569" stroke-width="2" stroke-dasharray="6 6" />
+        
+        <!-- Axis (η=0) -->
+        <line x1="300" y1="0" x2="300" y2="450" stroke="#334155" stroke-width="2" />
+        <line x1="0" y1="225" x2="600" y2="225" stroke="#334155" stroke-width="2" stroke-dasharray="4 4" opacity="0.5" />
+
+        <!-- S-Curve -->
+        <path id="curve" class="s-curve" d="" stroke="transparent" />
+      </svg>
+    </div>
+
+  </div>
+
+  <div id="final-message" class="absolute bottom-32 left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none">
+    <div class="bg-cyan-950/90 border border-cyan-500/50 backdrop-blur-md rounded-xl p-5 text-center mx-auto max-w-3xl shadow-[0_0_30px_rgba(6,182,212,0.15)]">
+      <h3 class="text-cyan-300 font-bold mb-2 text-lg">Misconception Corrected</h3>
+      <p class="text-slate-200 text-sm leading-relaxed">
+        The linear predictor maps through a cumulative distribution function (CDF) to yield probabilities. This corrects the misconception that <strong class="text-cyan-400">the linear predictor maps to probability directly without a link function</strong>. The S-curve naturally enforces the [0, 1] probability constraint.
+      </p>
+    </div>
+  </div>
+
+  <div class="absolute bottom-0 left-0 w-full h-24 bg-slate-800/80 border-t border-slate-700 flex items-center justify-center px-8 z-50 backdrop-blur-md">
+    <button id="start-btn" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-all">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  
+  const b1 = document.getElementById('b1');
+  const b2 = document.getElementById('b2');
+  const b3 = document.getElementById('b3');
+  
+  const filterBox = document.getElementById('filter-box');
+  const btnLogit = document.getElementById('btn-logit');
+  const btnProbit = document.getElementById('btn-probit');
+  
+  const graphPanel = document.getElementById('graph-panel');
+  const curve = document.getElementById('curve');
+
+  // Math approximations
+  function logistic(x) { return 1 / (1 + Math.exp(-x)); }
+  function probit(x) {
+    let sign = (x < 0) ? -1 : 1;
+    x = Math.abs(x) / Math.sqrt(2);
+    let t = 1.0 / (1.0 + 0.3275911 * x);
+    let y = 1.0 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+    return 0.5 * (1.0 + sign * y);
+  }
+
+  function getCurvePath(type) {
+    let d = `M 0 `;
+    for(let i=0; i<=600; i+=10) {
+      let eta = (i - 300) / 50; // map pixel to η range [-6, 6]
+      let pi = (type === 'logit') ? logistic(eta) : probit(eta);
+      let y = 410 - (pi * 370); // map π [0,1] to pixel range [410, 40]
+      d += `${i===0?'':'L '}${i} ${y} `;
+    }
+    return d;
+  }
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+
+  function resetScene() {
+    b1.classList.remove('opacity-100', 'translate-x-0', 'scan-effect');
+    b2.classList.remove('opacity-100', 'translate-x-0', 'scan-effect');
+    b3.classList.remove('opacity-100', 'translate-x-0', 'scan-effect');
+    
+    filterBox.classList.remove('opacity-100', 'scale-100', 'filter-glow-logit', 'filter-glow-probit');
+    
+    btnLogit.className = "w-24 py-2 bg-slate-800 text-slate-400 font-bold text-center rounded-lg border border-transparent smooth-transition";
+    btnProbit.className = "w-24 py-2 bg-slate-800 text-slate-400 font-bold text-center rounded-lg border border-transparent smooth-transition";
+    
+    graphPanel.classList.remove('opacity-100', 'translate-x-0');
+    curve.setAttribute('d', 'M 0 225 L 600 225'); // Flat line initially
+    curve.setAttribute('stroke', 'transparent');
+
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    narrator.textContent = "Simulation starting...";
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(800);
+
+    narrator.textContent = "Stage 1: Linear predictor signal blocks move into the processing area.";
+    
+    b1.classList.add('opacity-100', 'translate-x-0');
+    await sleep(300);
+    b2.classList.add('opacity-100', 'translate-x-0');
+    await sleep(300);
+    b3.classList.add('opacity-100', 'translate-x-0');
+
+    await sleep(1500);
+
+    narrator.textContent = "Stage 2: A central distribution filter links the predictor to probability space.";
+    
+    filterBox.classList.add('opacity-100', 'scale-100');
+    graphPanel.classList.add('opacity-100', 'translate-x-0');
+
+    await sleep(2000);
+
+    narrator.textContent = "Stage 3: The Logit link transforms the linear signals into a bounded S-shaped logistic curve.";
+    
+    b1.classList.add('scan-effect'); b2.classList.add('scan-effect'); b3.classList.add('scan-effect');
+    
+    filterBox.classList.add('filter-glow-logit');
+    btnLogit.className = "w-24 py-2 bg-cyan-500 text-slate-900 font-bold text-center rounded-lg border border-cyan-400 shadow-[0_0_15px_#06b6d4] smooth-transition";
+    
+    curve.setAttribute('stroke', '#06b6d4');
+    curve.setAttribute('d', getCurvePath('logit'));
+
+    await sleep(3500);
+
+    narrator.textContent = "Stage 4: Toggling to Probit adjusts the curve based on the standard normal CDF.";
+    
+    filterBox.classList.remove('filter-glow-logit');
+    filterBox.classList.add('filter-glow-probit');
+    
+    btnLogit.className = "w-24 py-2 bg-slate-800 text-slate-400 font-bold text-center rounded-lg border border-transparent smooth-transition";
+    btnProbit.className = "w-24 py-2 bg-fuchsia-500 text-slate-900 font-bold text-center rounded-lg border border-fuchsia-400 shadow-[0_0_15px_#d946ef] smooth-transition";
+    
+    curve.setAttribute('stroke', '#d946ef');
+    curve.setAttribute('d', getCurvePath('probit'));
+
+    await sleep(3500);
+
+    narrator.textContent = "Final State: S-curve probability output mapping the linear predictor through a CDF.";
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    startBtn.classList.remove('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  // Init
+  resetScene();
+  narrator.textContent = 'Click "Start Simulation" to process the linear predictor.';
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>

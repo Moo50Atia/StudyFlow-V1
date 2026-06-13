@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Process: Linear Combination Selection</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Outfit', sans-serif; }
+  .smooth-transition { transition: all 1s ease-in-out; }
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+
+  .wire { fill: none; stroke: rgba(255,255,255,0.05); stroke-width: 4; }
+  .flow { fill: none; stroke: #3b82f6; stroke-width: 4; stroke-dasharray: 20; opacity: 0; animation: flowAnim 1s linear infinite; }
+  @keyframes flowAnim { to { stroke-dashoffset: -40; } }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-6xl h-[700px] bg-slate-900 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col overflow-hidden">
+  
+  <div class="absolute top-6 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-2xl font-bold text-slate-100 tracking-wider">General Linear Hypothesis (Cβ = d)</h1>
+    <p class="text-cyan-400 mt-2 text-sm max-w-2xl mx-auto h-8 font-medium" id="narrator">
+      Click "Start Simulation" to filter the parameter vector.
+    </p>
+  </div>
+
+  <div class="relative flex-1 w-full mt-24 mb-20 px-12 flex items-center justify-center">
+    
+    <div class="w-full h-[500px] bg-slate-950/50 rounded-2xl border border-slate-800/50 relative shadow-inner overflow-hidden backdrop-blur-sm">
+      
+      <svg class="absolute inset-0 w-full h-full pointer-events-none z-0">
+        <path class="wire" d="M 120 120 L 400 150" />
+        <path class="wire" d="M 120 180 L 400 210" />
+        <path class="wire" d="M 120 240 L 400 270" />
+        <path class="wire" d="M 120 300 L 400 330" />
+        <path class="wire" d="M 120 360 L 400 390" />
+
+        <path id="f1" class="flow" d="M 120 180 L 400 210" />
+        <path id="f2" class="flow" d="M 120 240 L 400 270" />
+        <path id="f3" class="flow" d="M 120 300 L 400 330" />
+        
+        <path class="wire" d="M 700 270 L 900 270" />
+        <path id="f-out" class="flow stroke-emerald-500" d="M 700 270 L 900 270" />
+      </svg>
+
+      <!-- Vector Beta -->
+      <div class="absolute left-16 top-1/2 -translate-y-1/2 flex flex-col gap-4 z-10">
+        <div class="absolute -top-10 left-1/2 -translate-x-1/2 font-serif text-2xl font-bold text-blue-500 w-32 text-center">Vector β</div>
+        <div id="b0" class="w-16 h-12 bg-blue-900/20 border-2 border-blue-500 rounded-lg flex items-center justify-center font-mono font-bold text-lg text-blue-400 smooth-transition">β₀</div>
+        <div id="b1" class="w-16 h-12 bg-blue-900/20 border-2 border-blue-500 rounded-lg flex items-center justify-center font-mono font-bold text-lg text-blue-400 smooth-transition">β₁</div>
+        <div id="b2" class="w-16 h-12 bg-blue-900/20 border-2 border-blue-500 rounded-lg flex items-center justify-center font-mono font-bold text-lg text-blue-400 smooth-transition">β₂</div>
+        <div id="b3" class="w-16 h-12 bg-blue-900/20 border-2 border-blue-500 rounded-lg flex items-center justify-center font-mono font-bold text-lg text-blue-400 smooth-transition">β₃</div>
+        <div id="b4" class="w-16 h-12 bg-blue-900/20 border-2 border-blue-500 rounded-lg flex items-center justify-center font-mono font-bold text-lg text-blue-400 smooth-transition">β₄</div>
+      </div>
+
+      <!-- Selection Matrix C -->
+      <div id="device" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-[400px] bg-black/60 border-2 border-slate-600 border-dashed rounded-2xl flex flex-col items-center justify-center gap-3 backdrop-blur-md smooth-transition z-10">
+        <div class="font-serif text-2xl font-bold text-purple-500 tracking-widest uppercase mb-4">Matrix C</div>
+        <div id="fs1" class="w-4/5 h-12 border-2 border-slate-700 rounded-lg flex items-center justify-center font-mono text-slate-500 smooth-transition">0 · β₀</div>
+        <div id="fs2" class="w-4/5 h-12 border-2 border-slate-700 rounded-lg flex items-center justify-center font-mono text-slate-500 smooth-transition opacity-50">1 · β₁</div>
+        <div id="fs3" class="w-4/5 h-12 border-2 border-slate-700 rounded-lg flex items-center justify-center font-mono text-slate-500 smooth-transition opacity-50">-1 · β₂</div>
+        <div id="fs4" class="w-4/5 h-12 border-2 border-slate-700 rounded-lg flex items-center justify-center font-mono text-slate-500 smooth-transition opacity-50">0 · β₃</div>
+        <div id="fs5" class="w-4/5 h-12 border-2 border-slate-700 rounded-lg flex items-center justify-center font-mono text-slate-500 smooth-transition">0 · β₄</div>
+      </div>
+
+      <!-- Output Hypothesis d -->
+      <div id="out-d" class="absolute right-12 top-1/2 -translate-y-1/2 flex flex-col gap-6 opacity-0 translate-x-8 smooth-transition z-10">
+        <div class="absolute -top-12 left-1/2 -translate-x-1/2 font-serif text-2xl font-bold text-emerald-500 w-48 text-center">Hypothesis d</div>
+        <div class="w-32 h-16 bg-emerald-900/20 border-2 border-emerald-500 rounded-xl flex items-center justify-center font-mono font-bold text-xl text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.3)]">β₁ - β₂ = 0</div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <div id="final-message" class="absolute bottom-32 left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none">
+    <div class="bg-purple-950/90 border border-purple-500/50 backdrop-blur-md rounded-xl p-5 text-center mx-auto max-w-3xl shadow-[0_0_30px_rgba(168,85,247,0.15)]">
+      <h3 class="text-purple-300 font-bold mb-2 text-lg">Misconception Corrected</h3>
+      <p class="text-slate-200 text-sm leading-relaxed">
+        The linear combination matrix selects and restricts parameters simultaneously. This corrects the misconception that <strong class="text-purple-400">hypothesis testing is limited to single coefficients rather than general combinations</strong>. The constraint Cβ=d is highly flexible.
+      </p>
+    </div>
+  </div>
+
+  <div class="absolute bottom-0 left-0 w-full h-24 bg-slate-800/80 border-t border-slate-700 flex items-center justify-center px-8 z-50 backdrop-blur-md">
+    <button id="start-btn" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-all">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  
+  const b0 = document.getElementById('b0'); const b1 = document.getElementById('b1');
+  const b2 = document.getElementById('b2'); const b3 = document.getElementById('b3');
+  const b4 = document.getElementById('b4');
+  
+  const f1 = document.getElementById('f1'); const f2 = document.getElementById('f2');
+  const f3 = document.getElementById('f3'); const fOut = document.getElementById('f-out');
+  
+  const device = document.getElementById('device');
+  const fs2 = document.getElementById('fs2'); const fs3 = document.getElementById('fs3'); const fs4 = document.getElementById('fs4');
+  
+  const outD = document.getElementById('out-d');
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+
+  function resetScene() {
+    [b0,b1,b2,b3,b4].forEach(b => {
+      b.style.opacity = '1';
+      b.style.backgroundColor = 'rgba(30, 58, 138, 0.2)'; // blue-900/20
+      b.style.color = '#60a5fa'; // blue-400
+    });
+    
+    [f1,f2,f3,fOut].forEach(f => f.style.opacity = '0');
+    
+    [fs2,fs3,fs4].forEach(fs => {
+      fs.style.opacity = '0.5';
+      fs.style.borderColor = '#334155';
+      fs.style.color = '#64748b';
+      fs.style.backgroundColor = 'transparent';
+      fs.style.boxShadow = 'none';
+    });
+    
+    device.style.borderColor = '#475569';
+    device.style.boxShadow = 'none';
+    
+    outD.classList.remove('opacity-100', 'translate-x-0');
+    outD.classList.add('opacity-0', 'translate-x-8');
+
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    narrator.textContent = "Simulation starting...";
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(800);
+
+    narrator.textContent = "Stage 1: A linear coefficient vector β flows toward the selection matrix.";
+    
+    b1.style.backgroundColor = '#3b82f6'; b1.style.color = '#fff';
+    b2.style.backgroundColor = '#3b82f6'; b2.style.color = '#fff';
+    b0.style.opacity = '0.2'; b3.style.opacity = '0.2'; b4.style.opacity = '0.2';
+    
+    await sleep(800);
+    f1.style.opacity = '1'; f2.style.opacity = '1'; f3.style.opacity = '1';
+
+    await sleep(2000);
+
+    narrator.textContent = "Stage 2: Specific parameter blocks highlight and transform as they are filtered.";
+    
+    fs2.style.opacity = '1'; fs3.style.opacity = '1'; fs4.style.opacity = '1';
+    device.style.boxShadow = '0 0 50px rgba(168, 85, 247, 0.4)';
+    device.style.borderColor = '#a855f7';
+    
+    [fs2,fs3,fs4].forEach(fs => {
+      fs.style.borderColor = '#a855f7';
+      fs.style.color = '#fff';
+      fs.style.backgroundColor = 'rgba(168, 85, 247, 0.2)';
+      fs.style.boxShadow = 'inset 0 0 20px rgba(168, 85, 247, 0.4)';
+    });
+
+    f1.style.opacity = '0'; f2.style.opacity = '0'; f3.style.opacity = '0';
+
+    await sleep(2000);
+
+    narrator.textContent = "Stage 3: The filtered signal matches the hypothesized linear combination d.";
+    
+    fOut.style.opacity = '1';
+    
+    await sleep(1000);
+
+    outD.classList.replace('opacity-0', 'opacity-100');
+    outD.classList.replace('translate-x-8', 'translate-x-0');
+    fOut.style.opacity = '0';
+
+    await sleep(1500);
+
+    narrator.textContent = "Final State: A mathematically restricted parameter set Cβ=d.";
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    startBtn.classList.remove('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  // Init
+  resetScene();
+  narrator.textContent = 'Click "Start Simulation" to filter the parameter vector.';
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>

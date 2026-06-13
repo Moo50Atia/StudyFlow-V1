@@ -1,0 +1,116 @@
+Lecture: Logistic Regression
+=============================
+
+--- Scene 1 Design (Sec1): Parallel Flow – Three Synchronized Views (Probability, Odds, Logit) ---
+
+LAYOUT:
+- Three vertically stacked graph panels using CSS Grid (grid-template-rows: 1fr 1fr 1fr), each containing an SVG coordinate system.
+- Top panel: S-curve (Probability π(x) vs x). Middle panel: Exponential curve (Odds vs x). Bottom panel: Straight diagonal line (Logit log-odds vs x).
+- A central vertical x-signal line spans all three panels, acting as a shared cursor.
+- A point-symmetry marker at (0, 0.5) on the S-curve panel (SVG circle with crosshair).
+
+ANIMATIONS:
+- A signal dot travels horizontally along the x-axis across all three panels simultaneously (JS requestAnimationFrame controlling SVG circle cx attribute).
+- As the dot moves, each curve traces its shape in real-time using progressive SVG path drawing (stroke-dashoffset decrement).
+- The point-symmetry marker at (0, 0.5) pulses with a ring expansion animation (SVG circle with increasing r and decreasing opacity).
+- All three graphs synchronize: moving the x-position updates corresponding y-values on all three curves simultaneously.
+
+INTERACTIVITY:
+- User drags the x-signal line horizontally; JS calculates π(x) = 1/(1+exp(-x)), Odds = exp(x), Logit = x simultaneously and updates cursor positions on all three panels.
+- Hovering over any curve panel highlights its corresponding mathematical formula in a header label.
+- A "Play Animation" button auto-sweeps the signal from left to right, drawing all three curves.
+
+COLOR PALETTE:
+- Panel backgrounds in graduated dark tones (#0c0a09, #1c1917, #292524). S-curve in cyan (#06b6d4), Odds curve in amber (#f59e0b), Logit line in emerald (#10b981). Signal cursor line in white (#f8fafc). Symmetry marker in rose (#f43f5e).
+
+VARIABLE NAMING:
+- graphPanel_Probability, graphPanel_Odds, graphPanel_Logit, sCurve_probability_pi_x, exponentialCurve_odds, diagonalLine_logit, xSignalLine, signalDot, symmetryMarker_0_05, probabilityFunction, oddsFunction, logitFunction, synchronizedCursor.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required. Real-time math calculations in JS.
+
+
+--- Scene 2 Design (Sec2): Comparison – β₁ Sign as Probability Compass ---
+
+LAYOUT:
+- A horizontal slider representing β₁ value, centered at 0, ranging from negative to positive (custom styled <input type="range">).
+- A large S-curve graph (SVG) that updates its shape based on the β₁ sign.
+- Directional arrows (SVG <polygon> or CSS triangles) overlaid on the curve to show increasing/decreasing probability.
+- A compass-like indicator showing the β₁ direction.
+
+ANIMATIONS:
+- As the β₁ slider moves from negative to positive, the S-curve smoothly flips its orientation using JS to recalculate and redraw: from downward-sloping (decreasing probability) to upward-sloping (increasing probability). The SVG path d attribute transitions via requestAnimationFrame interpolation.
+- The directional arrows rotate 180° using CSS transform: rotate() when the sign changes.
+- A compass needle (SVG line with arrowhead) rotates from "Decreasing" to "Increasing" sector.
+- At β₁ = 0, the curve flattens to a horizontal line (no effect), and the compass spins to neutral.
+
+INTERACTIVITY:
+- The β₁ slider is the primary control; real-time updates redraw the S-curve using π(x) = 1/(1+exp(-(β₀ + β₁·x))).
+- A secondary slider for β₀ shifts the curve left/right without changing slope direction.
+- The compass needle follows the β₁ sign with smooth rotation.
+- Clicking the curve at any x-point shows the probability value in a tooltip.
+
+COLOR PALETTE:
+- Negative β₁ region in coral/red gradient (#ef4444 → #dc2626). Positive β₁ region in green gradient (#22c55e → #16a34a). Neutral at amber (#f59e0b). S-curve line adapts color to match the sign. Background (#0f172a).
+
+VARIABLE NAMING:
+- betaSlider_beta1, betaSlider_beta0, sCurveGraph_SVG, probabilityCurve_pi_x, directionalArrow_increasing, directionalArrow_decreasing, compassIndicator, compassNeedle, curveOrientation, signEffect_positive, signEffect_negative, logisticFunction.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required.
+
+
+--- Scene 3 Design (Sec3): Accumulation – Odds Ratio & Multiplicative Scaling ---
+
+LAYOUT:
+- A horizontal axis at the bottom showing the predictor x with increment markers (+1 steps).
+- A vertical "Odds Meter" bar gauge on the left that accumulates value multiplicatively.
+- An exp(β₁) multiplier icon (styled badge) positioned between each x-increment.
+- A probability curve overlay (SVG) on the right showing the non-linear π(x) to π(x̃) shift.
+
+ANIMATIONS:
+- The x predictor block moves one step to the right (CSS translateX with step timing).
+- The exp(β₁) multiplier icon pulses and the Odds Meter multiplies its current height by exp(β₁) (JS calculation, CSS height transition on the meter bar).
+- On the probability curve, a dot at π(x) moves to π(x+1) along the S-curve, with a trail line showing the non-constant change (SVG animated line).
+- Each accumulation step triggers a ripple effect on the Odds Meter (CSS radial gradient animation).
+
+INTERACTIVITY:
+- User clicks a "Step +1" button to increment x by 1 and see the multiplicative odds change.
+- A β₁ slider adjusts the multiplier value; the exp(β₁) badge updates in real-time.
+- Hovering over the Odds Meter at any step shows the exact odds value. Hovering over the probability curve shows the non-linear probability shift.
+- A "Reset" button returns x to the starting value.
+
+COLOR PALETTE:
+- Odds Meter fills with gradient from indigo (#4f46e5) to violet (#7c3aed) as it accumulates. exp(β₁) badge in gold (#eab308) on dark background. Probability curve in cyan (#06b6d4). Step markers in white (#e2e8f0). Background (#020617).
+
+VARIABLE NAMING:
+- predictorAxis_x, incrementMarker, oddsMeter_verticalBar, expBeta1_multiplier, oddsValue_current, probabilityCurve_SVG, probabilityShift_pi_x_to_pi_xTilde, stepButton, beta1Slider, multiplicativeScaling, nonLinearChange, accumulationStep, oddsRatio.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required. JS math for exp() and logistic function.
+
+
+--- Scene 4 Design (Sec4): Comparison – Centering & Intercept Interpretation ---
+
+LAYOUT:
+- A scatter plot (SVG) showing a raw data cloud of points (e.g., income vs car purchase probability).
+- A horizontal axis with a movable "zero" origin marker.
+- A β₀ intercept marker on the y-axis that shifts position as the data is centered.
+- Before/after state: the data cloud shifts horizontally to align its mean at x=0.
+
+ANIMATIONS:
+- The raw data cloud initially appears with its mean off-center. A "Center Data" button triggers the entire cloud to slide horizontally (CSS transform: translateX) until the mean aligns at x=0.
+- As the data shifts, the β₀ marker on the y-axis animates from an extreme position (far from data) to the center of the cloud (CSS transition on transform: translateY).
+- A visual label transforms from "β₀ = value at x=0 (extreme)" to "β₀ = probability at mean x (interpretable)" with a text fade transition.
+- A vertical reference line at the old x=0 fades out while a new one at the mean appears.
+
+INTERACTIVITY:
+- A "Center / Un-center" toggle button animates the data cloud between raw and centered positions.
+- User can drag the origin marker along the x-axis; the β₀ marker updates accordingly on the y-axis, showing how intercept interpretation changes.
+- Hovering over β₀ shows its value as both logit and probability.
+- Individual data points show their (x, y) values on hover.
+
+COLOR PALETTE:
+- Data cloud points in teal (#14b8a6). β₀ marker in bright magenta (#d946ef) with glow. Axis lines in muted gray (#475569). Centered state background subtle green tint. Uncentered state background subtle red tint. Background (#0f172a).
+
+VARIABLE NAMING:
+- scatterPlot_SVG, dataCloud_points, dataCloud_mean, originMarker_zero, interceptMarker_beta0, centeringToggle, rawDataPosition, centeredDataPosition, interceptValue_logit, interceptValue_probability, meanIncome_x, referenceVerticalLine.
+
+TECHNOLOGY: HTML + CSS + JS + SVG. No 3D required.

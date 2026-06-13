@@ -1,0 +1,21 @@
+Lecture: GLMs for Continuous, Discrete, and Grouped Data
+Lec3 (Sec1): "Comparison: A Normal curve signal and an Exponential curve signal move along a horizontal axis bisected by a y=0 barrier
+. The Normal signal transforms to overlap the barrier into negative space, while the Exponential signal highlights its constraint at the zero-point
+. A log-link formula log(μ)=x 
+T
+ β overlays the coordinate grid to transform the systematic component
+. Final State: Strictly positive duration predictions constrained by the y=0 barrier, correcting the misconception that the Normal distribution can safely model non-negative waiting times."
+Lec3 (Sec2): "Process: Discrete probability spikes representing y∈{0,1,2,…} move along a horizontal axis
+. A lambda signal slider transforms the spike heights and positions, while expectation and variance meters highlight identical numerical accumulation
+. A log-link formula log(λ) overlays the signal path to represent the canonical link
+. Final State: Discrete count distribution with locked mean-variance equality, correcting the misconception that count data variance remains independent of the mean."
+Lec3 (Sec3): "Accumulation: Individual observation blocks y 
+∗
+  with matching covariate signals move into a central aggregation device
+. The blocks accumulate and transform into grouped average blocks  
+y
+ˉ
+​
+ , causing memory and processing meters to fade to low levels
+. A dispersion overlay ϕ/n highlights the scaling effect as group size markers increment
+. Final State: A consolidated grouped data structure with scaled dispersion parameters, correcting the misconception that individual-level data is required for statistically equivalent estimation results."

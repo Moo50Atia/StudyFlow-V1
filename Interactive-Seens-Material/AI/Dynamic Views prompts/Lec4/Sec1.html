@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parallel Flow: Probability, Odds, and Logit</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Outfit', sans-serif; }
+  
+  /* Smooth UI Transitions */
+  .smooth-transition { transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+  
+  /* SVG Custom styles */
+  .axis-line { stroke: #334155; stroke-width: 2; }
+  .grid-line { stroke: rgba(255,255,255,0.05); stroke-width: 1; stroke-dasharray: 4 4; }
+  .curve { fill: none; stroke-width: 4; stroke-linecap: round; }
+  .c-prob { stroke: #3b82f6; }
+  .c-odds { stroke: #f59e0b; }
+  .c-logit { stroke: #10b981; }
+  .marker { fill: #fff; r: 6; box-shadow: 0 0 10px #fff; transition: cx 0.1s linear, cy 0.1s linear; }
+  .coord-label { fill: #94a3b8; font-size: 12px; font-family: monospace; }
+  .sym-marker { fill: #3b82f6; r: 6; stroke: #fff; stroke-width: 2; }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-6xl h-[800px] bg-slate-900 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col overflow-hidden">
+  
+  <!-- Header / Narrator -->
+  <div class="absolute top-6 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-2xl font-bold text-slate-100 tracking-wider">Three Views of Logistic Regression</h1>
+    <p class="text-cyan-400 mt-2 text-sm max-w-2xl mx-auto h-8 font-medium" id="narrator">
+      Click "Start Simulation" to observe the signal flow.
+    </p>
+  </div>
+
+  <!-- Central Workspace -->
+  <div class="relative flex-1 w-full mt-24 mb-20 px-8 flex gap-6">
+    
+    <!-- Probability Panel -->
+    <div class="flex-1 bg-slate-950/50 rounded-xl border border-slate-800/50 flex flex-col relative overflow-hidden backdrop-blur-sm">
+      <div class="p-4 text-center font-bold border-b border-slate-800 text-blue-500 bg-white/5">Probability π(x)</div>
+      <div class="relative flex-1 w-full h-full p-4">
+        <svg viewBox="-5 -1.2 10 2.4" preserveAspectRatio="none" class="w-full h-full overflow-visible">
+          <line x1="-5" y1="0" x2="5" y2="0" class="axis-line"/>
+          <line x1="0" y1="-1" x2="0" y2="1" class="axis-line"/>
+          <line x1="-5" y1="-1" x2="5" y2="-1" class="grid-line"/>
+          <line x1="-5" y1="1" x2="5" y2="1" class="grid-line"/>
+          
+          <path id="path-prob" class="curve c-prob" d=""/>
+          <circle id="sym-prob" cx="0" cy="0" class="sym-marker"/>
+          <text x="0.3" y="-0.1" class="coord-label" fill="#fff">(0, 0.5)</text>
+          
+          <circle id="dot-prob" class="marker hidden" cx="-5" cy="0"/>
+          <text id="lbl-prob" class="coord-label hidden" x="-5" y="0"></text>
+        </svg>
+        <div class="absolute bottom-4 left-4 font-mono text-sm bg-black/50 px-3 py-1.5 rounded-lg text-slate-300">π = 1 / (1 + e^-η)</div>
+      </div>
+    </div>
+
+    <!-- Odds Panel -->
+    <div class="flex-1 bg-slate-950/50 rounded-xl border border-slate-800/50 flex flex-col relative overflow-hidden backdrop-blur-sm">
+      <div class="p-4 text-center font-bold border-b border-slate-800 text-amber-500 bg-white/5">Odds</div>
+      <div class="relative flex-1 w-full h-full p-4">
+        <svg viewBox="-5 -1 10 10" preserveAspectRatio="none" class="w-full h-full overflow-visible">
+          <line x1="-5" y1="0" x2="5" y2="0" class="axis-line"/>
+          <line x1="0" y1="0" x2="0" y2="10" class="axis-line"/>
+          
+          <path id="path-odds" class="curve c-odds" d=""/>
+          
+          <circle id="dot-odds" class="marker hidden" cx="-5" cy="0"/>
+          <text id="lbl-odds" class="coord-label hidden" x="-5" y="0"></text>
+        </svg>
+        <div class="absolute bottom-4 left-4 font-mono text-sm bg-black/50 px-3 py-1.5 rounded-lg text-slate-300">Odds = π / (1 - π) = e^η</div>
+      </div>
+    </div>
+
+    <!-- Logit Panel -->
+    <div class="flex-1 bg-slate-950/50 rounded-xl border border-slate-800/50 flex flex-col relative overflow-hidden backdrop-blur-sm">
+      <div class="p-4 text-center font-bold border-b border-slate-800 text-emerald-500 bg-white/5">Logit η(x)</div>
+      <div class="relative flex-1 w-full h-full p-4">
+        <svg viewBox="-5 -5 10 10" preserveAspectRatio="none" class="w-full h-full overflow-visible">
+          <line x1="-5" y1="0" x2="5" y2="0" class="axis-line"/>
+          <line x1="0" y1="-5" x2="0" y2="5" class="axis-line"/>
+          
+          <path id="path-logit" class="curve c-logit" d=""/>
+          
+          <circle id="dot-logit" class="marker hidden" cx="-5" cy="0"/>
+          <text id="lbl-logit" class="coord-label hidden" x="-5" y="0"></text>
+        </svg>
+        <div class="absolute bottom-4 left-4 font-mono text-sm bg-black/50 px-3 py-1.5 rounded-lg text-slate-300">η = ln(Odds) = β₀ + β₁x</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Final Message Overlay -->
+  <div id="final-message" class="absolute bottom-32 left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none">
+    <div class="bg-blue-950/90 border border-blue-500/50 backdrop-blur-md rounded-xl p-5 text-center mx-auto max-w-3xl shadow-[0_0_30px_rgba(59,130,246,0.15)]">
+      <h3 class="text-blue-300 font-bold mb-2 text-lg">Misconception Corrected</h3>
+      <p class="text-slate-200 text-sm leading-relaxed">
+        Three synchronized mathematical views of a single model state. This corrects the misconception that <strong class="text-blue-400">Probability and Logit are distinct, unrelated models</strong>. They are just mathematical transformations of the same underlying signal.
+      </p>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="absolute bottom-0 left-0 w-full h-24 bg-slate-800/80 border-t border-slate-700 flex items-center justify-center px-8 z-50 backdrop-blur-md gap-8">
+    <div class="flex items-center gap-4 text-slate-300 font-mono">
+      <span>Signal x:</span>
+      <span id="x-val" class="text-cyan-400 w-12 text-right">-5.00</span>
+    </div>
+    <button id="start-btn" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-all">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  // DOM Elements
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  const xVal = document.getElementById('x-val');
+
+  // Markers and Labels
+  const dProb = document.getElementById('dot-prob'), lProb = document.getElementById('lbl-prob');
+  const dOdds = document.getElementById('dot-odds'), lOdds = document.getElementById('lbl-odds');
+  const dLogit = document.getElementById('dot-logit'), lLogit = document.getElementById('lbl-logit');
+
+  // Helpers
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+
+  function drawCurves() {
+    let pathProb = "M -5 ";
+    let pathOdds = "M -5 ";
+    let pathLogit = "M -5 ";
+    
+    for(let x = -5; x <= 5; x += 0.1) {
+      let eta = x; // assuming b0=0, b1=1
+      
+      let prob = 1 / (1 + Math.exp(-eta));
+      let py = (0.5 - prob) * 2; // map [0,1] to [1,-1] in viewBox
+      pathProb += `${x === -5 ? '' : 'L '}${x} ${py} `;
+      
+      let odds = Math.exp(eta);
+      let oy = -odds; // svg y is down
+      pathOdds += `${x === -5 ? '' : 'L '}${x} ${oy} `;
+      
+      let ly = -eta;
+      pathLogit += `${x === -5 ? '' : 'L '}${x} ${ly} `;
+    }
+    
+    document.getElementById('path-prob').setAttribute('d', pathProb);
+    document.getElementById('path-odds').setAttribute('d', pathOdds);
+    document.getElementById('path-logit').setAttribute('d', pathLogit);
+  }
+
+  function updateVisuals(x) {
+    const eta = x;
+    xVal.textContent = x.toFixed(2);
+    
+    // Probability
+    const prob = 1 / (1 + Math.exp(-eta));
+    const py = (0.5 - prob) * 2;
+    dProb.setAttribute('cx', x); dProb.setAttribute('cy', py);
+    lProb.setAttribute('x', x + 0.3); lProb.setAttribute('y', py - 0.1);
+    lProb.textContent = prob.toFixed(2);
+
+    // Odds
+    const odds = Math.exp(eta);
+    const oy = Math.max(-10, -odds); // Cap visually
+    dOdds.setAttribute('cx', x); dOdds.setAttribute('cy', oy);
+    if(odds <= 10) {
+      lOdds.setAttribute('x', x + 0.3); lOdds.setAttribute('y', oy - 0.5);
+      lOdds.textContent = odds.toFixed(2);
+      lOdds.classList.remove('hidden');
+    } else {
+      lOdds.classList.add('hidden');
+    }
+
+    // Logit
+    const ly = -eta;
+    dLogit.setAttribute('cx', x); dLogit.setAttribute('cy', ly);
+    lLogit.setAttribute('x', x + 0.3); lLogit.setAttribute('y', ly - 0.5);
+    lLogit.textContent = eta.toFixed(2);
+  }
+
+  function resetScene() {
+    updateVisuals(-5);
+    dProb.classList.add('hidden'); lProb.classList.add('hidden');
+    dOdds.classList.add('hidden'); lOdds.classList.add('hidden');
+    dLogit.classList.add('hidden'); lLogit.classList.add('hidden');
+    
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    
+    narrator.textContent = "Simulation starting...";
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(500);
+
+    // Reveal markers
+    dProb.classList.remove('hidden'); lProb.classList.remove('hidden');
+    dOdds.classList.remove('hidden'); lOdds.classList.remove('hidden');
+    dLogit.classList.remove('hidden'); lLogit.classList.remove('hidden');
+
+    narrator.textContent = "Stage 1: A central x signal splits and moves simultaneously through three transformation filters...";
+    
+    // Animate from x = -5 to 5
+    for(let x = -5; x <= 5; x += 0.1) {
+      updateVisuals(x);
+      
+      if(Math.abs(x) < 0.05) {
+        narrator.textContent = "Stage 2: Point-symmetry marker crossed at coordinate (0, 0.5) on the S-curve.";
+        await sleep(800); // Pause at center
+      }
+      
+      await sleep(40);
+    }
+
+    await sleep(500);
+
+    narrator.textContent = "Final State: Synchronized mathematical views.";
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    startBtn.classList.remove('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  // Init
+  drawCurves();
+  resetScene();
+  narrator.textContent = 'Click "Start Simulation" to observe the signal flow.';
+
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Process: Newton-Raphson Update Step</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Outfit', sans-serif; }
+  .smooth-transition { transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-5xl h-[700px] bg-slate-900 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col overflow-hidden">
+  
+  <div class="absolute top-6 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-2xl font-bold text-slate-100 tracking-wider">Newton-Raphson Geometric Update</h1>
+    <p class="text-cyan-400 mt-2 text-sm max-w-2xl mx-auto h-8 font-medium" id="narrator">
+      Click "Start Simulation" to observe the root-finding process.
+    </p>
+  </div>
+
+  <div class="relative flex-1 w-full mt-24 mb-20 px-12 flex items-center justify-center">
+    
+    <div class="w-full h-full max-w-4xl bg-slate-950/50 rounded-2xl border border-slate-800/50 relative shadow-inner overflow-hidden p-6 backdrop-blur-sm">
+      
+      <div class="absolute top-6 right-6 bg-black/60 border border-slate-700 rounded-xl p-4 font-serif text-lg backdrop-blur-md z-20">
+        <div class="text-pink-500 font-bold mb-2">β⁽ᵏ⁺¹⁾ = β⁽ᵏ⁾ + F_obs⁻¹ · s(β⁽ᵏ⁾)</div>
+        <div class="text-xs font-sans text-slate-400">
+          Slope of tangent = -F_obs <br>
+          Intersection with x-axis is the new estimate.
+        </div>
+      </div>
+
+      <svg viewBox="0 0 800 400" class="w-full h-full overflow-visible z-10">
+        <!-- Axes -->
+        <line x1="50" y1="200" x2="750" y2="200" stroke="#475569" stroke-width="2" />
+        <text x="760" y="205" fill="#94a3b8" font-family="monospace">β</text>
+        
+        <line x1="400" y1="50" x2="400" y2="350" stroke="#475569" stroke-width="2" />
+        <text x="410" y="40" fill="#94a3b8" font-family="monospace">s(β)</text>
+
+        <!-- Score Curve -->
+        <path d="M 100 50 Q 250 50 400 200 T 700 350" fill="none" stroke="#facc15" stroke-width="4" stroke-linecap="round" />
+        <text x="120" y="40" fill="#facc15" font-weight="bold">Score s(β)</text>
+
+        <!-- Initial Beta -->
+        <circle cx="150" cy="200" r="8" fill="#ec4899" id="b-init" style="filter: drop-shadow(0 0 10px #ec4899);" />
+        <text x="130" y="225" fill="#ec4899" font-weight="bold" font-family="monospace">β⁽ᵏ⁾</text>
+        
+        <!-- Projection to curve -->
+        <line x1="150" y1="200" x2="150" y2="76" stroke="rgba(255,255,255,0.2)" stroke-dasharray="5 5" stroke-width="2" class="opacity-0 smooth-transition" id="l-proj" />
+        <circle cx="150" cy="76" r="6" fill="#facc15" class="opacity-0 smooth-transition" id="p-score" />
+        <text x="160" y="70" fill="#facc15" font-family="monospace" font-weight="bold" class="opacity-0 smooth-transition" id="lbl-score">s(β⁽ᵏ⁾)</text>
+
+        <!-- Tangent Line -->
+        <line x1="50" y1="41" x2="600" y2="233.5" stroke="#38bdf8" stroke-width="3" class="opacity-0 smooth-transition" id="l-tang" />
+        <text x="610" y="240" fill="#38bdf8" font-family="monospace" font-weight="bold" class="opacity-0 smooth-transition" id="lbl-tang">Slope = -F_obs</text>
+
+        <!-- New Beta -->
+        <line x1="504" y1="200" x2="504" y2="260" stroke="rgba(255,255,255,0.2)" stroke-dasharray="5 5" stroke-width="2" class="opacity-0 smooth-transition" id="l-proj2" />
+        <circle cx="504" cy="200" r="8" fill="#ec4899" class="opacity-0 smooth-transition" id="b-new" style="filter: drop-shadow(0 0 10px #ec4899);" />
+        <text x="490" y="225" fill="#ec4899" font-family="monospace" font-weight="bold" class="opacity-0 smooth-transition" id="lbl-new">β⁽ᵏ⁺¹⁾</text>
+      </svg>
+    </div>
+
+  </div>
+
+  <div id="final-message" class="absolute bottom-32 left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none">
+    <div class="bg-pink-950/90 border border-pink-500/50 backdrop-blur-md rounded-xl p-5 text-center mx-auto max-w-3xl shadow-[0_0_30px_rgba(236,72,153,0.15)]">
+      <h3 class="text-pink-300 font-bold mb-2 text-lg">Misconception Corrected</h3>
+      <p class="text-slate-200 text-sm leading-relaxed">
+        The update direction relies directly on the local curvature (tangent). This corrects the misconception that <strong class="text-pink-400">the Newton-Raphson update direction is independent of the observed gradient</strong>. The inverse Observed Fisher Information precisely guides the step to the root.
+      </p>
+    </div>
+  </div>
+
+  <div class="absolute bottom-0 left-0 w-full h-24 bg-slate-800/80 border-t border-slate-700 flex items-center justify-center px-8 z-50 backdrop-blur-md">
+    <button id="start-btn" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-all">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  
+  const lProj = document.getElementById('l-proj');
+  const pScore = document.getElementById('p-score');
+  const lblScore = document.getElementById('lbl-score');
+  const lTang = document.getElementById('l-tang');
+  const lblTang = document.getElementById('lbl-tang');
+  const lProj2 = document.getElementById('l-proj2');
+  const bNew = document.getElementById('b-new');
+  const lblNew = document.getElementById('lbl-new');
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+
+  function resetScene() {
+    [lProj, pScore, lblScore, lTang, lblTang, lProj2, bNew, lblNew].forEach(el => el.classList.remove('opacity-100'));
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    narrator.textContent = "Simulation starting...";
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(800);
+
+    narrator.textContent = "Stage 1: A score function curve s(β) is evaluated at the current estimate β⁽ᵏ⁾.";
+    lProj.classList.add('opacity-100');
+    pScore.classList.add('opacity-100');
+    lblScore.classList.add('opacity-100');
+    
+    await sleep(2000);
+
+    narrator.textContent = "Stage 2: A tangent signal highlights, using the inverse Observed Fisher Information as a directional vector.";
+    lTang.classList.add('opacity-100');
+    lblTang.classList.add('opacity-100');
+
+    await sleep(2500);
+
+    narrator.textContent = "Stage 3: The intersection coordinate transforms into the new estimate β⁽ᵏ⁺¹⁾.";
+    lProj2.classList.add('opacity-100');
+    bNew.classList.add('opacity-100');
+    lblNew.classList.add('opacity-100');
+
+    await sleep(2000);
+
+    narrator.textContent = "Final State: Root discovery via local curvature analysis.";
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    startBtn.classList.remove('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  // Init
+  resetScene();
+  narrator.textContent = 'Click "Start Simulation" to observe the root-finding process.';
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trans Effect Synthesis Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        .glow-text { text-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
+        .disabled-btn { opacity: 0.5; cursor: not-allowed; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans antialiased overflow-hidden">
+
+    <div class="flex flex-col lg:flex-row min-h-screen">
+        
+        <!-- Simulation Viewport -->
+        <div class="flex-1 relative overflow-hidden flex flex-col p-4">
+            
+            <!-- Top Banner: Trans Effect Scale -->
+            <div class="mb-4 bg-slate-900 border border-slate-700 rounded-2xl p-4 flex items-center justify-between shadow-lg z-10">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border-2 border-indigo-500">
+                        <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-bold text-slate-300 uppercase tracking-wider">The Trans Effect Rule</h2>
+                        <p class="text-xs text-slate-400">Ligands direct incoming substitutions to the position opposite (trans) to themselves.</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4 bg-slate-950 px-6 py-2 rounded-xl border border-slate-800">
+                    <span class="text-emerald-400 font-bold text-lg drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]">Cl⁻</span>
+                    <span class="text-slate-500 font-bold text-xl">>>></span>
+                    <span class="text-sky-400 font-bold drop-shadow-[0_0_5px_rgba(56,189,248,0.5)]">NH₃</span>
+                    <span class="text-xs text-slate-500 ml-2">(Chloride is a much stronger director)</span>
+                </div>
+            </div>
+
+            <div class="flex-1 relative rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden">
+                <canvas id="sim-canvas" class="w-full h-full absolute inset-0"></canvas>
+                
+                <!-- Track Labels -->
+                <div class="absolute top-4 left-4 text-slate-400 font-semibold tracking-widest uppercase text-sm opacity-50 pointer-events-none">Path A: Synthesis of Cisplatin</div>
+                <div class="absolute top-[50%] left-4 text-slate-400 font-semibold tracking-widest uppercase text-sm opacity-50 pointer-events-none mt-4">Path B: Synthesis of Transplatin</div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="w-full lg:w-[420px] bg-slate-900 border-l border-slate-800 p-6 flex flex-col gap-6 overflow-y-auto max-h-screen z-10 shadow-[-10px_0_20px_rgba(0,0,0,0.3)]">
+            
+            <header>
+                <h1 class="text-3xl font-bold text-white mb-2 leading-tight">Ligand Substitution</h1>
+                <p class="text-sm text-slate-400">
+                    Observe how the starting material dictates the final geometric isomer due to the kinetic phenomenon known as the Trans Effect.
+                </p>
+            </header>
+
+            <div class="space-y-3">
+                <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Reaction Controls</h2>
+                
+                <button id="btn-step1" class="w-full flex items-center gap-3 p-4 rounded-xl border border-sky-700/50 bg-sky-900/20 text-sky-200 hover:bg-sky-900/40 transition-all text-left">
+                    <div class="w-8 h-8 rounded-full bg-sky-800/50 flex items-center justify-center font-bold text-sky-300">1</div>
+                    <div>
+                        <div class="font-semibold text-lg">First Substitution</div>
+                        <div class="text-xs opacity-80 text-sky-300/80">Add initial ligands to the complex</div>
+                    </div>
+                </button>
+
+                <button id="btn-step2" class="w-full flex items-center gap-3 p-4 rounded-xl border border-slate-700 bg-slate-800 text-slate-400 transition-all text-left disabled-btn" disabled>
+                    <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center font-bold text-slate-500">2</div>
+                    <div>
+                        <div class="font-semibold text-lg">Second Substitution</div>
+                        <div class="text-xs opacity-80 text-amber-300/80">Observe the Trans Effect logic</div>
+                    </div>
+                </button>
+
+                <button id="btn-reset" class="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-slate-950 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white transition-all mt-4">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Reset Reactions
+                </button>
+            </div>
+
+            <div class="mt-auto pt-6 border-t border-slate-800">
+                <div class="flex gap-3 mb-3 items-center">
+                    <svg class="w-5 h-5 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                    <h3 class="text-sm font-bold text-indigo-300 uppercase tracking-widest">Reaction Status</h3>
+                </div>
+                
+                <div id="info-box" class="bg-slate-950 p-5 rounded-xl border border-slate-800 text-sm text-slate-300 space-y-4 shadow-inner min-h-[200px] leading-relaxed">
+                    <!-- Dynamic Content -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const canvas = document.getElementById('sim-canvas');
+        const ctx = canvas.getContext('2d');
+        const btnStep1 = document.getElementById('btn-step1');
+        const btnStep2 = document.getElementById('btn-step2');
+        const btnReset = document.getElementById('btn-reset');
+        const infoBox = document.getElementById('info-box');
+
+        // Config
+        const BOND_LENGTH = 60;
+        const ATOM_RADIUS = 18;
+        const POS_ANGLES = [0, Math.PI/2, Math.PI, -Math.PI/2]; // East, South, West, North
+
+        // Colors
+        const COLORS = {
+            'Pt': '#94a3b8',
+            'Cl': '#22c55e',  // Green
+            'NH3': '#38bdf8'  // Blue
+        };
+
+        // State Machine
+        let currentStep = 0; // 0 = Start, 1 = Intermediate, 2 = Final
+        let isAnimating = false;
+        let animProgress = 0; // 0.0 to 1.0
+
+        // Info Text mapping
+        const INFO_TEXTS = {
+            0: `
+                <div class="space-y-3">
+                    <p><strong class="text-white">Starting Materials:</strong></p>
+                    <p><strong>Path A (Top):</strong> <span class="text-emerald-400">[PtCl₄]²⁻</span>. A platinum ion surrounded by four Chloride ligands.</p>
+                    <p><strong>Path B (Bottom):</strong> <span class="text-sky-400">[Pt(NH₃)₄]²⁺</span>. A platinum ion surrounded by four Ammonia ligands.</p>
+                    <p class="text-indigo-400 text-xs mt-2 border-t border-slate-800 pt-2">Click 'First Substitution' to begin.</p>
+                </div>
+            `,
+            1: `
+                <div class="space-y-3">
+                    <p><strong class="text-white">Intermediate Formed. Analyzing Trans Effect:</strong></p>
+                    <p><strong>Path A:</strong> One Cl is replaced by NH₃. The remaining Cl ligands have a stronger trans effect. They "push" the next substitution to happen opposite to them.</p>
+                    <p><strong>Path B:</strong> One NH₃ is replaced by Cl. The new Cl ligand is a strong trans director! It weakens the bond exactly opposite to it.</p>
+                    <p class="text-amber-400 text-xs mt-2 border-t border-slate-800 pt-2">Observe the glowing highlight showing the labilized (weakened) position before proceeding.</p>
+                </div>
+            `,
+            2: `
+                <div class="space-y-3">
+                    <p><strong class="text-white border-b border-slate-700 pb-1 block">Final Products Synthesized</strong></p>
+                    <p><strong>Path A:</strong> Because Cl directed the second NH₃ to be adjacent (cis) to the first, we get <strong class="text-emerald-400 text-lg">Cisplatin</strong>.</p>
+                    <p><strong>Path B:</strong> Because the first Cl directed the second Cl to be opposite (trans) to it, we get <strong class="text-red-400 text-lg">Transplatin</strong>.</p>
+                    <p class="text-indigo-400 text-xs mt-2 font-bold uppercase tracking-wider">Learning Outcome Confirmed</p>
+                </div>
+            `
+        };
+
+        // Molecule Data Structure
+        // index corresponds to POS_ANGLES: [East, South, West, North]
+        let pathA = ['Cl', 'Cl', 'Cl', 'Cl'];
+        let pathB = ['NH3', 'NH3', 'NH3', 'NH3'];
+
+        // Animation Particles
+        let incomingParticle = null;
+        let leavingParticle = null;
+        let targetIndexA = 0;
+        let targetIndexB = 0;
+
+        function updateUI() {
+            infoBox.innerHTML = INFO_TEXTS[currentStep];
+
+            if (currentStep === 0) {
+                btnStep1.disabled = false;
+                btnStep1.classList.remove('disabled-btn', 'border-slate-700', 'bg-slate-800', 'text-slate-400');
+                btnStep1.classList.add('border-sky-700/50', 'bg-sky-900/20', 'text-sky-200');
+                
+                btnStep2.disabled = true;
+                btnStep2.classList.add('disabled-btn', 'border-slate-700', 'bg-slate-800', 'text-slate-400');
+                btnStep2.classList.remove('border-amber-700/50', 'bg-amber-900/20', 'text-amber-200');
+            } else if (currentStep === 1) {
+                btnStep1.disabled = true;
+                btnStep1.classList.add('disabled-btn', 'border-slate-700', 'bg-slate-800', 'text-slate-400');
+                btnStep1.classList.remove('border-sky-700/50', 'bg-sky-900/20', 'text-sky-200');
+                
+                btnStep2.disabled = false;
+                btnStep2.classList.remove('disabled-btn', 'border-slate-700', 'bg-slate-800', 'text-slate-400');
+                btnStep2.classList.add('border-amber-700/50', 'bg-amber-900/20', 'text-amber-200');
+            } else if (currentStep === 2) {
+                btnStep2.disabled = true;
+                btnStep2.classList.add('disabled-btn', 'border-slate-700', 'bg-slate-800', 'text-slate-400');
+                btnStep2.classList.remove('border-amber-700/50', 'bg-amber-900/20', 'text-amber-200');
+            }
+
+            // Lock controls during animation
+            if (isAnimating) {
+                btnStep1.disabled = true;
+                btnStep1.classList.add('disabled-btn');
+                btnStep2.disabled = true;
+                btnStep2.classList.add('disabled-btn');
+            }
+        }
+
+        function resizeCanvas() {
+            const parent = canvas.parentElement;
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = parent.clientWidth * dpr;
+            canvas.height = parent.clientHeight * dpr;
+            ctx.scale(dpr, dpr);
+        }
+
+        function drawSphere(x, y, radius, color, label) {
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            
+            const gradient = ctx.createRadialGradient(x - radius/3, y - radius/3, radius/10, x, y, radius);
+            gradient.addColorStop(0, '#ffffff');
+            gradient.addColorStop(0.3, color);
+            gradient.addColorStop(1, '#020617'); // Dark slate
+            
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            
+            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            if (label) {
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                // Add a little drop shadow to text for readability
+                ctx.shadowColor = 'rgba(0,0,0,0.8)';
+                ctx.shadowBlur = 4;
+                // subscript formatting helper
+                if (label === 'NH3') {
+                    ctx.fillText('NH', x - 3, y);
+                    ctx.font = 'bold 9px sans-serif';
+                    ctx.fillText('3', x + 10, y + 4);
+                } else {
+                    ctx.fillText(label, x, y);
+                }
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        // Draw the molecule and handle trans effect highlighting
+        function drawMolecule(cx, cy, ligands, activeHighlightIndex, track) {
+            ctx.save();
+            ctx.translate(cx, cy);
+
+            // Draw highlighting logic (Trans Effect Aura)
+            if (activeHighlightIndex !== null && !isAnimating) {
+                const angle = POS_ANGLES[activeHighlightIndex];
+                const hx = Math.cos(angle) * BOND_LENGTH;
+                const hy = Math.sin(angle) * BOND_LENGTH;
+
+                // Pulsing aura on the bond that is labilized
+                const pulse = Math.abs(Math.sin(Date.now() * 0.003));
+                
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(hx, hy);
+                ctx.lineWidth = 15;
+                ctx.strokeStyle = `rgba(245, 158, 11, ${0.2 + pulse * 0.4})`; // Amber glow
+                ctx.lineCap = 'round';
+                ctx.stroke();
+
+                // Directional arrow showing influence
+                const directorIdx = (activeHighlightIndex + 2) % 4; // Trans position
+                const dAngle = POS_ANGLES[directorIdx];
+                const dx = Math.cos(dAngle) * (BOND_LENGTH * 0.5);
+                const dy = Math.sin(dAngle) * (BOND_LENGTH * 0.5);
+                
+                // Draw arrow from director to target
+                ctx.beginPath();
+                ctx.moveTo(dx, dy);
+                ctx.lineTo(hx * 0.8, hy * 0.8);
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = `rgba(245, 158, 11, ${0.5 + pulse * 0.5})`;
+                ctx.setLineDash([5, 5]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                // Label the trans effect
+                ctx.fillStyle = `rgba(245, 158, 11, ${0.7 + pulse * 0.3})`;
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = 'center';
+                const labelX = Math.cos(angle) * (BOND_LENGTH + 35);
+                const labelY = Math.sin(angle) * (BOND_LENGTH + 35);
+                ctx.fillText("Labilized", labelX, labelY);
+            }
+
+            // Draw normal bonds
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#64748b'; // slate-500
+            for (let i = 0; i < 4; i++) {
+                // Don't draw bond if it's currently being animated out/in
+                if (isAnimating && (
+                    (track === 'A' && i === targetIndexA) || 
+                    (track === 'B' && i === targetIndexB)
+                )) {
+                    continue;
+                }
+
+                const angle = POS_ANGLES[i];
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(Math.cos(angle) * BOND_LENGTH, Math.sin(angle) * BOND_LENGTH);
+                ctx.stroke();
+            }
+
+            // Draw ligands
+            for (let i = 0; i < 4; i++) {
+                if (isAnimating && (
+                    (track === 'A' && i === targetIndexA) || 
+                    (track === 'B' && i === targetIndexB)
+                )) {
+                    continue; // Handled by particle system
+                }
+
+                const angle = POS_ANGLES[i];
+                const type = ligands[i];
+                const x = Math.cos(angle) * BOND_LENGTH;
+                const y = Math.sin(angle) * BOND_LENGTH;
+                drawSphere(x, y, ATOM_RADIUS, COLORS[type], type);
+            }
+
+            // Draw Central Pt
+            drawSphere(0, 0, ATOM_RADIUS * 1.2, COLORS['Pt'], 'Pt');
+
+            // Draw label below
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'center';
+            if (track === 'A' && currentStep === 2) {
+                ctx.fillStyle = '#34d399';
+                ctx.font = 'bold 16px sans-serif';
+                ctx.fillText("Cisplatin", 0, BOND_LENGTH + 40);
+            } else if (track === 'B' && currentStep === 2) {
+                ctx.fillStyle = '#f87171';
+                ctx.font = 'bold 16px sans-serif';
+                ctx.fillText("Transplatin", 0, BOND_LENGTH + 40);
+            }
+            
+            ctx.restore();
+        }
+
+        // --- Animation Logic ---
+        
+        function triggerStep1() {
+            isAnimating = true;
+            animProgress = 0;
+            targetIndexA = 0; // Replace East
+            targetIndexB = 0; // Replace East
+            
+            updateUI();
+            animateSubstitution('NH3', 'Cl', 'Cl', 'NH3', () => {
+                // Apply changes to arrays
+                pathA[0] = 'NH3';
+                pathB[0] = 'Cl';
+                currentStep = 1;
+                isAnimating = false;
+                updateUI();
+            });
+        }
+
+        function triggerStep2() {
+            isAnimating = true;
+            animProgress = 0;
+            // Trans effect logic applies here
+            // Path A: Current = NH3(E), Cl(S), Cl(W), Cl(N). Cl is stronger than NH3.
+            // Cl(S) and Cl(N) are trans to each other, making each other labile.
+            // Let's replace Cl(N) -> Index 3. (Results in Cis)
+            targetIndexA = 3; 
+
+            // Path B: Current = Cl(E), NH3(S), NH3(W), NH3(N).
+            // Cl is a strong trans director. It points to West (Index 2).
+            // Replace NH3(W) -> Index 2. (Results in Trans)
+            targetIndexB = 2;
+
+            updateUI();
+            animateSubstitution('NH3', 'Cl', 'Cl', 'NH3', () => {
+                pathA[targetIndexA] = 'NH3';
+                pathB[targetIndexB] = 'Cl';
+                currentStep = 2;
+                isAnimating = false;
+                updateUI();
+            });
+        }
+
+        function animateSubstitution(inA, outA, inB, outB, onComplete) {
+            const duration = 1000; // ms
+            const startTime = performance.now();
+
+            function step(time) {
+                const elapsed = time - startTime;
+                animProgress = Math.min(elapsed / duration, 1.0);
+
+                if (animProgress < 1.0) {
+                    requestAnimationFrame(step);
+                } else {
+                    onComplete();
+                }
+            }
+            requestAnimationFrame(step);
+        }
+
+        function resetReactions() {
+            currentStep = 0;
+            isAnimating = false;
+            animProgress = 0;
+            pathA = ['Cl', 'Cl', 'Cl', 'Cl'];
+            pathB = ['NH3', 'NH3', 'NH3', 'NH3'];
+            updateUI();
+        }
+
+        // --- Main Render Loop ---
+        function drawLoop() {
+            const width = canvas.clientWidth;
+            const height = canvas.clientHeight;
+            
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw Track Divider
+            const trackDividerY = height / 2;
+            ctx.beginPath();
+            ctx.moveTo(20, trackDividerY);
+            ctx.lineTo(width - 20, trackDividerY);
+            ctx.strokeStyle = '#1e293b'; // slate-800
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            const cx = width / 2;
+            const cyA = height * 0.25;
+            const cyB = height * 0.75;
+
+            // Calculate Highlight Indices based on Trans Effect Rules
+            let highlightA = null;
+            let highlightB = null;
+
+            if (currentStep === 1) {
+                // In Step 1, highlight the position that WILL be replaced in Step 2
+                highlightA = 3; // North Cl (trans to South Cl)
+                highlightB = 2; // West NH3 (trans to East Cl)
+            }
+
+            // Draw Base Molecules
+            drawMolecule(cx, cyA, pathA, highlightA, 'A');
+            drawMolecule(cx, cyB, pathB, highlightB, 'B');
+
+            // Draw Animating Particles
+            if (isAnimating) {
+                const easeInOut = t => t < .5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+                const progress = easeInOut(animProgress);
+                
+                // Track A Setup
+                const angleA = POS_ANGLES[targetIndexA];
+                const targetXa = cx + Math.cos(angleA) * BOND_LENGTH;
+                const targetYa = cyA + Math.sin(angleA) * BOND_LENGTH;
+                
+                // Track B Setup
+                const angleB = POS_ANGLES[targetIndexB];
+                const targetXb = cx + Math.cos(angleB) * BOND_LENGTH;
+                const targetYb = cyB + Math.sin(angleB) * BOND_LENGTH;
+
+                // Fly in from top right, fly out to bottom right
+                const startXa = cx + 150; const startYa = cyA - 100;
+                const endXa = cx + 150;   const endYa = cyA + 100;
+                
+                const startXb = cx + 150; const startYb = cyB - 100;
+                const endXb = cx + 150;   const endYb = cyB + 100;
+
+                // Phase 1: Incoming approaches, leaving is still attached
+                if (progress < 0.5) {
+                    const p = progress * 2; // 0 to 1
+                    
+                    // Incoming A (NH3)
+                    const inXa = startXa + (targetXa - startXa) * p;
+                    const inYa = startYa + (targetYa - startYa) * p;
+                    drawSphere(inXa, inYa, ATOM_RADIUS, COLORS['NH3'], 'NH3');
+                    
+                    // Leaving A still attached
+                    drawSphere(targetXa, targetYa, ATOM_RADIUS, COLORS[pathA[targetIndexA]], pathA[targetIndexA]);
+
+                    // Incoming B (Cl)
+                    const inXb = startXb + (targetXb - startXb) * p;
+                    const inYb = startYb + (targetYb - startYb) * p;
+                    drawSphere(inXb, inYb, ATOM_RADIUS, COLORS['Cl'], 'Cl');
+                    
+                    // Leaving B still attached
+                    drawSphere(targetXb, targetYb, ATOM_RADIUS, COLORS[pathB[targetIndexB]], pathB[targetIndexB]);
+
+                    // Draw connecting line from molecule to attached atom
+                    ctx.beginPath(); ctx.moveTo(cx, cyA); ctx.lineTo(targetXa, targetYa); ctx.lineWidth = 4; ctx.strokeStyle = '#64748b'; ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(cx, cyB); ctx.lineTo(targetXb, targetYb); ctx.lineWidth = 4; ctx.strokeStyle = '#64748b'; ctx.stroke();
+                } 
+                // Phase 2: Incoming attached, leaving flies away
+                else {
+                    const p = (progress - 0.5) * 2; // 0 to 1
+                    
+                    // Incoming A attached
+                    drawSphere(targetXa, targetYa, ATOM_RADIUS, COLORS['NH3'], 'NH3');
+                    ctx.beginPath(); ctx.moveTo(cx, cyA); ctx.lineTo(targetXa, targetYa); ctx.lineWidth = 4; ctx.strokeStyle = '#64748b'; ctx.stroke();
+
+                    // Leaving A (Cl) flying away
+                    const outXa = targetXa + (endXa - targetXa) * p;
+                    const outYa = targetYa + (endYa - targetYa) * p;
+                    drawSphere(outXa, outYa, ATOM_RADIUS, COLORS[pathA[targetIndexA]], pathA[targetIndexA]);
+
+                    // Incoming B attached
+                    drawSphere(targetXb, targetYb, ATOM_RADIUS, COLORS['Cl'], 'Cl');
+                    ctx.beginPath(); ctx.moveTo(cx, cyB); ctx.lineTo(targetXb, targetYb); ctx.lineWidth = 4; ctx.strokeStyle = '#64748b'; ctx.stroke();
+
+                    // Leaving B (NH3) flying away
+                    const outXb = targetXb + (endXb - targetXb) * p;
+                    const outYb = targetYb + (endYb - targetYb) * p;
+                    drawSphere(outXb, outYb, ATOM_RADIUS, COLORS[pathB[targetIndexB]], pathB[targetIndexB]);
+                }
+            }
+
+            requestAnimationFrame(drawLoop);
+        }
+
+        // Event Listeners
+        btnStep1.addEventListener('click', () => { if(currentStep === 0 && !isAnimating) triggerStep1(); });
+        btnStep2.addEventListener('click', () => { if(currentStep === 1 && !isAnimating) triggerStep2(); });
+        btnReset.addEventListener('click', resetReactions);
+        window.addEventListener('resize', resizeCanvas);
+
+        // Boot
+        window.onload = () => {
+            resizeCanvas();
+            resetReactions();
+            drawLoop();
+        };
+
+    </script>
+</body>
+</html>

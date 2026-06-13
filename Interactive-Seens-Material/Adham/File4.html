@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cisplatin Mechanism of Action</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        .timeline-line {
+            position: absolute;
+            left: 23px;
+            top: 40px;
+            bottom: 40px;
+            width: 2px;
+            background: #334155;
+            z-index: 0;
+        }
+        
+        .step-active .step-icon { background-color: #3b82f6; border-color: #60a5fa; box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
+        .step-completed .step-icon { background-color: #10b981; border-color: #34d399; }
+        
+        .glow-text { text-shadow: 0 0 10px rgba(239, 68, 68, 0.8); }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans antialiased overflow-hidden">
+
+    <div class="flex flex-col lg:flex-row min-h-screen">
+        
+        <!-- Simulation Viewport -->
+        <div class="flex-1 relative overflow-hidden flex flex-col p-4 bg-[#050b14]">
+            
+            <div class="flex-1 relative rounded-3xl border border-slate-800 shadow-2xl overflow-hidden bg-[#0a1128]">
+                <canvas id="sim-canvas" class="w-full h-full absolute inset-0"></canvas>
+                
+                <!-- Environmental Labels -->
+                <div class="absolute top-4 left-4 text-slate-400 font-bold tracking-widest uppercase text-sm opacity-60 pointer-events-none">
+                    Bloodstream<br><span class="text-xs text-emerald-500">[High Cl⁻] 100 mM</span>
+                </div>
+                <div class="absolute top-4 left-[35%] text-slate-400 font-bold tracking-widest uppercase text-sm opacity-60 pointer-events-none">
+                    Cytoplasm & Nucleus<br><span class="text-xs text-emerald-500">[Low Cl⁻] 4-20 mM</span>
+                </div>
+                
+                <!-- Dynamic Overlay -->
+                <div id="replication-alert" class="absolute top-1/2 left-[70%] transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none opacity-0 transition-opacity duration-1000">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-900/50 border-2 border-red-500 mb-3 animate-pulse">
+                        <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    </div>
+                    <h2 class="text-3xl font-black text-white tracking-widest uppercase glow-text">Replication Halted</h2>
+                    <p class="text-sm text-red-300 font-semibold mt-2 bg-slate-900/80 px-3 py-1 rounded-full border border-red-900/50">DNA Polymerase Blocked by 35° Kink</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="w-full lg:w-[420px] bg-slate-900 border-l border-slate-800 p-6 flex flex-col gap-6 overflow-y-auto max-h-screen z-10 shadow-[-10px_0_20px_rgba(0,0,0,0.3)]">
+            
+            <header>
+                <h1 class="text-2xl font-bold text-white mb-2 leading-tight">Mechanism of Action</h1>
+                <p class="text-sm text-slate-400">
+                    Time evolution of Cisplatin from extracellular transit to its final DNA-distorting crosslink.
+                </p>
+            </header>
+
+            <div class="relative space-y-6 py-2">
+                <div class="timeline-line"></div>
+                
+                <!-- Step 0 -->
+                <div id="step-0" class="step-active relative pl-12">
+                    <div class="step-icon absolute left-1 top-1 w-10 h-10 rounded-full bg-slate-800 border-2 border-slate-600 flex items-center justify-center font-bold text-white z-10 transition-all">1</div>
+                    <h3 class="font-bold text-slate-200">Cellular Entry</h3>
+                    <p class="text-xs text-slate-400 mt-1">Neutral cisplatin crosses the lipid bilayer into the low-chloride environment of the cell.</p>
+                </div>
+
+                <!-- Step 1 -->
+                <div id="step-1" class="relative pl-12 opacity-50">
+                    <div class="step-icon absolute left-1 top-1 w-10 h-10 rounded-full bg-slate-800 border-2 border-slate-600 flex items-center justify-center font-bold text-white z-10 transition-all">2</div>
+                    <h3 class="font-bold text-slate-200">Activation (Aquation)</h3>
+                    <p class="text-xs text-slate-400 mt-1">Low intracellular Cl⁻ concentration causes a Chlorine ligand to be replaced by water, forming an active Monoaqua complex.</p>
+                </div>
+
+                <!-- Step 2 -->
+                <div id="step-2" class="relative pl-12 opacity-50">
+                    <div class="step-icon absolute left-1 top-1 w-10 h-10 rounded-full bg-slate-800 border-2 border-slate-600 flex items-center justify-center font-bold text-white z-10 transition-all">3</div>
+                    <h3 class="font-bold text-slate-200">DNA Binding</h3>
+                    <p class="text-xs text-slate-400 mt-1">The positively charged complex moves to the nucleus and binds to the N7 position of Guanine bases.</p>
+                </div>
+
+                <!-- Step 3 -->
+                <div id="step-3" class="relative pl-12 opacity-50">
+                    <div class="step-icon absolute left-1 top-1 w-10 h-10 rounded-full bg-slate-800 border-2 border-slate-600 flex items-center justify-center font-bold text-white z-10 transition-all">4</div>
+                    <h3 class="font-bold text-slate-200">Structural Distortion</h3>
+                    <p class="text-xs text-slate-400 mt-1">Formation of an intra-strand crosslink between adjacent Guanines forcibly bends the DNA helix by 35-40°.</p>
+                </div>
+            </div>
+
+            <div class="mt-auto space-y-3 pt-4 border-t border-slate-800">
+                <button id="btn-next" class="w-full py-4 rounded-xl font-bold text-lg bg-sky-600 hover:bg-sky-500 text-white transition-all shadow-[0_0_20px_rgba(2,132,199,0.4)]">
+                    Start Simulation
+                </button>
+                <button id="btn-reset" class="w-full py-3 rounded-xl font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all border border-slate-700 hidden">
+                    Reset Timeline
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('sim-canvas');
+        const ctx = canvas.getContext('2d');
+        const btnNext = document.getElementById('btn-next');
+        const btnReset = document.getElementById('btn-reset');
+        const replicationAlert = document.getElementById('replication-alert');
+
+        // Config & Constants
+        const BOND_LENGTH = 50;
+        const ATOM_RADIUS = 16;
+        const COLORS = {
+            'Pt': '#94a3b8',
+            'Cl': '#10b981', // Green
+            'NH3': '#3b82f6', // Blue
+            'H2O': '#ef4444', // Red
+            'G': '#f59e0b'   // Amber for Guanine
+        };
+
+        // State Machine
+        let state = 0; 
+        // 0: Outside Cell
+        // 1: Moving Inside (Entry)
+        // 2: Aquation
+        // 3: Moving to DNA (Binding)
+        // 4: DNA Bending (Distortion)
+        
+        let animProgress = 0; // 0.0 to 1.0 for transitions
+        let isAnimating = false;
+
+        // Visual State Variables
+        let molX = 0;
+        let molY = 0;
+        let molRotation = 0;
+        let ligands = ['Cl', 'Cl', 'NH3', 'NH3']; // East, South, West, North (Standard Cis orientation)
+        let bendAngle = 0; // Radians
+        let freeParticles = []; // For the leaving Cl and incoming H2O
+
+        // Responsive Coordinates
+        let membraneX, targetAquationX, targetDnaX, dnaY;
+
+        function resizeCanvas() {
+            const parent = canvas.parentElement;
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = parent.clientWidth * dpr;
+            canvas.height = parent.clientHeight * dpr;
+            ctx.scale(dpr, dpr);
+            
+            // Update key coordinates based on new width
+            const w = parent.clientWidth;
+            const h = parent.clientHeight;
+            
+            membraneX = w * 0.25;
+            targetAquationX = w * 0.45;
+            targetDnaX = w * 0.75 - 40; // Offset slightly to left of DNA center
+            dnaY = h / 2;
+
+            // Instantly update position if not animating to avoid jumping
+            if (state === 0 && !isAnimating) { molX = w * 0.1; molY = h / 2; }
+            if (state === 1 && !isAnimating) { molX = targetAquationX; molY = h / 2; }
+            if (state === 2 && !isAnimating) { molX = targetAquationX; molY = h / 2; }
+            if (state === 3 && !isAnimating) { molX = targetDnaX; molY = dnaY; }
+            if (state === 4 && !isAnimating) { molX = targetDnaX; molY = dnaY; bendAngle = 35 * Math.PI / 180; }
+        }
+
+        // --- Drawing Helpers ---
+
+        function drawSphere(x, y, radius, color, label) {
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            
+            const gradient = ctx.createRadialGradient(x - radius/3, y - radius/3, radius/10, x, y, radius);
+            gradient.addColorStop(0, '#ffffff');
+            gradient.addColorStop(0.3, color);
+            gradient.addColorStop(1, '#020617');
+            
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            if (label) {
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.shadowColor = 'rgba(0,0,0,0.8)';
+                ctx.shadowBlur = 3;
+                
+                // Subscript formatting
+                if (label === 'NH3') {
+                    ctx.fillText('NH', x - 3, y);
+                    ctx.font = 'bold 8px sans-serif';
+                    ctx.fillText('3', x + 10, y + 4);
+                } else if (label === 'H2O') {
+                    ctx.fillText('H', x - 6, y);
+                    ctx.font = 'bold 8px sans-serif';
+                    ctx.fillText('2', x, y + 4);
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.fillText('O', x + 7, y);
+                } else {
+                    ctx.fillText(label, x, y);
+                }
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        function drawMembrane(h) {
+            ctx.save();
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 4;
+            ctx.setLineDash([15, 10]);
+            ctx.beginPath();
+            ctx.moveTo(membraneX, 0);
+            ctx.lineTo(membraneX, h);
+            ctx.stroke();
+            
+            // Bilayer lipid heads representation
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#64748b';
+            for (let y = 10; y < h; y += 25) {
+                ctx.beginPath(); ctx.arc(membraneX - 8, y, 6, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(membraneX + 8, y, 6, 0, Math.PI*2); ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        function drawMolecule(cx, cy, rot) {
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(rot);
+
+            const angles = [0, Math.PI/2, Math.PI, -Math.PI/2];
+
+            // Draw Bonds
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = '#64748b';
+            for (let i = 0; i < 4; i++) {
+                // If aquation is happening, hide the bond for the replacing ligand (East/index 0)
+                if (state === 2 && isAnimating && i === 0) continue; 
+                
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(Math.cos(angles[i]) * BOND_LENGTH, Math.sin(angles[i]) * BOND_LENGTH);
+                ctx.stroke();
+            }
+
+            // Draw Ligands
+            for (let i = 0; i < 4; i++) {
+                if (state === 2 && isAnimating && i === 0) continue; // Handled by particles
+                
+                const type = ligands[i];
+                const x = Math.cos(angles[i]) * BOND_LENGTH;
+                const y = Math.sin(angles[i]) * BOND_LENGTH;
+                drawSphere(x, y, ATOM_RADIUS, COLORS[type], type);
+            }
+
+            // Central Pt
+            drawSphere(0, 0, ATOM_RADIUS * 1.3, COLORS['Pt'], 'Pt');
+            
+            ctx.restore();
+        }
+
+        function drawDNA(cx, cy, angle) {
+            ctx.save();
+            ctx.translate(cx, cy);
+
+            const numPairs = 16;
+            const spacing = 25;
+            const halfWidth = 35;
+            
+            ctx.lineWidth = 4;
+
+            for (let i = -numPairs/2; i <= numPairs/2; i++) {
+                // Skip the exact center 0 to avoid drawing twice, draw symmetrically
+                if (i === 0) continue;
+
+                // Determine segment (top or bottom half)
+                const isTop = i < 0;
+                const segAngle = isTop ? -angle/2 : angle/2;
+                
+                // Calculate position along the local Y axis
+                // Offset slightly from center to create the kink
+                const localY = isTop ? (i * spacing) + 12 : (i * spacing) - 12; 
+
+                // Rotate position
+                const px = Math.sin(segAngle) * localY;
+                const py = Math.cos(segAngle) * localY;
+
+                // Determine base pair coordinates perpendicular to the segment
+                const perpAngle = segAngle + Math.PI/2;
+                const leftX = px - Math.cos(perpAngle) * halfWidth;
+                const leftY = py - Math.sin(perpAngle) * halfWidth;
+                const rightX = px + Math.cos(perpAngle) * halfWidth;
+                const rightY = py + Math.sin(perpAngle) * halfWidth;
+
+                // Check if these are the target Guanine bases (center 2 pairs)
+                const isTarget = Math.abs(i) === 1;
+
+                // Draw Rung (Base Pair)
+                ctx.beginPath();
+                ctx.moveTo(leftX, leftY);
+                ctx.lineTo(rightX, rightY);
+                ctx.strokeStyle = isTarget ? '#f59e0b' : '#334155'; // Highlight targets
+                if (isTarget) {
+                    ctx.shadowColor = '#f59e0b';
+                    ctx.shadowBlur = 10;
+                    ctx.lineWidth = 6;
+                } else {
+                    ctx.shadowBlur = 0;
+                    ctx.lineWidth = 4;
+                }
+                ctx.stroke();
+
+                // Draw Backbone segments connecting to previous
+                if (Math.abs(i) > 1) {
+                    const prevI = isTop ? i + 1 : i - 1;
+                    const prevLocalY = isTop ? (prevI * spacing) + 12 : (prevI * spacing) - 12;
+                    const prevPx = Math.sin(segAngle) * prevLocalY;
+                    const prevPy = Math.cos(segAngle) * prevLocalY;
+                    
+                    const pLeftX = prevPx - Math.cos(perpAngle) * halfWidth;
+                    const pLeftY = prevPy - Math.sin(perpAngle) * halfWidth;
+                    const pRightX = prevPx + Math.cos(perpAngle) * halfWidth;
+                    const pRightY = prevPy + Math.sin(perpAngle) * halfWidth;
+
+                    ctx.shadowBlur = 0;
+                    ctx.beginPath();
+                    ctx.moveTo(pLeftX, pLeftY); ctx.lineTo(leftX, leftY);
+                    ctx.moveTo(pRightX, pRightY); ctx.lineTo(rightX, rightY);
+                    ctx.strokeStyle = '#818cf8'; // Indigo backbone
+                    ctx.stroke();
+                }
+
+                // Add G labels to the targets
+                if (isTarget) {
+                    ctx.fillStyle = '#fcd34d';
+                    ctx.font = 'bold 12px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.shadowBlur = 0;
+                    // Position label near the left strand
+                    ctx.fillText('G', leftX + 15, leftY);
+                }
+            }
+
+            // Connect the kink center (Backbone only)
+            const topLocalY = -spacing + 12;
+            const botLocalY = spacing - 12;
+            
+            const tPx = Math.sin(-angle/2) * topLocalY;
+            const tPy = Math.cos(-angle/2) * topLocalY;
+            const tLeftX = tPx - Math.cos(-angle/2 + Math.PI/2) * halfWidth;
+            const tLeftY = tPy - Math.sin(-angle/2 + Math.PI/2) * halfWidth;
+            const tRightX = tPx + Math.cos(-angle/2 + Math.PI/2) * halfWidth;
+            const tRightY = tPy + Math.sin(-angle/2 + Math.PI/2) * halfWidth;
+
+            const bPx = Math.sin(angle/2) * botLocalY;
+            const bPy = Math.cos(angle/2) * botLocalY;
+            const bLeftX = bPx - Math.cos(angle/2 + Math.PI/2) * halfWidth;
+            const bLeftY = bPy - Math.sin(angle/2 + Math.PI/2) * halfWidth;
+            const bRightX = bPx + Math.cos(angle/2 + Math.PI/2) * halfWidth;
+            const bRightY = bPy + Math.sin(angle/2 + Math.PI/2) * halfWidth;
+
+            ctx.beginPath();
+            ctx.moveTo(tLeftX, tLeftY); ctx.lineTo(bLeftX, bLeftY);
+            ctx.moveTo(tRightX, tRightY); ctx.lineTo(bRightX, bRightY);
+            ctx.strokeStyle = '#818cf8';
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // --- Main Render Loop ---
+
+        function drawLoop() {
+            const width = canvas.clientWidth;
+            const height = canvas.clientHeight;
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw Background Elements
+            drawMembrane(height);
+            
+            // Draw Floating Background Chloride (Fade out on right side)
+            ctx.globalAlpha = 0.3;
+            for(let i=0; i<15; i++) {
+                const x = (Math.sin(i*7.3) * 0.5 + 0.5) * membraneX;
+                const y = (Math.cos(i*4.2 + Date.now()*0.001) * 0.5 + 0.5) * height;
+                drawSphere(x, y, 6, COLORS['Cl']);
+            }
+            ctx.globalAlpha = 1.0;
+
+            // Draw DNA (Base position is canvas right)
+            drawDNA(width * 0.75, height/2, bendAngle);
+
+            // Calculate Animations
+            if (isAnimating) {
+                const easeInOut = t => t < .5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+                const p = easeInOut(animProgress);
+
+                if (state === 1) { // Entry
+                    molX = (width * 0.1) + (targetAquationX - (width * 0.1)) * p;
+                } 
+                else if (state === 2) { // Aquation
+                    // Pt is stationary, handle particles
+                    molRotation = p * Math.PI * 2; // Spin for effect
+                    
+                    // Incoming H2O
+                    const inStartX = molX + 150;
+                    const inStartY = molY - 100;
+                    const targetX = molX + Math.cos(0 + molRotation) * BOND_LENGTH; // East position
+                    const targetY = molY + Math.sin(0 + molRotation) * BOND_LENGTH;
+                    
+                    if (animProgress < 0.5) {
+                        const pp = animProgress * 2;
+                        const currX = inStartX + (targetX - inStartX) * pp;
+                        const currY = inStartY + (targetY - inStartY) * pp;
+                        drawSphere(currX, currY, ATOM_RADIUS, COLORS['H2O'], 'H2O');
+                        
+                        // Draw line connecting
+                        ctx.beginPath(); ctx.moveTo(molX, molY); ctx.lineTo(currX, currY); ctx.lineWidth=4; ctx.strokeStyle='#64748b'; ctx.stroke();
+                        
+                        // Original Cl is still there
+                        drawSphere(targetX, targetY, ATOM_RADIUS, COLORS['Cl'], 'Cl');
+                    } else {
+                        const pp = (animProgress - 0.5) * 2;
+                        // H2O is attached
+                        drawSphere(targetX, targetY, ATOM_RADIUS, COLORS['H2O'], 'H2O');
+                        ctx.beginPath(); ctx.moveTo(molX, molY); ctx.lineTo(targetX, targetY); ctx.lineWidth=4; ctx.strokeStyle='#64748b'; ctx.stroke();
+                        
+                        // Cl flies away
+                        const outEndX = molX + 150;
+                        const outEndY = molY + 100;
+                        const currX = targetX + (outEndX - targetX) * pp;
+                        const currY = targetY + (outEndY - targetY) * pp;
+                        ctx.globalAlpha = 1 - pp; // Fade out
+                        drawSphere(currX, currY, ATOM_RADIUS, COLORS['Cl'], 'Cl');
+                        ctx.globalAlpha = 1.0;
+                    }
+                }
+                else if (state === 3) { // Binding
+                    molX = targetAquationX + (targetDnaX - targetAquationX) * p;
+                    // Rotate so that the active H2O and one Cl face the DNA (DNA is on the right)
+                    // The DNA binding sites are vertically separated. Cisplatin needs to orient so two adjacent groups face the DNA strand.
+                    // East is index 0 (H2O), South is index 1 (Cl). Let's rotate -45deg so they point Right.
+                    const targetRot = -Math.PI / 4;
+                    molRotation = targetRot * p;
+                }
+                else if (state === 4) { // Bending
+                    // Animate the DNA bend angle from 0 to 35 degrees
+                    bendAngle = p * (35 * Math.PI / 180);
+                    
+                    // Slightly adjust molecule position to stay attached to the bending strand
+                    // The left strand center shifts slightly left as it bends
+                    molX = targetDnaX - (Math.sin(bendAngle/2) * 20); 
+                }
+            } else {
+                // Idle gentle floating
+                if (state < 3) {
+                    molY = (height/2) + Math.sin(Date.now() * 0.002) * 5;
+                }
+            }
+
+            // Draw Cisplatin Molecule
+            drawMolecule(molX, molY, molRotation);
+
+            requestAnimationFrame(drawLoop);
+        }
+
+        // --- Logic & Control ---
+
+        function triggerAnimation(duration, onComplete) {
+            isAnimating = true;
+            animProgress = 0;
+            const start = performance.now();
+
+            function step(time) {
+                const elapsed = time - start;
+                animProgress = Math.min(elapsed / duration, 1.0);
+
+                if (animProgress < 1.0) {
+                    requestAnimationFrame(step);
+                } else {
+                    isAnimating = false;
+                    if (onComplete) onComplete();
+                }
+            }
+            requestAnimationFrame(step);
+        }
+
+        function updateUIState() {
+            // Update UI Timeline
+            for (let i=0; i<=3; i++) {
+                const el = document.getElementById(`step-${i}`);
+                if (i < state) {
+                    el.classList.remove('step-active', 'opacity-50');
+                    el.classList.add('step-completed');
+                } else if (i === state) {
+                    el.classList.add('step-active');
+                    el.classList.remove('step-completed', 'opacity-50');
+                } else {
+                    el.classList.remove('step-active', 'step-completed');
+                    el.classList.add('opacity-50');
+                }
+            }
+
+            if (state === 0) btnNext.innerText = "Enter Cell";
+            else if (state === 1) btnNext.innerText = "Trigger Aquation";
+            else if (state === 2) btnNext.innerText = "Bind to DNA (Crosslink)";
+            else if (state === 3) btnNext.innerText = "Distort DNA Helix";
+            else if (state === 4) {
+                btnNext.classList.add('hidden');
+                btnReset.classList.remove('hidden');
+                replicationAlert.classList.remove('opacity-0');
+            }
+        }
+
+        btnNext.addEventListener('click', () => {
+            if (isAnimating) return;
+            
+            state++;
+            updateUIState();
+            btnNext.disabled = true;
+            btnNext.classList.add('opacity-50', 'cursor-not-allowed');
+
+            if (state === 1) {
+                triggerAnimation(1500, () => {
+                    btnNext.disabled = false;
+                    btnNext.classList.remove('opacity-50', 'cursor-not-allowed');
+                });
+            } 
+            else if (state === 2) {
+                triggerAnimation(2000, () => {
+                    ligands[0] = 'H2O'; // Replace East Cl with H2O
+                    molRotation = 0; // Reset spin
+                    btnNext.disabled = false;
+                    btnNext.classList.remove('opacity-50', 'cursor-not-allowed');
+                });
+            }
+            else if (state === 3) {
+                triggerAnimation(1500, () => {
+                    // Knock off the H2O and other Cl during binding to DNA 
+                    // (Simplified: they are replaced by the N7 nitrogen bonds of Guanine)
+                    ligands[0] = 'DNA'; // East
+                    ligands[1] = 'DNA'; // South
+                    btnNext.disabled = false;
+                    btnNext.classList.remove('opacity-50', 'cursor-not-allowed');
+                });
+            }
+            else if (state === 4) {
+                triggerAnimation(2500, () => {
+                    // Finished
+                });
+            }
+        });
+
+        btnReset.addEventListener('click', () => {
+            state = 0;
+            ligands = ['Cl', 'Cl', 'NH3', 'NH3'];
+            molRotation = 0;
+            bendAngle = 0;
+            replicationAlert.classList.add('opacity-0');
+            btnNext.classList.remove('hidden');
+            btnReset.classList.add('hidden');
+            btnNext.disabled = false;
+            btnNext.classList.remove('opacity-50', 'cursor-not-allowed');
+            resizeCanvas(); // Resets positions
+            updateUIState();
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // Boot
+        window.onload = () => {
+            resizeCanvas();
+            updateUIState();
+            drawLoop();
+        };
+
+    </script>
+</body>
+</html>

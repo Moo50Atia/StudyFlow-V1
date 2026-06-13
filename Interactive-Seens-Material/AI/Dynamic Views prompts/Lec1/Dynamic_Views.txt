@@ -1,0 +1,11 @@
+Lecture: Generalized Linear Models - Introduction and Overview
+
+
+Lec1 (Sec1): 
+    "Time Evolution: Digital clock and calendar blocks move along a horizontal axis highlighting Wednesday, Thursday, and Monday nodes. A central block transforms into a Moodle login field where the characters 'GLMs20/21' accumulate, fading into a repository of literature and slides. Exam blocks at the January and March/April markers pulse as time signals pass them. Final State: A synchronized map of instructional timings and digital resource access points, correcting the misconception that course materials are only available during physical lectures."
+
+Lec1 (Sec2):
+    "Comparison: Three distinct raw data clusters representing Panel, Categorical, and Longitudinal data move into a central workspace. User-controlled selection meters transform these clusters through specific model filters. Penalization waves move through the clusters to highlight relevant variables while fading redundant noise. Final State: A side-by-side display of optimized models mapped to their corresponding complex data types, correcting the misconception that simple linear regression is sufficient for all data scenarios."
+
+Lec1 (Sec3):
+    "Accumulation: A foundational block labeled 'Basic Concepts' anchors the scene as five additional blocks representing Binary, GLM, Multi-categorical, Non-parametric, and Multivariate models move vertically to stack atop it. Signal lines move from the base through the entire stack to show logical continuity. Each block transforms to show a mix of 'Slide' and 'Hand-written' overlays when highlighted. Final State: A completed six-tier vertical pillar demonstrating the hierarchical progression of the curriculum, correcting the misconception that the course topics are isolated or disconnected units."

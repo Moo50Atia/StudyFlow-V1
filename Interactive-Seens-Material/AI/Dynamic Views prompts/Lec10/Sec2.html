@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparison: Likelihood-Ratio Test</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Outfit', sans-serif; }
+  .smooth-transition { transition: all 1s ease-in-out; }
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+
+  .tape-line { stroke: #f59e0b; stroke-width: 4; stroke-dasharray: 8 4; animation: march 1s linear infinite; }
+  @keyframes march { to { stroke-dashoffset: -12; } }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-6xl h-[700px] bg-slate-900 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col overflow-hidden">
+  
+  <div class="absolute top-6 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-2xl font-bold text-slate-100 tracking-wider">Likelihood-Ratio Test Statistic</h1>
+    <p class="text-cyan-400 mt-2 text-sm max-w-2xl mx-auto h-8 font-medium" id="narrator">
+      Click "Start Simulation" to measure the likelihood drop.
+    </p>
+  </div>
+
+  <div class="relative flex-1 w-full mt-24 mb-20 px-12 flex items-center justify-center">
+    
+    <div class="w-full max-w-4xl h-[450px] bg-slate-950/50 rounded-2xl border border-slate-800/50 relative shadow-inner overflow-hidden p-8 backdrop-blur-sm">
+      
+      <div id="t-box" class="absolute right-12 top-12 bg-amber-900/10 border-2 border-amber-500 p-4 rounded-xl text-center backdrop-blur-md opacity-0 smooth-transition z-20">
+        <div class="font-serif text-2xl font-bold text-amber-500 mb-1">λ = -2 [ l(β̃) - l(β̂) ]</div>
+        <div class="text-amber-200/70 text-sm font-sans">Measures vertical drop in fit</div>
+      </div>
+
+      <svg viewBox="0 0 800 400" class="w-full h-full overflow-visible z-10">
+        <!-- Axes -->
+        <line x1="50" y1="350" x2="750" y2="350" stroke="#475569" stroke-width="2" />
+        <text x="760" y="355" fill="#94a3b8" font-family="monospace">β</text>
+        <line x1="50" y1="50" x2="50" y2="350" stroke="#475569" stroke-width="2" />
+        <text x="20" y="40" fill="#94a3b8" font-family="monospace">l(β)</text>
+
+        <!-- Curve -->
+        <path d="M 100 350 Q 400 -200 700 350" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="4" stroke-linecap="round" />
+        
+        <!-- Unrestricted Peak -->
+        <circle cx="400" cy="75" r="8" fill="#3b82f6" id="p-un" class="opacity-0 smooth-transition" style="filter: drop-shadow(0 0 10px #3b82f6);" />
+        <text x="375" y="55" fill="#3b82f6" font-family="monospace" font-weight="bold" font-size="18px" id="l-un" class="opacity-0 smooth-transition">l(β̂)</text>
+        <line x1="400" y1="75" x2="650" y2="75" stroke="rgba(255,255,255,0.2)" stroke-dasharray="4 4" stroke-width="2" id="pr-un" class="opacity-0 smooth-transition" />
+
+        <!-- Restricted Estimate -->
+        <circle cx="250" cy="210" r="8" fill="#ef4444" id="p-re" class="opacity-0 smooth-transition" style="filter: drop-shadow(0 0 10px #ef4444);" />
+        <text x="195" y="235" fill="#ef4444" font-family="monospace" font-weight="bold" font-size="18px" id="l-re" class="opacity-0 smooth-transition">l(β̃)</text>
+        <line x1="250" y1="210" x2="650" y2="210" stroke="rgba(255,255,255,0.2)" stroke-dasharray="4 4" stroke-width="2" id="pr-re" class="opacity-0 smooth-transition" />
+
+        <!-- Tape -->
+        <g id="tape" class="opacity-0 smooth-transition">
+          <line x1="620" y1="75" x2="680" y2="75" stroke="#f59e0b" stroke-width="4" />
+          <line x1="620" y1="210" x2="680" y2="210" stroke="#f59e0b" stroke-width="4" />
+          <line x1="650" y1="75" x2="650" y2="210" class="tape-line" />
+          
+          <polygon fill="#f59e0b" points="640,90 660,90 650,75" />
+          <polygon fill="#f59e0b" points="640,195 660,195 650,210" />
+        </g>
+      </svg>
+
+    </div>
+
+  </div>
+
+  <div id="final-message" class="absolute bottom-32 left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none">
+    <div class="bg-amber-950/90 border border-amber-500/50 backdrop-blur-md rounded-xl p-5 text-center mx-auto max-w-3xl shadow-[0_0_30px_rgba(245,158,11,0.15)]">
+      <h3 class="text-amber-300 font-bold mb-2 text-lg">Misconception Corrected</h3>
+      <p class="text-slate-200 text-sm leading-relaxed">
+        The test measures the vertical gap λ between the two peaks. This corrects the misconception that <strong class="text-amber-400">the Likelihood-Ratio test measures horizontal parameter distance</strong>. It directly evaluates the drop in probability mass caused by the restriction.
+      </p>
+    </div>
+  </div>
+
+  <div class="absolute bottom-0 left-0 w-full h-24 bg-slate-800/80 border-t border-slate-700 flex items-center justify-center px-8 z-50 backdrop-blur-md">
+    <button id="start-btn" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-all">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  
+  const pUn = document.getElementById('p-un'); const lUn = document.getElementById('l-un'); const prUn = document.getElementById('pr-un');
+  const pRe = document.getElementById('p-re'); const lRe = document.getElementById('l-re'); const prRe = document.getElementById('pr-re');
+  const tape = document.getElementById('tape'); const tBox = document.getElementById('t-box');
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+
+  function resetScene() {
+    [pUn, lUn, prUn, pRe, lRe, prRe, tape, tBox].forEach(el => el.classList.remove('opacity-100'));
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    narrator.textContent = "Simulation starting...";
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(800);
+
+    narrator.textContent = "Stage 1: An unrestricted peak signal l(β̂) moves onto the graph.";
+    pUn.classList.add('opacity-100');
+    lUn.classList.add('opacity-100');
+
+    await sleep(2000);
+
+    narrator.textContent = "Stage 2: A restricted peak signal l(β̃) is positioned lower due to the constraint.";
+    pRe.classList.add('opacity-100');
+    lRe.classList.add('opacity-100');
+
+    await sleep(2000);
+
+    narrator.textContent = "Stage 3: Horizontal projections are drawn to measure the gap.";
+    prUn.classList.add('opacity-100');
+    prRe.classList.add('opacity-100');
+
+    await sleep(2000);
+
+    narrator.textContent = "Stage 4: A vertical measurement tape highlights the distance λ between the two peaks.";
+    tape.classList.add('opacity-100');
+    tBox.classList.add('opacity-100');
+
+    await sleep(2500);
+
+    narrator.textContent = "Final State: The vertical distance visualized as the Likelihood-Ratio test statistic.";
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    startBtn.classList.remove('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  // Init
+  resetScene();
+  narrator.textContent = 'Click "Start Simulation" to measure the likelihood drop.';
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>

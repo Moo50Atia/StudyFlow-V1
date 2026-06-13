@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparison: Unified Regression Framework</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Outfit', sans-serif; }
+  .smooth-transition { transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+
+  .central-socket { transition: all 0.5s ease-in-out; }
+  .cable { fill: none; stroke-width: 4; stroke-dasharray: 20; animation: dash 1s linear infinite; opacity: 0; transition: opacity 1s; }
+  @keyframes dash { to { stroke-dashoffset: -40; } }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-5xl h-[700px] bg-slate-900 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col overflow-hidden">
+  
+  <div class="absolute top-6 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-2xl font-bold text-slate-100 tracking-wider">Unified GLM Framework</h1>
+    <p class="text-cyan-400 mt-2 text-sm max-w-2xl mx-auto h-8 font-medium" id="narrator">
+      Click "Start Simulation" to build the unified architecture.
+    </p>
+  </div>
+
+  <div class="relative flex-1 w-full mt-24 mb-20 px-12 flex items-center justify-between">
+    
+    <div class="flex flex-col gap-10 z-20">
+      <div class="w-40 h-20 bg-slate-900 rounded-xl border-2 border-blue-500 flex flex-col justify-center items-center font-bold text-lg shadow-[0_10px_20px_rgba(0,0,0,0.3)] smooth-transition transform -translate-x-12 opacity-0" id="db-norm">
+        Normal <span class="text-xs text-slate-400 font-mono mt-1 smooth-transition" id="sp-norm">μ ∈ ℝ</span>
+      </div>
+      <div class="w-40 h-20 bg-slate-900 rounded-xl border-2 border-emerald-500 flex flex-col justify-center items-center font-bold text-lg shadow-[0_10px_20px_rgba(0,0,0,0.3)] smooth-transition transform -translate-x-12 opacity-0" id="db-bern">
+        Bernoulli <span class="text-xs text-slate-400 font-mono mt-1 smooth-transition" id="sp-bern">π ∈ [0,1]</span>
+      </div>
+      <div class="w-40 h-20 bg-slate-900 rounded-xl border-2 border-amber-500 flex flex-col justify-center items-center font-bold text-lg shadow-[0_10px_20px_rgba(0,0,0,0.3)] smooth-transition transform -translate-x-12 opacity-0" id="db-gamm">
+        Gamma <span class="text-xs text-slate-400 font-mono mt-1 smooth-transition" id="sp-gamm">μ ∈ ℝ⁺</span>
+      </div>
+    </div>
+
+    <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 1000 500" preserveAspectRatio="none">
+      <path id="c-norm" class="cable stroke-blue-500" d="M 220 120 C 400 120, 600 250, 800 250" />
+      <path id="c-bern" class="cable stroke-emerald-500" d="M 220 250 C 400 250, 600 250, 800 250" />
+      <path id="c-gamm" class="cable stroke-amber-500" d="M 220 380 C 400 380, 600 250, 800 250" />
+    </svg>
+
+    <div class="w-56 h-56 bg-purple-900/10 border-4 border-dashed border-purple-500 rounded-full flex flex-col justify-center items-center text-4xl font-bold font-mono text-purple-300 central-socket z-20 shadow-[0_0_50px_rgba(139,92,246,0.2)] opacity-0 transform scale-50" id="socket">
+      xᵀβ
+      <div class="text-sm font-sans font-normal mt-3 text-purple-400">Linear Predictor</div>
+    </div>
+
+  </div>
+
+  <div id="final-message" class="absolute bottom-32 left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none">
+    <div class="bg-purple-950/90 border border-purple-500/50 backdrop-blur-md rounded-xl p-5 text-center mx-auto max-w-3xl shadow-[0_0_30px_rgba(139,92,246,0.15)]">
+      <h3 class="text-purple-300 font-bold mb-2 text-lg">Misconception Corrected</h3>
+      <p class="text-slate-200 text-sm leading-relaxed">
+        A unified regression framework where multiple distributions share a common linear systematic component. This corrects the misconception that <strong class="text-purple-400">regression is exclusively limited to Gaussian/Normal data</strong>. GLMs abstract the systematic part away from the random distribution.
+      </p>
+    </div>
+  </div>
+
+  <div class="absolute bottom-0 left-0 w-full h-24 bg-slate-800/80 border-t border-slate-700 flex items-center justify-center px-8 z-50 backdrop-blur-md">
+    <button id="start-btn" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-all">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  
+  const bNorm = document.getElementById('db-norm');
+  const bBern = document.getElementById('db-bern');
+  const bGamm = document.getElementById('db-gamm');
+  
+  const sNorm = document.getElementById('sp-norm');
+  const sBern = document.getElementById('sp-bern');
+  const sGamm = document.getElementById('sp-gamm');
+  
+  const socket = document.getElementById('socket');
+  
+  const cNorm = document.getElementById('c-norm');
+  const cBern = document.getElementById('c-bern');
+  const cGamm = document.getElementById('c-gamm');
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+
+  function resetScene() {
+    [bNorm, bBern, bGamm].forEach(b => {
+      b.classList.remove('opacity-100', 'translate-x-0', 'translate-x-4');
+      b.classList.add('opacity-0', '-translate-x-12');
+    });
+    
+    socket.classList.remove('opacity-100', 'scale-100', 'bg-purple-900/30');
+    socket.classList.add('opacity-0', 'scale-50', 'bg-purple-900/10');
+    socket.style.boxShadow = '0 0 50px rgba(139,92,246,0.2)';
+    socket.style.borderStyle = 'dashed';
+    
+    [cNorm, cBern, cGamm].forEach(c => c.style.opacity = '0');
+    
+    sNorm.innerText = 'μ ∈ ℝ'; sNorm.style.color = '#94a3b8';
+    sBern.innerText = 'π ∈ [0,1]'; sBern.style.color = '#94a3b8';
+    sGamm.innerText = 'μ ∈ ℝ⁺'; sGamm.style.color = '#94a3b8';
+
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    narrator.textContent = "Simulation starting...";
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(500);
+
+    narrator.textContent = "Stage 1: Distribution blocks and a central linear predictor socket are introduced.";
+    
+    // Bring in elements
+    socket.classList.replace('opacity-0', 'opacity-100');
+    socket.classList.replace('scale-50', 'scale-100');
+    
+    await sleep(400);
+    
+    bNorm.classList.replace('opacity-0', 'opacity-100');
+    bNorm.classList.replace('-translate-x-12', 'translate-x-0');
+    await sleep(200);
+    bBern.classList.replace('opacity-0', 'opacity-100');
+    bBern.classList.replace('-translate-x-12', 'translate-x-0');
+    await sleep(200);
+    bGamm.classList.replace('opacity-0', 'opacity-100');
+    bGamm.classList.replace('-translate-x-12', 'translate-x-0');
+
+    await sleep(1500);
+
+    narrator.textContent = "Stage 2: Modular link functions connect each specific distribution to the common linear socket.";
+    
+    // Move blocks slightly right
+    [bNorm, bBern, bGamm].forEach(b => {
+      b.classList.replace('translate-x-0', 'translate-x-4');
+    });
+
+    // Pulse socket
+    socket.style.borderStyle = 'solid';
+    socket.classList.replace('bg-purple-900/10', 'bg-purple-900/30');
+    socket.style.boxShadow = '0 0 80px rgba(139,92,246,0.8)';
+
+    // Show cables and transform labels
+    cNorm.style.opacity = '1';
+    cBern.style.opacity = '1';
+    cGamm.style.opacity = '1';
+
+    sNorm.innerText = 'g(μ) = μ (Identity)'; sNorm.style.color = '#fff';
+    sBern.innerText = 'g(π) = logit(π)'; sBern.style.color = '#fff';
+    sGamm.innerText = 'g(μ) = 1/μ (Inverse)'; sGamm.style.color = '#fff';
+
+    await sleep(2000);
+
+    narrator.textContent = "Final State: A unified regression framework.";
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    startBtn.classList.remove('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  // Init
+  resetScene();
+  narrator.textContent = 'Click "Start Simulation" to build the unified architecture.';
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparison: Wald Test Statistic</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Outfit', sans-serif; }
+  .smooth-transition { transition: all 1s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+
+  .wave-path { stroke-dasharray: 1000; stroke-dashoffset: 1000; transition: stroke-dashoffset 2s ease-in-out; }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-6xl h-[700px] bg-slate-900 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col overflow-hidden">
+  
+  <div class="absolute top-6 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-2xl font-bold text-slate-100 tracking-wider">Wald Test Statistic</h1>
+    <p class="text-cyan-400 mt-2 text-sm max-w-2xl mx-auto h-8 font-medium" id="narrator">
+      Click "Start Simulation" to calculate the Wald statistic.
+    </p>
+  </div>
+
+  <div class="relative flex-1 w-full mt-24 mb-20 px-12 flex items-center justify-center">
+    
+    <div class="w-full max-w-5xl h-[400px] bg-slate-950/50 rounded-2xl border border-slate-800/50 relative shadow-inner overflow-hidden p-8 backdrop-blur-sm">
+      
+      <div id="f-box" class="absolute right-10 top-10 bg-amber-900/10 border-2 border-amber-500 p-4 rounded-xl text-center backdrop-blur-md opacity-0 smooth-transition z-20">
+        <div class="font-serif text-xl font-bold text-amber-500 mb-1">w = (Cβ̂ - d)ᵀ [C F(β̂)⁻¹ Cᵀ]⁻¹ (Cβ̂ - d)</div>
+        <div class="text-slate-300 text-sm font-sans">Horizontal distance scaled by local curvature</div>
+      </div>
+
+      <svg viewBox="0 0 800 300" class="w-full h-full overflow-visible z-10">
+        
+        <!-- Axis -->
+        <line x1="50" y1="200" x2="750" y2="200" stroke="#475569" stroke-width="4" />
+
+        <!-- Distance Line -->
+        <line x1="300" y1="200" x2="500" y2="200" stroke="#fff" stroke-width="2" stroke-dasharray="4 4" class="opacity-0 smooth-transition" id="d-line" />
+        <text x="370" y="230" fill="#fff" font-family="monospace" font-weight="bold" font-size="16px" class="opacity-0 smooth-transition" id="d-lbl">Distance</text>
+
+        <!-- Weighting Zone -->
+        <path d="M 300 200 Q 400 50 500 200 Z" fill="rgba(245, 158, 11, 0.15)" class="opacity-0 smooth-transition" id="w-zone" />
+
+        <!-- Curvature Wave -->
+        <path d="M 200 200 Q 350 200 400 120 T 500 40 T 600 120 T 800 200" fill="none" stroke="#f59e0b" stroke-width="4" class="wave-path opacity-0" id="wave" />
+        
+        <text x="500" y="25" fill="#f59e0b" font-family="monospace" font-weight="bold" font-size="16px" class="opacity-0 smooth-transition" id="l-info">Fisher Information F(β̂)</text>
+
+        <!-- Hypothesized Target d -->
+        <circle cx="300" cy="200" r="8" fill="#10b981" id="p-hyp" class="opacity-0 smooth-transition" style="filter: drop-shadow(0 0 10px #10b981);" />
+        <text x="280" y="170" fill="#10b981" font-family="monospace" font-weight="bold" font-size="20px" id="l-hyp" class="opacity-0 smooth-transition">d</text>
+
+        <!-- Estimated Point C*beta -->
+        <circle cx="500" cy="200" r="8" fill="#3b82f6" id="p-est" class="opacity-0 smooth-transition" style="filter: drop-shadow(0 0 10px #3b82f6);" />
+        <text x="480" y="170" fill="#3b82f6" font-family="monospace" font-weight="bold" font-size="20px" id="l-est" class="opacity-0 smooth-transition">Cβ̂</text>
+
+      </svg>
+
+    </div>
+
+  </div>
+
+  <div id="final-message" class="absolute bottom-32 left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none">
+    <div class="bg-amber-950/90 border border-amber-500/50 backdrop-blur-md rounded-xl p-5 text-center mx-auto max-w-3xl shadow-[0_0_30px_rgba(245,158,11,0.15)]">
+      <h3 class="text-amber-300 font-bold mb-2 text-lg">Misconception Corrected</h3>
+      <p class="text-slate-200 text-sm leading-relaxed">
+        The horizontal distance is scaled by local likelihood curvature. This corrects the misconception that <strong class="text-amber-400">the Wald test ignores statistical certainty during distance calculation</strong>. The Fisher Information matrix acts as the crucial weighting mechanism.
+      </p>
+    </div>
+  </div>
+
+  <div class="absolute bottom-0 left-0 w-full h-24 bg-slate-800/80 border-t border-slate-700 flex items-center justify-center px-8 z-50 backdrop-blur-md">
+    <button id="start-btn" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-all">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  
+  const pHyp = document.getElementById('p-hyp'); const lHyp = document.getElementById('l-hyp');
+  const pEst = document.getElementById('p-est'); const lEst = document.getElementById('l-est');
+  const dLine = document.getElementById('d-line'); const dLbl = document.getElementById('d-lbl');
+  const wave = document.getElementById('wave'); const lInfo = document.getElementById('l-info');
+  const wZone = document.getElementById('w-zone'); const fBox = document.getElementById('f-box');
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+
+  function resetScene() {
+    [pHyp, lHyp, pEst, lEst, dLine, dLbl, lInfo, wZone, fBox].forEach(el => el.classList.remove('opacity-100'));
+    wave.classList.remove('opacity-100');
+    wave.style.strokeDashoffset = '1000';
+    
+    dLbl.textContent = 'Distance';
+    dLbl.setAttribute('fill', '#fff');
+    dLine.setAttribute('stroke', '#fff');
+
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    narrator.textContent = "Simulation starting...";
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(800);
+
+    narrator.textContent = "Stage 1: A hypothesized target d and an estimated point Cβ̂ move onto the horizontal axis.";
+    pHyp.classList.add('opacity-100'); lHyp.classList.add('opacity-100');
+    await sleep(1000);
+    pEst.classList.add('opacity-100'); lEst.classList.add('opacity-100');
+
+    await sleep(1500);
+
+    narrator.textContent = "Stage 2: The naive horizontal distance is measured between the two points.";
+    dLine.classList.add('opacity-100'); dLbl.classList.add('opacity-100');
+
+    await sleep(2500);
+
+    narrator.textContent = "Stage 3: A curvature wave representing Fisher Information F(β̂) overlays the estimate.";
+    wave.classList.add('opacity-100');
+    wave.style.strokeDashoffset = '0';
+    lInfo.classList.add('opacity-100');
+
+    await sleep(3000);
+
+    narrator.textContent = "Stage 4: The horizontal gap is transformed into a weighted Wald statistic w.";
+    wZone.classList.add('opacity-100');
+    fBox.classList.add('opacity-100');
+    
+    dLbl.textContent = 'Weighted Dist (w)';
+    dLbl.setAttribute('fill', '#f59e0b');
+    dLine.setAttribute('stroke', '#f59e0b');
+
+    await sleep(2500);
+
+    narrator.textContent = "Final State: Horizontal distance scaled by local likelihood curvature.";
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    startBtn.classList.remove('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  // Init
+  resetScene();
+  narrator.textContent = 'Click "Start Simulation" to calculate the Wald statistic.';
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>

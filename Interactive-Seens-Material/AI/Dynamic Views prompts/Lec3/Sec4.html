@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parallel Flow: Log Link Multiplicative Effect</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Outfit', sans-serif; }
+  .smooth-transition { transition: all 1.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+
+  .graph-path { fill: none; stroke-width: 4; stroke-linecap: round; transition: d 1.5s cubic-bezier(0.34, 1.56, 0.64, 1), stroke 1s; }
+  
+  .filter-pulse { animation: pulseGlow 2s infinite; }
+  @keyframes pulseGlow { 0% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); border-color: #8b5cf6; } 50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.6); border-color: #a855f7; } 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); border-color: #8b5cf6; } }
+
+  .signal-dot {
+    position: absolute; width: 12px; height: 12px; border-radius: 50%; background: #fff;
+    transform: translate(-50%, -50%); box-shadow: 0 0 10px #fff; opacity: 0;
+  }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-6xl h-[700px] bg-slate-900 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col overflow-hidden">
+  
+  <div class="absolute top-6 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-2xl font-bold text-slate-100 tracking-wider">Log Link Function</h1>
+    <p class="text-cyan-400 mt-2 text-sm max-w-2xl mx-auto h-8 font-medium" id="narrator">
+      Click "Start Simulation" to process the linear predictor.
+    </p>
+  </div>
+
+  <div class="relative flex-1 w-full mt-24 mb-20 px-12 flex items-center justify-center gap-8">
+    
+    <!-- Left: Linear Signal -->
+    <div class="w-1/4 flex flex-col items-center gap-4">
+      <div class="font-bold text-slate-400 tracking-widest text-sm uppercase">Linear Predictor η</div>
+      <div class="w-full h-[200px] bg-slate-950/50 border border-slate-700 rounded-xl relative overflow-hidden flex items-center">
+        <svg viewBox="0 0 200 200" class="absolute inset-0 w-full h-full">
+          <line x1="0" y1="100" x2="200" y2="100" stroke="#475569" stroke-width="1" stroke-dasharray="4 4"/>
+          <!-- Straight line from bottom left to top right -->
+          <line x1="0" y1="180" x2="200" y2="20" stroke="#3b82f6" stroke-width="4" stroke-linecap="round"/>
+        </svg>
+        <!-- moving dot -->
+        <div id="dot-in" class="signal-dot bg-blue-400" style="left: 0%; top: 90%;"></div>
+      </div>
+      <div class="font-mono text-blue-400 bg-blue-900/20 px-3 py-1 rounded border border-blue-500/30">η = β₀ + β₁x</div>
+    </div>
+
+    <!-- Center: Exponential Filter -->
+    <div class="flex flex-col items-center gap-2">
+      <div id="filter-block" class="w-32 h-32 bg-slate-950/80 border-2 border-slate-600 rounded-2xl flex flex-col items-center justify-center backdrop-blur-md smooth-transition z-20">
+        <div class="text-xs text-slate-400 font-bold mb-2">FILTER</div>
+        <div class="font-serif text-3xl font-bold text-white">exp(·)</div>
+      </div>
+      <div id="flow-arrow" class="text-slate-500 font-bold text-2xl smooth-fade opacity-0">→</div>
+    </div>
+
+    <!-- Right: Count Scale (Output) -->
+    <div class="flex-1 flex flex-col items-center gap-4">
+      <div class="font-bold text-slate-400 tracking-widest text-sm uppercase">Expected Count λ</div>
+      <div class="w-full h-[300px] bg-slate-950/50 border border-slate-700 rounded-xl relative overflow-hidden flex items-end p-4">
+        
+        <svg viewBox="0 0 400 300" preserveAspectRatio="none" class="absolute inset-0 w-full h-full">
+          <!-- Zero boundary -->
+          <line x1="0" y1="280" x2="400" y2="280" stroke="#ef4444" stroke-width="2" stroke-dasharray="4 4"/>
+          
+          <!-- Transformed Curve -->
+          <path id="curve-out" class="graph-path" d="M 0 280 L 400 280" stroke="#a855f7" />
+        </svg>
+        
+        <!-- moving dot -->
+        <div id="dot-out" class="signal-dot bg-purple-400" style="left: 0%; top: 93.3%;"></div>
+
+        <div class="absolute bottom-2 left-4 text-xs text-red-500 font-bold tracking-widest">ZERO</div>
+      </div>
+      <div class="font-mono text-purple-400 bg-purple-900/20 px-3 py-1 rounded border border-purple-500/30">λ = exp(η)</div>
+    </div>
+
+  </div>
+
+  <div id="final-message" class="absolute bottom-32 left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none">
+    <div class="bg-purple-950/90 border border-purple-500/50 backdrop-blur-md rounded-xl p-5 text-center mx-auto max-w-3xl shadow-[0_0_30px_rgba(168,85,247,0.15)]">
+      <h3 class="text-purple-300 font-bold mb-2 text-lg">Misconception Corrected</h3>
+      <p class="text-slate-200 text-sm leading-relaxed">
+        The exponential filter transforms additive effects into multiplicative effects. This corrects the misconception that <strong class="text-purple-400">coefficients in Poisson regression add linearly to the expected count</strong>. A unit increase in x multiplies the expected count by exp(β₁), keeping predictions strictly positive.
+      </p>
+    </div>
+  </div>
+
+  <div class="absolute bottom-0 left-0 w-full h-24 bg-slate-800/80 border-t border-slate-700 flex items-center justify-center px-8 z-50 backdrop-blur-md">
+    <button id="start-btn" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-all">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  
+  const filterBlock = document.getElementById('filter-block');
+  const flowArrow = document.getElementById('flow-arrow');
+  const curveOut = document.getElementById('curve-out');
+  const dotIn = document.getElementById('dot-in');
+  const dotOut = document.getElementById('dot-out');
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+  let animTimer = null;
+
+  function resetScene() {
+    filterBlock.classList.remove('filter-pulse');
+    flowArrow.classList.remove('opacity-100');
+    
+    // Flat line on output
+    curveOut.setAttribute('d', 'M 0 280 L 400 280');
+    
+    dotIn.style.opacity = '0'; dotIn.style.left = '0%'; dotIn.style.top = '90%';
+    dotOut.style.opacity = '0'; dotOut.style.left = '0%'; dotOut.style.top = '93.3%';
+    if(animTimer) clearInterval(animTimer);
+
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    narrator.textContent = "Simulation starting...";
+  }
+
+  function runDots() {
+    let t = 0;
+    dotIn.style.opacity = '1';
+    dotOut.style.opacity = '1';
+    
+    animTimer = setInterval(() => {
+      if(t > 100) t = 0;
+      
+      // In dot moves along straight line (0,90% to 100%,10%)
+      dotIn.style.left = `${t}%`;
+      dotIn.style.top = `${90 - (t * 0.8)}%`;
+      
+      // Out dot moves along exponential curve
+      // map t[0,100] to x[0,400]
+      let x = t * 4;
+      // eta from -2 to 2 roughly
+      let eta = (t - 50) / 25; 
+      let lambda = Math.exp(eta);
+      // map lambda [exp(-2)~0.13 to exp(2)~7.38] to pixel y [280 to 20]
+      let y = 280 - (lambda * 35);
+      if(y < 10) y = 10; // clamp
+      
+      dotOut.style.left = `${t}%`;
+      dotOut.style.top = `${(y/300)*100}%`;
+      
+      t += 1;
+    }, 30);
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(800);
+
+    narrator.textContent = "Stage 1: A linear predictor signal passes spanning negative and positive values.";
+    
+    flowArrow.classList.add('opacity-100');
+
+    await sleep(2000);
+
+    narrator.textContent = "Stage 2: The signal enters the exponential filter block.";
+    
+    filterBlock.classList.add('filter-pulse');
+
+    await sleep(2000);
+
+    narrator.textContent = "Stage 3: The output signal transforms into a rapidly rising curve strictly above zero.";
+    
+    // Draw exponential curve
+    let d = `M 0 `;
+    for(let i=0; i<=400; i+=10) {
+      // map i [0,400] to t [0,100]
+      let t = i / 4;
+      let eta = (t - 50) / 25; 
+      let lambda = Math.exp(eta);
+      let y = 280 - (lambda * 35);
+      if(y < 10) y = 10;
+      d += `${i===0?'':'L '}${i} ${y} `;
+    }
+    curveOut.setAttribute('d', d);
+
+    await sleep(2000);
+
+    narrator.textContent = "Stage 4: Tracking a data point shows the additive-to-multiplicative translation.";
+    
+    runDots();
+
+    await sleep(4000);
+
+    narrator.textContent = "Final State: The multiplicative effect of the log link function.";
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    filterBlock.classList.remove('filter-pulse');
+    startBtn.classList.remove('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  // Init
+  resetScene();
+  narrator.textContent = 'Click "Start Simulation" to process the linear predictor.';
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>

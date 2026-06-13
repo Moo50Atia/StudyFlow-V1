@@ -1,0 +1,57 @@
+Lecture: Hypotheses Testing in Generalized Linear Models
+Lec5 (Sec1): "Process: A linear coefficient vector β moves through a selection matrix device C. Specific parameter blocks highlight and transform as they are filtered to match the hypothesized linear combination signal d. Final State: A mathematically restricted parameter set Cβ=d, correcting the misconception that hypothesis testing is limited to single coefficients rather than general linear combinations
+."
+Lec5 (Sec2): "Comparison: An unrestricted peak signal l( 
+β
+^
+​
+ ) and a restricted peak signal l( 
+β
+~
+​
+ ) move onto a vertical log-likelihood graph. A vertical measurement tape highlights the gap λ between the two peaks. Final State: The vertical distance λ=−2(l( 
+β
+~
+​
+ )−l( 
+β
+^
+​
+ )) visualized as the test statistic, correcting the misconception that the Likelihood-Ratio test measures horizontal parameter distance
+,
+."
+Lec5 (Sec3): "Comparison: An estimated point C 
+β
+^
+​
+  and a hypothesized target d move onto a horizontal axis. A curvature wave representing Fisher Information F( 
+β
+^
+​
+ ) overlays the distance, transforming the horizontal gap into a weighted Wald statistic w. Final State: Horizontal distance scaled by local likelihood curvature, correcting the misconception that the Wald test ignores statistical certainty or curvature during distance calculation
+,
+,
+."
+Lec5 (Sec4): "Process: A restricted estimate point  
+β
+~
+​
+  moves along a log-likelihood curve. A tangent line representing the score function s( 
+β
+~
+​
+ ) highlights and rotates based on the local slope, while a curvature filter F( 
+β
+~
+​
+ ) 
+−1
+  scales the signal. Final State: A score statistic based on the steepness of the gradient at the hypothesized value, correcting the misconception that the score test is evaluated at the unrestricted maximum likelihood peak
+,
+."
+Lec5 (Sec5): "Time Evolution: Three statistic blocks labeled λ,w, and u move toward a shared spatial target representing the χ 
+r
+2
+​
+  distribution. As a sample size signal n accumulates toward infinity, the three blocks transform to overlap and merge into the target distribution curve. Final State: Asymptotic equivalence of the three test statistics at large sample sizes, correcting the misconception that these tests provide divergent results when applied to large datasets
+."

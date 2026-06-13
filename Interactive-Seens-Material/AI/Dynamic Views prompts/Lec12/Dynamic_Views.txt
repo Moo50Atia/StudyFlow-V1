@@ -1,0 +1,42 @@
+Lecture: Quasi-likelihood and Generalized Estimation Equations (GEEs)
+Lec7 (Sec1): "Comparison: Three warning lights labeled Distribution, Link, and Covariates highlight on a diagnostic dashboard beside a failing model icon. A Quasi-Likelihood module moves toward the Distribution light, causing the rigid distribution shells to fade while the model icon transforms into a green active state
+. Final State: Quasi-likelihood identified as the specific repair for distribution misspecification, correcting the misconception that model failure always requires a new distribution assumption rather than relaxing the requirement."
+Lec7 (Sec2): "Process: A complex probability density formula block splits and transforms into two primary signal blocks labeled E(y 
+i
+​
+ )=μ 
+i
+​
+ =h(η 
+i
+​
+ ) and Var(y 
+i
+​
+ )=ϕv(μ 
+i
+​
+ ). The original formula fades as the two moment blocks highlight at the center of the graph
+. Final State: A moment-based model specification independent of a full distribution, correcting the misconception that variance and mean can only be defined through a formal probability density function."
+Lec7 (Sec3): "Comparison: Two parameter signals,  
+β
+^
+​
+  
+ML
+​
+  and  
+β
+^
+​
+  
+QML
+​
+ , move along parallel paths toward a true β target line. Above them, two normal distribution curves transform; the ML curve highlights as a narrow spike, while the QL curve highlights as a wider wave, both centered on the target
+. Final State: Consistent and unbiased estimators with differing efficiency widths, correcting the misconception that consistency in estimation implies maximum statistical efficiency."
+Lec7 (Sec4): "Accumulation: A central covariance block V labeled 'Working Variance' highlights to indicate potential error. Two robust information blocks F 
+Q
+−1
+​
+  move from the left and right to accumulate around the central block, transforming the assembly into a stable 'Sandwich Estimator' structure
+. Final State: A robust covariance matrix providing valid inference despite variance misspecification, correcting the misconception that an incorrect variance function prevents consistent parameter estimation in GEEs."

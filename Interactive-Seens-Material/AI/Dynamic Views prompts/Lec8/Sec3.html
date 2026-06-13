@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparison: Score Function Simplification (Canonical Link)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Outfit', sans-serif; }
+  .smooth-transition { transition: all 1s ease-in-out; }
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+
+  .cancel-line {
+    position: absolute; width: 0%; height: 4px; background: #ef4444;
+    top: 50%; left: 0; transform: translateY(-50%) rotate(-15deg);
+    transition: width 0.5s ease-in-out;
+  }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-6xl h-[700px] bg-slate-900 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col overflow-hidden">
+  
+  <div class="absolute top-6 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-2xl font-bold text-slate-100 tracking-wider">Simplification via Canonical Link</h1>
+    <p class="text-cyan-400 mt-2 text-sm max-w-2xl mx-auto h-8 font-medium" id="narrator">
+      Click "Start Simulation" to compare formula paths.
+    </p>
+  </div>
+
+  <div class="relative flex-1 w-full mt-24 mb-20 px-12 flex gap-8">
+    
+    <!-- General Link Path -->
+    <div class="flex-1 bg-slate-950/50 border border-slate-800/50 rounded-2xl p-8 flex flex-col items-center shadow-inner backdrop-blur-sm">
+      <div class="text-slate-400 font-bold uppercase tracking-widest mb-12">General Link Function</div>
+      
+      <div class="flex items-center gap-4 font-serif text-xl font-bold mb-12">
+        <div class="px-6 py-4 bg-slate-900 border-2 border-blue-500 rounded-xl relative">(y - μ) / v(μ)</div>
+        <div class="text-slate-500 text-3xl">×</div>
+        <div class="px-6 py-4 bg-slate-900 border-2 border-purple-500 rounded-xl relative">∂μ / ∂η</div>
+        <div class="text-slate-500 text-3xl">×</div>
+        <div class="px-6 py-4 bg-slate-900 border-2 border-amber-500 rounded-xl relative">x</div>
+      </div>
+      
+      <div id="res-gen" class="font-serif text-2xl font-bold text-slate-300 px-8 py-5 border-2 border-dashed border-slate-600 bg-slate-900/50 rounded-xl opacity-0 translate-y-4 smooth-transition">
+        ∑ [ (yᵢ - μᵢ) · (∂μᵢ/∂ηᵢ) · xᵢ ] / v(μᵢ)
+      </div>
+    </div>
+
+    <!-- Canonical Link Path -->
+    <div class="flex-1 bg-emerald-950/20 border-2 border-emerald-900/50 rounded-2xl p-8 flex flex-col items-center shadow-[0_0_30px_rgba(16,185,129,0.05)] backdrop-blur-sm">
+      <div class="text-emerald-500 font-bold uppercase tracking-widest mb-12">Canonical Link (θ = η)</div>
+      
+      <div class="flex items-center gap-4 font-serif text-xl font-bold mb-12">
+        <div id="t-v1" class="px-6 py-4 bg-slate-900 border-2 border-blue-500 rounded-xl relative smooth-transition">
+          (y - μ) / v(μ)
+          <div class="cancel-line" id="c1"></div>
+        </div>
+        <div class="text-slate-500 text-3xl">×</div>
+        <div id="t-v2" class="px-6 py-4 bg-slate-900 border-2 border-purple-500 rounded-xl relative text-center smooth-transition">
+          v(μ)
+          <div class="text-[10px] text-slate-500 font-sans mt-1">Since ∂μ/∂η = v(μ)</div>
+          <div class="cancel-line" id="c2"></div>
+        </div>
+        <div class="text-slate-500 text-3xl">×</div>
+        <div id="t-keep" class="px-6 py-4 bg-slate-900 border-2 border-amber-500 rounded-xl relative smooth-transition">x</div>
+      </div>
+      
+      <div id="res-can" class="font-serif text-3xl font-bold text-emerald-400 px-10 py-6 border-2 border-emerald-500 bg-emerald-900/20 rounded-xl opacity-0 translate-y-4 smooth-transition shadow-[0_10px_30px_rgba(16,185,129,0.2)]">
+        ∑ (yᵢ - μᵢ) · xᵢ
+      </div>
+    </div>
+
+  </div>
+
+  <div id="final-message" class="absolute bottom-32 left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none">
+    <div class="bg-emerald-950/90 border border-emerald-500/50 backdrop-blur-md rounded-xl p-5 text-center mx-auto max-w-3xl shadow-[0_0_30px_rgba(16,185,129,0.15)]">
+      <h3 class="text-emerald-300 font-bold mb-2 text-lg">Misconception Corrected</h3>
+      <p class="text-slate-200 text-sm leading-relaxed">
+        The Canonical path simplifies cleanly because the derivative ∂μ/∂η equals the variance function v(μ). This corrects the misconception that <strong class="text-emerald-400">all link functions involve equally complex derivative chains</strong>. Canonical links result in elegant, simplified linear summations.
+      </p>
+    </div>
+  </div>
+
+  <div class="absolute bottom-0 left-0 w-full h-24 bg-slate-800/80 border-t border-slate-700 flex items-center justify-center px-8 z-50 backdrop-blur-md">
+    <button id="start-btn" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-all">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  
+  const resGen = document.getElementById('res-gen');
+  const c1 = document.getElementById('c1');
+  const c2 = document.getElementById('c2');
+  const tV1 = document.getElementById('t-v1');
+  const tV2 = document.getElementById('t-v2');
+  const tKeep = document.getElementById('t-keep');
+  const resCan = document.getElementById('res-can');
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+
+  function resetScene() {
+    resGen.classList.remove('opacity-100', 'translate-y-0');
+    resGen.classList.add('opacity-0', 'translate-y-4');
+    
+    c1.style.width = '0%';
+    c2.style.width = '0%';
+    
+    tV1.style.opacity = '1'; tV1.style.transform = 'scale(1)';
+    tV2.style.opacity = '1'; tV2.style.transform = 'scale(1)';
+    
+    tKeep.style.transform = 'scale(1)';
+    tKeep.style.borderColor = '#f59e0b';
+    tKeep.style.boxShadow = 'none';
+
+    resCan.classList.remove('opacity-100', 'translate-y-0');
+    resCan.classList.add('opacity-0', 'translate-y-4');
+
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    narrator.textContent = "Simulation starting...";
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(800);
+
+    narrator.textContent = "Stage 1: The General Link Function requires a complex summation over the derivative chains.";
+    resGen.classList.replace('opacity-0', 'opacity-100');
+    resGen.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(2500);
+
+    narrator.textContent = "Stage 2: On the Canonical path, terms for ∂μ/∂η and v(μ) cancel out.";
+    c1.style.width = '120%';
+    c2.style.width = '120%';
+    
+    await sleep(1000);
+    
+    tV1.style.opacity = '0.2'; tV1.style.transform = 'scale(0.8)';
+    tV2.style.opacity = '0.2'; tV2.style.transform = 'scale(0.8)';
+
+    await sleep(1500);
+
+    narrator.textContent = "Stage 3: The residual block and covariate block highlight and merge.";
+    tKeep.style.transform = 'scale(1.1)';
+    tKeep.style.borderColor = '#10b981';
+    tKeep.style.boxShadow = '0 0 20px rgba(16, 185, 129, 0.5)';
+
+    await sleep(1500);
+
+    resCan.classList.replace('opacity-0', 'opacity-100');
+    resCan.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+
+    narrator.textContent = "Final State: A simplified linear summation of weighted residuals.";
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    startBtn.classList.remove('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  // Init
+  resetScene();
+  narrator.textContent = 'Click "Start Simulation" to compare formula paths.';
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparison: Score Test Statistic</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Outfit', sans-serif; }
+  .smooth-transition { transition: all 1s ease-in-out; }
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+
+  .tangent-line { transform-origin: 300px 187px; transition: opacity 1s, transform 2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-6xl h-[700px] bg-slate-900 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col overflow-hidden">
+  
+  <div class="absolute top-6 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-2xl font-bold text-slate-100 tracking-wider">Score Test Statistic (Rao's Test)</h1>
+    <p class="text-cyan-400 mt-2 text-sm max-w-2xl mx-auto h-8 font-medium" id="narrator">
+      Click "Start Simulation" to evaluate the gradient.
+    </p>
+  </div>
+
+  <div class="relative flex-1 w-full mt-24 mb-20 px-12 flex items-center justify-center">
+    
+    <div class="w-full max-w-5xl h-[450px] bg-slate-950/50 rounded-2xl border border-slate-800/50 relative shadow-inner overflow-hidden p-8 backdrop-blur-sm">
+      
+      <div id="f-box" class="absolute right-12 bottom-12 bg-emerald-900/10 border-2 border-emerald-500 p-5 rounded-xl text-center backdrop-blur-md opacity-0 smooth-transition z-20">
+        <div class="font-serif text-2xl font-bold text-emerald-500 mb-2">u = s(β̃)ᵀ F(β̃)⁻¹ s(β̃)</div>
+        <div class="text-emerald-200/70 text-sm font-sans">Gradient steepness scaled by inverse curvature</div>
+      </div>
+
+      <svg viewBox="0 0 800 400" class="w-full h-full overflow-visible z-10">
+        <!-- Axes -->
+        <line x1="50" y1="350" x2="750" y2="350" stroke="#475569" stroke-width="2" />
+        <text x="760" y="355" fill="#94a3b8" font-family="monospace">β</text>
+        <line x1="50" y1="50" x2="50" y2="350" stroke="#475569" stroke-width="2" />
+        <text x="20" y="40" fill="#94a3b8" font-family="monospace">l(β)</text>
+
+        <!-- Curve -->
+        <path d="M 100 350 Q 500 -250 900 350" fill="none" stroke="#3b82f6" stroke-width="4" stroke-linecap="round" />
+        
+        <!-- Restricted Point -->
+        <circle cx="300" cy="187" r="8" fill="#ef4444" id="p-rest" class="opacity-0 smooth-transition" style="filter: drop-shadow(0 0 15px #ef4444);" />
+        <text x="270" y="160" fill="#ef4444" font-family="monospace" font-weight="bold" font-size="18px" id="l-rest" class="opacity-0 smooth-transition">β̃ (Restricted)</text>
+
+        <!-- Unrestricted Max -->
+        <circle cx="500" cy="50" r="8" fill="#94a3b8" id="p-max" class="opacity-0 smooth-transition" />
+        <text x="480" y="30" fill="#94a3b8" font-family="monospace" font-weight="bold" font-size="14px" id="l-max" class="opacity-0 smooth-transition">β̂ (Max)</text>
+
+        <!-- Tangent -->
+        <g id="tangent-group">
+          <line x1="200" y1="187" x2="400" y2="187" stroke="#10b981" stroke-width="4" stroke-linecap="round" id="l-tang" class="tangent-line opacity-0" />
+          <text x="180" y="270" fill="#10b981" font-family="monospace" font-weight="bold" font-size="20px" id="l-slope" class="opacity-0 smooth-transition">s(β̃) ≠ 0</text>
+        </g>
+      </svg>
+
+    </div>
+
+  </div>
+
+  <div id="final-message" class="absolute bottom-32 left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none">
+    <div class="bg-emerald-950/90 border border-emerald-500/50 backdrop-blur-md rounded-xl p-5 text-center mx-auto max-w-3xl shadow-[0_0_30px_rgba(16,185,129,0.15)]">
+      <h3 class="text-emerald-300 font-bold mb-2 text-lg">Misconception Corrected</h3>
+      <p class="text-slate-200 text-sm leading-relaxed">
+        The test focuses on the steepness of the gradient exactly at the hypothesized value. This corrects the misconception that <strong class="text-emerald-400">the score test is evaluated at the unrestricted maximum likelihood peak</strong>. It evaluates how badly the score function fails to be zero at β̃.
+      </p>
+    </div>
+  </div>
+
+  <div class="absolute bottom-0 left-0 w-full h-24 bg-slate-800/80 border-t border-slate-700 flex items-center justify-center px-8 z-50 backdrop-blur-md">
+    <button id="start-btn" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-all">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  
+  const pRest = document.getElementById('p-rest'); const lRest = document.getElementById('l-rest');
+  const pMax = document.getElementById('p-max'); const lMax = document.getElementById('l-max');
+  const lTang = document.getElementById('l-tang'); const lSlope = document.getElementById('l-slope');
+  const fBox = document.getElementById('f-box');
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+
+  function resetScene() {
+    [pRest, lRest, pMax, lMax, lTang, lSlope, fBox].forEach(el => el.classList.remove('opacity-100'));
+    lTang.style.transform = 'rotate(0deg)';
+    fBox.style.boxShadow = 'none';
+
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    narrator.textContent = "Simulation starting...";
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(800);
+
+    narrator.textContent = "Stage 1: A restricted estimate point β̃ moves along the log-likelihood curve.";
+    pRest.classList.add('opacity-100');
+    lRest.classList.add('opacity-100');
+
+    await sleep(1500);
+    pMax.classList.add('opacity-100'); pMax.style.opacity = '0.5';
+    lMax.classList.add('opacity-100'); lMax.style.opacity = '0.5';
+
+    await sleep(1500);
+
+    narrator.textContent = "Stage 2: A tangent line representing the score function s(β̃) highlights and rotates based on local slope.";
+    lTang.classList.add('opacity-100');
+    
+    await sleep(1000);
+    lTang.style.transform = 'rotate(-35deg)';
+    lSlope.classList.add('opacity-100');
+
+    await sleep(2500);
+
+    narrator.textContent = "Stage 3: A curvature filter F(β̃)⁻¹ scales the signal to produce the final statistic.";
+    fBox.classList.add('opacity-100');
+    fBox.style.boxShadow = '0 0 30px rgba(16, 185, 129, 0.4)';
+
+    await sleep(2500);
+
+    narrator.textContent = "Final State: A score statistic based on the steepness of the gradient at the hypothesized value.";
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    startBtn.classList.remove('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  // Init
+  resetScene();
+  narrator.textContent = 'Click "Start Simulation" to evaluate the gradient.';
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>

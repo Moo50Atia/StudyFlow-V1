@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Process: Likelihood Generation</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Outfit', sans-serif; }
+  
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+
+  svg.dial { transform: rotate(-90deg); }
+  .dial-bg { fill: none; stroke: #334155; stroke-width: 8; }
+  .dial-fill { fill: none; stroke: #3b82f6; stroke-width: 8; stroke-dasharray: 188.4; stroke-dashoffset: 188.4; transition: stroke-dashoffset 0.1s linear; }
+  
+  .l-axis { stroke: #475569; stroke-width: 2; }
+  .l-curve { fill: none; stroke: #10b981; stroke-width: 4; stroke-linecap: round; }
+  .l-point { fill: #fff; r: 6; box-shadow: 0 0 10px #fff; transition: cx 0.1s linear, cy 0.1s linear; }
+
+  .draw-path { stroke-dasharray: 2000; stroke-dashoffset: 2000; animation: draw 2s forwards linear; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-6xl h-[800px] bg-slate-900 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col overflow-hidden">
+  
+  <div class="absolute top-6 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-2xl font-bold text-slate-100 tracking-wider">Likelihood Product Accumulation</h1>
+    <p class="text-cyan-400 mt-2 text-sm max-w-2xl mx-auto h-8 font-medium" id="narrator">
+      Click "Start Simulation" to begin the parameter search process.
+    </p>
+  </div>
+
+  <div class="relative flex-1 w-full mt-24 mb-24 px-8 flex gap-8">
+    
+    <!-- Dials Panel -->
+    <div class="flex-1 bg-slate-950/50 rounded-2xl border border-slate-800/50 backdrop-blur-sm p-6 grid grid-cols-2 gap-6 relative">
+      <!-- 4 Dials -->
+      <div class="bg-slate-900 rounded-xl border border-slate-700 flex flex-col items-center justify-center p-4">
+        <div class="relative w-20 h-20">
+          <svg class="dial w-full h-full" viewBox="0 0 80 80"><circle cx="40" cy="40" r="30" class="dial-bg"/><circle cx="40" cy="40" r="30" class="dial-fill" id="df1"/></svg>
+          <div class="absolute inset-0 flex items-center justify-center font-bold font-mono text-lg" id="dv1">0.0</div>
+        </div>
+        <div class="text-slate-500 text-sm mt-2">Obs 1 (y=1)</div>
+      </div>
+      <div class="bg-slate-900 rounded-xl border border-slate-700 flex flex-col items-center justify-center p-4">
+        <div class="relative w-20 h-20">
+          <svg class="dial w-full h-full" viewBox="0 0 80 80"><circle cx="40" cy="40" r="30" class="dial-bg"/><circle cx="40" cy="40" r="30" class="dial-fill" id="df2"/></svg>
+          <div class="absolute inset-0 flex items-center justify-center font-bold font-mono text-lg" id="dv2">0.0</div>
+        </div>
+        <div class="text-slate-500 text-sm mt-2">Obs 2 (y=1)</div>
+      </div>
+      <div class="bg-slate-900 rounded-xl border border-slate-700 flex flex-col items-center justify-center p-4">
+        <div class="relative w-20 h-20">
+          <svg class="dial w-full h-full" viewBox="0 0 80 80"><circle cx="40" cy="40" r="30" class="dial-bg"/><circle cx="40" cy="40" r="30" class="dial-fill" id="df3"/></svg>
+          <div class="absolute inset-0 flex items-center justify-center font-bold font-mono text-lg" id="dv3">0.0</div>
+        </div>
+        <div class="text-slate-500 text-sm mt-2">Obs 3 (y=0)</div>
+      </div>
+      <div class="bg-slate-900 rounded-xl border border-slate-700 flex flex-col items-center justify-center p-4">
+        <div class="relative w-20 h-20">
+          <svg class="dial w-full h-full" viewBox="0 0 80 80"><circle cx="40" cy="40" r="30" class="dial-bg"/><circle cx="40" cy="40" r="30" class="dial-fill" id="df4"/></svg>
+          <div class="absolute inset-0 flex items-center justify-center font-bold font-mono text-lg" id="dv4">0.0</div>
+        </div>
+        <div class="text-slate-500 text-sm mt-2">Obs 4 (y=0)</div>
+      </div>
+
+      <!-- Multiplier Pipe -->
+      <div class="absolute top-1/2 -right-4 -translate-y-1/2 w-12 h-20 bg-blue-600 rounded-xl flex justify-center items-center font-bold text-3xl shadow-[0_0_20px_rgba(37,99,235,0.6)] z-10 text-white">∏</div>
+    </div>
+
+    <!-- Graph Panel -->
+    <div class="flex-[2] bg-slate-950/50 rounded-2xl border border-slate-800/50 backdrop-blur-sm p-6 flex flex-col items-center pl-10">
+      <div class="text-slate-400 font-bold mb-4 tracking-wide">Likelihood L(β)</div>
+      <div class="relative w-full flex-1">
+        <svg viewBox="0 -100 600 400" preserveAspectRatio="none" class="w-full h-full overflow-visible">
+          <line x1="0" y1="280" x2="600" y2="280" class="l-axis"/>
+          <path id="l-curve" class="l-curve" d="" />
+          <circle id="l-dot" class="l-point hidden" cx="0" cy="280"/>
+        </svg>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="final-message" class="absolute bottom-32 left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none">
+    <div class="bg-emerald-950/90 border border-emerald-500/50 backdrop-blur-md rounded-xl p-5 text-center mx-auto max-w-3xl shadow-[0_0_30px_rgba(16,185,129,0.15)]">
+      <h3 class="text-emerald-300 font-bold mb-2 text-lg">Misconception Corrected</h3>
+      <p class="text-slate-200 text-sm leading-relaxed">
+        The probability dials fluctuate as β changes, resulting in a maximized Likelihood curve. This corrects the misconception that <strong class="text-emerald-400">observations are variable rather than fixed</strong> during estimation. The data is fixed; the parameter β is what varies to maximize the likelihood.
+      </p>
+    </div>
+  </div>
+
+  <div class="absolute bottom-0 left-0 w-full h-24 bg-slate-800/80 border-t border-slate-700 flex items-center justify-center px-8 z-50 backdrop-blur-md gap-8">
+    <div class="flex items-center gap-4 text-slate-400 font-mono">
+      <span>Parameter β:</span>
+      <span id="b-val" class="text-emerald-400 font-bold w-12 text-right">-3.00</span>
+    </div>
+    <button id="start-btn" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-all">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  const bVal = document.getElementById('b-val');
+  
+  const lCurve = document.getElementById('l-curve');
+  const lDot = document.getElementById('l-dot');
+  
+  const obs = [{x: 1, y: 1}, {x: 2, y: 1}, {x: -1, y: 0}, {x: -2, y: 0}];
+  const dashLen = 2 * Math.PI * 30; // 188.4
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+
+  function prob(x, b) { return 1 / (1 + Math.exp(-(b * x))); }
+  
+  function getLikelihood(b) {
+    let L = 1;
+    obs.forEach(o => {
+      let p = prob(o.x, b);
+      L *= (o.y === 1) ? p : (1 - p);
+    });
+    return L;
+  }
+
+  function updateVisuals(b, drawPath = false) {
+    bVal.textContent = (b > 0 ? '+' : '') + b.toFixed(2);
+    
+    // Update dials
+    obs.forEach((o, i) => {
+      let p = prob(o.x, b);
+      let pObs = o.y === 1 ? p : (1 - p);
+      document.getElementById(`dv${i+1}`).innerText = pObs.toFixed(2);
+      document.getElementById(`df${i+1}`).style.strokeDashoffset = dashLen - (dashLen * pObs);
+    });
+
+    // Update graph dot
+    let L = getLikelihood(b);
+    let px = ((b + 3) / 6) * 600;
+    let py = 280 - (L * 2000);
+    lDot.setAttribute('cx', px);
+    lDot.setAttribute('cy', py);
+
+    // Build curve incrementally if drawing
+    if (drawPath) {
+      let d = lCurve.getAttribute('d') || '';
+      d += `${d === '' ? 'M' : 'L'} ${px} ${py} `;
+      lCurve.setAttribute('d', d);
+    }
+  }
+
+  function resetScene() {
+    updateVisuals(-3);
+    lCurve.setAttribute('d', '');
+    lDot.classList.add('hidden');
+    
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    narrator.textContent = "Simulation starting...";
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(500);
+    lDot.classList.remove('hidden');
+
+    narrator.textContent = "Stage 1: A central parameter β sweeps from negative to positive.";
+    
+    // Sweep from -3 to +3
+    for(let b = -3; b <= 3; b += 0.05) {
+      updateVisuals(b, true);
+      
+      if(Math.abs(b - 0.7) < 0.05) {
+        narrator.textContent = "Stage 2: Dials accumulate into a multiplication filter, creating a Likelihood peak at the optimal β.";
+        lDot.style.boxShadow = '0 0 30px #10b981';
+        lDot.style.r = '10';
+        await sleep(1000);
+        lDot.style.boxShadow = '0 0 10px #fff';
+        lDot.style.r = '6';
+      }
+      
+      await sleep(30);
+    }
+    
+    await sleep(1000);
+
+    narrator.textContent = "Final State: A maximized Likelihood curve at the optimal parameter.";
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    startBtn.classList.remove('opacity-50', 'pointer-events-none');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  // Init
+  resetScene();
+  narrator.textContent = 'Click "Start Simulation" to begin the parameter search process.';
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>
