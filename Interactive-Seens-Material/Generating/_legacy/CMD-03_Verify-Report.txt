@@ -1,0 +1,59 @@
+╔══════════════════════════════════════════════════════════════╗
+║                  CMD-03 — VERIFY & REPORT                    ║
+╚══════════════════════════════════════════════════════════════╝
+
+CONTEXT:
+- CMD-02 has finished generating all HTML files.
+- Output folder: D:\projects\laravel_projects\college_project\Interactive-Seens-Material\[user-name]\
+
+YOUR TASK:
+Run a verification pass on the output folder and generate a final report.
+
+══════════════════════════════════════════════════════════════
+VERIFICATION CHECKLIST (for each HTML file):
+
+□ File exists and is not empty
+□ File is standalone (no broken external links to local files)
+□ File has a visible title matching its View Name
+□ File has at least one interactive control (slider / button / toggle)
+□ [If Medical route]: File has a Perspective Toggle button
+□ Arabic explanation section exists at the bottom
+□ File opens without JS errors (check for obvious syntax issues)
+
+══════════════════════════════════════════════════════════════
+OUTPUT FORMAT:
+
+USER: [user-name]
+OUTPUT FOLDER: D:\projects\laravel_projects\college_project\Interactive-Seens-Material\[user-name]\
+ROUTE USED: [General / Medical]
+──────────────────────────────────────────────────────────────
+
+FILES GENERATED:
+  [01] Cardiology_L1-Anatomy_BloodFlow_FlowSim.html          ✅
+  [02] Cardiology_L2-Pathophysiology_Plaque_Accumulation.html ✅
+  [03] ...
+
+──────────────────────────────────────────────────────────────
+ISSUES FOUND (if any):
+  ⚠️  [filename] — [describe issue]
+  (or: "None — all files passed verification")
+
+──────────────────────────────────────────────────────────────
+SUMMARY:
+  Total Lessons Processed : [N]
+  Total HTML Files Created: [N]
+  Files Passed            : [N]
+  Files with Issues       : [N]
+
+══════════════════════════════════════════════════════════════
+IF ISSUES FOUND:
+Automatically regenerate only the files that failed verification
+and overwrite them in the same output folder.
+Then re-run the checklist on those files only and confirm:
+  ✅ All issues resolved. Final count: [N] files ready.
+
+══════════════════════════════════════════════════════════════
+STRICT RULES:
+- Do NOT delete any file — only overwrite if regenerating.
+- Do NOT modify files that passed verification.
+- Report must be printed to console, not saved as a file.

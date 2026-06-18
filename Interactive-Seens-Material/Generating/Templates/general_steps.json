@@ -1,0 +1,71 @@
+{
+    "route": "General",
+    "step_1_decompose": {
+        "role": "educational content architect and curriculum structurer",
+        "task": "Decompose and restructure the Lecture for deep conceptual understanding",
+        "per_section_fields": [
+            "section_identity",
+            "core_understanding",
+            "visual_first_explanation",
+            "visual_scene_script",
+            "dynamic_view_blueprint",
+            "visual_learning_outcome",
+            "concept_check",
+            "conceptual_summary",
+            "arabic_explanation",
+            "formulas",
+            "real_life_example"
+        ],
+        "rules": [
+            "This is a SINGLE Lecture, not a full course",
+            "Do NOT add exam-style questions",
+            "Do NOT reference Dynamic View engines explicitly",
+            "Focus on clarity, intuition, and visualization readiness",
+            "Keep explanations student-oriented and simple"
+        ]
+    },
+    "step_2_prepare": {
+        "role": "Dynamic View prompt preparation engine",
+        "task": "Prepare each Section for automatic conversion into interactive scenes",
+        "per_section_fields": [
+            "scene_type",
+            "visual_objects",
+            "animations",
+            "overlays",
+            "user_interactions",
+            "visual_learning_goal"
+        ],
+        "constraints": [
+            "Do NOT change any educational content",
+            "Do NOT rephrase explanations",
+            "Do NOT merge or split Sections",
+            "Do NOT add or remove concepts"
+        ]
+    },
+    "step_3_generate": {
+        "role": "Dynamic View prompt generator",
+        "scene_types": [
+            "Process",
+            "Comparison",
+            "Accumulation",
+            "Parallel Flow",
+            "Time Evolution"
+        ],
+        "object_categories": [
+            "devices", "signals", "graphs", "meters", "blocks", "waves"
+        ],
+        "action_verbs": [
+            "move", "transform", "accumulate", "fade", "split", "highlight"
+        ],
+        "prompt_rules": [
+            "Start with ONE Scene Type",
+            "Describe the scene using OBJECTS and ACTIONS only",
+            "Include overlays / annotations",
+            "Include graphs or spatial visuals",
+            "Include cause-effect animation",
+            "Include optional user interaction (slider, toggle, time control)",
+            "Encode the Visual Learning Outcome as the final visual state",
+            "Visually correct the key misconception"
+        ]
+    }
+}

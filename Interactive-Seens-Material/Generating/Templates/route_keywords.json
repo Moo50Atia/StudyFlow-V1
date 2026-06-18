@@ -1,0 +1,58 @@
+{
+    "Medical": {
+        "threshold": 3,
+        "keywords": [
+            "pathophysiology", "diagnosis", "treatment", "clinical", "patient",
+            "symptom", "disease", "drug", "dose", "therapy", "cardiac", "ecg",
+            "pharmacology", "anatomy", "physiology", "syndrome", "infection",
+            "inflammation", "surgery", "mechanism", "receptor", "enzyme",
+            "blood", "artery", "vein", "heart", "lung", "liver", "kidney",
+            "hemodynamic", "ischemia", "infarction", "coronary", "valvular",
+            "arrhythmia", "hypertension", "endocarditis", "pericardial",
+            "نبضات", "قلب", "دواء", "علاج", "مريض", "تشخيص", "أعراض"
+        ]
+    },
+    "Engineering": {
+        "threshold": 3,
+        "keywords": [
+            "circuit", "signal", "frequency", "voltage", "current",
+            "transistor", "amplifier", "filter", "modulation", "bandwidth",
+            "flip-flop", "register", "counter", "fsm", "boolean",
+            "logic gate", "semiconductor", "impedance", "oscillator",
+            "microcontroller", "resistor", "capacitor", "inductor",
+            "digital", "analog", "pwm", "adc", "dac", "fpga", "vhdl"
+        ]
+    },
+    "Computer Science": {
+        "threshold": 3,
+        "keywords": [
+            "algorithm", "data structure", "complexity", "recursion",
+            "sorting", "graph", "tree", "hash", "database", "sql",
+            "operating system", "compiler", "network", "protocol",
+            "encryption", "object-oriented", "machine learning",
+            "artificial intelligence", "neural network", "api",
+            "thread", "process", "memory", "cache", "stack", "queue"
+        ]
+    },
+    "Mathematics": {
+        "threshold": 3,
+        "keywords": [
+            "theorem", "proof", "lemma", "corollary", "integral",
+            "derivative", "equation", "matrix", "vector", "eigenvalue",
+            "topology", "algebra", "calculus", "differential",
+            "convergence", "series", "function", "set theory",
+            "probability", "statistics", "distribution", "variance",
+            "regression", "hypothesis", "likelihood", "estimator"
+        ]
+    },
+    "Physics": {
+        "threshold": 3,
+        "keywords": [
+            "force", "energy", "momentum", "velocity", "acceleration",
+            "electromagnetic", "quantum", "thermodynamics", "entropy",
+            "wave", "particle", "relativity", "gravity", "field",
+            "potential", "kinetic", "optics", "nuclear", "photon",
+            "newton", "maxwell", "schrodinger", "planck", "boltzmann"
+        ]
+    }
+}

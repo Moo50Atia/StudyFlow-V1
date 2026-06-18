@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Process: Discrete Count Distribution (Poisson)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --glass-bg: rgba(15, 23, 42, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glow-cyan: rgba(6, 182, 212, 0.5);
+    --glow-emerald: rgba(16, 185, 129, 0.5);
+  }
+  body { 
+    font-family: 'Outfit', sans-serif; 
+    background-color: #020617;
+    background-image: 
+      radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.15), transparent 30%),
+      radial-gradient(circle at 20% 80%, rgba(16, 185, 129, 0.1), transparent 30%);
+  }
+  .glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+
+  .spike-line { stroke: url(#spikeGrad); stroke-width: 10; stroke-linecap: round; transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1); filter: drop-shadow(0 0 6px var(--glow-cyan)); }
+  .spike-dot { fill: #fff; r: 7; transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1); filter: drop-shadow(0 0 8px #fff); }
+  
+  .pulse-meter { animation: pulseM 1s infinite alternate; }
+  @keyframes pulseM { 
+    0% { box-shadow: 0 4px 15px rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.05); } 
+    100% { box-shadow: 0 0 25px rgba(16,185,129,0.4); border-color: rgba(16,185,129,0.5); } 
+  }
+
+  .btn-modern {
+    background: linear-gradient(135deg, #0ea5e9, #10b981);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    transition: all 0.3s ease;
+  }
+  .btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+  }
+</style>
+</head>
+<body class="text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-6xl h-[750px] glass-panel rounded-[2rem] flex flex-col overflow-hidden">
+  
+  <div class="absolute top-8 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400 tracking-wide drop-shadow-md">Discrete Count Distribution (Poisson)</h1>
+    <p class="text-slate-300 mt-3 text-base max-w-2xl mx-auto h-8 font-light tracking-wide" id="narrator">
+      Click "Start Simulation" to sweep the intensity parameter λ.
+    </p>
+  </div>
+
+  <div class="relative flex-1 w-full mt-28 mb-24 px-12 flex gap-8 items-stretch justify-center">
+    
+    <!-- Graph -->
+    <div class="flex-[5] bg-[#020617]/40 rounded-3xl border border-slate-800/80 relative shadow-2xl p-6 overflow-hidden flex flex-col justify-end">
+      
+      <div id="link-formula" class="absolute top-6 left-1/2 -translate-x-1/2 glass-panel border-cyan-500/30 px-6 py-3 rounded-2xl text-cyan-300 font-mono font-bold text-2xl opacity-0 transition-opacity duration-1000 shadow-[0_0_20px_rgba(6,182,212,0.3)]">
+        log(λ) = xᵀβ
+      </div>
+
+      <svg viewBox="0 0 700 350" id="svg-graph" class="w-full h-full overflow-visible z-10">
+        <defs>
+          <linearGradient id="spikeGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#22d3ee" />
+            <stop offset="100%" stop-color="#0284c7" />
+          </linearGradient>
+        </defs>
+        <!-- Horizontal Axis -->
+        <line x1="0" y1="300" x2="700" y2="300" stroke="#334155" stroke-width="3" stroke-linecap="round" />
+      </svg>
+      
+      <!-- Glowing base for axis -->
+      <div class="absolute bottom-[24px] left-6 right-6 h-1 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent blur-md pointer-events-none"></div>
+    </div>
+
+    <!-- Meters -->
+    <div class="flex-[2] flex flex-col gap-6">
+      <div id="m-mean" class="glass-panel flex-1 rounded-3xl p-6 flex flex-col items-center justify-center relative overflow-hidden transition-all duration-500">
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-cyan-400"></div>
+        <div class="text-slate-400 font-semibold uppercase tracking-[0.2em] text-xs mb-6 drop-shadow-md">Expectation E[y]</div>
+        <div id="val-mean" class="text-6xl font-mono font-bold text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,0.4)]">0.0</div>
+      </div>
+      
+      <div class="flex items-center justify-center -my-3 z-10">
+        <div class="w-10 h-10 rounded-full glass-panel border border-slate-600 flex items-center justify-center text-slate-300 font-bold text-xl shadow-lg">=</div
+      ></div>
+
+      <div id="m-var" class="glass-panel flex-1 rounded-3xl p-6 flex flex-col items-center justify-center relative overflow-hidden transition-all duration-500">
+        <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-cyan-400"></div>
+        <div class="text-slate-400 font-semibold uppercase tracking-[0.2em] text-xs mb-6 drop-shadow-md">Variance Var(y)</div>
+        <div id="val-var" class="text-6xl font-mono font-bold text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,0.4)]">0.0</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="final-message" class="absolute bottom-[100px] left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none flex justify-center">
+    <div class="glass-panel border-emerald-500/30 rounded-2xl p-6 max-w-3xl shadow-[0_0_40px_rgba(16,185,129,0.15)] relative overflow-hidden">
+      <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-emerald-400 to-emerald-600"></div>
+      <h3 class="text-emerald-400 font-bold mb-3 text-xl flex items-center gap-2">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+        Misconception Corrected
+      </h3>
+      <p class="text-slate-300 text-base leading-relaxed font-light">
+        Expectation and variance meters highlight identical numerical accumulation as the parameter sweeps. This corrects the misconception that <strong class="text-white font-semibold border-b border-emerald-500/50">count data variance remains independent of the mean</strong>. In Poisson models, the variance is locked identically to the mean.
+      </p>
+    </div>
+  </div>
+
+  <div class="absolute bottom-0 left-0 w-full h-24 bg-slate-900/80 border-t border-slate-800/50 flex items-center justify-center px-8 z-50 backdrop-blur-xl">
+    <button id="start-btn" class="px-10 py-3.5 btn-modern text-white rounded-xl font-bold tracking-wide text-lg border border-emerald-400/30">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  
+  const mMean = document.getElementById('m-mean');
+  const mVar = document.getElementById('m-var');
+  const valMean = document.getElementById('val-mean');
+  const valVar = document.getElementById('val-var');
+  const linkFormula = document.getElementById('link-formula');
+  
+  const svg = document.getElementById('svg-graph');
+  const spikes = [];
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+
+  // Build SVG spikes
+  for(let i=0; i<=25; i++) {
+    let x = 30 + (i * 25.6);
+    let g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    
+    let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute('class', 'spike-line');
+    line.setAttribute('x1', x); line.setAttribute('x2', x);
+    line.setAttribute('y1', 300); line.setAttribute('y2', 300);
+    
+    let dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    dot.setAttribute('class', 'spike-dot');
+    dot.setAttribute('cx', x); dot.setAttribute('cy', 300);
+
+    let txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    txt.setAttribute('fill', '#64748b'); txt.setAttribute('font-family', 'Outfit, sans-serif'); txt.setAttribute('font-size', '13px'); txt.setAttribute('font-weight', '600');
+    txt.setAttribute('text-anchor', 'middle');
+    txt.setAttribute('x', x); txt.setAttribute('y', 325);
+    txt.textContent = i;
+
+    g.appendChild(line); g.appendChild(dot); g.appendChild(txt);
+    svg.appendChild(g);
+    spikes.push({line, dot});
+  }
+
+  function factorial(n) { return n <= 1 ? 1 : n * factorial(n-1); }
+  function poisson(k, lam) { return (Math.pow(lam, k) * Math.exp(-lam)) / factorial(k); }
+
+  function updateVisuals(lam) {
+    spikes.forEach((s, k) => {
+      let prob = poisson(k, lam);
+      let h = prob * 1200; // Scale factor for visual height
+      let yTop = Math.max(30, 300 - h);
+      s.line.setAttribute('y2', yTop);
+      s.dot.setAttribute('cy', yTop);
+    });
+
+    valMean.innerText = lam.toFixed(1);
+    valVar.innerText = lam.toFixed(1);
+  }
+
+  function resetScene() {
+    updateVisuals(0.5);
+    linkFormula.classList.remove('opacity-100', 'translate-y-0');
+    linkFormula.classList.add('opacity-0', '-translate-y-4');
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    mMean.classList.remove('pulse-meter'); mVar.classList.remove('pulse-meter');
+    narrator.innerHTML = "Simulation starting...";
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none', 'scale-95');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(800);
+
+    narrator.innerHTML = "<span class='text-cyan-400 font-semibold'>Stage 1:</span> A lambda signal sweeps, transforming the discrete probability spikes.";
+    
+    for(let l = 0.5; l <= 15; l += 0.15) {
+      updateVisuals(l);
+      
+      if(l > 5 && l < 5.2) {
+        narrator.innerHTML = "<span class='text-emerald-400 font-semibold'>Stage 2:</span> Expectation and variance meters highlight identical numerical accumulation.";
+        mMean.classList.add('pulse-meter'); mVar.classList.add('pulse-meter');
+      }
+      if(l > 10 && l < 10.2) {
+        narrator.innerHTML = "<span class='text-blue-400 font-semibold'>Stage 3:</span> A log-link formula overlays to represent the canonical link mapping.";
+        linkFormula.classList.remove('opacity-0', '-translate-y-4');
+        linkFormula.classList.add('opacity-100', 'translate-y-0');
+      }
+
+      await sleep(30);
+    }
+    
+    mMean.classList.remove('pulse-meter'); mVar.classList.remove('pulse-meter');
+    await sleep(1000);
+
+    narrator.innerHTML = "<span class='text-white font-semibold'>Final State:</span> Discrete count distribution with locked mean-variance equality.";
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    startBtn.classList.remove('opacity-50', 'pointer-events-none', 'scale-95');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  resetScene();
+  narrator.innerHTML = 'Click "Start Simulation" to sweep the intensity parameter λ.';
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>

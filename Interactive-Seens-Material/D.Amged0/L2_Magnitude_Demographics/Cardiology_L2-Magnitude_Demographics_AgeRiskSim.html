@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demographics & Age Risk Simulator</title>
+    <style>
+        :root {
+            --bg-dark: #0d1117;
+            --accent-blue: #58a6ff;
+            --accent-red: #f85149;
+            --text-main: #c9d1d9;
+            --card-bg: #161b22;
+            --border-color: #30363d;
+        }
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center;
+        }
+        h1 { color: var(--accent-blue); text-align: center; }
+        .scene-container {
+            width: 90%; max-width: 800px; background: var(--card-bg); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 30px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); margin-bottom: 20px;
+        }
+        .slider-container { width: 100%; margin: 30px 0; display: flex; flex-direction: column; align-items: center; }
+        input[type="range"] {
+            width: 80%; -webkit-appearance: none; background: transparent; cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%; height: 8px; background: #30363d; border-radius: 4px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 24px; width: 24px; border-radius: 50%;
+            background: var(--accent-blue); margin-top: -8px; transition: background 0.3s;
+        }
+        .risk-display {
+            display: flex; justify-content: center; gap: 50px; margin-top: 30px;
+        }
+        .risk-box {
+            text-align: center; padding: 20px; border: 2px solid var(--border-color);
+            border-radius: 10px; width: 200px; transition: all 0.3s;
+        }
+        .risk-box.high { border-color: var(--accent-red); background: rgba(248, 81, 73, 0.1); }
+        .risk-value { font-size: 3em; font-weight: bold; margin: 10px 0; transition: color 0.3s; }
+        .arabic-section {
+            width: 90%; max-width: 800px; background: var(--card-bg);
+            border: 1px solid var(--border-color); border-radius: 8px; margin-top: 20px;
+        }
+        .arabic-header {
+            padding: 15px 20px; cursor: pointer; display: flex; justify-content: space-between; font-weight: bold;
+        }
+        .arabic-content {
+            padding: 0 20px; max-height: 0; overflow: hidden;
+            transition: max-height 0.4s ease, padding 0.4s ease; text-align: right; direction: rtl; line-height: 1.6;
+        }
+        .arabic-section.open .arabic-content { padding: 20px; max-height: 500px; }
+        .age-label { font-size: 1.5em; color: var(--accent-blue); font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Section 2.3: Change in Demographics</h1>
+    <div class="scene-container">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <p>Between 2018 and 2050, the number of people aged 75-84 is projected to increase by <strong>~60%</strong>.</p>
+            <p>Use the slider below to simulate the age-related risk shift.</p>
+        </div>
+        
+        <div class="slider-container">
+            <span class="age-label">Patient Age: <span id="age-val">45</span> yrs</span>
+            <input type="range" id="age-slider" min="45" max="85" value="45" step="1">
+        </div>
+
+        <div class="risk-display">
+            <div class="risk-box" id="mace-box">
+                <div>Peri-operative MACE Risk</div>
+                <div class="risk-value" id="mace-val" style="color: var(--accent-blue);">4.8%</div>
+                <div style="font-size: 0.8em; color: #8b949e;">Major Adverse CV Events</div>
+            </div>
+            <div class="risk-box" id="comorb-box">
+                <div>Comorbidity Prevalence</div>
+                <div class="risk-value" id="comorb-val" style="color: var(--accent-blue);">Low</div>
+                <div style="font-size: 0.8em; color: #8b949e;">CAD, VHD, HF, Arrhythmias</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="arabic-section">
+        <div class="arabic-header" onclick="document.querySelector('.arabic-section').classList.toggle('open')">
+            <span>الشرح بالعامية المصرية (تأثير السن)</span>
+            <span>▼</span>
+        </div>
+        <div class="arabic-content">
+            <p><strong>الناس بتعجز، وإحنا لازم نستعد!</strong></p>
+            <p>الإحصائيات بتقول إن من هنا لحد سنة 2050، عدد الناس اللي سنهم بين 75 لـ 84 سنة هيزيد بنسبة 60%.</p>
+            <p>المشكلة فين؟ كل ما السن بيكبر، احتمالية وجود أمراض قلب (زي قصور الشرايين، أمراض الصمامات، وهبوط عضلة القلب) بتزيد. ده بيخلي خطر حدوث مضاعفات في القلب أثناء أي عملية جراحية يتضاعف.</p>
+            <p>الأرقام واضحة: الناس اللي تحت 75 سنة نسبة الخطر عندهم حوالي <strong>4.8%</strong>، لكن بمجرد ما يتخطوا 75 سنة، الخطر بينط لـ <strong>9.5%</strong>!</p>
+            <p>عشان كده، التقييم الدقيق للقلب قبل العمليات لكبار السن مش رفاهية، ده ضرورة لإنقاذ حياتهم.</p>
+        </div>
+    </div>
+
+    <script>
+        const slider = document.getElementById('age-slider');
+        const ageVal = document.getElementById('age-val');
+        const maceVal = document.getElementById('mace-val');
+        const comorbVal = document.getElementById('comorb-val');
+        const maceBox = document.getElementById('mace-box');
+        const comorbBox = document.getElementById('comorb-box');
+
+        slider.addEventListener('input', (e) => {
+            const age = parseInt(e.target.value);
+            ageVal.textContent = age;
+
+            if (age >= 75) {
+                maceVal.textContent = "9.5%";
+                maceVal.style.color = "var(--accent-red)";
+                maceBox.classList.add('high');
+                
+                comorbVal.textContent = "High";
+                comorbVal.style.color = "var(--accent-red)";
+                comorbBox.classList.add('high');
+                
+                slider.style.setProperty('--accent-blue', 'var(--accent-red)');
+            } else {
+                // Linear interpolation for visual effect between 45 and 74
+                let risk = 4.8 + ((age - 45) / 29) * 2; // slowly climbs from 4.8 to ~6.8
+                maceVal.textContent = risk.toFixed(1) + "%";
+                maceVal.style.color = "var(--accent-blue)";
+                maceBox.classList.remove('high');
+                
+                comorbVal.textContent = age > 60 ? "Moderate" : "Low";
+                comorbVal.style.color = "var(--accent-blue)";
+                comorbBox.classList.remove('high');
+                
+                slider.style.setProperty('--accent-blue', '#58a6ff');
+            }
+        });
+    </script>
+</body>
+</html>

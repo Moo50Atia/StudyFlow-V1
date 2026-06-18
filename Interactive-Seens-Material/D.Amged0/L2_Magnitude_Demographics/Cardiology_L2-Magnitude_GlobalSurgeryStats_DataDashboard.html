@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Surgery Volume & Cardiac Risk</title>
+    <style>
+        :root {
+            --bg-dark: #0d1117;
+            --accent-blue: #58a6ff;
+            --accent-red: #f85149;
+            --text-main: #c9d1d9;
+            --card-bg: #161b22;
+            --border-color: #30363d;
+        }
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 { color: var(--accent-blue); text-align: center; }
+        .scene-container {
+            width: 90%; max-width: 900px; height: 500px;
+            background: var(--card-bg); border: 1px solid var(--border-color);
+            border-radius: 12px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; position: relative;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5); padding: 20px; box-sizing: border-box;
+        }
+        .stats-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%;
+        }
+        .stat-card {
+            background: var(--bg-dark); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 20px; text-align: center;
+            transition: transform 0.3s, border-color 0.3s; cursor: default;
+        }
+        .stat-card:hover { transform: translateY(-5px); border-color: var(--accent-blue); }
+        .stat-number { font-size: 3em; font-weight: bold; color: var(--accent-blue); margin: 10px 0; }
+        .stat-card.danger:hover { border-color: var(--accent-red); }
+        .stat-card.danger .stat-number { color: var(--accent-red); }
+        .arabic-section {
+            width: 90%; max-width: 900px; background: var(--card-bg);
+            border: 1px solid var(--border-color); border-radius: 8px; margin-top: 20px;
+        }
+        .arabic-header {
+            padding: 15px 20px; cursor: pointer; display: flex; justify-content: space-between;
+            font-weight: bold;
+        }
+        .arabic-content {
+            padding: 0 20px; max-height: 0; overflow: hidden;
+            transition: max-height 0.4s ease, padding 0.4s ease; text-align: right; direction: rtl; line-height: 1.6;
+        }
+        .arabic-section.open .arabic-content { padding: 20px; max-height: 500px; }
+    </style>
+</head>
+<body>
+    <h1>Section 2.2: The Magnitude of the Problem</h1>
+    <div class="scene-container">
+        <h2 style="margin-top:0;">Global Burden of Non-Cardiac Surgery (NCS)</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div>Annual Major Surgeries Worldwide</div>
+                <div class="stat-number">>300M</div>
+                <div style="font-size: 0.9em; color: #8b949e;">≈ 5% of the global population</div>
+            </div>
+            <div class="stat-card danger">
+                <div>In-hospital Mortality (EuSOS)</div>
+                <div class="stat-number">4.0%</div>
+                <div style="font-size: 0.9em; color: #8b949e;">Ranging from 1.4% to 21.5% depending on safety</div>
+            </div>
+            <div class="stat-card">
+                <div>Patients with CAD undergoing NCS</div>
+                <div class="stat-number">18%</div>
+                <div style="font-size: 0.9em; color: #8b949e;">Of adults ≥45 yrs in US inpatient sample</div>
+            </div>
+            <div class="stat-card danger">
+                <div>30-Day MACE in High-Risk Patients</div>
+                <div class="stat-number">1 in 7</div>
+                <div style="font-size: 0.9em; color: #8b949e;">Major cardiac/cerebrovascular complication</div>
+            </div>
+        </div>
+        <p style="margin-top: 30px; text-align: center; max-width: 700px; color: #c9d1d9;">
+            The risk of peri-operative complications is driven by <strong>oxygen supply-demand mismatch</strong>, <strong>stress-induced plaque rupture</strong>, and <strong>surgery-associated bleeding</strong>.
+        </p>
+    </div>
+    <div class="arabic-section">
+        <div class="arabic-header" onclick="document.querySelector('.arabic-section').classList.toggle('open')">
+            <span>الشرح بالعامية المصرية (حجم المشكلة)</span>
+            <span>▼</span>
+        </div>
+        <div class="arabic-content">
+            <p><strong>ليه دكاترة القلب بيهتموا أوي بالعمليات الجراحية العادية (زي العظام والجراحة العامة)؟</strong></p>
+            <p>لأن الأرقام مرعبة! عالمياً، بيتعمل أكتر من <strong>300 مليون</strong> عملية كبرى كل سنة (يعني 5% من سكان الأرض بيدخلوا عمليات). المشكلة إن نسبة كبيرة جداً من المرضى دول (حوالي 18%) بيكون عندهم أصلاً قصور في الشرايين التاجية (CAD) أو مشاكل تانية في القلب.</p>
+            <p><strong>إيه اللي بيحصل للقلب في العمليات دي؟</strong></p>
+            <ol>
+                <li>ضغط العملية والنزيف بيعملوا لخبطة في توازن الأكسجين اللي رايح للقلب، فممكن يحصل ذبحة.</li>
+                <li>التوتر والالتهاب اللي بيحصل مع الجراحة ممكن يخلي جدار الشريان يفرقع (Plaque rupture) ويعمل جلطة.</li>
+                <li>خطر النزيف بيخلينا نوقف أدوية السيولة، وده بيزود خطر إن الدعامات تقفل.</li>
+            </ol>
+            <p>الخلاصة: 1 من كل 7 مرضى (High risk) فوق 45 سنة بيحصلهم مضاعفات في القلب أو المخ في خلال 30 يوم من العملية!</p>
+        </div>
+    </div>
+</body>
+</html>

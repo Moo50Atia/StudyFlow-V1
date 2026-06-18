@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparison: Normal vs Exponential Constraints</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --glass-bg: rgba(15, 23, 42, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glow-blue: rgba(59, 130, 246, 0.5);
+    --glow-red: rgba(239, 68, 68, 0.5);
+  }
+  body { 
+    font-family: 'Outfit', sans-serif; 
+    background-color: #020617;
+    background-image: 
+      radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.15), transparent 25%),
+      radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.1), transparent 25%);
+  }
+  .glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+  .smooth-transition { transition: all 1s cubic-bezier(0.4, 0, 0.2, 1); }
+  .smooth-fade { transition: opacity 0.8s ease, transform 0.8s ease; }
+
+  .neg-space {
+    background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(239, 68, 68, 0.05) 10px, rgba(239, 68, 68, 0.05) 20px);
+  }
+
+  .curve { fill: rgba(255,255,255,0.05); stroke-width: 4; transition: all 1s cubic-bezier(0.4, 0, 0.2, 1); filter: drop-shadow(0 0 8px rgba(255,255,255,0.2)); }
+  .c-norm { stroke: #3b82f6; fill: url(#normGrad); filter: drop-shadow(0 0 10px rgba(59,130,246,0.5)); }
+  .c-exp { stroke: #10b981; fill: url(#expGrad); filter: drop-shadow(0 0 10px rgba(16,185,129,0.5)); }
+  
+  .btn-modern {
+    background: linear-gradient(135deg, #0ea5e9, #2563eb);
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+    transition: all 0.3s ease;
+  }
+  .btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.6);
+  }
+  .btn-modern:active { transform: translateY(0); }
+</style>
+</head>
+<body class="text-slate-200 h-screen w-full flex items-center justify-center p-4 overflow-hidden">
+
+<div class="relative w-full max-w-5xl h-[700px] glass-panel rounded-3xl flex flex-col overflow-hidden">
+  
+  <div class="absolute top-8 left-0 w-full text-center z-50 pointer-events-none">
+    <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 tracking-wide drop-shadow-md">Continuous Data: Normal vs Exponential Constraints</h1>
+    <p class="text-slate-300 mt-3 text-base max-w-2xl mx-auto h-8 font-light tracking-wide" id="narrator">
+      Click "Start Simulation" to observe continuous distribution boundaries.
+    </p>
+  </div>
+
+  <div class="relative flex-1 w-full mt-28 mb-24 px-10 flex items-center justify-center">
+    
+    <div class="w-full h-full max-w-4xl bg-[#020617]/40 rounded-2xl border border-slate-800/80 overflow-hidden relative shadow-2xl">
+      
+      <!-- Negative Space Indicator -->
+      <div class="absolute left-0 top-0 w-[300px] h-full neg-space smooth-fade opacity-50"></div>
+      
+      <!-- Barrier Line -->
+      <div class="absolute left-[300px] top-0 w-[2px] h-full bg-gradient-to-b from-rose-500/0 via-rose-500 to-rose-500/0 shadow-[0_0_15px_#ef4444] z-10"></div>
+      <div class="absolute left-[315px] top-8 text-rose-400 font-bold font-mono text-sm tracking-widest z-10 bg-rose-950/50 px-3 py-1 rounded-full border border-rose-500/30">y = 0 (Barrier)</div>
+      
+      <!-- Warning -->
+      <div id="warn" class="absolute left-16 top-1/2 -translate-y-1/2 flex flex-col items-center opacity-0 smooth-transition z-20">
+        <div class="w-12 h-12 rounded-full bg-rose-500/20 flex items-center justify-center border border-rose-500/50 mb-3 animate-pulse">
+          <svg class="w-6 h-6 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        </div>
+        <div class="text-rose-400 font-bold text-lg text-center drop-shadow-md">INVALID:<br>Negative Time</div>
+      </div>
+
+      <!-- Formula Overlay -->
+      <div id="formula" class="absolute right-12 top-12 glass-panel rounded-2xl p-5 font-serif text-2xl text-white text-center opacity-0 smooth-transition translate-y-4 z-30 border-blue-500/30">
+        <div class="text-xs font-sans font-semibold tracking-wider text-blue-300 uppercase mb-2">Log-Link Transformation</div>
+        <div class="bg-slate-900/50 rounded-lg py-2 px-4 shadow-inner mb-2">log(μ) = xᵀβ</div>
+        <div class="text-emerald-400 font-bold bg-emerald-950/30 rounded-lg py-1 px-4 border border-emerald-500/20">μ = exp(xᵀβ)</div>
+      </div>
+
+      <!-- SVG Graph -->
+      <svg viewBox="0 0 1000 400" preserveAspectRatio="none" class="absolute inset-0 w-full h-full overflow-visible z-10">
+        <defs>
+          <linearGradient id="normGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgba(59, 130, 246, 0.4)" />
+            <stop offset="100%" stop-color="rgba(59, 130, 246, 0.05)" />
+          </linearGradient>
+          <linearGradient id="expGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgba(16, 185, 129, 0.4)" />
+            <stop offset="100%" stop-color="rgba(16, 185, 129, 0.05)" />
+          </linearGradient>
+        </defs>
+        <line x1="0" y1="350" x2="1000" y2="350" stroke="#334155" stroke-width="2" stroke-dasharray="4 4" />
+        <path id="norm-curve" class="curve c-norm" d=""/>
+        <path id="exp-curve" class="curve c-exp" d=""/>
+      </svg>
+    </div>
+
+  </div>
+
+  <!-- Misconception Message -->
+  <div id="final-message" class="absolute bottom-[100px] left-0 w-full px-12 z-40 smooth-fade opacity-0 translate-y-4 pointer-events-none flex justify-center">
+    <div class="glass-panel border-rose-500/30 rounded-2xl p-6 max-w-3xl shadow-[0_0_40px_rgba(244,63,94,0.15)] relative overflow-hidden">
+      <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-rose-400 to-rose-600"></div>
+      <h3 class="text-rose-400 font-bold mb-3 text-xl flex items-center gap-2">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+        Misconception Corrected
+      </h3>
+      <p class="text-slate-300 text-base leading-relaxed font-light">
+        The Normal curve ignores physical constraints, predicting impossible negative values. This corrects the misconception that <strong class="text-white font-semibold border-b border-rose-500/50">the Normal distribution can safely model non-negative waiting times</strong>. GLMs use constrained distributions (like Exponential) and a log-link to ensure strictly positive predictions.
+      </p>
+    </div>
+  </div>
+
+  <!-- Bottom Bar -->
+  <div class="absolute bottom-0 left-0 w-full h-24 bg-slate-900/80 border-t border-slate-800/50 flex items-center justify-center px-8 z-50 backdrop-blur-xl">
+    <button id="start-btn" class="px-10 py-3.5 btn-modern text-white rounded-xl font-bold tracking-wide text-lg border border-blue-400/30">
+      Start Simulation
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const narrator = document.getElementById('narrator');
+  const startBtn = document.getElementById('start-btn');
+  const finalMessage = document.getElementById('final-message');
+  
+  const normCurve = document.getElementById('norm-curve');
+  const expCurve = document.getElementById('exp-curve');
+  const warn = document.getElementById('warn');
+  const formula = document.getElementById('formula');
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let isRunning = false;
+
+  function updateGraph(mu) {
+    let nPath = "M 0 350 ";
+    let sd = 100; 
+    for(let x=0; x<=1000; x+=5) {
+      let y = 350 - (200 * Math.exp(-Math.pow(x - mu, 2) / (2 * Math.pow(sd, 2))));
+      nPath += `L ${x} ${y} `;
+    }
+    nPath += "L 1000 350 Z";
+    normCurve.setAttribute('d', nPath);
+
+    let startX = Math.max(300, mu - 200);
+    let peakY = 350 - (200 * (1 - Math.max(0, 300 - (mu-200))/300)); 
+    let ePath2 = `M ${startX} 350 L ${startX} ${peakY} `;
+    for(let x=startX; x<=1000; x+=10) {
+      let y = 350 - ((350-peakY) * Math.exp(-(x-startX)/100));
+      ePath2 += `L ${x} ${y} `;
+    }
+    ePath2 += `L 1000 350 Z`; // Close path for fill
+    expCurve.setAttribute('d', ePath2);
+
+    if(mu - sd * 2 < 300) {
+      warn.classList.remove('opacity-0');
+      warn.classList.add('opacity-100', 'translate-x-2');
+      normCurve.style.stroke = '#ef4444';
+      normCurve.style.fill = 'rgba(239, 68, 68, 0.2)';
+      normCurve.style.filter = 'drop-shadow(0 0 10px rgba(239,68,68,0.5))';
+    } else {
+      warn.classList.add('opacity-0');
+      warn.classList.remove('opacity-100', 'translate-x-2');
+      normCurve.style.stroke = '#3b82f6';
+      normCurve.style.fill = 'url(#normGrad)';
+      normCurve.style.filter = 'drop-shadow(0 0 10px rgba(59,130,246,0.5))';
+    }
+  }
+
+  function resetScene() {
+    updateGraph(700);
+    formula.classList.remove('opacity-100', 'translate-y-0');
+    formula.classList.add('opacity-0', 'translate-y-4');
+    finalMessage.classList.replace('opacity-100', 'opacity-0');
+    finalMessage.classList.replace('translate-y-0', 'translate-y-4');
+    narrator.innerHTML = "Simulation starting...";
+  }
+
+  async function startSimulation() {
+    if (isRunning) return;
+    isRunning = true;
+    startBtn.classList.add('opacity-50', 'pointer-events-none', 'scale-95');
+    startBtn.textContent = "Simulating...";
+
+    resetScene();
+    await sleep(800);
+
+    narrator.innerHTML = "<span class='text-blue-400 font-semibold'>Stage 1:</span> A Normal curve and an Exponential curve represent a high predicted mean.";
+    await sleep(2500);
+
+    narrator.innerHTML = "<span class='text-blue-400 font-semibold'>Stage 2:</span> As the linear predictor decreases, the curves move towards the y=0 physical barrier.";
+    
+    for(let m = 700; m >= 350; m -= 4) {
+      updateGraph(m);
+      await sleep(16);
+    }
+    
+    await sleep(1000);
+
+    narrator.innerHTML = "<span class='text-rose-400 font-semibold'>Stage 3:</span> The Normal signal breaches the barrier, predicting impossible negative space.";
+    for(let m = 350; m >= 150; m -= 4) {
+      updateGraph(m);
+      await sleep(16);
+    }
+    
+    await sleep(2000);
+
+    narrator.innerHTML = "<span class='text-emerald-400 font-semibold'>Stage 4:</span> A log-link formula overlays to enforce strictly positive predictions.";
+    formula.classList.replace('opacity-0', 'opacity-100');
+    formula.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(2500);
+
+    narrator.innerHTML = "<span class='text-white font-semibold'>Final State:</span> Strictly positive predictions constrained by the y=0 barrier.";
+    finalMessage.classList.replace('opacity-0', 'opacity-100');
+    finalMessage.classList.replace('translate-y-4', 'translate-y-0');
+
+    await sleep(1500);
+    startBtn.classList.remove('opacity-50', 'pointer-events-none', 'scale-95');
+    startBtn.textContent = "Replay Simulation";
+    isRunning = false;
+  }
+
+  resetScene();
+  narrator.innerHTML = 'Click "Start Simulation" to observe continuous distribution boundaries.';
+  startBtn.addEventListener('click', startSimulation);
+
+</script>
+</body>
+</html>

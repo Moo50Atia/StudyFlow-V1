@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESC Guidelines - What is New (2022 Updates)</title>
+    <style>
+        :root {
+            --bg-dark: #0d1117;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-orange: #d29922;
+            --text-main: #c9d1d9;
+            --card-bg: #161b22;
+            --border-color: #30363d;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: var(--accent-blue);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .scene-container {
+            width: 90%;
+            max-width: 1000px;
+            height: 500px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            margin-bottom: 20px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        button {
+            background: var(--card-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            border-color: var(--accent-blue);
+        }
+
+        button.active {
+            background: var(--accent-blue);
+            color: var(--bg-dark);
+            border-color: var(--accent-blue);
+        }
+
+        .perspective-content {
+            display: none;
+            width: 100%;
+            height: 100%;
+            animation: fadeIn 0.5s forwards;
+            flex-direction: column;
+        }
+
+        .perspective-content.visible {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Grid for New Concepts */
+        .concept-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            width: 100%;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .concept-card {
+            background: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent-green);
+            padding: 15px;
+            border-radius: 6px;
+            transition: transform 0.2s;
+        }
+
+        .concept-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--accent-green);
+        }
+
+        /* Comparison View (Old vs New) */
+        .comparison-layout {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            gap: 20px;
+        }
+
+        .comp-side {
+            flex: 1;
+            background: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .comp-header {
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .comp-side.old .comp-header { color: #8b949e; }
+        .comp-side.new .comp-header { color: var(--accent-orange); }
+
+        .rule-box {
+            background: var(--card-bg);
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+
+        /* Arabic Section */
+        .arabic-section {
+            width: 90%;
+            max-width: 1000px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0;
+            margin-top: 20px;
+        }
+
+        .arabic-header {
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid transparent;
+            font-weight: bold;
+        }
+
+        .arabic-header:hover {
+            color: var(--accent-blue);
+        }
+
+        .arabic-content {
+            padding: 0 20px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, padding 0.4s ease;
+            text-align: right;
+            direction: rtl;
+            line-height: 1.6;
+        }
+
+        .arabic-section.open .arabic-header {
+            border-bottom-color: var(--border-color);
+            color: var(--accent-blue);
+        }
+
+        .arabic-section.open .arabic-content {
+            padding: 20px;
+            max-height: 500px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Section 2.1: What is New (2022 Updates)</h1>
+
+    <div class="controls">
+        <button class="toggle-btn active" data-target="view-new">Newly Added Concepts</button>
+        <button class="toggle-btn" data-target="view-biomarkers">Revised: Biomarkers & ECG</button>
+        <button class="toggle-btn" data-target="view-antiplatelet">Revised: Antiplatelets</button>
+    </div>
+
+    <div class="scene-container">
+        
+        <!-- Perspective 1: New Concepts -->
+        <div id="view-new" class="perspective-content visible">
+            <h3 style="color: var(--accent-green); margin-top: 0;">Brand New Sections in 2022 Guidelines</h3>
+            <div class="concept-grid">
+                <div class="concept-card">
+                    <div style="font-size: 24px;">📊</div>
+                    <strong>Frailty Assessment</strong>
+                    <p style="font-size: 0.9em; color: #8b949e;">Screening using validated tools for patients ≥70 yrs undergoing int/high-risk surgery.</p>
+                </div>
+                <div class="concept-card">
+                    <div style="font-size: 24px;">🩺</div>
+                    <strong>New Symptoms</strong>
+                    <p style="font-size: 0.9em; color: #8b949e;">Structured approach for newly detected murmurs, dyspnoea, oedema, or angina.</p>
+                </div>
+                <div class="concept-card">
+                    <div style="font-size: 24px;">🩸</div>
+                    <strong>Patient Blood Mgmt</strong>
+                    <p style="font-size: 0.9em; color: #8b949e;">Dedicated section on treating pre-op anaemia and reducing diagnostic blood loss.</p>
+                </div>
+                <div class="concept-card">
+                    <div style="font-size: 24px;">🫀</div>
+                    <strong>Thromboprophylaxis</strong>
+                    <p style="font-size: 0.9em; color: #8b949e;">New specific guidelines for peri-operative venous thromboembolism prevention.</p>
+                </div>
+                <div class="concept-card">
+                    <div style="font-size: 24px;">🦠</div>
+                    <strong>Cancer & COVID-19</strong>
+                    <p style="font-size: 0.9em; color: #8b949e;">New risk management sections for oncology patients and post-COVID-19 recovery.</p>
+                </div>
+                <div class="concept-card">
+                    <div style="font-size: 24px;">🗣️</div>
+                    <strong>Patient Perspective</strong>
+                    <p style="font-size: 0.9em; color: #8b949e;">Focus on shared decision making and tailored pre-operative instructions.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Perspective 2: Biomarkers -->
+        <div id="view-biomarkers" class="perspective-content">
+            <h3 style="color: var(--accent-orange); margin-top: 0; text-align: center;">Shift in Biomarker & ECG Strategy</h3>
+            <div class="comparison-layout">
+                <div class="comp-side old">
+                    <div class="comp-header">2014 Guidelines</div>
+                    <div class="rule-box">
+                        <strong>ECG:</strong> Recommended only for patients who have risk factor(s) scheduled for int/high-risk surgery.
+                    </div>
+                    <div class="rule-box">
+                        <strong>Troponins:</strong> "May be considered" (Class IIb) in high-risk patients before and 48-72h after.
+                    </div>
+                    <div class="rule-box">
+                        <strong>BNP/NT-proBNP:</strong> "May be considered" (Class IIb) for independent prognostic information.
+                    </div>
+                </div>
+                <div class="comp-side new">
+                    <div class="comp-header">2022 Guidelines</div>
+                    <div class="rule-box" style="border-left: 3px solid var(--accent-orange);">
+                        <strong>ECG:</strong> <em>Recommended</em> (Class I) for known CVD, symptoms, OR risk factors (including age ≥65).
+                    </div>
+                    <div class="rule-box" style="border-left: 3px solid var(--accent-orange);">
+                        <strong>Troponins (hs-cTn):</strong> <em>Recommended</em> (Class I) for known CVD, risk factors (incl. age ≥65) before and at 24h/48h post-op.
+                    </div>
+                    <div class="rule-box" style="border-left: 3px solid var(--accent-orange);">
+                        <strong>BNP/NT-proBNP:</strong> <em>Should be considered</em> (Class IIa) in the same patient group to optimize risk assessment.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Perspective 3: Antiplatelets -->
+        <div id="view-antiplatelet" class="perspective-content">
+            <h3 style="color: var(--accent-orange); margin-top: 0; text-align: center;">Shift in Antiplatelet & PCI Strategy</h3>
+            <div class="comparison-layout">
+                <div class="comp-side old">
+                    <div class="comp-header">2014 Guidelines</div>
+                    <div class="rule-box">
+                        <strong>After DES:</strong> Delay non-urgent NCS for 12 months.
+                    </div>
+                    <div class="rule-box">
+                        <strong>Aspirin Continuation:</strong> "May be considered" (Class IIb) to continue aspirin peri-operatively based on individual bleeding vs thrombotic risk.
+                    </div>
+                </div>
+                <div class="comp-side new">
+                    <div class="comp-header">2022 Guidelines</div>
+                    <div class="rule-box" style="border-left: 3px solid var(--accent-orange);">
+                        <strong>After Elective PCI:</strong> Delay elective NCS until <em>6 months</em> (not 12). For time-sensitive NCS, delay until minimum <em>1 month</em> of DAPT is given.
+                    </div>
+                    <div class="rule-box" style="border-left: 3px solid var(--accent-orange);">
+                        <strong>Aspirin Management:</strong> 
+                        <ul style="margin: 5px 0; padding-left: 20px;">
+                            <li>If prior PCI: <em>Recommended</em> (Class I) to continue aspirin.</li>
+                            <li>If no prior PCI: Interruption at least 3 days prior <em>may be considered</em> (Class IIb) to reduce bleeding risk.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="arabic-section">
+        <div class="arabic-header" onclick="toggleArabic()">
+            <span>الشرح بالعامية المصرية (أهم التغييرات)</span>
+            <span class="arrow">▼</span>
+        </div>
+        <div class="arabic-content">
+            <p><strong>إيه الجديد في نسخة 2022 اللي لازم نركز عليه؟</strong></p>
+            <ul style="text-align: right; direction: rtl;">
+                <li><strong>تحاليل القلب (Troponin & BNP) ورسم القلب (ECG):</strong> زمان كانت بتتعمل بس للـ High risk. دلوقتي بقت <strong>Class I</strong> لأي حد عنده أمراض قلب، أو عوامل خطورة، أو حتى مجرد إن <strong>سنه فوق 65 سنة</strong> وداخل عمليات متوسطة أو كبيرة. لازم تسحب إنزيمات قلب قبل وبعد العملية بـ 24 و48 ساعة.</li>
+                <li><strong>الأسبرين (Aspirin):</strong> لو العيان مركب دعامات (PCI) <strong>لازم يكمل الأسبرين</strong> (Class I). لكن لو العيان بياخده كوقاية ومفيش دعامات، ممكن تفكر توقفه 3 أيام قبل العملية عشان تقلل النزيف.</li>
+                <li><strong>ميعاد العملية بعد الدعامات:</strong> لو دعامة عادية (Elective) نأجل العملية 6 شهور مش سنة زي زمان. ولو العملية طارئة أو وقتها حساس، ممكن نعملها بعد <strong>شهر واحد</strong> من الدعامة!</li>
+                <li><strong>مواضيع جديدة تماماً:</strong> حطوا قواعد جديدة لتقييم "الوهن أو الـ Frailty" في كبار السن (فوق 70 سنة)، وقواعد للتعامل مع نقل الدم (Patient Blood Management) عشان نقلل نقل الدم على الفاضي.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Perspective Toggle
+        const buttons = document.querySelectorAll('.toggle-btn');
+        const views = document.querySelectorAll('.perspective-content');
+
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                buttons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                const targetId = btn.getAttribute('data-target');
+                views.forEach(view => {
+                    if(view.id === targetId) {
+                        view.classList.add('visible');
+                    } else {
+                        view.classList.remove('visible');
+                    }
+                });
+            });
+        });
+
+        // Arabic Section Toggle
+        function toggleArabic() {
+            const section = document.querySelector('.arabic-section');
+            section.classList.toggle('open');
+            const arrow = section.querySelector('.arrow');
+            arrow.textContent = section.classList.contains('open') ? '▲' : '▼';
+        }
+    </script>
+</body>
+</html>

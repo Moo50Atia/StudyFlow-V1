@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Outcomes to Prevent</title>
+    <style>
+        :root {
+            --bg-dark: #0d1117;
+            --accent-blue: #58a6ff;
+            --accent-red: #f85149;
+            --text-main: #c9d1d9;
+            --card-bg: #161b22;
+            --border-color: #30363d;
+        }
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center;
+        }
+        h1 { color: var(--accent-blue); text-align: center; }
+        .scene-container {
+            width: 90%; max-width: 900px; min-height: 500px;
+            background: var(--card-bg); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 30px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            display: flex; flex-direction: column; align-items: center; box-sizing: border-box;
+        }
+        .complication-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px; width: 100%; margin-top: 20px;
+        }
+        .comp-card {
+            background: var(--bg-dark); border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent-red); border-radius: 6px; padding: 15px;
+            transition: transform 0.3s, background 0.3s;
+        }
+        .comp-card:hover { transform: translateY(-5px); background: rgba(248, 81, 73, 0.05); }
+        .comp-icon { font-size: 32px; margin-bottom: 10px; }
+        .comp-title { font-weight: bold; color: var(--text-main); margin-bottom: 5px; }
+        .comp-desc { font-size: 0.85em; color: #8b949e; }
+        .bleeding-alert {
+            background: rgba(248, 81, 73, 0.1); border: 1px solid var(--accent-red);
+            padding: 15px; border-radius: 6px; margin-top: 30px; width: 100%; text-align: center;
+        }
+        .arabic-section {
+            width: 90%; max-width: 900px; background: var(--card-bg);
+            border: 1px solid var(--border-color); border-radius: 8px; margin-top: 20px;
+        }
+        .arabic-header {
+            padding: 15px 20px; cursor: pointer; display: flex; justify-content: space-between; font-weight: bold;
+        }
+        .arabic-content {
+            padding: 0 20px; max-height: 0; overflow: hidden;
+            transition: max-height 0.4s ease, padding 0.4s ease; text-align: right; direction: rtl; line-height: 1.6;
+        }
+        .arabic-section.open .arabic-content { padding: 20px; max-height: 500px; }
+    </style>
+</head>
+<body>
+    <h1>Section 2.5: Outcomes We Want to Prevent</h1>
+    <div class="scene-container">
+        <p style="text-align: center; color: #8b949e; margin-top: 0;">The guidelines aim to prevent major peri-operative cardiovascular morbidity and mortality.</p>
+        
+        <div class="complication-grid">
+            <div class="comp-card">
+                <div class="comp-icon">💔</div>
+                <div class="comp-title">PMI</div>
+                <div class="comp-desc">Peri-operative Myocardial Infarction or Injury. Often silent but deadly.</div>
+            </div>
+            <div class="comp-card">
+                <div class="comp-icon">🩸</div>
+                <div class="comp-title">Stent Thrombosis</div>
+                <div class="comp-desc">Clotting inside a previous coronary stent, causing massive heart attacks.</div>
+            </div>
+            <div class="comp-card">
+                <div class="comp-icon">📉</div>
+                <div class="comp-title">Acute Heart Failure</div>
+                <div class="comp-desc">Fluid overload or pump failure induced by surgical stress.</div>
+            </div>
+            <div class="comp-card">
+                <div class="comp-icon">⚡</div>
+                <div class="comp-title">Arrhythmias</div>
+                <div class="comp-desc">Haemodynamically relevant rhythm disturbances (e.g., Atrial Fibrillation).</div>
+            </div>
+            <div class="comp-card">
+                <div class="comp-icon">🫁</div>
+                <div class="comp-title">Pulmonary Embolism</div>
+                <div class="comp-desc">Blood clots migrating to the lungs (PE/VTE).</div>
+            </div>
+            <div class="comp-card">
+                <div class="comp-icon">🧠</div>
+                <div class="comp-title">Ischaemic Stroke</div>
+                <div class="comp-desc">Interruption of blood supply to the brain during or after surgery.</div>
+            </div>
+        </div>
+
+        <div class="bleeding-alert">
+            <h3 style="color: var(--accent-red); margin: 0 0 10px 0;">⚠️ The Bleeding Paradox</h3>
+            <p style="margin: 0; font-size: 0.95em;">
+                We must also prevent <strong>bleeding complications</strong> (often associated with antithrombotic treatment). Severe bleeding directly increases the risk of myocardial infarction (MI) and death due to hypotension, reduced oxygen delivery, and pro-thrombotic states following transfusion.
+            </p>
+        </div>
+    </div>
+
+    <div class="arabic-section">
+        <div class="arabic-header" onclick="document.querySelector('.arabic-section').classList.toggle('open')">
+            <span>الشرح بالعامية المصرية (المضاعفات)</span>
+            <span>▼</span>
+        </div>
+        <div class="arabic-content">
+            <p><strong>إيه الكوارث اللي بنحاول نمنعها جوه أوضة العمليات؟</strong></p>
+            <p>إحنا بنقيم القلب عشان نمنع 6 مصايب أساسية:</p>
+            <ul style="text-align: right; direction: rtl;">
+                <li><strong>PMI:</strong> جلطات القلب اللي بتحصل وقت الجراحة أو بعدها. وغالباً بتيجي من غير وجع في الصدر عشان العيان بيكون متخدر (Silent MI).</li>
+                <li><strong>انسداد الدعامات (Stent Thrombosis):</strong> لو وقفنا أدوية السيولة، الدعامة القديمة ممكن تقفل وتعمل جلطة كبيرة.</li>
+                <li><strong>فشل القلب الحاد (Acute HF):</strong> العيان يدخل في ارتشاح رئوي (مية على الرئة) بسبب المحاليل الكتير اللي بياخدها أو ضعف العضلة.</li>
+                <li><strong>لخبطة الكهربا (Arrhythmias):</strong> زي الرفرفة الأذينية (AF) اللي ممكن تعمل جلطات في المخ.</li>
+                <li><strong>جلطات الرئة والمخ (PE & Stroke):</strong> بسبب الرقدة في السرير بعد العملية والالتهاب العام.</li>
+            </ul>
+            <p><strong>معضلة النزيف (The Bleeding Paradox):</strong> إحنا خايفين من الجلطات، فبندي العيان سيولة، يقوم ينزف في الجراحة! النزيف ده لوحده بيوطي الضغط ويقلل الأكسجين اللي رايح للقلب، فيدخله في جلطة قلبية (MI). عشان كده الموازنة دي هي أصعب حاجة في الطب.</p>
+        </div>
+    </div>
+</body>
+</html>

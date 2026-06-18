@@ -1,0 +1,94 @@
+{
+    "route": "Medical",
+    "step_1_decompose": {
+        "role": "Advanced Medical Content Architect specializing in Cardiology and Pathophysiology",
+        "task": "Decompose and restructure the text for deep clinical intuition and advanced biomechanical understanding",
+        "per_section_fields": [
+            "section_identity",
+            "core_pathological_mechanism",
+            "visual_first_explanation_hemodynamics",
+            "visual_scene_script",
+            "dynamic_view_blueprint",
+            "clinical_learning_outcome",
+            "concept_check",
+            "conceptual_summary",
+            "arabic_explanation",
+            "diagnostic_pharmacological_rules",
+            "clinical_scenario"
+        ],
+        "rules": [
+            "This is a SINGLE clinical lecture",
+            "Do NOT reference Dynamic View engines explicitly",
+            "Focus on cellular/hemodynamic mechanisms, diagnostic visuals (ECG/Echo), and treatment pathways",
+            "Keep explanations targeted at medical professionals",
+            "Copy all medical values (dose, ECG criteria, lab values) EXACTLY — never paraphrase numbers"
+        ]
+    },
+    "step_2_prepare": {
+        "role": "Medical Dynamic View prompt preparation engine",
+        "task": "Prepare each Section for automatic conversion into medical interactive scenes",
+        "per_section_fields": [
+            "scene_type",
+            "medical_3d_objects",
+            "physiological_animations",
+            "clinical_overlays",
+            "clinical_user_interactions",
+            "visual_clinical_goal"
+        ],
+        "medical_objects": [
+            "Vessels", "Myocardium", "Valves", "Coronary Arteries",
+            "Heart Chambers", "Pericardium", "Conduction System"
+        ],
+        "clinical_overlays": [
+            "ECG traces", "Blood Pressure monitors", "Angiography views",
+            "Echocardiogram", "CT Angiography", "Lab Values Panel"
+        ],
+        "clinical_interactions": [
+            "Administer Drug", "Induce Stress", "Deploy Stent",
+            "Adjust Dose Slider", "Toggle View Perspective"
+        ],
+        "constraints": [
+            "MUST NOT change clinical facts",
+            "MUST NOT rephrase medical terminology",
+            "MUST NOT alter diagnostic criteria"
+        ]
+    },
+    "step_3_generate": {
+        "role": "Advanced Multi-Perspective Medical Dynamic View prompt generator",
+        "scene_types": [
+            "Pathological Evolution",
+            "Hemodynamic Flow",
+            "Drug Mechanism",
+            "Diagnostic Comparison",
+            "Surgical Procedure"
+        ],
+        "perspectives": {
+            "mechanical_hemodynamic": {
+                "description": "Focuses on physical structures, fluid dynamics, plaque buildup, microvascular spasms, and muscle ischemia",
+                "objects": ["vessels", "blood flow", "plaque", "myocardium", "valves"]
+            },
+            "chemical_pharmacological": {
+                "description": "Zooms in to cellular/molecular level. Shows receptors, inflammatory markers, and drug molecules",
+                "objects": ["receptors", "drug molecules", "inflammatory markers", "enzymes", "ion channels"]
+            },
+            "diagnostic_imaging": {
+                "description": "Shows how 3D anatomy translates to 2D clinical tests",
+                "objects": ["ECG trace", "Echo view", "CCTA scan", "angiogram", "chest X-ray"]
+            },
+            "interventional_surgical": {
+                "description": "Focuses on procedural mechanics",
+                "objects": ["stent", "balloon", "bypass graft", "catheter", "guidewire"]
+            }
+        },
+        "required_interactions": [
+            "Perspective Toggle: Switch between medical perspectives",
+            "Clinical Control: Slider or button that works across all perspectives"
+        ],
+        "prompt_rules": [
+            "Evaluate Topic Complexity — if multi-disciplinary, create View Mode Toggle",
+            "Allowed perspectives: Mechanical, Chemical, Diagnostic, Interventional",
+            "Describe the scene using OBJECTS and ACTIONS specific to the active view",
+            "Final State: Allow user to cross-reference across medical disciplines"
+        ]
+    }
+}

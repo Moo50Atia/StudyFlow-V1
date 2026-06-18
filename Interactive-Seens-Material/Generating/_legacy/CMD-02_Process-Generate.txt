@@ -1,0 +1,98 @@
+╔══════════════════════════════════════════════════════════════╗
+║                  CMD-02 — PROCESS & GENERATE                 ║
+╚══════════════════════════════════════════════════════════════╝
+
+CONTEXT:
+- You have already completed CMD-01 and have the full structure map + ROUTE.
+- Steps files are located in: Generating\Steps\
+- Output destination: D:\projects\laravel_projects\college_project\Interactive-Seens-Material\[user-name]\
+
+YOUR TASK:
+Process ALL Lessons from the structure map, one by one, starting from Lesson 1.
+For each Lesson, execute the 3 phases below.
+
+══════════════════════════════════════════════════════════════
+BEFORE STARTING:
+
+Read the appropriate Steps file based on the ROUTE from CMD-01:
+- ROUTE: General  → Read Generating\Steps\General.txt
+- ROUTE: Medical  → Read Generating\Steps\Medical.txt
+
+Apply that file's framework exactly as written for every Lesson.
+
+══════════════════════════════════════════════════════════════
+FOR EACH LESSON — EXECUTE 3 PHASES:
+
+▸ PHASE 1 — DECOMPOSE (Internal, do not output):
+  Apply the "First" step from the Steps file to this Lesson's content.
+  Identify all Sections. For each Section extract:
+  - Core concept
+  - Visual metaphor
+  - Key misconception to correct
+  - [If Medical]: Hemodynamic / Pharmacological / Diagnostic angle
+
+▸ PHASE 2 — SCENE DESIGN (Internal, do not output):
+  Apply the "Second" and "Third" steps from the Steps file.
+  For each Section design a complete Dynamic View:
+  - Scene Type
+  - Objects & Animations
+  - Controls (sliders / toggles / buttons)
+  - [If Medical]: Multi-Perspective Toggle (Mechanical / Chemical / Diagnostic)
+  - Generate a descriptive View Name (NOT "Section1" or "Lesson1")
+    View Name format: [Topic-Keyword]_[Visual-Type]
+    Examples: BloodPressure_FlowSim / ActionPotential_WaveBuilder / Glycolysis_StepProcess
+
+▸ PHASE 3 — GENERATE HTML (Output this):
+  For each Section in this Lesson, generate ONE standalone HTML file.
+
+  HTML REQUIREMENTS:
+  - Single file: HTML + CSS + JS only (no external dependencies except CDN)
+  - Fully interactive scene implementing the Dynamic View from Phase 2
+  - Clean dark academic design (background: #0d1117, accent: #58a6ff)
+  - Smooth CSS/JS animations
+  - Controls must be functional (sliders change values, toggles switch views)
+  - [If Medical]: Perspective Toggle button that switches the entire visual context
+  - Descriptive title visible at top of the page
+  - Arabic dialect explanation section at the bottom (collapsible)
+  - File must work 100% when opened standalone in any browser
+
+══════════════════════════════════════════════════════════════
+FILE NAMING CONVENTION:
+
+  [Material-Short-Name]_L[X]-[MiniChapter-Keyword]_[View-Name].html
+
+  Examples:
+  Cardiology_L1-Anatomy_BloodFlow_FlowSim.html
+  Cardiology_L2-Pathophysiology_AtherosclerosisPlaque_Accumulation.html
+  Physics_L1-Waves_WaveInterference_Comparison.html
+
+══════════════════════════════════════════════════════════════
+OUTPUT DESTINATION:
+
+  Save EVERY generated HTML file to:
+  D:\projects\laravel_projects\college_project\Interactive-Seens-Material\[user-name]\
+
+  Create the folder if it doesn't exist.
+
+══════════════════════════════════════════════════════════════
+PROGRESS REPORTING:
+
+After saving each file, print:
+  ✅ [filename.html] — saved to [full path]
+
+After finishing ALL Lessons, print:
+  ══════════════════════════════════════════
+  ✅ ALL LESSONS COMPLETED
+  Total Files Generated: [N]
+  Location: D:\projects\laravel_projects\college_project\Interactive-Seens-Material\[user-name]\
+  ══════════════════════════════════════════
+
+══════════════════════════════════════════════════════════════
+STRICT RULES:
+- Every HTML file is 100% standalone — no links between files.
+- Do NOT output Phase 1 or Phase 2 thinking — internal only.
+- Do NOT skip any Lesson from the CMD-01 map.
+- Do NOT merge multiple Sections into one HTML file.
+- If a medical value (dose / ECG criteria / lab value) appears in the text → copy it EXACTLY, never paraphrase numbers.
+- If a Lesson has 3 Sections → generate 3 separate HTML files.
+- View Names must be descriptive and unique — never generic like "View1" or "Section2".

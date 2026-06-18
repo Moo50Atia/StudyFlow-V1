@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESC Guidelines - Preamble</title>
+    <style>
+        :root {
+            --bg-dark: #0d1117;
+            --accent-blue: #58a6ff;
+            --text-main: #c9d1d9;
+            --card-bg: #161b22;
+            --border-color: #30363d;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: var(--accent-blue);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .scene-container {
+            width: 80%;
+            max-width: 900px;
+            height: 400px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            margin-bottom: 20px;
+        }
+
+        .perspective-content {
+            text-align: center;
+            opacity: 0;
+            position: absolute;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .perspective-content.active {
+            opacity: 1;
+            z-index: 10;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        button {
+            background: var(--card-bg);
+            color: var(--accent-blue);
+            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        button:hover, button.active {
+            background: var(--accent-blue);
+            color: var(--bg-dark);
+        }
+
+        .icon-large {
+            font-size: 64px;
+            margin-bottom: 15px;
+            color: var(--accent-blue);
+        }
+
+        .node-network {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .node {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: transparent;
+            border: 3px solid var(--accent-blue);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            box-shadow: 0 0 15px var(--accent-blue);
+            animation: pulse 2s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 10px var(--accent-blue); transform: scale(1); }
+            100% { box-shadow: 0 0 25px var(--accent-blue); transform: scale(1.05); }
+        }
+
+        .line {
+            width: 100px;
+            height: 4px;
+            background: var(--accent-blue);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .line::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, #fff, transparent);
+            animation: flow 1.5s infinite;
+        }
+
+        @keyframes flow {
+            100% { left: 100%; }
+        }
+
+        .arabic-section {
+            width: 80%;
+            max-width: 900px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0;
+            margin-top: 20px;
+        }
+
+        .arabic-header {
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid transparent;
+            font-weight: bold;
+        }
+
+        .arabic-header:hover {
+            color: var(--accent-blue);
+        }
+
+        .arabic-content {
+            padding: 0 20px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, padding 0.4s ease;
+            text-align: right;
+            direction: rtl;
+            line-height: 1.6;
+        }
+
+        .arabic-section.open .arabic-header {
+            border-bottom-color: var(--border-color);
+            color: var(--accent-blue);
+        }
+
+        .arabic-section.open .arabic-content {
+            padding: 20px;
+            max-height: 500px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Section 1: Preamble - Clinical Guidelines Framework</h1>
+
+    <div class="controls">
+        <button class="toggle-btn active" data-target="guideline-view">Guideline View</button>
+        <button class="toggle-btn" data-target="clinical-view">Clinical View</button>
+    </div>
+
+    <div class="scene-container">
+        <!-- Perspective 1: Guideline Architecture -->
+        <div id="guideline-view" class="perspective-content active">
+            <div class="node-network">
+                <div class="node">Evidence</div>
+                <div class="line"></div>
+                <div class="node" style="width:120px; height:120px;">ESC<br>Guidelines</div>
+                <div class="line"></div>
+                <div class="node">Practice</div>
+            </div>
+            <p style="margin-top: 40px; font-size: 1.2em;">Guidelines summarize evidence to assist daily practice.</p>
+        </div>
+
+        <!-- Perspective 2: Clinical Application -->
+        <div id="clinical-view" class="perspective-content">
+            <div style="font-size: 80px; margin-bottom: 20px;">🩺</div>
+            <h2 style="color: var(--accent-blue); margin: 0;">Clinical Judgment</h2>
+            <p style="max-width: 600px; margin: 20px auto; font-size: 1.1em; line-height: 1.5;">
+                Guidelines are <strong>not</strong> a substitute for the practitioner's relationship with the patient. 
+                Final decisions must be made by the responsible health professional, tailored to the individual.
+            </p>
+        </div>
+    </div>
+
+    <div class="arabic-section">
+        <div class="arabic-header" onclick="toggleArabic()">
+            <span>الشرح بالعامية المصرية (الخلاصة)</span>
+            <span class="arrow">▼</span>
+        </div>
+        <div class="arabic-content">
+            <p><strong>إيه فكرة الجزء ده؟</strong></p>
+            <p>الجزء الأول (Preamble) ده زي مقدمة دستورية للجايدلاينز (Guidelines). الفكرة الأساسية هنا إن الجايدلاينز دي معمولة عشان تلخص الأبحاث العلمية وتساعدك كدكتور تاخد قرار صح، بس هي <strong>مش قرآن ولا قانون صارم</strong>.</p>
+            <p>يعني لو قدامك مريض في الطوارئ وحالته مش ماشية بالظبط مع اللي مكتوب في الجايدلاينز، دايماً الـ Clinical Judgment (رأيك الطبي وتقييمك للحالة) هو اللي بيكسب. الجايدلاينز بتديك الطريق، بس إنت اللي سايق بناءً على حالة المريض اللي قدامك.</p>
+        </div>
+    </div>
+
+    <script>
+        const buttons = document.querySelectorAll('.toggle-btn');
+        const views = document.querySelectorAll('.perspective-content');
+
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                buttons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                const targetId = btn.getAttribute('data-target');
+                views.forEach(view => {
+                    if(view.id === targetId) {
+                        view.classList.add('active');
+                    } else {
+                        view.classList.remove('active');
+                    }
+                });
+            });
+        });
+
+        function toggleArabic() {
+            const section = document.querySelector('.arabic-section');
+            section.classList.toggle('open');
+            const arrow = section.querySelector('.arrow');
+            arrow.textContent = section.classList.contains('open') ? '▲' : '▼';
+        }
+    </script>
+</body>
+</html>
