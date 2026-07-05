@@ -1,0 +1,15 @@
+{
+  "material_name": "GLMTest",
+  "language": "English",
+  "route": "Mathematics",
+  "domain": "Statistical Modeling",
+  "chapter_pattern": "",
+  "mini_chapter_pattern": "",
+  "lesson_pattern": "X.",
+  "has_toc": true,
+  "toc_page_range": [
+    2,
+    2
+  ],
+  "special_handling": {}
+}

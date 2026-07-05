@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Hardware-Software Divide: Logical vs. Physical Execution</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        logical: {
+                            glow: '#06b6d4',
+                            dark: '#083344',
+                            bg: '#153e4d'
+                        },
+                        physical: {
+                            glow: '#f59e0b',
+                            dark: '#451a03',
+                            bg: '#472d1b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f19;
+            color: #e2e8f0;
+        }
+
+        .font-mono {
+            font-family: 'Fira Code', monospace;
+        }
+
+        /* Scanline and grid effects */
+        .grid-bg {
+            background-size: 24px 24px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        }
+
+        /* Pulse Animations for Bus Lines */
+        @keyframes pulse-cyan {
+            0%, 100% { stroke-dashoffset: 100; stroke: #06b6d4; filter: drop-shadow(0 0 2px #06b6d4); }
+            50% { stroke-dashoffset: 0; stroke: #22d3ee; filter: drop-shadow(0 0 8px #0891b2); }
+        }
+
+        @keyframes pulse-amber {
+            0%, 100% { stroke-dashoffset: 100; stroke: #f59e0b; filter: drop-shadow(0 0 2px #f59e0b); }
+            50% { stroke-dashoffset: 0; stroke: #fbbf24; filter: drop-shadow(0 0 8px #d97706); }
+        }
+
+        .animate-bus-logical {
+            stroke-dasharray: 8, 4;
+            animation: pulse-cyan 4s linear infinite;
+        }
+
+        .animate-bus-physical {
+            stroke-dasharray: 6, 3;
+            animation: pulse-amber 3s linear infinite;
+        }
+
+        /* Custom glow styles */
+        .glow-logical {
+            box-shadow: 0 0 15px -3px rgba(6, 182, 212, 0.4);
+            border-color: rgba(6, 182, 212, 0.5);
+        }
+
+        .glow-physical {
+            box-shadow: 0 0 15px -3px rgba(245, 158, 11, 0.4);
+            border-color: rgba(245, 158, 11, 0.5);
+        }
+
+        /* Overlay text styles */
+        .overlay-mask {
+            backdrop-filter: blur(4px);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Flowing electrons animation */
+        @keyframes flow {
+            0% { transform: translateY(-100%); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateY(100%); opacity: 0; }
+        }
+
+        .electron {
+            animation: flow 2s linear infinite;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="grid-bg min-h-screen flex flex-col justify-between overflow-x-hidden">
+
+    <!-- Header Section -->
+    <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md px-6 py-4 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-xl md:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                    <span class="text-cyan-400">ISA</span>
+                    <span class="text-slate-500 font-light">|</span>
+                    <span>The Hardware-Software Divide</span>
+                </h1>
+                <p class="text-xs md:text-sm text-slate-400 mt-1 max-w-2xl">
+                    Explore the absolute boundary separating programmer-facing logical instruction models from physical gate-level silicon execution.
+                </p>
+            </div>
+            
+            <!-- View Controls / Toggles -->
+            <div class="flex flex-wrap items-center gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800 self-start md:self-center">
+                <button onclick="switchView('split')" id="btn-split" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300 flex items-center gap-1.5 bg-slate-800 text-white shadow-sm border border-slate-700">
+                    <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                    </svg>
+                    Split View
+                </button>
+                <button onclick="switchView('programmer')" id="btn-programmer" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300 flex items-center gap-1.5 text-slate-400 hover:text-white">
+                    <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                    Programmer View
+                </button>
+                <button onclick="switchView('hardware')" id="btn-hardware" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300 flex items-center gap-1.5 text-slate-400 hover:text-white">
+                    <svg class="w-3.5 h-3.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                    </svg>
+                    Hardware View
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Simulation Workspace -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 relative">
+        
+        <!-- Central Abstraction Line (Dashed Line on desktop/split) -->
+        <div id="central-divider" class="hidden lg:block absolute left-1/2 top-4 bottom-4 w-0.5 border-l-2 border-dashed border-slate-800 -translate-x-1/2 pointer-events-none z-10">
+            <span class="absolute top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-900 border border-slate-700 px-3 py-1 text-[10px] tracking-widest text-slate-400 font-mono rounded-full uppercase whitespace-nowrap shadow-xl">
+                ISA Abstraction Layer
+            </span>
+        </div>
+
+        <!-- ==================== LEFT PANEL: PROGRAMMER BLOCK (LOGICAL VIEW) ==================== -->
+        <section id="programmer-section" class="lg:col-span-6 flex flex-col justify-between transition-all duration-500 relative bg-slate-950/40 border border-slate-800/80 rounded-2xl p-4 md:p-5 glow-logical overflow-hidden">
+            
+            <!-- Programmer Transparency Overlay (Active in Hardware view) -->
+            <div id="programmer-overlay" class="overlay-mask absolute inset-0 bg-slate-950/85 z-20 flex flex-col justify-center items-center p-6 text-center opacity-0 pointer-events-none">
+                <div class="bg-cyan-950/30 border border-cyan-800/50 rounded-2xl p-6 max-w-md shadow-2xl">
+                    <span class="text-xs font-mono text-cyan-400 tracking-wider uppercase mb-2 block">Invisible To Hardware</span>
+                    <h3 class="text-lg font-bold text-white mb-2">Logical Abstractions Disappear</h3>
+                    <p class="text-sm text-slate-300 leading-relaxed">
+                        To physical silicon, high-level code, variable names, labels, and logical semantics do not exist. Microprocessors only process electrical voltage differentials across logic gates.
+                    </p>
+                    <button onclick="switchView('programmer')" class="mt-4 px-4 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 rounded-lg text-xs border border-cyan-500/40 font-semibold transition-all">
+                        Reveal Programmer View
+                    </button>
+                </div>
+            </div>
+
+            <!-- Header of Programmer Block -->
+            <div class="mb-4">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-3 h-3 rounded-full bg-cyan-400 animate-pulse"></span>
+                        <div>
+                            <h2 class="text-sm font-semibold text-white tracking-wide uppercase">Programmer Block (Logical)</h2>
+                            <p class="text-xs text-slate-400">The software/firmware programmer's ISA mental model.</p>
+                        </div>
+                    </div>
+                    <span class="text-[10px] font-mono text-cyan-400 bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-900">
+                        VISIBLE STATE ONLY
+                    </span>
+                </div>
+            </div>
+
+            <!-- Dynamic Interactive Simulation Elements -->
+            <div class="space-y-4 flex-1">
+                
+                <!-- Instruction Register Memory Space -->
+                <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-semibold text-slate-300 tracking-wider uppercase flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            </svg>
+                            Instruction Register Pipeline
+                        </h4>
+                        <span class="text-[10px] font-mono text-slate-500">Program Counter (PC): <span id="pc-val" class="text-cyan-400">0x0002</span></span>
+                    </div>
+
+                    <!-- Pipeline Code Feed -->
+                    <div class="space-y-1.5 font-mono text-xs">
+                        <div id="inst-0" class="flex justify-between items-center p-2 rounded bg-slate-950 border border-slate-800 text-slate-500 transition-all duration-300">
+                            <div class="flex gap-4">
+                                <span class="text-slate-600">0x0000</span>
+                                <span class="font-semibold text-slate-400">LOAD R1, [0x100A]</span>
+                            </div>
+                            <span class="text-[10px] uppercase text-slate-600">Executed</span>
+                        </div>
+                        <div id="inst-1" class="flex justify-between items-center p-2.5 rounded bg-cyan-950/30 border border-cyan-500/30 text-white transition-all duration-300 glow-logical">
+                            <div class="flex gap-4">
+                                <span class="text-cyan-400 font-bold">0x0002</span>
+                                <span class="font-bold text-cyan-100 flex items-center gap-1">
+                                    ADD R2, R1, 15 
+                                    <span class="animate-ping inline-flex h-1.5 w-1.5 rounded-full bg-cyan-400"></span>
+                                </span>
+                            </div>
+                            <span class="text-[10px] uppercase tracking-wider font-bold text-cyan-400 animate-pulse">Active Execution</span>
+                        </div>
+                        <div id="inst-2" class="flex justify-between items-center p-2 rounded bg-slate-950 border border-slate-800 text-slate-400 transition-all duration-300">
+                            <div class="flex gap-4">
+                                <span class="text-slate-600">0x0004</span>
+                                <span class="font-semibold">STORE R2, [0x100B]</span>
+                            </div>
+                            <span class="text-[10px] uppercase text-slate-500">Next</span>
+                        </div>
+                        <div id="inst-3" class="flex justify-between items-center p-2 rounded bg-slate-950 border border-slate-800 text-slate-400 transition-all duration-300">
+                            <div class="flex gap-4">
+                                <span class="text-slate-600">0x0006</span>
+                                <span class="font-semibold">HALT</span>
+                            </div>
+                            <span class="text-[10px] uppercase text-slate-500">Queue</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Logical Registers Block -->
+                <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+                    <h4 class="text-xs font-semibold text-slate-300 tracking-wider uppercase mb-2.5 flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                        </svg>
+                        Programmer-Visible Storage (Registers)
+                    </h4>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-xs">
+                        <div class="bg-slate-950 border border-slate-800 p-2 rounded flex flex-col justify-between" id="reg-r0">
+                            <span class="text-slate-500 text-[10px]">R0 (Zero Reg)</span>
+                            <span class="text-slate-300 font-bold mt-1">0x0000</span>
+                        </div>
+                        <div class="bg-slate-950 border border-cyan-900 p-2 rounded flex flex-col justify-between transition-all duration-300" id="reg-r1">
+                            <span class="text-cyan-400 text-[10px] flex justify-between">R1 <span>(Value Temp)</span></span>
+                            <span class="text-cyan-100 font-bold mt-1" id="reg-r1-val">0x000A</span>
+                        </div>
+                        <div class="bg-slate-950 border border-cyan-500/40 p-2 rounded flex flex-col justify-between transition-all duration-300 relative overflow-hidden" id="reg-r2">
+                            <div class="absolute inset-x-0 bottom-0 h-0.5 bg-cyan-500 animate-pulse"></div>
+                            <span class="text-cyan-400 text-[10px] font-bold flex justify-between">R2 <span>(Destination)</span></span>
+                            <span class="text-white font-bold mt-1 animate-pulse" id="reg-r2-val">0x0019</span>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800 p-2 rounded flex flex-col justify-between" id="reg-r3">
+                            <span class="text-slate-500 text-[10px]">R3</span>
+                            <span class="text-slate-300 font-bold mt-1">0x0000</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Logical Memory Map -->
+                <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+                    <h4 class="text-xs font-semibold text-slate-300 tracking-wider uppercase mb-2 flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Software Conceptual Memory Map
+                    </h4>
+                    <p class="text-[11px] text-slate-400 mb-2">Programmers envision memory as a clean array of readable addresses. Microscopic structures are hidden.</p>
+                    <div class="grid grid-cols-3 gap-2 font-mono text-[11px]">
+                        <div class="bg-slate-950 border border-slate-800 p-2 rounded flex justify-between items-center" id="mem-logical-1">
+                            <span class="text-slate-500">0x100A</span>
+                            <span class="text-cyan-400 font-bold">10</span>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800 p-2 rounded flex justify-between items-center transition-all duration-300" id="mem-logical-2">
+                            <span class="text-slate-500">0x100B</span>
+                            <span class="text-slate-400 font-bold" id="mem-logical-2-val">25</span>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800 p-2 rounded flex justify-between items-center">
+                            <span class="text-slate-500">0x100C</span>
+                            <span class="text-slate-400">0</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Conceptual Explainer -->
+            <div class="mt-4 bg-cyan-950/20 border border-cyan-900/50 rounded-xl p-3">
+                <span class="text-cyan-400 text-xs font-bold uppercase tracking-wider block mb-1">Logical Contract</span>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    The instruction <code class="bg-slate-900 px-1 py-0.5 rounded text-cyan-300">ADD R2, R1, 15</code> describes *what* math must happen. How this addition is physically realized via voltage switches, propagation delay paths, or capacitor refreshes is completely abstracted away from the software layer.
+                </p>
+            </div>
+        </section>
+
+        <!-- ==================== RIGHT PANEL: HARDWARE BLOCK (PHYSICAL REALIZATION) ==================== -->
+        <section id="hardware-section" class="lg:col-span-6 flex flex-col justify-between transition-all duration-500 relative bg-slate-950/40 border border-slate-800/80 rounded-2xl p-4 md:p-5 glow-physical overflow-hidden">
+            
+            <!-- Hardware Transparency Overlay (Active in Programmer view) -->
+            <div id="hardware-overlay" class="overlay-mask absolute inset-0 bg-slate-950/85 z-20 flex flex-col justify-center items-center p-6 text-center opacity-0 pointer-events-none">
+                <div class="bg-amber-950/30 border border-amber-800/50 rounded-2xl p-6 max-w-md shadow-2xl">
+                    <span class="text-xs font-mono text-amber-500 tracking-wider uppercase mb-2 block">Invisible To Programmer</span>
+                    <h3 class="text-lg font-bold text-white mb-2">Physical Realization Hidden</h3>
+                    <p class="text-sm text-slate-300 leading-relaxed">
+                        To protect developers from complexity, the physics of memory timings, clock dispersion, bus trace routing, and voltage states are completely hidden behind the Instruction Set Architecture (ISA).
+                    </p>
+                    <button onclick="switchView('hardware')" class="mt-4 px-4 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-lg text-xs border border-amber-500/40 font-semibold transition-all">
+                        Reveal Hardware View
+                    </button>
+                </div>
+            </div>
+
+            <!-- Header of Hardware Block -->
+            <div class="mb-4">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-3 h-3 rounded-full bg-amber-500 animate-pulse"></span>
+                        <div>
+                            <h2 class="text-sm font-semibold text-white tracking-wide uppercase">Hardware Block (Physical)</h2>
+                            <p class="text-xs text-slate-400">The physical silicon, control busses, and voltage switches.</p>
+                        </div>
+                    </div>
+                    <span class="text-[10px] font-mono text-amber-500 bg-amber-950/50 px-2 py-0.5 rounded border border-amber-900">
+                        SILICON LEVEL ACTS
+                    </span>
+                </div>
+            </div>
+
+            <!-- Interactive Physical Diagram -->
+            <div class="space-y-4 flex-1">
+                
+                <!-- Bus Lines & Control Signals Visualizer -->
+                <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-semibold text-slate-300 tracking-wider uppercase flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            Control Signals (Voltage Control Lines)
+                        </h4>
+                        <span class="text-[10px] font-mono text-slate-500">Clock Phase: <span id="clock-phase" class="text-amber-500 font-bold">HIGH</span></span>
+                    </div>
+
+                    <!-- Schematic Simulation -->
+                    <div class="relative bg-slate-950 p-3 rounded-lg border border-slate-800 overflow-hidden min-h-[140px] flex flex-col justify-between">
+                        
+                        <!-- Mini Interactive SVG Datapath Schematic -->
+                        <svg class="w-full h-24" viewBox="0 0 300 100">
+                            <!-- Paths / Wires -->
+                            <path id="wire-decode-to-alu" d="M 50,40 L 150,40" fill="none" stroke="#f59e0b" stroke-width="1.5" class="animate-bus-physical" />
+                            <path id="wire-control-to-alu" d="M 120,80 L 175,60" fill="none" stroke="#f59e0b" stroke-width="1.5" class="animate-bus-physical" />
+                            <path id="wire-reg-to-alu" d="M 80,15 L 150,30" fill="none" stroke="#64748b" stroke-width="1" />
+                            
+                            <!-- Control Unit -->
+                            <rect x="10" y="55" width="100" height="35" rx="4" fill="#451a03" stroke="#f59e0b" stroke-width="1" />
+                            <text x="60" y="77" fill="#fbbf24" font-size="7" font-family="Fira Code" font-weight="bold" text-anchor="middle">CONTROL UNIT (CU)</text>
+                            
+                            <!-- Physical Registers -->
+                            <rect x="10" y="10" width="80" height="25" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1" />
+                            <text x="50" y="25" fill="#94a3b8" font-size="7" font-family="Fira Code" text-anchor="middle">SRAM LATCH (REG)</text>
+
+                            <!-- ALU Unit -->
+                            <polygon points="150,15 210,15 220,35 210,55 150,55 160,35" fill="#451a03" stroke="#f59e0b" stroke-width="1" />
+                            <text x="180" y="38" fill="#fbbf24" font-size="9" font-family="Fira Code" font-weight="bold" text-anchor="middle">ALU</text>
+                            <text x="180" y="47" id="alu-operation" fill="#fbbf24" font-size="7" font-family="Fira Code" text-anchor="middle">ADDITION</text>
+
+                            <!-- Flowing electrons visual indicator -->
+                            <circle cx="120" cy="40" r="3" fill="#f59e0b" class="electron" />
+                            <circle cx="140" cy="70" r="3" fill="#f59e0b" class="electron" />
+                        </svg>
+
+                        <!-- Line States Readings -->
+                        <div class="grid grid-cols-3 gap-2 text-[10px] font-mono mt-1 pt-2 border-t border-slate-800">
+                            <div class="flex justify-between">
+                                <span class="text-slate-500">RegWrite:</span>
+                                <span id="sig-regwrite" class="text-green-400 font-bold">HIGH (5V)</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-500">ALUSel:</span>
+                                <span id="sig-alusel" class="text-amber-500 font-bold">0110 (ADD)</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-500">MemRead:</span>
+                                <span id="sig-memread" class="text-red-400 font-bold">LOW (0V)</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Memory Technology (Silicon Level visualization) -->
+                <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-semibold text-slate-300 tracking-wider uppercase flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            </svg>
+                            Memory Technology: 1T1C DRAM Cell Realization
+                        </h4>
+                        <span class="text-[10px] font-mono text-amber-500 uppercase">Capacitor State</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-slate-950 p-3 rounded-lg border border-slate-800">
+                        <div class="md:col-span-5 flex justify-center">
+                            
+                            <!-- Interactive Capacitor Dynamic Graphic -->
+                            <div class="relative w-24 h-24 border border-slate-800 rounded-lg flex flex-col justify-between items-center p-1 bg-slate-900/40">
+                                <div class="text-[9px] font-mono text-slate-500 uppercase">1-Transistor 1-Capacitor</div>
+                                
+                                <!-- Capacitor plate charge simulation visualizer -->
+                                <div class="w-16 h-10 border-t-2 border-slate-600 border-b-2 relative">
+                                    <div id="cap-charge-bar" class="absolute bottom-0 inset-x-0 bg-amber-500/80 transition-all duration-1000 h-[80%] flex items-center justify-center">
+                                        <span class="text-[8px] text-black font-bold font-mono" id="charge-percent">CHARGED</span>
+                                    </div>
+                                    <div class="absolute top-[40%] inset-x-0 border-t border-dashed border-slate-700"></div>
+                                </div>
+
+                                <span class="text-[10px] font-mono text-amber-400 font-bold" id="cap-voltage">1.2 Volts</span>
+                            </div>
+
+                        </div>
+                        <div class="md:col-span-7 space-y-1.5 text-xs text-slate-300">
+                            <p class="font-semibold text-white">Physical Realization Details:</p>
+                            <p class="text-[11px] leading-relaxed text-slate-400">
+                                Address <code class="text-amber-500">0x100A</code> corresponds to a physical column/row bitline coordinate. The binary state is represented by storing an actual electrical charge in a sub-micron capacitor.
+                            </p>
+                            <p class="text-[11px] text-amber-500/90 font-mono">
+                                Sub-microscopic physical leaks require memory cells to refresh every ~64ms.
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- Physical Realization Explainer -->
+            <div class="mt-4 bg-amber-950/20 border border-amber-900/50 rounded-xl p-3">
+                <span class="text-amber-500 text-xs font-bold uppercase tracking-wider block mb-1">Physical Execution Layer</span>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Instructions translated from memory are decoded into electrical configurations that energize control buses, switch logic gates, routing currents to state registers and charging physical silicon memory slots.
+                </p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Interactive Interactive Panel: Misconception Buster -->
+    <section class="max-w-7xl w-full mx-auto px-4 md:px-6 py-4">
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-2xl relative overflow-hidden">
+            <div class="absolute right-0 top-0 translate-x-10 -translate-y-10 w-40 h-40 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none"></div>
+            
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                        Correction of Core Misconception
+                    </h3>
+                    <p class="text-xs text-indigo-300 mt-1">Commonly, developers assume software and hardware operations are identical. Discover the true physical execution translation.</p>
+                </div>
+                
+                <div class="flex gap-2">
+                    <button onclick="changeInstructionStep()" class="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold text-xs px-3.5 py-2 rounded-xl transition shadow-lg flex items-center gap-1.5 border border-indigo-500">
+                        <svg class="w-3.5 h-3.5 animate-spin" id="btn-spinner-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display: none;">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        <svg class="w-3.5 h-3.5" id="btn-next-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                        </svg>
+                        Cycle Step Instruction
+                    </button>
+                </div>
+            </div>
+
+            <!-- Comparison Cards Panel Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                
+                <!-- Comparison Item 1 -->
+                <div class="bg-slate-950/60 border border-slate-800/80 p-4 rounded-xl hover:border-slate-700 transition">
+                    <span class="text-cyan-400 font-mono text-[10px] tracking-wider uppercase block mb-1">PROGRAMMER MODEL</span>
+                    <h4 class="text-sm font-semibold text-white mb-2">Instructions execute sequentially</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        Programmers rely on logical structures that state instructions execute step-by-step strictly at specified memory PC tags, preventing system memory conflicts.
+                    </p>
+                    <div class="mt-3 text-[10px] bg-slate-900 p-2 rounded text-amber-400 font-mono flex items-center gap-1.5 border border-amber-950/40">
+                        <span class="font-bold">Hardware Reality:</span> Pipes instructions simultaneously.
+                    </div>
+                </div>
+
+                <!-- Comparison Item 2 -->
+                <div class="bg-slate-950/60 border border-slate-800/80 p-4 rounded-xl hover:border-slate-700 transition">
+                    <span class="text-cyan-400 font-mono text-[10px] tracking-wider uppercase block mb-1">PROGRAMMER MODEL</span>
+                    <h4 class="text-sm font-semibold text-white mb-2">Variables directly hold values</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        Developers represent states as clean names inside software (<code class="bg-slate-900 px-1 py-0.5 rounded text-cyan-300">tempVal = 25</code>) to persist integer and logical configurations directly.
+                    </p>
+                    <div class="mt-3 text-[10px] bg-slate-900 p-2 rounded text-amber-400 font-mono flex items-center gap-1.5 border border-amber-950/40">
+                        <span class="font-bold">Hardware Reality:</span> Transistors and capacitors hold charge.
+                    </div>
+                </div>
+
+                <!-- Comparison Item 3 -->
+                <div class="bg-slate-950/60 border border-slate-800/80 p-4 rounded-xl hover:border-slate-700 transition">
+                    <span class="text-cyan-400 font-mono text-[10px] tracking-wider uppercase block mb-1">PROGRAMMER MODEL</span>
+                    <h4 class="text-sm font-semibold text-white mb-2">Standard logic is instantaneous</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        Software expects an instruction calculation result to appear instantly across the execution stack the moment a command block runs.
+                    </p>
+                    <div class="mt-3 text-[10px] bg-slate-900 p-2 rounded text-amber-400 font-mono flex items-center gap-1.5 border border-amber-950/40">
+                        <span class="font-bold">Hardware Reality:</span> Voltage has propagation delays.
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer Area -->
+    <footer class="border-t border-slate-900 bg-slate-950 px-6 py-4 text-center">
+        <p class="text-xs text-slate-500">
+            Interactive System Simulator &bull; Designed to demonstrate the physical constraints of computing and correct standard software engineering misconceptions.
+        </p>
+    </footer>
+
+    <!-- Interactive Simulator Scripts logic -->
+    <script>
+        // State variables
+        let activeStep = 1; // 0: LOAD, 1: ADD, 2: STORE, 3: HALT
+        let currentView = 'split'; // split, programmer, hardware
+
+        // Elements
+        const pcValEl = document.getElementById('pc-val');
+        const capChargeBar = document.getElementById('cap-charge-bar');
+        const chargePercentEl = document.getElementById('charge-percent');
+        const capVoltageEl = document.getElementById('cap-voltage');
+        const clockPhaseEl = document.getElementById('clock-phase');
+        const aluOperationEl = document.getElementById('alu-operation');
+
+        const sigRegwrite = document.getElementById('sig-regwrite');
+        const sigAlusel = document.getElementById('sig-alusel');
+        const sigMemread = document.getElementById('sig-memread');
+
+        const regR1Val = document.getElementById('reg-r1-val');
+        const regR2Val = document.getElementById('reg-r2-val');
+        const memLogical2Val = document.getElementById('mem-logical-2-val');
+
+        const programmerOverlay = document.getElementById('programmer-overlay');
+        const hardwareOverlay = document.getElementById('hardware-overlay');
+        
+        const btnSplit = document.getElementById('btn-split');
+        const btnProgrammer = document.getElementById('btn-programmer');
+        const btnHardware = document.getElementById('btn-hardware');
+
+        const centralDivider = document.getElementById('central-divider');
+
+        // Layout container selections
+        const programmerSection = document.getElementById('programmer-section');
+        const hardwareSection = document.getElementById('hardware-section');
+
+        // Dynamic State configurations for each pipeline stage
+        const stepConfigurations = [
+            {
+                pc: '0x0000',
+                instActive: 0,
+                aluOp: 'PASS INPUT',
+                regWrite: 'HIGH (5V)',
+                aluSel: '0000 (PASS)',
+                memRead: 'HIGH (5V)',
+                capCharge: '100%',
+                capStatus: 'CHARGED',
+                voltage: '1.2 Volts',
+                reg1: '0x000A',
+                reg2: '0x0000',
+                memVal: '25'
+            },
+            {
+                pc: '0x0002',
+                instActive: 1,
+                aluOp: 'ADDITION',
+                regWrite: 'HIGH (5V)',
+                aluSel: '0110 (ADD)',
+                memRead: 'LOW (0V)',
+                capCharge: '80%',
+                capStatus: 'STEADY',
+                voltage: '1.18 Volts',
+                reg1: '0x000A',
+                reg2: '0x0019',
+                memVal: '25'
+            },
+            {
+                pc: '0x0004',
+                instActive: 2,
+                aluOp: 'PASS IN',
+                regWrite: 'LOW (0V)',
+                aluSel: '1100 (WRITE)',
+                memRead: 'LOW (0V)',
+                capCharge: '100%',
+                capStatus: 'CHARGING',
+                voltage: '1.2 Volts',
+                reg1: '0x000A',
+                reg2: '0x0019',
+                memVal: '25'
+            },
+            {
+                pc: '0x0006',
+                instActive: 3,
+                aluOp: 'IDLE',
+                regWrite: 'LOW (0V)',
+                aluSel: '0000 (IDLE)',
+                memRead: 'LOW (0V)',
+                capCharge: '95%',
+                capStatus: 'STEADY',
+                voltage: '1.15 Volts',
+                reg1: '0x000A',
+                reg2: '0x0019',
+                memVal: '25'
+            }
+        ];
+
+        // Trigger dynamic stage switch simulation
+        function changeInstructionStep() {
+            // Show Spinner and loading feedback momentarily
+            const spinner = document.getElementById('btn-spinner-icon');
+            const nextIcon = document.getElementById('btn-next-icon');
+            spinner.style.display = 'inline-block';
+            nextIcon.style.display = 'none';
+
+            setTimeout(() => {
+                spinner.style.display = 'none';
+                nextIcon.style.display = 'inline-block';
+
+                // Rotate steps
+                activeStep = (activeStep + 1) % 4;
+                applyStepState(activeStep);
+            }, 400);
+        }
+
+        function applyStepState(stepIdx) {
+            const config = stepConfigurations[stepIdx];
+
+            // 1. Program Counter update
+            pcValEl.textContent = config.pc;
+
+            // 2. Clear out all instruction highlights, and highlight the current one
+            for (let i = 0; i < 4; i++) {
+                const el = document.getElementById(`inst-${i}`);
+                if (i === config.instActive) {
+                    el.className = "flex justify-between items-center p-2.5 rounded bg-cyan-950/30 border border-cyan-500/30 text-white transition-all duration-300 glow-logical";
+                    const lastChild = el.querySelector('span:last-child');
+                    if (lastChild) {
+                        lastChild.className = "text-[10px] uppercase tracking-wider font-bold text-cyan-400 animate-pulse";
+                        lastChild.textContent = "Active Execution";
+                    }
+                } else if (i < config.instActive) {
+                    el.className = "flex justify-between items-center p-2 rounded bg-slate-950 border border-slate-800 text-slate-500 transition-all duration-300";
+                    const lastChild = el.querySelector('span:last-child');
+                    if (lastChild) {
+                        lastChild.className = "text-[10px] uppercase text-slate-600";
+                        lastChild.textContent = "Executed";
+                    }
+                } else {
+                    el.className = "flex justify-between items-center p-2 rounded bg-slate-950 border border-slate-800 text-slate-400 transition-all duration-300";
+                    const lastChild = el.querySelector('span:last-child');
+                    if (lastChild) {
+                        lastChild.className = "text-[10px] uppercase text-slate-500";
+                        lastChild.textContent = i === config.instActive + 1 ? "Next" : "Queue";
+                    }
+                }
+            }
+
+            // 3. Register table updates
+            regR1Val.textContent = config.reg1;
+            regR2Val.textContent = config.reg2;
+            memLogical2Val.textContent = config.memVal;
+
+            // Highlight destination register specifically during changes
+            if (stepIdx === 1) { // ADD instruction execution
+                document.getElementById('reg-r2').classList.add('border-cyan-400');
+            } else {
+                document.getElementById('reg-r2').classList.remove('border-cyan-400');
+            }
+
+            // 4. Hardware/Datapath Signals Updates
+            aluOperationEl.textContent = config.aluOp;
+            sigRegwrite.textContent = config.regWrite;
+            sigAlusel.textContent = config.aluSel;
+            sigMemread.textContent = config.memRead;
+
+            // Update color states based on signal levels
+            sigRegwrite.className = config.regWrite.includes('HIGH') ? 'text-green-400 font-bold' : 'text-red-400 font-bold';
+            sigMemread.className = config.memRead.includes('HIGH') ? 'text-green-400 font-bold' : 'text-red-400 font-bold';
+
+            // 5. Capacitor/Physical Memory Technology graphics updates
+            capChargeBar.style.height = config.capCharge;
+            chargePercentEl.textContent = config.capStatus;
+            capVoltageEl.textContent = config.voltage;
+
+            // Simple visual representation of RAM write back 
+            if (stepIdx === 2) {
+                document.getElementById('mem-logical-2').classList.add('border-cyan-400', 'bg-cyan-950/25');
+            } else {
+                document.getElementById('mem-logical-2').classList.remove('border-cyan-400', 'bg-cyan-950/25');
+            }
+        }
+
+        // Handle the Toggle Switch views (Split / Programmer-Only / Hardware-Only)
+        function switchView(view) {
+            currentView = view;
+
+            // Reset button active styles
+            [btnSplit, btnProgrammer, btnHardware].forEach(btn => {
+                btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300 flex items-center gap-1.5 text-slate-400 hover:text-white";
+            });
+
+            // Reset section boundaries
+            programmerSection.className = "lg:col-span-6 flex flex-col justify-between transition-all duration-500 relative bg-slate-950/40 border border-slate-800/80 rounded-2xl p-4 md:p-5 glow-logical overflow-hidden";
+            hardwareSection.className = "lg:col-span-6 flex flex-col justify-between transition-all duration-500 relative bg-slate-950/40 border border-slate-800/80 rounded-2xl p-4 md:p-5 glow-physical overflow-hidden";
+
+            if (view === 'split') {
+                // Active State for Split View
+                btnSplit.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300 flex items-center gap-1.5 bg-slate-800 text-white shadow-sm border border-slate-700";
+                
+                // Opacity Overlays - Completely Hidden
+                programmerOverlay.style.opacity = '0';
+                programmerOverlay.style.pointerEvents = 'none';
+                hardwareOverlay.style.opacity = '0';
+                hardwareOverlay.style.pointerEvents = 'none';
+
+                centralDivider.style.opacity = '1';
+            } 
+            else if (view === 'programmer') {
+                // Active State for Programmer View
+                btnProgrammer.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300 flex items-center gap-1.5 bg-slate-800 text-white shadow-sm border border-slate-700";
+
+                // Show hardware overlay mask
+                hardwareOverlay.style.opacity = '1';
+                hardwareOverlay.style.pointerEvents = 'auto';
+
+                // Hide programmer overlay mask
+                programmerOverlay.style.opacity = '0';
+                programmerOverlay.style.pointerEvents = 'none';
+
+                centralDivider.style.opacity = '0';
+
+                // Add focus highlight
+                programmerSection.className += " border-cyan-500/80 ring-2 ring-cyan-500/10";
+            } 
+            else if (view === 'hardware') {
+                // Active State for Hardware View
+                btnHardware.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300 flex items-center gap-1.5 bg-slate-800 text-white shadow-sm border border-slate-700";
+
+                // Show programmer overlay mask
+                programmerOverlay.style.opacity = '1';
+                programmerOverlay.style.pointerEvents = 'auto';
+
+                // Hide hardware overlay mask
+                hardwareOverlay.style.opacity = '0';
+                hardwareOverlay.style.pointerEvents = 'none';
+
+                centralDivider.style.opacity = '0';
+
+                // Add focus highlight
+                hardwareSection.className += " border-amber-500/80 ring-2 ring-amber-500/10";
+            }
+        }
+
+        // Active ticking simulated CPU clock cycle generator
+        setInterval(() => {
+            const currentState = clockPhaseEl.textContent;
+            if (currentState === 'HIGH') {
+                clockPhaseEl.textContent = 'LOW';
+                clockPhaseEl.className = 'text-slate-500 font-bold';
+            } else {
+                clockPhaseEl.textContent = 'HIGH';
+                clockPhaseEl.className = 'text-amber-500 font-bold animate-pulse';
+            }
+        }, 1500);
+
+        // Initial setup run
+        applyStepState(1);
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,177 @@
+{
+  "material": "GLMTest",
+  "validated_at": "2026-06-20T12:21:39.526258+00:00",
+  "coverage_percentage": 40.0,
+  "total_concepts_in_source": 5,
+  "total_concepts_covered": 2,
+  "semantic_validation_triggered": true,
+  "semantic_coverage_score": 35.7,
+  "missing_concepts": [
+    "andreas groll\nwinter",
+    "contents\ncontinuous",
+    "glmdistributions"
+  ],
+  "missing_definitions": [],
+  "missing_formulas": [
+    "Y =y) = λy exp(−λ)=exp(ylog(λ)−log(y!)−λ)",
+    "j=1 ij i i i",
+    "j=1 ij n"
+  ],
+  "missing_diagrams": [],
+  "missing_examples": [],
+  "visualization_readiness": 79.7,
+  "visualization_details": {
+    "S1": {
+      "title": "Understanding Individual vs. Grouped Data",
+      "readiness_score": 75.0,
+      "recommend_dynamic_view": true
+    },
+    "S2": {
+      "title": "Efficiency: Saving Computation Time and Memory Space",
+      "readiness_score": 75.0,
+      "recommend_dynamic_view": true
+    },
+    "S3": {
+      "title": "Enhanced Model Diagnosis",
+      "readiness_score": 75.0,
+      "recommend_dynamic_view": true
+    },
+    "S4": {
+      "title": "The Power of Grouping: A Summary of Advantages",
+      "readiness_score": 75.0,
+      "recommend_dynamic_view": true
+    }
+  },
+  "warnings": [
+    "Semantic coverage (35.7%) is below threshold (85.0%)"
+  ],
+  "recommendations": [
+    "Review missing formulas — they may need manual verification"
+  ],
+  "section_validations": [
+    {
+      "section_id": "S1",
+      "lesson_id": "L1.1.1",
+      "valid": true,
+      "issues": []
+    },
+    {
+      "section_id": "S2",
+      "lesson_id": "L1.1.1",
+      "valid": true,
+      "issues": []
+    },
+    {
+      "section_id": "S3",
+      "lesson_id": "L1.1.1",
+      "valid": true,
+      "issues": []
+    },
+    {
+      "section_id": "S4",
+      "lesson_id": "L1.1.1",
+      "valid": true,
+      "issues": []
+    },
+    {
+      "section_id": "S1",
+      "lesson_id": "L1.2.1",
+      "valid": false,
+      "issues": [
+        "Missing learning outcome"
+      ]
+    },
+    {
+      "section_id": "S2",
+      "lesson_id": "L1.2.1",
+      "valid": false,
+      "issues": [
+        "Missing learning outcome"
+      ]
+    },
+    {
+      "section_id": "S3",
+      "lesson_id": "L1.2.1",
+      "valid": false,
+      "issues": [
+        "Missing learning outcome"
+      ]
+    },
+    {
+      "section_id": "S1",
+      "lesson_id": "L1.3.1",
+      "valid": false,
+      "issues": [
+        "Missing learning outcome"
+      ]
+    },
+    {
+      "section_id": "S2",
+      "lesson_id": "L1.3.1",
+      "valid": false,
+      "issues": [
+        "Missing learning outcome"
+      ]
+    },
+    {
+      "section_id": "S1",
+      "lesson_id": "L1.3.2",
+      "valid": true,
+      "issues": []
+    },
+    {
+      "section_id": "S2",
+      "lesson_id": "L1.3.2",
+      "valid": true,
+      "issues": []
+    },
+    {
+      "section_id": "S3",
+      "lesson_id": "L1.3.2",
+      "valid": true,
+      "issues": []
+    },
+    {
+      "section_id": "S1",
+      "lesson_id": "L1.3.3",
+      "valid": true,
+      "issues": []
+    },
+    {
+      "section_id": "S2",
+      "lesson_id": "L1.3.3",
+      "valid": true,
+      "issues": []
+    },
+    {
+      "section_id": "S3",
+      "lesson_id": "L1.3.3",
+      "valid": true,
+      "issues": []
+    },
+    {
+      "section_id": "S1",
+      "lesson_id": "L1.3.4",
+      "valid": true,
+      "issues": []
+    },
+    {
+      "section_id": "S2",
+      "lesson_id": "L1.3.4",
+      "valid": true,
+      "issues": []
+    },
+    {
+      "section_id": "S3",
+      "lesson_id": "L1.3.4",
+      "valid": true,
+      "issues": []
+    },
+    {
+      "section_id": "S4",
+      "lesson_id": "L1.3.4",
+      "valid": true,
+      "issues": []
+    }
+  ]
+}

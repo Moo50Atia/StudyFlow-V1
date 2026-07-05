@@ -1,0 +1,162 @@
+{
+  "total_questions": 9,
+  "questions": [
+    {
+      "question_id": "Q1",
+      "question_text": "ϑ=\nb(ϑ)=\nφ=\nc(y,φ)=",
+      "question_type": "fill_blank",
+      "source_pdf": "source.pdf",
+      "page": 4,
+      "core_idea": "Exponential family representation for Exponential distribution",
+      "required_components": [
+        "Exponential distribution",
+        "Exponential family definition",
+        "Natural parameter (ϑ)",
+        "Cumulant function (b(ϑ))",
+        "Dispersion parameter (φ)",
+        "Base measure (c(y,φ))"
+      ],
+      "thinking_type": "Apply",
+      "difficulty": "medium",
+      "mapped_topic": "Exponential Distribution in GLMs"
+    },
+    {
+      "question_id": "Q2",
+      "question_text": "E(y)=\nVar(y)=\n→ Linkage between expectation and variance:",
+      "question_type": "fill_blank",
+      "source_pdf": "source.pdf",
+      "page": 5,
+      "core_idea": "Expectation, Variance, and their linkage for Exponential distribution",
+      "required_components": [
+        "Exponential distribution",
+        "Expectation formula",
+        "Variance formula"
+      ],
+      "thinking_type": "Recall",
+      "difficulty": "easy",
+      "mapped_topic": "Exponential Distribution in GLMs"
+    },
+    {
+      "question_id": "Q3",
+      "question_text": "What would be the canonical link?",
+      "question_type": "short_answer",
+      "source_pdf": "source.pdf",
+      "page": 6,
+      "core_idea": "Canonical link function for Exponential distribution",
+      "required_components": [
+        "Exponential distribution",
+        "Natural parameter",
+        "Canonical link definition"
+      ],
+      "thinking_type": "Recall",
+      "difficulty": "medium",
+      "mapped_topic": "Exponential Distribution in GLMs"
+    },
+    {
+      "question_id": "Q4",
+      "question_text": "ϑ=\nb(ϑ)=\nφ=\nc(y,φ)=",
+      "question_type": "fill_blank",
+      "source_pdf": "source.pdf",
+      "page": 7,
+      "core_idea": "Exponential family representation for Poisson distribution",
+      "required_components": [
+        "Poisson distribution",
+        "Exponential family definition",
+        "Natural parameter (ϑ)",
+        "Cumulant function (b(ϑ))",
+        "Dispersion parameter (φ)",
+        "Base measure (c(y,φ))"
+      ],
+      "thinking_type": "Apply",
+      "difficulty": "medium",
+      "mapped_topic": "Poisson Distribution in GLMs"
+    },
+    {
+      "question_id": "Q5",
+      "question_text": "E(y)=\nVar(y)=\nCanonicallink:",
+      "question_type": "fill_blank",
+      "source_pdf": "source.pdf",
+      "page": 8,
+      "core_idea": "Expectation, Variance, and Canonical link for Poisson distribution",
+      "required_components": [
+        "Poisson distribution",
+        "Expectation formula",
+        "Variance formula",
+        "Canonical link definition"
+      ],
+      "thinking_type": "Recall",
+      "difficulty": "easy",
+      "mapped_topic": "Poisson Distribution in GLMs"
+    },
+    {
+      "question_id": "Q6",
+      "question_text": "f (y¯) = P(Y ¯ = y¯) =",
+      "question_type": "fill_blank",
+      "source_pdf": "source.pdf",
+      "page": 11,
+      "core_idea": "Probability mass function for grouped Bernoulli data",
+      "required_components": [
+        "Bernoulli distribution",
+        "Binomial distribution",
+        "Grouped data concept"
+      ],
+      "thinking_type": "Apply",
+      "difficulty": "medium",
+      "mapped_topic": "Grouping Bernoulli Data Example"
+    },
+    {
+      "question_id": "Q7",
+      "question_text": "ϑ =\ni\nb(ϑ) =\ni\nφ =\ni\nc(y¯,φ) =",
+      "question_type": "fill_blank",
+      "source_pdf": "source.pdf",
+      "page": 12,
+      "core_idea": "Exponential family representation for grouped Bernoulli data",
+      "required_components": [
+        "Binomial distribution",
+        "Exponential family definition",
+        "Grouped data concept",
+        "Natural parameter (ϑ)",
+        "Cumulant function (b(ϑ))",
+        "Dispersion parameter (φ)",
+        "Base measure (c(y,φ))"
+      ],
+      "thinking_type": "Apply",
+      "difficulty": "hard",
+      "mapped_topic": "Grouping Bernoulli Data Example"
+    },
+    {
+      "question_id": "Q8",
+      "question_text": "E(y¯) =\ni\nVar(y¯) =",
+      "question_type": "fill_blank",
+      "source_pdf": "source.pdf",
+      "page": 14,
+      "core_idea": "Expectation and Variance for grouped Bernoulli data",
+      "required_components": [
+        "Binomial distribution",
+        "Expectation formula",
+        "Variance formula",
+        "Grouped data concept"
+      ],
+      "thinking_type": "Apply",
+      "difficulty": "medium",
+      "mapped_topic": "Grouping Bernoulli Data Example"
+    },
+    {
+      "question_id": "Q9",
+      "question_text": "What actually is the advantage of grouped data?",
+      "question_type": "short_answer",
+      "source_pdf": "source.pdf",
+      "page": 15,
+      "core_idea": "Advantages of using grouped data in GLMs",
+      "required_components": [
+        "Grouped data concept",
+        "GLM estimation",
+        "Computational efficiency",
+        "Model diagnosis"
+      ],
+      "thinking_type": "Recall",
+      "difficulty": "easy",
+      "mapped_topic": "Grouped data"
+    }
+  ]
+}

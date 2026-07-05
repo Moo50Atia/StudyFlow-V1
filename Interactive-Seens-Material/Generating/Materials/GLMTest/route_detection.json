@@ -1,0 +1,33 @@
+{
+  "domain": "Statistical Modeling",
+  "route": "Mathematics",
+  "confidence": 0.99,
+  "fallback_used": false,
+  "keyword_scores": {
+    "Medical": {
+      "hits": 1,
+      "total_keywords": 45,
+      "score": 0.022
+    },
+    "Engineering": {
+      "hits": 0,
+      "total_keywords": 30,
+      "score": 0.0
+    },
+    "Computer Science": {
+      "hits": 1,
+      "total_keywords": 26,
+      "score": 0.038
+    },
+    "Mathematics": {
+      "hits": 3,
+      "total_keywords": 26,
+      "score": 0.115
+    },
+    "Physics": {
+      "hits": 0,
+      "total_keywords": 24,
+      "score": 0.0
+    }
+  }
+}

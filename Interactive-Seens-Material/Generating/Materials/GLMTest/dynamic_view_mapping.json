@@ -1,0 +1,675 @@
+{
+  "material": "GLMTest",
+  "route": "Mathematics",
+  "total_mappings": 19,
+  "mappings": [
+    {
+      "section_id": "S1",
+      "view_name": "ExponentialDistribution_EventTimer",
+      "scene_type": "Process",
+      "visual_objects": [
+        "Timeline",
+        "Event Markers (e.g., light bulbs, phone calls)",
+        "Stopwatch/Timer",
+        "Event Counter",
+        "Rate Parameter Display (λ)"
+      ],
+      "animations": [
+        "Events appearing sequentially on timeline",
+        "Stopwatch starting and stopping between events",
+        "Timer resetting",
+        "Accumulation of measured inter-event times"
+      ],
+      "overlays": [
+        "Label: 'Time until next event'",
+        "Label: 'Event Rate (λ): [value]'",
+        "Annotation: 'Exponential Distribution models time between events.'"
+      ],
+      "user_interactions": [
+        "slider: Event Rate (λ)",
+        "button: Start/Pause Simulation",
+        "toggle: Show/Hide Stopwatch"
+      ],
+      "visual_learning_goal": "To understand that the Exponential distribution models the duration between events occurring at a constant average rate, and how this rate influences the frequency of events.",
+      "perspectives": [],
+      "lesson_id": "L1.1.1",
+      "lesson_title": "Exponential Distribution in GLMs"
+    },
+    {
+      "section_id": "S2",
+      "view_name": "ExponentialPDF_CurvePlotter",
+      "scene_type": "Process",
+      "visual_objects": [
+        "2D Plot (x-axis: time t, y-axis: probability density f(t))",
+        "Exponential PDF curve",
+        "Axis labels",
+        "Rate Parameter (λ) indicator",
+        "Equation for PDF: f(t) = λe^(-λt)",
+        "Equation for Exponential Family Form"
+      ],
+      "animations": [
+        "Curve dynamically reshaping as λ changes",
+        "Highlighting the peak at t=0",
+        "Fading out effect for the tail of the curve"
+      ],
+      "overlays": [
+        "Text: 'Probability Density Function (PDF)'",
+        "Text: 'Rate Parameter (λ): [value]'",
+        "Annotation: 'Shorter times are more likely.'",
+        "Text: 'Exponential Family Form: exp( (θy - b(θ))/a(φ) + c(y, φ) )'"
+      ],
+      "user_interactions": [
+        "slider: Rate Parameter (λ)",
+        "toggle: Show Exponential Family Form"
+      ],
+      "visual_learning_goal": "To understand the characteristic decaying shape of the Exponential PDF, how the rate parameter λ influences this shape, and to recognize its structure within the Exponential Family form.",
+      "perspectives": [],
+      "lesson_id": "L1.1.1",
+      "lesson_title": "Exponential Distribution in GLMs"
+    },
+    {
+      "section_id": "S3",
+      "view_name": "ExponentialStats_ParameterLinkage",
+      "scene_type": "Process",
+      "visual_objects": [
+        "Exponential PDF curve",
+        "Marker for Mean (μ) on x-axis (e.g., 'balancing point')",
+        "Visual representation of Variance (σ²) as spread",
+        "Display for calculated Mean value",
+        "Display for calculated Variance value",
+        "Rate Parameter (λ) control",
+        "Equation: E[X] = 1/λ",
+        "Equation: Var[X] = 1/λ²"
+      ],
+      "animations": [
+        "Mean marker moving along x-axis as λ changes",
+        "Variance spread expanding/contracting as λ changes",
+        "Highlighting the inverse relationship with λ"
+      ],
+      "overlays": [
+        "Text: 'Mean (E[X]) = 1/λ'",
+        "Text: 'Variance (Var[X]) = 1/λ²'",
+        "Text: 'Rate Parameter (λ): [value]'",
+        "Annotation: 'Observe how mean and variance are both determined by λ.'"
+      ],
+      "user_interactions": [
+        "slider: Rate Parameter (λ)",
+        "toggle: Show Variance Spread"
+      ],
+      "visual_learning_goal": "To understand the direct mathematical relationship between the rate parameter (λ), the mean, and the variance of the Exponential distribution, and how changing λ simultaneously affects both the central tendency and spread.",
+      "perspectives": [],
+      "lesson_id": "L1.1.1",
+      "lesson_title": "Exponential Distribution in GLMs"
+    },
+    {
+      "section_id": "S4",
+      "view_name": "ExponentialLinkFunctions_TranslatorFlow",
+      "scene_type": "Process",
+      "visual_objects": [
+        "Box: 'Linear Predictor (η)'",
+        "Box: 'Link Function (g)'",
+        "Box: 'Mean of Response (μ)'",
+        "Arrows indicating flow: η -> g⁻¹(η) -> μ",
+        "Equation: Canonical Link g(μ) = log(μ)",
+        "Equation: Inverse Link μ = exp(η)",
+        "Representation of Exponential distribution's constraint (μ > 0)"
+      ],
+      "animations": [
+        "Data flowing from linear predictor through link function to mean",
+        "Highlighting the transformation process",
+        "Switching between canonical and preferred links"
+      ],
+      "overlays": [
+        "Label: 'Linear Predictor (η)'",
+        "Label: 'Link Function (g)'",
+        "Label: 'Mean of Response (μ)'",
+        "Text: 'Canonical Link: g(μ) = log(μ)'",
+        "Text: 'Inverse Link: μ = exp(η)'",
+        "Annotation: 'Ensures μ > 0 for Exponential Distribution.'",
+        "Text: 'Preferred Links: (e.g., Identity, Inverse)'"
+      ],
+      "user_interactions": [
+        "slider: Linear Predictor (η)",
+        "toggle: Show Canonical Link / Show Preferred Link",
+        "button: Explain Canonical Link Derivation"
+      ],
+      "visual_learning_goal": "To understand the role of link functions in GLMs, specifically how they transform the linear predictor into the mean of the Exponential response, ensuring the mean remains positive, and to differentiate between canonical and other preferred link functions.",
+      "perspectives": [],
+      "lesson_id": "L1.1.1",
+      "lesson_title": "Exponential Distribution in GLMs"
+    },
+    {
+      "section_id": "S1",
+      "view_name": "PoissonDistribution_EventCounter",
+      "scene_type": "Accumulation",
+      "visual_objects": [
+        "Timeline/Interval bar",
+        "Event markers (dots/flashes)",
+        "Digital count display",
+        "Poisson PMF formula",
+        "Exponential Family form formula",
+        "Label: Fixed Interval",
+        "Label: Count (k)",
+        "Label: Rate (λ)"
+      ],
+      "animations": [
+        "Events appearing randomly on timeline",
+        "Counter incrementing with each event",
+        "Highlighting the fixed interval",
+        "Transition between Poisson PMF and Exponential Family form"
+      ],
+      "overlays": [
+        "Poisson Distribution: Models count data for rare events over a fixed interval",
+        "Fixed Interval",
+        "Count (k)",
+        "Rate Parameter (λ)",
+        "Poisson Probability Mass Function: P(X=k) = (λ^k * e^-λ) / k!",
+        "Exponential Family Form: f(y; θ) = h(y) exp((θT(y) - A(θ))/φ)",
+        "Connection to GLMs"
+      ],
+      "user_interactions": [
+        "slider: Rate (λ)",
+        "button: Start/Stop Event Generation",
+        "toggle: Show Exponential Family Form"
+      ],
+      "visual_learning_goal": "To understand how the Poisson distribution models the count of rare events within a fixed interval, how its rate parameter (λ) influences event frequency, and its representation as a member of the Exponential Family.",
+      "perspectives": [],
+      "lesson_id": "L1.2.1",
+      "lesson_title": "Poisson Distribution in GLMs"
+    },
+    {
+      "section_id": "S2",
+      "view_name": "Poisson_MeanVarianceLink",
+      "scene_type": "Comparison",
+      "visual_objects": [
+        "Balanced scale with two pans",
+        "Weights labeled 'Mean (E[Y])' and 'Variance (Var[Y])'",
+        "Display for Rate (λ)",
+        "Input/Display for Mean (μ)",
+        "Logarithmic magnifying glass/transformation pipeline",
+        "Output/Display for log(μ) (Linear Predictor)",
+        "Formula: E[Y] = λ",
+        "Formula: Var[Y] = λ",
+        "Formula: g(μ) = log(μ)"
+      ],
+      "animations": [
+        "Scale pans remaining perfectly level as λ changes",
+        "μ value flowing into the logarithmic magnifying glass",
+        "log(μ) value appearing as output",
+        "Highlighting the equality E[Y] = Var[Y] = λ"
+      ],
+      "overlays": [
+        "Poisson Distribution: Mean and Variance",
+        "Mean (E[Y]) = λ",
+        "Variance (Var[Y]) = λ",
+        "The Mean and Variance are Equal!",
+        "Canonical Link Function: g(μ) = log(μ)",
+        "Maps Mean to Linear Predictor (η)"
+      ],
+      "user_interactions": [
+        "slider: Rate (λ)",
+        "toggle: Show Link Function Transformation"
+      ],
+      "visual_learning_goal": "To grasp that for the Poisson distribution, the mean and variance are inherently equal to the rate parameter (λ), and to understand how the natural logarithm serves as the canonical link function to transform the mean for linear modeling in GLMs.",
+      "perspectives": [],
+      "lesson_id": "L1.2.1",
+      "lesson_title": "Poisson Distribution in GLMs"
+    },
+    {
+      "section_id": "S3",
+      "view_name": "DataStructure_IndividualGrouped",
+      "scene_type": "Comparison",
+      "visual_objects": [
+        "Left panel: 'Individual Data' section",
+        "Icons representing individual subjects (e.g., students)",
+        "Labels for individual observations (e.g., scores)",
+        "Right panel: 'Grouped Data' section",
+        "Icons representing groups of subjects",
+        "Labels for aggregated summaries (e.g., average score, count of passes)",
+        "Dividing line/separator",
+        "Text labels: 'Individual Observation', 'Grouped Observation'"
+      ],
+      "animations": [
+        "Highlighting individual data points on one side",
+        "Highlighting aggregated group data points on the other side",
+        "Animation showing individual data collapsing into grouped summaries"
+      ],
+      "overlays": [
+        "Individual Data: One observation per subject",
+        "Example: Each student's test score",
+        "Grouped Data: Aggregated summaries for multiple subjects",
+        "Example: Average score per row, Count of passes per group",
+        "Impacts model choice and application"
+      ],
+      "user_interactions": [
+        "toggle: Show Aggregation Process"
+      ],
+      "visual_learning_goal": "To differentiate between individual and grouped data structures, understand how each is represented, and recognize that this distinction is crucial for selecting and applying appropriate statistical models like GLMs.",
+      "perspectives": [],
+      "lesson_id": "L1.2.1",
+      "lesson_title": "Poisson Distribution in GLMs"
+    },
+    {
+      "section_id": "S1",
+      "view_name": "GroupedData_SortingProcess",
+      "scene_type": "Process",
+      "visual_objects": [
+        "Individual LEGO bricks (various shapes/colors)",
+        "Sorting bins (labeled by covariate patterns)",
+        "Counters/Tally marks"
+      ],
+      "animations": [
+        "Individual bricks moving from a 'raw data pile' into their respective bins",
+        "Counters incrementing as bricks are placed in bins",
+        "Highlighting of identical bricks before grouping"
+      ],
+      "overlays": [
+        "Label: 'Individual Observations (Raw Data)'",
+        "Label: 'Covariate Pattern X' (on a bin)",
+        "Label: 'Count for Pattern X' (next to a bin)",
+        "Text: 'Grouped data consolidates individual observations with identical covariate patterns into a single, summarized entry.'"
+      ],
+      "user_interactions": [
+        "Button: 'Start Grouping Process'",
+        "Toggle: 'Show Individual Bricks / Show Grouped Counts'",
+        "Slider: 'Number of individual observations'"
+      ],
+      "visual_learning_goal": "To understand how individual data points with identical characteristics are consolidated into summarized, grouped data, and why this simplifies analysis without loss of relevant information.",
+      "perspectives": [],
+      "lesson_id": "L1.3.1",
+      "lesson_title": "Introduction to Grouped Data"
+    },
+    {
+      "section_id": "S2",
+      "view_name": "BernoulliToBinomial_Aggregation",
+      "scene_type": "Accumulation",
+      "visual_objects": [
+        "Individual light switches (ON/OFF state)",
+        "Master control panels (representing identical covariate groups)",
+        "Digital display for 'Total ON switches' per panel",
+        "Digital display for 'Proportion ON switches' per panel",
+        "Binomial distribution curve/histogram"
+      ],
+      "animations": [
+        "Individual switches randomly flipping ON/OFF",
+        "Switches moving into designated 'master panel' groups",
+        "Counters for 'Total ON' and 'Proportion ON' updating as switches are grouped/flipped",
+        "A histogram building up to show the Binomial distribution of 'Total ON' counts across multiple trials/panels"
+      ],
+      "overlays": [
+        "Label: 'Individual Bernoulli Trial (Switch)'",
+        "Label: 'Grouped by Covariate Panel'",
+        "Label: 'Total ON (Binomial Sum)'",
+        "Label: 'Proportion ON (Scaled Binomial Mean)'",
+        "Text: 'When individual Bernoulli trials are grouped based on identical covariates, their sum follows a Binomial distribution.'"
+      ],
+      "user_interactions": [
+        "Button: 'Run Simulation (N trials)'",
+        "Slider: 'Probability of ON (p)'",
+        "Slider: 'Number of switches per panel (n)'",
+        "Toggle: 'Show Total ON / Show Proportion ON'"
+      ],
+      "visual_learning_goal": "To understand how individual binary outcomes (Bernoulli trials) are aggregated into a Binomial distribution when grouped by identical covariates, and to visualize the relationship between individual trials and the resulting sum or proportion.",
+      "perspectives": [],
+      "lesson_id": "L1.3.1",
+      "lesson_title": "Introduction to Grouped Data"
+    },
+    {
+      "section_id": "S1",
+      "view_name": "BernoulliToBinomial_Process",
+      "scene_type": "Process",
+      "visual_objects": [
+        "Individual coins (Bernoulli trials)",
+        "Grouped set of coins",
+        "Success counter",
+        "Binomial PMF graph"
+      ],
+      "animations": [
+        "Individual coins flipping (showing heads/tails)",
+        "Coins accumulating into a group",
+        "Success counter incrementing for each group",
+        "Binomial PMF graph updating with simulated outcomes"
+      ],
+      "overlays": [
+        "Bernoulli Trial: P(Success) = p",
+        "Group Size (n)",
+        "Number of Successes (k)",
+        "Binomial Probability Mass Function (PMF) formula",
+        "Transition: Individual to Grouped Data"
+      ],
+      "user_interactions": [
+        "slider: Probability of Success (p)",
+        "slider: Group Size (n)",
+        "button: Perform Group of Trials",
+        "toggle: Show Individual Trial Outcomes"
+      ],
+      "visual_learning_goal": "Users should understand that a Binomial distribution arises from summing independent Bernoulli trials, how 'n' and 'p' define its shape, and how the PMF calculates probabilities for grouped successes.",
+      "perspectives": [],
+      "lesson_id": "L1.3.2",
+      "lesson_title": "Grouping Bernoulli Data Example"
+    },
+    {
+      "section_id": "S2",
+      "view_name": "BinomialExponentialFamily_Transformation",
+      "scene_type": "Process",
+      "visual_objects": [
+        "Binomial PMF formula (standard form)",
+        "Exponential Family PMF formula (general form)",
+        "Highlighted components: natural parameter, cumulant function, dispersion parameter, base measure"
+      ],
+      "animations": [
+        "Binomial PMF formula transforming step-by-step into the exponential family form",
+        "Highlighting and labeling of natural parameter (η)",
+        "Highlighting and labeling of cumulant function (A(η))",
+        "Highlighting and labeling of dispersion parameter (φ)",
+        "Highlighting and labeling of base measure (h(y))",
+        "Visual indicator showing 'n' influencing the dispersion parameter"
+      ],
+      "overlays": [
+        "Binomial PMF: P(Y=k)",
+        "Exponential Family Form: f(y; η, φ)",
+        "Natural Parameter (η)",
+        "Cumulant Function (A(η))",
+        "Dispersion Parameter (φ)",
+        "Base Measure (h(y))",
+        "Note: Group Size (n) acts as a dispersion parameter"
+      ],
+      "user_interactions": [
+        "slider: Group Size (n)",
+        "toggle: Show Step-by-Step Derivation",
+        "button: Highlight Components"
+      ],
+      "visual_learning_goal": "Users should be able to identify the components of the exponential family form for the Binomial distribution and understand how the group size 'n' acts as a dispersion parameter.",
+      "perspectives": [],
+      "lesson_id": "L1.3.2",
+      "lesson_title": "Grouping Bernoulli Data Example"
+    },
+    {
+      "section_id": "S3",
+      "view_name": "GroupedDataStats_AggregationProcess",
+      "scene_type": "Process",
+      "visual_objects": [
+        "Individual Bernoulli data points (e.g., small dots)",
+        "Aggregation funnel",
+        "Grouped Binomial data points (e.g., larger dots/bars)",
+        "Graphs comparing variance (e.g., histograms of means)",
+        "Formulas for Expectation and Variance of Binomial distribution"
+      ],
+      "animations": [
+        "Individual Bernoulli data points flowing into an aggregation funnel",
+        "Emergence of grouped Binomial data points from the funnel",
+        "Display of Expectation formula for Binomial data",
+        "Display of Variance formula for Binomial data",
+        "Side-by-side comparison graphs showing reduced variability for grouped data"
+      ],
+      "overlays": [
+        "Individual Bernoulli Outcomes",
+        "Grouped Binomial Counts",
+        "Expectation E[Y] = np",
+        "Variance Var[Y] = np(1-p)",
+        "Key Advantage: Reduced Variability",
+        "Implications for Generalized Linear Models (GLMs)"
+      ],
+      "user_interactions": [
+        "slider: Group Size (n)",
+        "button: Simulate Individual Data",
+        "button: Simulate Grouped Data",
+        "toggle: Show Variance Comparison"
+      ],
+      "visual_learning_goal": "Users should understand how grouping Bernoulli data leads to the Binomial distribution's expectation and variance, and critically, how this grouping reduces variability, making models more robust and reliable in GLMs.",
+      "perspectives": [],
+      "lesson_id": "L1.3.2",
+      "lesson_title": "Grouping Bernoulli Data Example"
+    },
+    {
+      "section_id": "S1",
+      "view_name": "ExponentialFamilyParameters_DispersionTransformation",
+      "scene_type": "Comparison",
+      "visual_objects": [
+        "Assembly line conveyor belt",
+        "Individual product units",
+        "Workers (inspecting individual units)",
+        "Quality control station (calculating parameters)",
+        "Grouped product batches",
+        "Display panels for individual parameters",
+        "Display panels for grouped parameters"
+      ],
+      "animations": [
+        "Products moving along conveyor belt",
+        "Workers inspecting individual products and generating data",
+        "Products accumulating into batches",
+        "Quality control station calculating individual dispersion parameter (φ_ind)",
+        "Quality control station calculating grouped dispersion parameter (φ_group)",
+        "Parameter values updating on display panels to show transformation"
+      ],
+      "overlays": [
+        "Individual Data: Worker Output",
+        "Grouped Data: Team Average Output",
+        "Individual Dispersion Parameter (φ_ind)",
+        "Grouped Dispersion Parameter (φ_group)",
+        "Transformation Rule: φ_group = n * φ_ind",
+        "Label: Group Size 'n'"
+      ],
+      "user_interactions": [
+        "slider: Group Size (n)",
+        "toggle: Show Individual vs. Grouped Parameters",
+        "button: Run Parameter Calculation"
+      ],
+      "visual_learning_goal": "To understand how the dispersion parameter of an Exponential Family distribution transforms (specifically, scales by the group size 'n') when individual data is aggregated into grouped data, using the assembly line metaphor to illustrate the concept of individual vs. collective variability.",
+      "perspectives": [],
+      "lesson_id": "L1.3.3",
+      "lesson_title": "General Principles of Grouped Data"
+    },
+    {
+      "section_id": "S2",
+      "view_name": "GroupedDataMean_ExpectationVariance",
+      "scene_type": "Comparison",
+      "visual_objects": [
+        "Archery target with bullseye",
+        "Individual arrows hitting the target (individual data points)",
+        "A 'mean' arrow or marker (average position of grouped shots)",
+        "Visual representation of individual shot spread (e.g., scatter)",
+        "Visual representation of mean shot spread (e.g., smaller circle)",
+        "Display panels for E[X], Var[X], E[X_bar], Var[X_bar]"
+      ],
+      "animations": [
+        "Individual arrows flying and hitting the target, showing initial spread",
+        "Multiple arrows accumulating to form a group",
+        "A 'mean' marker appearing and moving to the average position of the group",
+        "Visual representation of variance shrinking as group size increases",
+        "Formulas appearing and values updating on display panels"
+      ],
+      "overlays": [
+        "Individual Shot (X)",
+        "Grouped Mean (X_bar)",
+        "E[X] = μ",
+        "Var[X] = σ²",
+        "E[X_bar] = μ",
+        "Var[X_bar] = σ²/n",
+        "Label: Number of Shots per Group 'n'"
+      ],
+      "user_interactions": [
+        "slider: Number of Shots per Group (n)",
+        "button: Fire New Group of Shots",
+        "toggle: Show Individual Variance vs. Mean Variance"
+      ],
+      "visual_learning_goal": "To visually demonstrate that while the expected value of the mean of grouped data remains the same as the individual data's mean (μ), its variance decreases by a factor of 'n' (the group size), using the archery target metaphor to illustrate spread and central tendency.",
+      "perspectives": [],
+      "lesson_id": "L1.3.3",
+      "lesson_title": "General Principles of Grouped Data"
+    },
+    {
+      "section_id": "S3",
+      "view_name": "GroupedData_EstimationEquivalence",
+      "scene_type": "Comparison",
+      "visual_objects": [
+        "Library setting (shelves, books)",
+        "Individual books scattered (raw, ungrouped data)",
+        "Organized shelves with books grouped by category (grouped data)",
+        "Researcher/Analyst character",
+        "Two analysis stations/computers (one for individual, one for grouped data)",
+        "Display panels showing 'Estimation Results' for both analyses",
+        "Checklist/bullet points for 'Benefits'"
+      ],
+      "animations": [
+        "Books being organized from scattered piles onto shelves",
+        "Researcher interacting with scattered books (more effort) vs. organized shelves (less effort)",
+        "Data flowing from individual books to one analysis station",
+        "Data flowing from organized shelves to another analysis station",
+        "Estimation results appearing on both display panels, highlighting their equivalence",
+        "Checklist items for benefits appearing sequentially"
+      ],
+      "overlays": [
+        "Individual Data: Raw Books",
+        "Grouped Data: Organized Shelves",
+        "Estimation Result (Individual Data)",
+        "Estimation Result (Grouped Data)",
+        "Benefit 1: Reduced Computational Load",
+        "Benefit 2: Easier Data Management",
+        "Benefit 3: Equivalent Estimation Results",
+        "Core Principle: Information Preservation"
+      ],
+      "user_interactions": [
+        "toggle: Show Individual Data Analysis / Show Grouped Data Analysis",
+        "button: Compare Estimation Results",
+        "button: Reveal Benefits"
+      ],
+      "visual_learning_goal": "To understand the practical advantages of using grouped data in statistical modeling, particularly how it simplifies data management and reduces computational load while yielding equivalent (or very similar) estimation results compared to using individual raw data, illustrated by the library organization metaphor.",
+      "perspectives": [],
+      "lesson_id": "L1.3.3",
+      "lesson_title": "General Principles of Grouped Data"
+    },
+    {
+      "section_id": "S1",
+      "view_name": "GroupedData_Comparison",
+      "scene_type": "Comparison",
+      "visual_objects": [
+        "Individual LEGO bricks (scattered)",
+        "Organized LEGO sets in boxes",
+        "Raw data points (scattered)",
+        "Grouped data bins (boxes)"
+      ],
+      "animations": [
+        "Transition: scattered bricks forming into organized boxes",
+        "Highlight: individual data points",
+        "Highlight: grouped data bins"
+      ],
+      "overlays": [
+        "Label: Individual Data (Raw Observations)",
+        "Label: Grouped Data (Aggregated)",
+        "Explanation: Each brick represents a single data point",
+        "Explanation: Each box represents a summarized group of data"
+      ],
+      "user_interactions": [
+        "toggle: Show Raw Data / Show Grouped Data",
+        "button: Compare Views"
+      ],
+      "visual_learning_goal": "The user should understand the fundamental difference between individual, raw data points and data that has been summarized and organized into groups, recognizing the visual representation of each.",
+      "perspectives": [],
+      "lesson_id": "L1.3.4",
+      "lesson_title": "Advantages of Grouped Data"
+    },
+    {
+      "section_id": "S2",
+      "view_name": "Efficiency_ProcessComparison",
+      "scene_type": "Comparison",
+      "visual_objects": [
+        "Messy room (representing unorganized data)",
+        "Organized library (representing grouped data)",
+        "Librarian/CPU (processing unit)",
+        "Books/Data points",
+        "Clock/Timer (for computation time)",
+        "Memory bar (for memory usage)"
+      ],
+      "animations": [
+        "Librarian searching in messy room (slow, many steps)",
+        "Librarian searching in organized library (fast, fewer steps)",
+        "Timer countdown/speed comparison",
+        "Memory bar filling/reducing"
+      ],
+      "overlays": [
+        "Label: Processing Individual Data",
+        "Label: Processing Grouped Data",
+        "Text: High Computation Time",
+        "Text: Low Computation Time",
+        "Text: High Memory Usage",
+        "Text: Low Memory Usage"
+      ],
+      "user_interactions": [
+        "button: Simulate Individual Processing",
+        "button: Simulate Grouped Processing",
+        "slider: Dataset Size (influences simulation speed/memory)"
+      ],
+      "visual_learning_goal": "The user should understand how grouping data significantly reduces the computational effort and memory required for processing, leading to greater efficiency, especially with large datasets.",
+      "perspectives": [],
+      "lesson_id": "L1.3.4",
+      "lesson_title": "Advantages of Grouped Data"
+    },
+    {
+      "section_id": "S3",
+      "view_name": "ModelDiagnosis_ClarityComparison",
+      "scene_type": "Comparison",
+      "visual_objects": [
+        "Blurry photo (representing individual data model output)",
+        "Pixelated but clear image (representing grouped data model output)",
+        "Hidden pattern/outlier (in blurry photo)",
+        "Visible pattern/outlier (in clear image)",
+        "Model performance graph (raw data)",
+        "Model performance graph (grouped data)"
+      ],
+      "animations": [
+        "Transition: blurry image sharpening to pixelated clarity",
+        "Highlight: hidden pattern becoming visible",
+        "Graph: individual data points obscuring trend",
+        "Graph: grouped data revealing trend"
+      ],
+      "overlays": [
+        "Label: Model Diagnosis with Individual Data",
+        "Label: Model Diagnosis with Grouped Data",
+        "Text: Difficult to spot issues",
+        "Text: Easier to identify patterns/outliers"
+      ],
+      "user_interactions": [
+        "toggle: View Individual Data Model Output / View Grouped Data Model Output",
+        "button: Reveal Outlier"
+      ],
+      "visual_learning_goal": "The user should understand that grouping data can enhance the clarity of model outputs, making it significantly easier to diagnose performance issues, identify patterns, and spot outliers that might be obscured in raw individual data.",
+      "perspectives": [],
+      "lesson_id": "L1.3.4",
+      "lesson_title": "Advantages of Grouped Data"
+    },
+    {
+      "section_id": "S4",
+      "view_name": "GroupingAdvantages_Summary",
+      "scene_type": "Accumulation",
+      "visual_objects": [
+        "Swiss Army knife (central metaphor)",
+        "Icon: Stopwatch (representing efficiency)",
+        "Icon: Memory chip (representing memory saving)",
+        "Icon: Magnifying glass (representing enhanced diagnosis)",
+        "Icon: Clear graph (representing pattern identification)",
+        "Text labels for each advantage"
+      ],
+      "animations": [
+        "Swiss Army knife blades extending (each blade representing an advantage)",
+        "Icons appearing and associating with blades",
+        "Summary text fading in"
+      ],
+      "overlays": [
+        "Title: Advantages of Grouped Data",
+        "Label: Efficiency (Computational Time & Memory)",
+        "Label: Enhanced Model Diagnosis",
+        "Summary Text: Grouped data is a versatile and efficient technique for statistical modeling, especially with large and complex datasets."
+      ],
+      "user_interactions": [
+        "button: Review Efficiency",
+        "button: Review Diagnosis",
+        "button: Show All Advantages"
+      ],
+      "visual_learning_goal": "The user should consolidate their understanding of the primary advantages of grouped data, recognizing its versatility and practical importance in statistical modeling for efficiency and diagnostic clarity.",
+      "perspectives": [],
+      "lesson_id": "L1.3.4",
+      "lesson_title": "Advantages of Grouped Data"
+    }
+  ]
+}

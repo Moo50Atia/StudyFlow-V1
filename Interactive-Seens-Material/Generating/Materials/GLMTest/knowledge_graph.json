@@ -1,0 +1,438 @@
+{
+  "material": "GLMTest",
+  "total_nodes": 26,
+  "total_edges": 27,
+  "nodes": [
+    {
+      "id": "N1",
+      "label": "Generalized Linear Models (GLMs)",
+      "type": "concept",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.1.1",
+        "L1.2.1",
+        "L1.3.1",
+        "L1.3.2",
+        "L1.3.3",
+        "L1.3.4"
+      ],
+      "importance": 1.0
+    },
+    {
+      "id": "N2",
+      "label": "Exponential Distribution in GLMs",
+      "type": "concept",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.1.1"
+      ],
+      "importance": 0.9
+    },
+    {
+      "id": "N3",
+      "label": "Probability Density Function (PDF) of Exponential Distribution",
+      "type": "formula",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.1.1"
+      ],
+      "importance": 0.7
+    },
+    {
+      "id": "N4",
+      "label": "Canonical Parameters for Exponential Distribution",
+      "type": "concept",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.1.1"
+      ],
+      "importance": 0.7
+    },
+    {
+      "id": "N5",
+      "label": "Expectation of Exponential Distribution",
+      "type": "formula",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.1.1"
+      ],
+      "importance": 0.8
+    },
+    {
+      "id": "N6",
+      "label": "Variance of Exponential Distribution",
+      "type": "formula",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.1.1"
+      ],
+      "importance": 0.8
+    },
+    {
+      "id": "N7",
+      "label": "Linkage between Expectation and Variance (Exponential)",
+      "type": "concept",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.1.1"
+      ],
+      "importance": 0.6
+    },
+    {
+      "id": "N8",
+      "label": "Canonical Link Function for Exponential Distribution",
+      "type": "concept",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.1.1"
+      ],
+      "importance": 0.7
+    },
+    {
+      "id": "N9",
+      "label": "Preferred Link Function for Exponential Distribution",
+      "type": "formula",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.1.1"
+      ],
+      "importance": 0.8
+    },
+    {
+      "id": "N10",
+      "label": "Poisson Distribution in GLMs",
+      "type": "concept",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.2.1"
+      ],
+      "importance": 0.9
+    },
+    {
+      "id": "N11",
+      "label": "Probability Mass Function (PMF) of Poisson Distribution",
+      "type": "formula",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.2.1"
+      ],
+      "importance": 0.7
+    },
+    {
+      "id": "N12",
+      "label": "Canonical Parameters for Poisson Distribution",
+      "type": "concept",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.2.1"
+      ],
+      "importance": 0.7
+    },
+    {
+      "id": "N13",
+      "label": "Expectation of Poisson Distribution",
+      "type": "formula",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.2.1"
+      ],
+      "importance": 0.8
+    },
+    {
+      "id": "N14",
+      "label": "Variance of Poisson Distribution",
+      "type": "formula",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.2.1"
+      ],
+      "importance": 0.8
+    },
+    {
+      "id": "N15",
+      "label": "Canonical Link Function for Poisson Distribution",
+      "type": "concept",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.2.1"
+      ],
+      "importance": 0.8
+    },
+    {
+      "id": "N16",
+      "label": "Individual Data",
+      "type": "definition",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.3.1"
+      ],
+      "importance": 0.7
+    },
+    {
+      "id": "N17",
+      "label": "Grouped Data",
+      "type": "definition",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.3.1",
+        "L1.3.3",
+        "L1.3.4"
+      ],
+      "importance": 0.9
+    },
+    {
+      "id": "N18",
+      "label": "Bernoulli Distribution",
+      "type": "concept",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.3.2"
+      ],
+      "importance": 0.7
+    },
+    {
+      "id": "N19",
+      "label": "Grouping Bernoulli Data Example",
+      "type": "example",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.3.2"
+      ],
+      "importance": 0.8
+    },
+    {
+      "id": "N20",
+      "label": "Exponential Family for Grouped Data",
+      "type": "concept",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.3.3"
+      ],
+      "importance": 0.8
+    },
+    {
+      "id": "N21",
+      "label": "Dispersion Parameter in Grouped Data",
+      "type": "concept",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.3.3"
+      ],
+      "importance": 0.8
+    },
+    {
+      "id": "N22",
+      "label": "Expectation of Grouped Data Mean",
+      "type": "formula",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.3.3"
+      ],
+      "importance": 0.7
+    },
+    {
+      "id": "N23",
+      "label": "Variance of Grouped Data Mean",
+      "type": "formula",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.3.3"
+      ],
+      "importance": 0.7
+    },
+    {
+      "id": "N24",
+      "label": "Advantages of Grouped Data",
+      "type": "concept",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.3.4"
+      ],
+      "importance": 0.8
+    },
+    {
+      "id": "N25",
+      "label": "Computation Time and Memory Benefits (Grouped Data)",
+      "type": "concept",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.3.4"
+      ],
+      "importance": 0.7
+    },
+    {
+      "id": "N26",
+      "label": "Model Diagnosis Benefits (Grouped Data)",
+      "type": "concept",
+      "chapter_id": "ch1",
+      "lesson_ids": [
+        "L1.3.4"
+      ],
+      "importance": 0.7
+    }
+  ],
+  "edges": [
+    {
+      "source": "N1",
+      "target": "N2",
+      "relation": "contains",
+      "weight": 0.9
+    },
+    {
+      "source": "N1",
+      "target": "N10",
+      "relation": "contains",
+      "weight": 0.9
+    },
+    {
+      "source": "N1",
+      "target": "N17",
+      "relation": "applies_to",
+      "weight": 0.8
+    },
+    {
+      "source": "N2",
+      "target": "N3",
+      "relation": "has_property",
+      "weight": 0.8
+    },
+    {
+      "source": "N2",
+      "target": "N4",
+      "relation": "has_property",
+      "weight": 0.7
+    },
+    {
+      "source": "N2",
+      "target": "N5",
+      "relation": "has_property",
+      "weight": 0.8
+    },
+    {
+      "source": "N2",
+      "target": "N6",
+      "relation": "has_property",
+      "weight": 0.8
+    },
+    {
+      "source": "N2",
+      "target": "N7",
+      "relation": "has_property",
+      "weight": 0.6
+    },
+    {
+      "source": "N2",
+      "target": "N8",
+      "relation": "has_property",
+      "weight": 0.7
+    },
+    {
+      "source": "N2",
+      "target": "N9",
+      "relation": "has_property",
+      "weight": 0.8
+    },
+    {
+      "source": "N8",
+      "target": "N9",
+      "relation": "problematic_leading_to",
+      "weight": 0.9
+    },
+    {
+      "source": "N10",
+      "target": "N11",
+      "relation": "has_property",
+      "weight": 0.8
+    },
+    {
+      "source": "N10",
+      "target": "N12",
+      "relation": "has_property",
+      "weight": 0.7
+    },
+    {
+      "source": "N10",
+      "target": "N13",
+      "relation": "has_property",
+      "weight": 0.8
+    },
+    {
+      "source": "N10",
+      "target": "N14",
+      "relation": "has_property",
+      "weight": 0.8
+    },
+    {
+      "source": "N10",
+      "target": "N15",
+      "relation": "has_property",
+      "weight": 0.8
+    },
+    {
+      "source": "N16",
+      "target": "N17",
+      "relation": "contrasts_with",
+      "weight": 0.9
+    },
+    {
+      "source": "N17",
+      "target": "N19",
+      "relation": "example_of",
+      "weight": 0.9
+    },
+    {
+      "source": "N19",
+      "target": "N18",
+      "relation": "uses",
+      "weight": 0.8
+    },
+    {
+      "source": "N17",
+      "target": "N20",
+      "relation": "has_property",
+      "weight": 0.8
+    },
+    {
+      "source": "N17",
+      "target": "N21",
+      "relation": "has_property",
+      "weight": 0.8
+    },
+    {
+      "source": "N17",
+      "target": "N22",
+      "relation": "has_property",
+      "weight": 0.7
+    },
+    {
+      "source": "N17",
+      "target": "N23",
+      "relation": "has_property",
+      "weight": 0.7
+    },
+    {
+      "source": "N17",
+      "target": "N24",
+      "relation": "has_property",
+      "weight": 0.9
+    },
+    {
+      "source": "N20",
+      "target": "N21",
+      "relation": "modifies",
+      "weight": 0.8
+    },
+    {
+      "source": "N24",
+      "target": "N25",
+      "relation": "leads_to",
+      "weight": 0.8
+    },
+    {
+      "source": "N24",
+      "target": "N26",
+      "relation": "leads_to",
+      "weight": 0.8
+    }
+  ]
+}

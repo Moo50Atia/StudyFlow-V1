@@ -1,0 +1,97 @@
+{
+  "material": "GLMTest",
+  "pipeline_run_id": "run_0330d32d",
+  "completed_at": "2026-06-20T12:30:01.915762+00:00",
+  "usage_metrics": {
+    "total_prompt_tokens": 5561,
+    "total_completion_tokens": 9068,
+    "estimated_cost_usd": 0.003126
+  },
+  "artifacts": {
+    "source_pdf": {
+      "file": "source.pdf",
+      "exists": true,
+      "size_bytes": 1021625
+    },
+    "extracted_text": {
+      "file": "extracted_text.txt",
+      "exists": true,
+      "size_bytes": 3567
+    },
+    "extraction_metadata": {
+      "file": "extraction_metadata.json",
+      "exists": true,
+      "size_bytes": 2490
+    },
+    "ocr_report": {
+      "file": "ocr_report.json",
+      "exists": true,
+      "size_bytes": 50
+    },
+    "chunk_manifest": {
+      "file": "chunk_manifest.json",
+      "exists": true,
+      "size_bytes": 392
+    },
+    "route_detection": {
+      "file": "route_detection.json",
+      "exists": true,
+      "size_bytes": 633
+    },
+    "material_config": {
+      "file": "material_config.json",
+      "exists": true,
+      "size_bytes": 299
+    },
+    "structure": {
+      "file": "structure.json",
+      "exists": true,
+      "size_bytes": 3622
+    },
+    "knowledge_graph": {
+      "file": "knowledge_graph.json",
+      "exists": true,
+      "size_bytes": 9203
+    },
+    "questions": {
+      "file": "questions.json",
+      "exists": true,
+      "size_bytes": 5378
+    },
+    "question_mapping": {
+      "file": "question_mapping.json",
+      "exists": false
+    },
+    "sections": {
+      "file": "sections.json",
+      "exists": true,
+      "size_bytes": 137548
+    },
+    "validation": {
+      "file": "validation.json",
+      "exists": true,
+      "size_bytes": 3870
+    },
+    "dynamic_view_mapping": {
+      "file": "dynamic_view_mapping.json",
+      "exists": true,
+      "size_bytes": 30694
+    },
+    "dynamic_view_prompts": {
+      "file": "dynamic_view_prompts.json",
+      "exists": true,
+      "size_bytes": 43815
+    },
+    "dynamic_view_cache": {
+      "file": "dynamic_view_cache.json",
+      "exists": true,
+      "size_bytes": 9676
+    }
+  },
+  "total_chapters": 1,
+  "total_lessons": 6,
+  "route": "Mathematics",
+  "domain": "Statistical Modeling",
+  "coverage_percentage": 40.0,
+  "visualization_readiness": 79.7
+}

@@ -1,0 +1,152 @@
+Generalized linear models
+GLMs for different distributions
+Prof. Dr. Andreas Groll
+Winter semester 20/21
+GLM–WS20/21 GLMdistributions –Slide1/15
+
+GLMs for different distributions - Contents
+Continuous distributions
+Discrete distributions
+Grouped data
+GLM–WS20/21 GLMdistributions –Slide2/15
+
+Continuous distributions
+(cid:88)
+1. Normal distribution
+2. Exponential distribution:
+(cid:73) Suitablee.g.fory ≥0,sincethenormaldistributiondoes
+notguaranteetoonlypredictpositivevalues(alsonotfor
+µ=exp(x(cid:62)βββ))
+(cid:73) Frequentlyusedformodelingwaitingtimes/durationtimes
+GLM–WS20/21 GLMdistributions –Slide3/15
+
+Continuous distributions
+2. Exponential distribution (continued)
+Y ∼ Exp(λ), λ ≥ 0
+(cid:16) (cid:17)
+f(y)=λexp(−λy)=exp(−λy+log(λ))=exp y(−λ)−(−log(λ))
+ϑ=
+b(ϑ)=
+φ=
+c(y,φ)=
+GLM–WS20/21 GLMdistributions –Slide4/15
+
+Continuous distributions
+2. Exponential distribution (continued)
+E(y)=
+Var(y)=
+→ Linkage between expectation and variance:
+GLM–WS20/21 GLMdistributions –Slide5/15
+
+Continuous distributions
+2. Exponential distribution (continued)
+Whatwouldbethecanonicallink?
+Problematic,sinceµ >0hastohold.
+i
+Preferableinthiscase:
+µ =exp(x(cid:62)βββ)
+i i
+⇔ log(µ)=x(cid:62)βββ
+i i
+GLM–WS20/21 GLMdistributions –Slide6/15
+
+Discrete distributions
+(cid:88)
+1. Bernoulli distribution
+2. Poisson distribution:
+Y ∼ Poi(λ), λ > 0
+f(y)=P(Y =y) = λy exp(−λ)=exp(ylog(λ)−log(y!)−λ)
+y!
+ϑ=
+b(ϑ)=
+φ=
+c(y,φ)=
+GLM–WS20/21 GLMdistributions –Slide7/15
+
+Discrete distributions
+2. Poisson distribution (continued)
+E(y)=
+Var(y)=
+Canonicallink:
+GLM–WS20/21 GLMdistributions –Slide8/15
+
+Grouped data
+(cid:73) So far, we assumed individual data, i.e. one observation
+(y∗,x∗) is assigned to the respective object i:
+i i
+GLM–WS20/21 GLMdistributions –Slide9/15
+
+Grouped data
+(cid:73) In the matrix of covariates there might be some identical
+rows. Then, the observations can be grouped as follows:
+(cid:73) n
+i
+(cid:73) y¯
+i
+(cid:73) x
+i
+GLM–WS20/21 GLMdistributions –Slide10/15
+
+Grouped data
+Example: Bernoulli distribution
+y∗,...,y∗ ∈ {0,1} y∗|x∗ ∼ Bernoulli(π) = B(1,π)
+1 n i i i i
+→ (cid:80)n i y∗ | x ∼ B(n,π)
+j=1 ij i i i
+→ y¯ = 1 (cid:80)n i y∗ ∈ {0, 1,...,1}
+i n j=1 ij n
+f (y¯) = P(Y ¯ = y¯) =
+skal i i i
+GLM–WS20/21 GLMdistributions –Slide11/15
+
+Grouped data
+Example: Bernoulli distribution (continued)
+ϑ =
+i
+b(ϑ) =
+i
+φ =
+i
+c(y¯,φ) =
+i i
+Thus, we again have an exponential family for grouped data!
+However,inthiscasethedispersionparameterφ dependsoni.
+i
+GLM–WS20/21 GLMdistributions –Slide12/15
+
+Grouped data
+General statement
+For grouped data, still the exponential family is valid, but:
+non-grouped y∗ grouped y¯
+i i
+ϑ ϑ
+i i
+b(ϑ) b(ϑ)
+i i
+φ φ/n
+i
+c(y∗,φ) c(y¯,φ/n)
+i i i
+GLM–WS20/21 GLMdistributions –Slide13/15
+
+Grouped data
+In particular,
+E(y¯) =
+i
+Var(y¯) =
+i
+We use the notation φ = φ, i.e. φ depends on the
+i n i
+i
+observations just via n.
+i
+GLM–WS20/21 GLMdistributions –Slide14/15
+
+Grouped data
+What actually is the advantage of grouped data?
+(cid:73) Completely equivalent w.r.t. estimation results
+(cid:73) But data partially is available as grouped data
+(cid:73) In some circumstances, grouping provides benefits:
+(cid:73) bettercomputationtimeandmemoryspace
+(cid:73) formodeldiagnosis
+GLM–WS20/21 GLMdistributions –Slide15/15

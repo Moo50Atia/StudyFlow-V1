@@ -1,0 +1,1 @@
+"""Manual pipeline test stages"""

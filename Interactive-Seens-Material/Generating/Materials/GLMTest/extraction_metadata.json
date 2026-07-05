@@ -1,0 +1,117 @@
+{
+  "extracted_at": "2026-06-20T12:15:27.758524+00:00",
+  "total_pages": 15,
+  "total_characters": 3234,
+  "pages_with_text": 15,
+  "pages_needing_ocr": 0,
+  "ocr_page_numbers": [],
+  "total_visual_assets_extracted": 0,
+  "errors": [],
+  "pages": [
+    {
+      "page": 1,
+      "chars": 144,
+      "has_text": true,
+      "extraction_method": "pdfplumber",
+      "visual_assets": []
+    },
+    {
+      "page": 2,
+      "chars": 144,
+      "has_text": true,
+      "extraction_method": "pdfplumber",
+      "visual_assets": []
+    },
+    {
+      "page": 3,
+      "chars": 318,
+      "has_text": true,
+      "extraction_method": "pdfplumber",
+      "visual_assets": []
+    },
+    {
+      "page": 4,
+      "chars": 213,
+      "has_text": true,
+      "extraction_method": "pdfplumber",
+      "visual_assets": []
+    },
+    {
+      "page": 5,
+      "chars": 162,
+      "has_text": true,
+      "extraction_method": "pdfplumber",
+      "visual_assets": []
+    },
+    {
+      "page": 6,
+      "chars": 240,
+      "has_text": true,
+      "extraction_method": "pdfplumber",
+      "visual_assets": []
+    },
+    {
+      "page": 7,
+      "chars": 212,
+      "has_text": true,
+      "extraction_method": "pdfplumber",
+      "visual_assets": []
+    },
+    {
+      "page": 8,
+      "chars": 127,
+      "has_text": true,
+      "extraction_method": "pdfplumber",
+      "visual_assets": []
+    },
+    {
+      "page": 9,
+      "chars": 170,
+      "has_text": true,
+      "extraction_method": "pdfplumber",
+      "visual_assets": []
+    },
+    {
+      "page": 10,
+      "chars": 216,
+      "has_text": true,
+      "extraction_method": "pdfplumber",
+      "visual_assets": []
+    },
+    {
+      "page": 11,
+      "chars": 274,
+      "has_text": true,
+      "extraction_method": "pdfplumber",
+      "visual_assets": []
+    },
+    {
+      "page": 12,
+      "chars": 248,
+      "has_text": true,
+      "extraction_method": "pdfplumber",
+      "visual_assets": []
+    },
+    {
+      "page": 13,
+      "chars": 217,
+      "has_text": true,
+      "extraction_method": "pdfplumber",
+      "visual_assets": []
+    },
+    {
+      "page": 14,
+      "chars": 174,
+      "has_text": true,
+      "extraction_method": "pdfplumber",
+      "visual_assets": []
+    },
+    {
+      "page": 15,
+      "chars": 347,
+      "has_text": true,
+      "extraction_method": "pdfplumber",
+      "visual_assets": []
+    }
+  ]
+}

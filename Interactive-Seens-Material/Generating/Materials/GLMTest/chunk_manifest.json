@@ -1,0 +1,19 @@
+{
+  "source_file": "source.pdf",
+  "total_chunks": 1,
+  "total_characters": 3232,
+  "total_pages": 15,
+  "chunk_target_size": 80000,
+  "chunk_overlap": 2000,
+  "chunks": [
+    {
+      "id": "chunk_001",
+      "start_page": 1,
+      "end_page": 15,
+      "char_count": 3232,
+      "token_estimate": 808,
+      "start_char_offset": 0,
+      "end_char_offset": 3232
+    }
+  ]
+}

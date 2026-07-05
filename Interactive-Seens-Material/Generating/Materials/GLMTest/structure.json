@@ -1,0 +1,117 @@
+{
+  "material": "GLMTest",
+  "source_file": "source.pdf",
+  "route": "Mathematics",
+  "domain": "Statistical Modeling",
+  "total_chapters": 1,
+  "total_mini_chapters": 3,
+  "total_lessons": 6,
+  "chapters": [
+    {
+      "id": "ch1",
+      "title": "Generalized Linear Models for Different Distributions",
+      "mini_chapters": [
+        {
+          "id": "mc1.1",
+          "title": "Continuous distributions",
+          "lessons": [
+            {
+              "id": "L1.1.1",
+              "title": "Exponential Distribution in GLMs",
+              "view_name": "ExponentialDistribution_FormulaDerivation",
+              "page_start": 3,
+              "page_end": 6,
+              "visual_assets": [],
+              "content_ref": {
+                "sections_in_source": [
+                  "2. Exponential distribution",
+                  "2. Exponential distribution (continued)"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "mc1.2",
+          "title": "Discrete distributions",
+          "lessons": [
+            {
+              "id": "L1.2.1",
+              "title": "Poisson Distribution in GLMs",
+              "view_name": "PoissonDistribution_FormulaDerivation",
+              "page_start": 7,
+              "page_end": 8,
+              "visual_assets": [],
+              "content_ref": {
+                "sections_in_source": [
+                  "2. Poisson distribution",
+                  "2. Poisson distribution (continued)"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "mc1.3",
+          "title": "Grouped data",
+          "lessons": [
+            {
+              "id": "L1.3.1",
+              "title": "Introduction to Grouped Data",
+              "view_name": "GroupedData_ConceptIntroduction",
+              "page_start": 9,
+              "page_end": 10,
+              "visual_assets": [],
+              "content_ref": {
+                "sections_in_source": [
+                  "Grouped data"
+                ]
+              }
+            },
+            {
+              "id": "L1.3.2",
+              "title": "Grouping Bernoulli Data Example",
+              "view_name": "BernoulliGrouping_ExampleDerivation",
+              "page_start": 11,
+              "page_end": 12,
+              "visual_assets": [],
+              "content_ref": {
+                "sections_in_source": [
+                  "Example: Bernoulli distribution",
+                  "Example: Bernoulli distribution (continued)"
+                ]
+              }
+            },
+            {
+              "id": "L1.3.3",
+              "title": "General Principles of Grouped Data",
+              "view_name": "GroupedData_ParameterComparison",
+              "page_start": 13,
+              "page_end": 14,
+              "visual_assets": [],
+              "content_ref": {
+                "sections_in_source": [
+                  "General statement",
+                  "In particular"
+                ]
+              }
+            },
+            {
+              "id": "L1.3.4",
+              "title": "Advantages of Grouped Data",
+              "view_name": "GroupedData_AdvantagesList",
+              "page_start": 15,
+              "page_end": 15,
+              "visual_assets": [],
+              "content_ref": {
+                "sections_in_source": [
+                  "What actually is the advantage of grouped data?"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
