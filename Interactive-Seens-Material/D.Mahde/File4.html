@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parallel Flow: Carry Lookahead Adder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow-x: hidden;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        .bg-grid {
+            background-size: 40px 40px;
+            background-image:
+                linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        }
+
+        /* Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #a855f7;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 0 12px rgba(168, 85, 247, 0.6);
+            transition: transform 0.1s;
+        }
+
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        .digital-font {
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .lcu-complex-bg {
+            background: repeating-linear-gradient(45deg,
+                    rgba(30, 41, 59, 0.8),
+                    rgba(30, 41, 59, 0.8) 10px,
+                    rgba(15, 23, 42, 0.8) 10px,
+                    rgba(15, 23, 42, 0.8) 20px);
+        }
+
+        .wire-vert {
+            width: 4px;
+            transition: background-color 0.3s;
+        }
+
+        .wire-glow {
+            box-shadow: 0 0 8px currentColor;
+        }
+    </style>
+</head>
+
+<body class="bg-grid min-h-screen flex flex-col items-center py-8 px-4 relative">
+
+    <div class="max-w-[1400px] w-full flex flex-col xl:flex-row gap-8 items-start relative z-10">
+
+        <!-- Left Side: Controls & Narrative -->
+        <div class="w-full xl:w-1/3 flex flex-col sticky top-8 shrink-0">
+            <h1 class="text-3xl font-bold mb-1 text-white tracking-tight">Parallel Flow</h1>
+            <h2 class="text-xl text-purple-400 mb-4 tracking-wide">Carry Lookahead Adder (CLA)</h2>
+            <p class="text-slate-400 text-sm mb-6 leading-relaxed">
+                Observe how splitting logic into independent Propagate/Generate paths allows parallel carry calculation.
+                Computing <b>0111 + 0001</b> (7 + 1 = 8).
+            </p>
+
+            <div class="bg-slate-800/80 backdrop-blur p-5 rounded-xl border border-slate-700 shadow-xl mb-5">
+                <!-- Clock Meter -->
+                <div
+                    class="bg-slate-900 border border-slate-600 p-4 rounded-lg flex items-center justify-between mb-5 shadow-inner">
+                    <span class="text-slate-400 text-sm uppercase tracking-wider font-semibold flex items-center gap-2">
+                        <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Global Delay
+                    </span>
+                    <span id="clock-display"
+                        class="digital-font text-3xl font-bold text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]">
+                        0.00 Δt
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-4 mb-4">
+                    <button id="play-btn"
+                        class="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(168,85,247,0.4)]">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                                clip-rule="evenodd"></path>
+                        </svg>
+                        <span>Simulate</span>
+                    </button>
+                    <div class="flex-grow">
+                        <!-- Max slider is 300 to show it finishes earlier than RCA -->
+                        <input type="range" id="time-slider" min="0" max="300" value="0" class="w-full">
+                    </div>
+                </div>
+
+                <div class="h-32 relative mt-4">
+                    <div class="absolute inset-0 bg-slate-900/50 rounded-lg border border-slate-700 p-4">
+                        <p id="narrative-text"
+                            class="text-sm text-slate-300 leading-relaxed transition-opacity duration-300">
+                            AWAITING COMPUTATION: Inputs are ready. Time is frozen at t=0. Notice the 3 distinct
+                            horizontal layers of logic.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delay Comparison Graph -->
+            <div class="bg-slate-800/60 border border-slate-700 p-4 rounded-xl mb-5">
+                <h3 class="text-slate-300 text-sm font-semibold mb-3 uppercase tracking-wider">Delay vs. Bit Width</h3>
+                <div
+                    class="relative w-full h-32 bg-slate-900 rounded-lg p-2 flex items-end border-l-2 border-b-2 border-slate-600">
+                    <span class="absolute -left-3 -top-2 text-[10px] text-slate-500">Delay</span>
+                    <span class="absolute right-0 -bottom-5 text-[10px] text-slate-500">Bits (N)</span>
+
+                    <svg class="w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <!-- Grid lines -->
+                        <line x1="0" y1="25" x2="100" y2="25" stroke="#334155" stroke-width="1"
+                            stroke-dasharray="2,2" />
+                        <line x1="0" y1="50" x2="100" y2="50" stroke="#334155" stroke-width="1"
+                            stroke-dasharray="2,2" />
+                        <line x1="0" y1="75" x2="100" y2="75" stroke="#334155" stroke-width="1"
+                            stroke-dasharray="2,2" />
+
+                        <!-- RCA Line O(N) -->
+                        <path d="M 0 100 L 20 80 L 50 50 L 90 10" fill="none" stroke="#f43f5e" stroke-width="2"
+                            class="drop-shadow-[0_0_3px_#f43f5e]" />
+
+                        <!-- CLA Line O(log N) - Almost flat -->
+                        <path d="M 0 100 L 20 85 L 50 80 L 90 75" fill="none" stroke="#a855f7" stroke-width="3"
+                            class="drop-shadow-[0_0_3px_#a855f7]" />
+
+                        <!-- Labels -->
+                        <text x="85" y="5" fill="#f43f5e" font-size="8" font-weight="bold">RCA (Linear)</text>
+                        <text x="75" y="70" fill="#a855f7" font-size="8" font-weight="bold">CLA (Logarithmic)</text>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="bg-purple-900/30 border border-purple-500/40 p-5 rounded-xl">
+                <h3 class="text-purple-400 font-semibold mb-2 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z">
+                        </path>
+                    </svg>
+                    The Hardware Misconception
+                </h3>
+                <p class="text-xs text-purple-200/80 leading-relaxed">
+                    It is a misconception that faster speed is achieved with simpler hardware. The CLA completely
+                    eliminates linear delay by drastically <b>increasing gate complexity</b>. The central LCU uses
+                    massive, highly complex AND/OR gates to compute all carry values simultaneously, trading silicon
+                    area for parallel speed.
+                </p>
+            </div>
+        </div>
+
+        <!-- Right Side: Circuit Diagram -->
+        <div class="w-full xl:w-2/3 flex flex-col items-center justify-start pt-4 pb-12 overflow-x-auto min-h-[600px]">
+
+            <div
+                class="flex flex-col items-center bg-slate-800/40 p-8 rounded-2xl border border-slate-700/50 w-full min-w-[850px] relative">
+
+                <!-- Diagram Header Labels -->
+                <div class="w-full flex justify-between px-16 mb-4">
+                    <span class="text-slate-500 text-sm font-bold tracking-widest uppercase">Bit 3 (MSB)</span>
+                    <span class="text-slate-500 text-sm font-bold tracking-widest uppercase">Bit 0 (LSB)</span>
+                </div>
+
+                <!-- STAGE 1: P & G GENERATION -->
+                <div class="flex justify-between w-full px-12 mb-6">
+                    <!-- Generating blocks backwards (Bit 3 to Bit 0) -->
+                    <!-- BIT 3 -->
+                    <div class="flex flex-col items-center w-32 relative">
+                        <div class="flex gap-4 mb-3 text-slate-300 font-bold text-sm">
+                            <div class="flex flex-col items-center gap-1"><span
+                                    class="text-xs text-slate-500">A₃</span><span
+                                    class="bg-slate-900 border border-slate-700 px-2 rounded">0</span></div>
+                            <div class="flex flex-col items-center gap-1"><span
+                                    class="text-xs text-slate-500">B₃</span><span
+                                    class="bg-slate-900 border border-slate-700 px-2 rounded">0</span></div>
+                        </div>
+                        <div id="pg-block-3"
+                            class="w-full h-16 border-2 border-slate-700 bg-slate-800 rounded-lg flex flex-col items-center justify-center transition-colors z-10">
+                            <span class="text-xs font-bold text-slate-400">P/G Gen 3</span>
+                        </div>
+                        <div class="flex justify-center gap-6 w-full h-8 relative">
+                            <div id="p-wire-3" class="wire-vert h-full bg-slate-700 relative group"><span
+                                    class="absolute left-2 text-[10px] text-pink-500 opacity-0 transition-opacity p-val">P=0</span>
+                            </div>
+                            <div id="g-wire-3" class="wire-vert h-full bg-slate-700 relative group"><span
+                                    class="absolute left-2 text-[10px] text-blue-500 opacity-0 transition-opacity g-val">G=0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- BIT 2 -->
+                    <div class="flex flex-col items-center w-32 relative">
+                        <div class="flex gap-4 mb-3 text-slate-300 font-bold text-sm">
+                            <div class="flex flex-col items-center gap-1"><span
+                                    class="text-xs text-slate-500">A₂</span><span
+                                    class="bg-slate-900 border border-slate-700 px-2 rounded">1</span></div>
+                            <div class="flex flex-col items-center gap-1"><span
+                                    class="text-xs text-slate-500">B₂</span><span
+                                    class="bg-slate-900 border border-slate-700 px-2 rounded">0</span></div>
+                        </div>
+                        <div id="pg-block-2"
+                            class="w-full h-16 border-2 border-slate-700 bg-slate-800 rounded-lg flex flex-col items-center justify-center transition-colors z-10">
+                            <span class="text-xs font-bold text-slate-400">P/G Gen 2</span>
+                        </div>
+                        <div class="flex justify-center gap-6 w-full h-8 relative">
+                            <div id="p-wire-2" class="wire-vert h-full bg-slate-700 relative group"><span
+                                    class="absolute left-2 text-[10px] text-pink-500 opacity-0 transition-opacity p-val">P=1</span>
+                            </div>
+                            <div id="g-wire-2" class="wire-vert h-full bg-slate-700 relative group"><span
+                                    class="absolute left-2 text-[10px] text-blue-500 opacity-0 transition-opacity g-val">G=0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- BIT 1 -->
+                    <div class="flex flex-col items-center w-32 relative">
+                        <div class="flex gap-4 mb-3 text-slate-300 font-bold text-sm">
+                            <div class="flex flex-col items-center gap-1"><span
+                                    class="text-xs text-slate-500">A₁</span><span
+                                    class="bg-slate-900 border border-slate-700 px-2 rounded">1</span></div>
+                            <div class="flex flex-col items-center gap-1"><span
+                                    class="text-xs text-slate-500">B₁</span><span
+                                    class="bg-slate-900 border border-slate-700 px-2 rounded">0</span></div>
+                        </div>
+                        <div id="pg-block-1"
+                            class="w-full h-16 border-2 border-slate-700 bg-slate-800 rounded-lg flex flex-col items-center justify-center transition-colors z-10">
+                            <span class="text-xs font-bold text-slate-400">P/G Gen 1</span>
+                        </div>
+                        <div class="flex justify-center gap-6 w-full h-8 relative">
+                            <div id="p-wire-1" class="wire-vert h-full bg-slate-700 relative group"><span
+                                    class="absolute left-2 text-[10px] text-pink-500 opacity-0 transition-opacity p-val">P=1</span>
+                            </div>
+                            <div id="g-wire-1" class="wire-vert h-full bg-slate-700 relative group"><span
+                                    class="absolute left-2 text-[10px] text-blue-500 opacity-0 transition-opacity g-val">G=0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- BIT 0 -->
+                    <div class="flex flex-col items-center w-32 relative">
+                        <div class="flex gap-4 mb-3 text-slate-300 font-bold text-sm">
+                            <div class="flex flex-col items-center gap-1"><span
+                                    class="text-xs text-slate-500">A₀</span><span
+                                    class="bg-slate-900 border border-slate-700 px-2 rounded">1</span></div>
+                            <div class="flex flex-col items-center gap-1"><span
+                                    class="text-xs text-slate-500">B₀</span><span
+                                    class="bg-slate-900 border border-slate-700 px-2 rounded">1</span></div>
+                        </div>
+                        <div id="pg-block-0"
+                            class="w-full h-16 border-2 border-slate-700 bg-slate-800 rounded-lg flex flex-col items-center justify-center transition-colors z-10">
+                            <span class="text-xs font-bold text-slate-400">P/G Gen 0</span>
+                        </div>
+                        <div class="flex justify-center gap-6 w-full h-8 relative">
+                            <div id="p-wire-0" class="wire-vert h-full bg-slate-700 relative group"><span
+                                    class="absolute left-2 text-[10px] text-pink-500 opacity-0 transition-opacity p-val">P=0</span>
+                            </div>
+                            <div id="g-wire-0" class="wire-vert h-full bg-slate-700 relative group"><span
+                                    class="absolute left-2 text-[10px] text-blue-500 opacity-0 transition-opacity g-val">G=1</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STAGE 2: LOOKAHEAD CARRY UNIT -->
+                <div class="w-[90%] px-4 flex relative z-20">
+                    <div id="lcu-block"
+                        class="w-full py-6 border-4 border-slate-700 lcu-complex-bg rounded-xl shadow-2xl flex items-center justify-center relative transition-all duration-300">
+                        <!-- C_in -->
+                        <div class="absolute -right-8 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                            <span class="text-xs text-slate-400 font-bold">C_in=0</span>
+                            <div class="w-6 h-1 bg-slate-500"></div>
+                        </div>
+                        <!-- C_out -->
+                        <div class="absolute -left-10 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                            <div id="cout-wire" class="w-6 h-1 bg-slate-700 transition-colors"></div>
+                            <span id="cout-val"
+                                class="text-xs text-slate-500 font-bold opacity-0 transition-opacity">C_out=0</span>
+                        </div>
+
+                        <div class="flex flex-col items-center">
+                            <h3 class="text-lg font-black text-slate-400 tracking-widest uppercase mb-1" id="lcu-title">
+                                Lookahead Carry Unit (LCU)</h3>
+                            <p class="text-[10px] text-slate-500 opacity-60 font-mono">C₂ = G₁ + (P₁·G₀) + (P₁·P₀·C₀)...
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STAGE 3: SUM GENERATION & BYPASS WIRES -->
+                <div class="flex justify-between w-full px-12 mt-0 relative">
+                    <!-- Background Pass-through wires for P (Bypassing LCU visually) -->
+
+                    <!-- BIT 3 Sum -->
+                    <div class="flex flex-col items-center w-32 relative">
+                        <div class="flex justify-center gap-6 w-full h-8 relative">
+                            <div id="p-bypass-3" class="wire-vert h-full bg-slate-700"><span
+                                    class="absolute left-2 top-2 text-[10px] text-pink-500 opacity-0 transition-opacity p-val-low">P=0</span>
+                            </div>
+                            <div id="c-wire-3" class="wire-vert h-full bg-slate-700"><span
+                                    class="absolute right-2 top-2 text-[10px] text-cyan-400 opacity-0 transition-opacity c-val">C₃=1</span>
+                            </div>
+                        </div>
+                        <div id="sum-block-3"
+                            class="w-full h-14 border-2 border-slate-700 bg-slate-800 rounded-lg flex flex-col items-center justify-center transition-colors z-10">
+                            <span class="text-xs font-bold text-slate-400">Sum Gen 3</span>
+                            <span class="text-[9px] text-slate-500">P₃ ⊕ C₃</span>
+                        </div>
+                        <div id="final-wire-3" class="w-1 h-6 bg-slate-700 transition-colors mt-2"></div>
+                        <span id="final-sum-3"
+                            class="digital-font text-xl font-bold text-slate-600 bg-slate-900 border border-slate-700 px-3 py-1 rounded transition-colors">?</span>
+                    </div>
+
+                    <!-- BIT 2 Sum -->
+                    <div class="flex flex-col items-center w-32 relative">
+                        <div class="flex justify-center gap-6 w-full h-8 relative">
+                            <div id="p-bypass-2" class="wire-vert h-full bg-slate-700"><span
+                                    class="absolute left-2 top-2 text-[10px] text-pink-500 opacity-0 transition-opacity p-val-low">P=1</span>
+                            </div>
+                            <div id="c-wire-2" class="wire-vert h-full bg-slate-700"><span
+                                    class="absolute right-2 top-2 text-[10px] text-cyan-400 opacity-0 transition-opacity c-val">C₂=1</span>
+                            </div>
+                        </div>
+                        <div id="sum-block-2"
+                            class="w-full h-14 border-2 border-slate-700 bg-slate-800 rounded-lg flex flex-col items-center justify-center transition-colors z-10">
+                            <span class="text-xs font-bold text-slate-400">Sum Gen 2</span>
+                            <span class="text-[9px] text-slate-500">P₂ ⊕ C₂</span>
+                        </div>
+                        <div id="final-wire-2" class="w-1 h-6 bg-slate-700 transition-colors mt-2"></div>
+                        <span id="final-sum-2"
+                            class="digital-font text-xl font-bold text-slate-600 bg-slate-900 border border-slate-700 px-3 py-1 rounded transition-colors">?</span>
+                    </div>
+
+                    <!-- BIT 1 Sum -->
+                    <div class="flex flex-col items-center w-32 relative">
+                        <div class="flex justify-center gap-6 w-full h-8 relative">
+                            <div id="p-bypass-1" class="wire-vert h-full bg-slate-700"><span
+                                    class="absolute left-2 top-2 text-[10px] text-pink-500 opacity-0 transition-opacity p-val-low">P=1</span>
+                            </div>
+                            <div id="c-wire-1" class="wire-vert h-full bg-slate-700"><span
+                                    class="absolute right-2 top-2 text-[10px] text-cyan-400 opacity-0 transition-opacity c-val">C₁=1</span>
+                            </div>
+                        </div>
+                        <div id="sum-block-1"
+                            class="w-full h-14 border-2 border-slate-700 bg-slate-800 rounded-lg flex flex-col items-center justify-center transition-colors z-10">
+                            <span class="text-xs font-bold text-slate-400">Sum Gen 1</span>
+                            <span class="text-[9px] text-slate-500">P₁ ⊕ C₁</span>
+                        </div>
+                        <div id="final-wire-1" class="w-1 h-6 bg-slate-700 transition-colors mt-2"></div>
+                        <span id="final-sum-1"
+                            class="digital-font text-xl font-bold text-slate-600 bg-slate-900 border border-slate-700 px-3 py-1 rounded transition-colors">?</span>
+                    </div>
+
+                    <!-- BIT 0 Sum -->
+                    <div class="flex flex-col items-center w-32 relative">
+                        <div class="flex justify-center gap-6 w-full h-8 relative">
+                            <div id="p-bypass-0" class="wire-vert h-full bg-slate-700"><span
+                                    class="absolute left-2 top-2 text-[10px] text-pink-500 opacity-0 transition-opacity p-val-low">P=0</span>
+                            </div>
+                            <div id="c-wire-0" class="wire-vert h-full bg-slate-700"><span
+                                    class="absolute right-2 top-2 text-[10px] text-cyan-400 opacity-0 transition-opacity c-val">C₀=0</span>
+                            </div>
+                        </div>
+                        <div id="sum-block-0"
+                            class="w-full h-14 border-2 border-slate-700 bg-slate-800 rounded-lg flex flex-col items-center justify-center transition-colors z-10">
+                            <span class="text-xs font-bold text-slate-400">Sum Gen 0</span>
+                            <span class="text-[9px] text-slate-500">P₀ ⊕ C₀</span>
+                        </div>
+                        <div id="final-wire-0" class="w-1 h-6 bg-slate-700 transition-colors mt-2"></div>
+                        <span id="final-sum-0"
+                            class="digital-font text-xl font-bold text-slate-600 bg-slate-900 border border-slate-700 px-3 py-1 rounded transition-colors">?</span>
+                    </div>
+                </div>
+
+                <div id="final-result-box"
+                    class="mt-8 py-3 px-6 bg-slate-900 border border-slate-700 rounded-lg shadow-inner opacity-0 transition-opacity duration-700 flex items-center gap-4 z-10">
+                    <span class="text-slate-400 font-semibold tracking-wider">FINAL SUM:</span>
+                    <span class="digital-font text-2xl font-bold text-emerald-400 tracking-[0.2em]">1000</span>
+                    <span class="text-slate-500 text-sm ml-2">(Binary 8)</span>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const slider = document.getElementById('time-slider');
+            const narrativeText = document.getElementById('narrative-text');
+            const clockDisplay = document.getElementById('clock-display');
+            const playBtn = document.getElementById('play-btn');
+            const resultBox = document.getElementById('final-result-box');
+
+            // Logic data based on 0111 + 0001
+            const logicData = [
+                { bit: 0, p: 0, g: 1, cin: 0, sum: 0 },
+                { bit: 1, p: 1, g: 0, cin: 1, sum: 0 },
+                { bit: 2, p: 1, g: 0, cin: 1, sum: 0 },
+                { bit: 3, p: 0, g: 0, cin: 1, sum: 1 }
+            ];
+
+            const narratives = [
+                { threshold: 0, text: "AWAITING COMPUTATION: Inputs are ready. Time is frozen at t=0. Notice the 3 distinct horizontal layers of logic." },
+                { threshold: 10, text: "STAGE 1: <b>Generate & Propagate.</b> All four bits compute their P and G signals <b>simultaneously</b> since they only depend on A and B inputs." },
+                { threshold: 100, text: "STAGE 2: <b>Parallel Carry Computation.</b> The massive LCU receives all P and G signals at once. Inside, huge complex gates calculate C₁, C₂, C₃, and C₄ simultaneously without waiting." },
+                { threshold: 200, text: "STAGE 3: <b>Parallel Summation.</b> Carry signals bypass the ripple chain and arrive instantly at the Sum Generators alongside the bypassed Propagate signals." },
+                { threshold: 300, text: "COMPLETED: At just 3.0Δt, all bits finalize simultaneously. By increasing hardware complexity in the LCU, the O(N) sequential delay is defeated." }
+            ];
+
+            let isPlaying = false;
+            let playInterval;
+
+            function formatClock(val) {
+                return (val / 100).toFixed(2) + " Δt";
+            }
+
+            function setWireState(id, active, colorClass, textClass) {
+                const el = document.getElementById(id);
+                if (!el) return;
+
+                if (active) {
+                    el.className = `wire-vert h-full ${colorClass} wire-glow`;
+                    const label = el.querySelector('span');
+                    if (label) label.style.opacity = '1';
+                } else {
+                    el.className = `wire-vert h-full bg-slate-700`;
+                    const label = el.querySelector('span');
+                    if (label) label.style.opacity = '0';
+                }
+            }
+
+            function setBlockState(id, state, defaultText, activeText, colorClass, borderClass) {
+                const block = document.getElementById(id);
+                const title = block.querySelector('span:first-child');
+                if (!block) return;
+
+                if (state === 'dormant') {
+                    block.className = `w-full h-14 border-2 border-slate-700 bg-slate-800 rounded-lg flex flex-col items-center justify-center transition-colors z-10`;
+                    if (id.includes('pg-block')) block.classList.replace('h-14', 'h-16');
+                    title.className = `text-xs font-bold text-slate-400`;
+                    title.innerText = defaultText;
+                } else if (state === 'computing') {
+                    block.className = `w-full h-14 border-2 border-amber-500 bg-slate-800 rounded-lg flex flex-col items-center justify-center shadow-[0_0_15px_rgba(245,158,11,0.5)] transition-colors z-10`;
+                    if (id.includes('pg-block')) block.classList.replace('h-14', 'h-16');
+                    title.className = `text-xs font-bold text-amber-400`;
+                    title.innerText = "Computing...";
+                } else if (state === 'done') {
+                    block.className = `w-full h-14 border-2 ${borderClass} bg-slate-800 rounded-lg flex flex-col items-center justify-center shadow-[0_0_10px_currentColor] text-${colorClass} transition-colors z-10`;
+                    if (id.includes('pg-block')) block.classList.replace('h-14', 'h-16');
+                    title.className = `text-xs font-bold text-${colorClass}`;
+                    title.innerText = activeText;
+                }
+            }
+
+            function updateVisualization() {
+                const val = parseInt(slider.value);
+
+                // Update Clock
+                clockDisplay.innerText = formatClock(val);
+                clockDisplay.className = val > 0
+                    ? "digital-font text-3xl font-bold text-amber-300 drop-shadow-[0_0_8px_rgba(252,211,77,0.6)]"
+                    : "digital-font text-3xl font-bold text-amber-500";
+
+                // ==========================
+                // STAGE 1: P/G Calculation (0-100)
+                // ==========================
+                for (let i = 0; i < 4; i++) {
+                    if (val <= 0) {
+                        setBlockState(`pg-block-${i}`, 'dormant', `P/G Gen ${i}`);
+                        setWireState(`p-wire-${i}`, false);
+                        setWireState(`g-wire-${i}`, false);
+                    } else if (val > 0 && val < 100) {
+                        setBlockState(`pg-block-${i}`, 'computing');
+                        setWireState(`p-wire-${i}`, false);
+                        setWireState(`g-wire-${i}`, false);
+                    } else {
+                        setBlockState(`pg-block-${i}`, 'done', '', 'Ready', 'pink-400', 'border-pink-500/50');
+                        setWireState(`p-wire-${i}`, true, 'bg-pink-500', 'text-pink-500');
+                        setWireState(`g-wire-${i}`, true, 'bg-blue-500', 'text-blue-500');
+                    }
+                }
+
+                // ==========================
+                // STAGE 2: LCU Calculation (100-200)
+                // ==========================
+                const lcuBlock = document.getElementById('lcu-block');
+                const lcuTitle = document.getElementById('lcu-title');
+
+                if (val <= 100) {
+                    lcuBlock.className = "w-full py-6 border-4 border-slate-700 lcu-complex-bg rounded-xl flex items-center justify-center relative transition-all duration-300";
+                    lcuTitle.className = "text-lg font-black text-slate-500 tracking-widest uppercase mb-1";
+                } else if (val > 100 && val < 200) {
+                    lcuBlock.className = "w-full py-6 border-4 border-amber-500 lcu-complex-bg rounded-xl shadow-[0_0_30px_rgba(245,158,11,0.6)] flex items-center justify-center relative transition-all duration-300";
+                    lcuTitle.className = "text-lg font-black text-amber-400 tracking-widest uppercase mb-1";
+                    lcuTitle.innerText = "Parallel Processing...";
+                } else {
+                    lcuBlock.className = "w-full py-6 border-4 border-purple-500 lcu-complex-bg rounded-xl shadow-[0_0_20px_rgba(168,85,247,0.4)] flex items-center justify-center relative transition-all duration-300";
+                    lcuTitle.className = "text-lg font-black text-purple-400 tracking-widest uppercase mb-1 drop-shadow-[0_0_5px_rgba(168,85,247,0.8)]";
+                    lcuTitle.innerText = "Lookahead Carry Unit";
+                }
+
+                // C_out from LCU to MSB out
+                const coutWire = document.getElementById('cout-wire');
+                const coutVal = document.getElementById('cout-val');
+                if (val >= 200) {
+                    coutWire.className = "w-6 h-1 bg-slate-500";
+                    coutVal.style.opacity = '1';
+                } else {
+                    coutWire.className = "w-6 h-1 bg-slate-700";
+                    coutVal.style.opacity = '0';
+                }
+
+                // ==========================
+                // STAGE 3: Sum Calculation (200-300)
+                // ==========================
+                for (let i = 0; i < 4; i++) {
+                    const finalSumEl = document.getElementById(`final-sum-${i}`);
+                    const finalWireEl = document.getElementById(`final-wire-${i}`);
+
+                    if (val <= 200) {
+                        setBlockState(`sum-block-${i}`, 'dormant', `Sum Gen ${i}`);
+                        setWireState(`p-bypass-${i}`, false);
+                        setWireState(`c-wire-${i}`, false);
+                        finalWireEl.className = "w-1 h-6 bg-slate-700 mt-2";
+                        finalSumEl.className = "digital-font text-xl font-bold text-slate-600 bg-slate-900 border border-slate-700 px-3 py-1 rounded";
+                        finalSumEl.innerText = "?";
+                    } else if (val > 200 && val < 300) {
+                        setBlockState(`sum-block-${i}`, 'computing');
+                        // Bypassed P wire active
+                        setWireState(`p-bypass-${i}`, true, 'bg-pink-500', 'text-pink-500');
+                        // C wire from LCU active
+                        setWireState(`c-wire-${i}`, true, 'bg-cyan-400', 'text-cyan-400');
+
+                        finalWireEl.className = "w-1 h-6 bg-slate-700 mt-2";
+                        finalSumEl.innerText = "?";
+                    } else {
+                        setBlockState(`sum-block-${i}`, 'done', '', 'Ready', 'emerald-400', 'border-emerald-500/50');
+                        setWireState(`p-bypass-${i}`, true, 'bg-pink-500', 'text-pink-500');
+                        setWireState(`c-wire-${i}`, true, 'bg-cyan-400', 'text-cyan-400');
+
+                        finalWireEl.className = "w-1 h-6 bg-emerald-500 mt-2 shadow-[0_0_8px_rgba(16,185,129,0.5)]";
+                        finalSumEl.className = "digital-font text-xl font-bold text-emerald-400 bg-slate-900 border border-emerald-500/50 px-3 py-1 rounded shadow-[0_0_10px_rgba(16,185,129,0.2)]";
+                        finalSumEl.innerText = logicData[i].sum;
+                    }
+                }
+
+                // Final Result Box
+                if (val >= 300) {
+                    resultBox.style.opacity = '1';
+                } else {
+                    resultBox.style.opacity = '0';
+                }
+
+                // Narrative Update
+                let currentNarrative = narratives[0].text;
+                for (let i = narratives.length - 1; i >= 0; i--) {
+                    if (val >= narratives[i].threshold) {
+                        currentNarrative = narratives[i].text;
+                        break;
+                    }
+                }
+
+                if (narrativeText.innerHTML !== currentNarrative) {
+                    narrativeText.style.opacity = 0;
+                    setTimeout(() => {
+                        narrativeText.innerHTML = currentNarrative;
+                        narrativeText.style.opacity = 1;
+                    }, 150);
+                }
+            }
+
+            // Playback Controls
+            slider.addEventListener('input', () => {
+                if (isPlaying) togglePlay();
+                updateVisualization();
+            });
+
+            function togglePlay() {
+                if (isPlaying) {
+                    clearInterval(playInterval);
+                    isPlaying = false;
+                    playBtn.innerHTML = `
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                        <span>Simulate</span>`;
+                    playBtn.classList.remove('bg-rose-500', 'hover:bg-rose-400', 'shadow-[0_0_15px_rgba(244,63,94,0.4)]');
+                    playBtn.classList.add('bg-purple-600', 'hover:bg-purple-500', 'shadow-[0_0_15px_rgba(168,85,247,0.4)]');
+                } else {
+                    if (parseInt(slider.value) >= 300) slider.value = 0;
+
+                    isPlaying = true;
+                    playBtn.innerHTML = `
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                        <span>Pause</span>`;
+                    playBtn.classList.remove('bg-purple-600', 'hover:bg-purple-500', 'shadow-[0_0_15px_rgba(168,85,247,0.4)]');
+                    playBtn.classList.add('bg-rose-500', 'hover:bg-rose-400', 'shadow-[0_0_15px_rgba(244,63,94,0.4)]');
+
+                    playInterval = setInterval(() => {
+                        let v = parseInt(slider.value);
+                        if (v >= 300) {
+                            togglePlay();
+                            playBtn.innerHTML = `
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path></svg>
+                                <span>Reset</span>`;
+                        } else {
+                            slider.value = v + 1;
+                            updateVisualization();
+                        }
+                    }, 15);
+                }
+            }
+
+            playBtn.addEventListener('click', togglePlay);
+            updateVisualization();
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Process: Multi-functional ALU</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow-x: hidden;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        .bg-grid {
+            background-size: 40px 40px;
+            background-image:
+                linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        }
+
+        .digital-font {
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        /* ALU V-Shape Styling */
+        .alu-wrapper {
+            filter: drop-shadow(0 0 20px rgba(51, 65, 85, 0.6));
+            transition: filter 0.4s ease;
+        }
+
+        .alu-shape {
+            /* Classic ALU Symbol: Top flat with a V notch, angled sides, flat bottom */
+            clip-path: polygon(0 0, 42% 0, 50% 15%, 58% 0, 100% 0, 85% 100%, 15% 100%);
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            border: 2px solid #475569;
+            /* Fallback if clip-path allows borders (it usually cuts them, so we rely on background) */
+        }
+
+        .mux-shape {
+            clip-path: polygon(5% 0, 95% 0, 100% 100%, 0% 100%);
+            background-color: #334155;
+        }
+
+        /* Wire Animations & Styles */
+        .wire {
+            transition: all 0.3s ease-in-out;
+        }
+
+        /* Specific Glow States */
+        .glow-blue {
+            background-color: #3b82f6 !important;
+            box-shadow: 0 0 10px #3b82f6;
+        }
+
+        .glow-purple {
+            background-color: #a855f7 !important;
+            box-shadow: 0 0 10px #a855f7;
+        }
+
+        .glow-emerald {
+            background-color: #10b981 !important;
+            box-shadow: 0 0 10px #10b981;
+        }
+
+        .glow-rose {
+            background-color: #f43f5e !important;
+            box-shadow: 0 0 10px #f43f5e;
+        }
+
+        .glow-amber {
+            background-color: #f59e0b !important;
+            box-shadow: 0 0 10px #f59e0b;
+        }
+
+        /* Dial Button Styling */
+        .dial-btn {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        .dial-btn.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background-color: currentColor;
+        }
+
+        /* Flag Styling */
+        .flag-box {
+            transition: all 0.3s;
+        }
+
+        .flag-active {
+            background-color: #ef4444;
+            color: white;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
+            border-color: #ef4444;
+        }
+    </style>
+</head>
+
+<body class="bg-grid min-h-screen flex flex-col items-center py-8 px-4 relative">
+
+    <div class="max-w-[1400px] w-full flex flex-col xl:flex-row gap-8 items-start relative z-10">
+
+        <!-- Left Side: Controls & Narrative -->
+        <div class="w-full xl:w-1/3 flex flex-col sticky top-8 shrink-0">
+            <h1 class="text-3xl font-bold mb-1 text-white tracking-tight">ALU Process</h1>
+            <h2 class="text-xl text-sky-400 mb-4 tracking-wide">Dynamic Reconfiguration</h2>
+            <p class="text-slate-400 text-sm mb-6 leading-relaxed">
+                Interact with the <b>ALUControl</b> selector to change how the Arithmetic Logic Unit processes the
+                static inputs <b class="text-white">A=5</b> and <b class="text-white">B=3</b>.
+            </p>
+
+            <div class="bg-slate-800/80 backdrop-blur p-5 rounded-xl border border-slate-700 shadow-xl mb-5">
+
+                <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-3">ALUControl Selector</h3>
+
+                <div class="flex flex-col gap-2 mb-6" id="control-panel">
+                    <button data-op="00"
+                        class="dial-btn active w-full text-left px-4 py-3 bg-slate-900 hover:bg-slate-700 border border-slate-600 rounded-lg text-blue-400 font-bold shadow-inner flex justify-between items-center">
+                        <span>00 : AND</span>
+                        <span class="text-xs font-mono opacity-60">A & B</span>
+                    </button>
+                    <button data-op="01"
+                        class="dial-btn w-full text-left px-4 py-3 bg-slate-900 hover:bg-slate-700 border border-slate-600 rounded-lg text-slate-500 font-bold flex justify-between items-center transition-colors">
+                        <span>01 : OR</span>
+                        <span class="text-xs font-mono opacity-60">A | B</span>
+                    </button>
+                    <button data-op="10"
+                        class="dial-btn w-full text-left px-4 py-3 bg-slate-900 hover:bg-slate-700 border border-slate-600 rounded-lg text-slate-500 font-bold flex justify-between items-center transition-colors">
+                        <span>10 : ADD</span>
+                        <span class="text-xs font-mono opacity-60">A + B</span>
+                    </button>
+                    <button data-op="11"
+                        class="dial-btn w-full text-left px-4 py-3 bg-slate-900 hover:bg-slate-700 border border-slate-600 rounded-lg text-slate-500 font-bold flex justify-between items-center transition-colors">
+                        <span>11 : SUB</span>
+                        <span class="text-xs font-mono opacity-60">A - B</span>
+                    </button>
+                </div>
+
+                <div class="h-32 relative">
+                    <div class="absolute inset-0 bg-slate-900/50 rounded-lg border border-slate-700 p-4">
+                        <p id="narrative-text"
+                            class="text-sm text-slate-300 leading-relaxed transition-opacity duration-300">
+                            The ALUControl is <b class="text-blue-400">00</b>. The Multiplexer connects the <b>AND
+                                Logic</b> output to the final Result. Note that all other blocks are still physically
+                            computing, but their results are ignored.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-sky-900/30 border border-sky-500/40 p-5 rounded-xl">
+                <h3 class="text-sky-400 font-semibold mb-2 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    The Grand Misconception
+                </h3>
+                <p class="text-xs text-sky-200/80 leading-relaxed">
+                    It is commonly thought that processors require separate, standalone physical circuits for every
+                    distinct logical command. In reality, an ALU is a unified <b>multi-functional unit</b>. It executes
+                    dozens of instructions by using Multiplexers to <i>reconfigure internal data routing</i>,
+                    drastically saving physical space.
+                </p>
+            </div>
+        </div>
+
+        <!-- Right Side: Interactive ALU Diagram -->
+        <div
+            class="w-full xl:w-2/3 flex justify-center items-center pt-8 pb-12 overflow-visible min-h-[650px] relative">
+
+            <!-- Drawing Canvas (Fixed Aspect) -->
+            <div class="w-[700px] h-[650px] relative">
+
+                <!-- Inputs Area -->
+                <div class="absolute top-0 left-0 w-full flex justify-between px-32 z-20">
+                    <!-- Input A -->
+                    <div class="flex flex-col items-center">
+                        <span class="text-slate-400 font-bold mb-1">Input A</span>
+                        <div class="bg-slate-800 border-2 border-slate-600 rounded-lg p-2 text-center shadow-lg">
+                            <div class="text-white text-2xl font-black">5</div>
+                            <div class="digital-font text-xs text-slate-400">0101</div>
+                        </div>
+                        <!-- Wire coming down from A -->
+                        <div class="w-1.5 h-16 bg-slate-600 mt-2 rounded wire" id="wire-a-main"></div>
+                    </div>
+
+                    <!-- Input B -->
+                    <div class="flex flex-col items-center">
+                        <span class="text-slate-400 font-bold mb-1">Input B</span>
+                        <div class="bg-slate-800 border-2 border-slate-600 rounded-lg p-2 text-center shadow-lg">
+                            <div class="text-white text-2xl font-black">3</div>
+                            <div class="digital-font text-xs text-slate-400">0011</div>
+                        </div>
+                        <!-- Wire coming down from B -->
+                        <div class="w-1.5 h-16 bg-slate-600 mt-2 rounded wire" id="wire-b-main"></div>
+                    </div>
+                </div>
+
+                <!-- Split Wires from Inputs to Internal Blocks -->
+                <div class="absolute top-[135px] left-0 w-full h-[60px] z-10">
+                    <!-- A splits -->
+                    <div class="absolute left-[157px] top-0 w-[180px] h-1.5 bg-slate-700 wire" id="wire-a-split"></div>
+                    <!-- Drops from A -->
+                    <div class="absolute left-[157px] top-0 w-1.5 h-[60px] bg-slate-700 wire" id="wire-a-drop1"></div>
+                    <div class="absolute left-[247px] top-0 w-1.5 h-[60px] bg-slate-700 wire" id="wire-a-drop2"></div>
+                    <div class="absolute left-[337px] top-0 w-1.5 h-[60px] bg-slate-700 wire" id="wire-a-drop3"></div>
+
+                    <!-- B splits -->
+                    <div class="absolute right-[157px] top-0 w-[180px] h-1.5 bg-slate-700 wire" id="wire-b-split"></div>
+                    <!-- Drops from B -->
+                    <div class="absolute right-[157px] top-0 w-1.5 h-[60px] bg-slate-700 wire" id="wire-b-drop3"></div>
+                    <div class="absolute right-[247px] top-0 w-1.5 h-[60px] bg-slate-700 wire" id="wire-b-drop2"></div>
+                    <div class="absolute right-[337px] top-0 w-1.5 h-[60px] bg-slate-700 wire" id="wire-b-drop1"></div>
+
+                    <!-- B Invert block (for SUB) -->
+                    <div class="absolute right-[337px] top-[25px] -translate-x-1/2 w-8 h-8 bg-slate-800 border border-rose-500/50 rounded-full flex items-center justify-center text-[10px] text-rose-400 opacity-30 transition-opacity z-20"
+                        id="b-invert-node">
+                        NOT
+                    </div>
+                </div>
+
+                <!-- Big ALU Background Shape -->
+                <div class="absolute top-[120px] left-1/2 -translate-x-1/2 w-[600px] h-[350px] alu-wrapper z-0"
+                    id="alu-glow">
+                    <div class="w-full h-full alu-shape opacity-90"></div>
+                </div>
+
+                <!-- Internal Computing Blocks -->
+                <div class="absolute top-[195px] w-full flex justify-center gap-12 z-20">
+
+                    <!-- AND Block -->
+                    <div class="flex flex-col items-center">
+                        <div class="w-24 h-24 bg-slate-900 border-2 border-slate-600 rounded-lg flex flex-col items-center justify-center shadow-inner transition-colors duration-300"
+                            id="block-and">
+                            <span class="text-slate-400 font-bold">AND</span>
+                            <span class="text-[10px] text-slate-500">&</span>
+                        </div>
+                        <div class="w-1.5 h-[60px] bg-slate-700 mt-0 wire" id="wire-out-and"></div>
+                    </div>
+
+                    <!-- OR Block -->
+                    <div class="flex flex-col items-center">
+                        <div class="w-24 h-24 bg-slate-900 border-2 border-slate-600 rounded-lg flex flex-col items-center justify-center shadow-inner transition-colors duration-300"
+                            id="block-or">
+                            <span class="text-slate-400 font-bold">OR</span>
+                            <span class="text-[10px] text-slate-500">|</span>
+                        </div>
+                        <div class="w-1.5 h-[60px] bg-slate-700 mt-0 wire" id="wire-out-or"></div>
+                    </div>
+
+                    <!-- ADD/SUB Block -->
+                    <div class="flex flex-col items-center relative">
+                        <div class="absolute -top-10 -right-16 flex items-center gap-1 opacity-30 transition-opacity"
+                            id="carry-in-node">
+                            <div class="w-8 h-1.5 bg-amber-500 wire glow-amber"></div>
+                            <span class="text-xs text-amber-500 font-bold">Cin=1</span>
+                        </div>
+
+                        <div class="w-28 h-24 bg-slate-900 border-2 border-slate-600 rounded-lg flex flex-col items-center justify-center shadow-inner transition-colors duration-300"
+                            id="block-add">
+                            <span class="text-slate-400 font-bold text-center leading-tight">Adder<br><span
+                                    class="text-[10px] font-normal">Subtractor</span></span>
+                            <span class="text-[10px] text-slate-500">+/-</span>
+                        </div>
+                        <div class="w-1.5 h-[60px] bg-slate-700 mt-0 wire" id="wire-out-add"></div>
+                    </div>
+                </div>
+
+                <!-- Multiplexer (MUX) -->
+                <div
+                    class="absolute top-[350px] left-1/2 -translate-x-1/2 w-[350px] h-[50px] z-20 flex justify-center items-center relative">
+                    <div class="absolute inset-0 mux-shape border-2 border-slate-500/50 shadow-lg"></div>
+                    <span class="text-slate-400 font-bold tracking-widest uppercase text-sm z-10">Multiplexer</span>
+
+                    <!-- ALUControl Input to MUX -->
+                    <div class="absolute -left-24 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                        <span
+                            class="text-xs font-bold px-2 py-1 bg-slate-800 rounded border border-slate-600 text-blue-400 transition-colors"
+                            id="mux-ctrl-val">00</span>
+                        <div class="w-12 h-1.5 bg-blue-500 wire glow-blue transition-colors" id="wire-ctrl-mux"></div>
+                    </div>
+
+                    <!-- Dynamic Internal MUX selection path (Visual trick: a moving dot or highlighted arrow) -->
+                    <div class="absolute bottom-0 left-[15%] w-[70%] h-1 bg-slate-800 rounded">
+                        <div class="w-4 h-4 bg-blue-500 rounded-full absolute -top-1.5 shadow-[0_0_10px_currentColor] transition-all duration-500 ease-in-out"
+                            id="mux-selector" style="left: 10%;"></div>
+                    </div>
+                </div>
+
+                <!-- Final Output Route -->
+                <div class="absolute top-[400px] left-1/2 -translate-x-1/2 flex flex-col items-center z-20">
+                    <div class="w-2.5 h-12 bg-slate-700 rounded wire" id="wire-final-out"></div>
+
+                    <!-- Result Box -->
+                    <div class="bg-slate-900 border-2 border-slate-600 rounded-xl p-4 text-center shadow-[0_4px_20px_rgba(0,0,0,0.5)] min-w-[200px] transition-colors"
+                        id="result-box">
+                        <span class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1 block">Final
+                            Result</span>
+                        <div class="text-white text-3xl font-black mb-1 transition-colors" id="result-val-dec">1</div>
+                        <div class="digital-font text-sm text-slate-400 transition-colors" id="result-val-bin">0001
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Flags -->
+                <div class="absolute top-[280px] right-0 w-24 z-20">
+                    <!-- Flag lines coming out of the ALU right side -->
+                    <div class="absolute -left-12 top-6 w-12 h-1.5 bg-slate-600 rounded"></div>
+
+                    <div class="bg-slate-800 border-2 border-slate-600 rounded-lg p-3 shadow-xl">
+                        <h4
+                            class="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center mb-2 border-b border-slate-700 pb-1">
+                            Flags</h4>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-[9px] text-slate-500">Negative</span>
+                                <div class="w-8 h-8 rounded border-2 border-slate-600 flex items-center justify-center font-bold text-slate-600 flag-box"
+                                    id="flag-n">N</div>
+                            </div>
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-[9px] text-slate-500">Zero</span>
+                                <div class="w-8 h-8 rounded border-2 border-slate-600 flex items-center justify-center font-bold text-slate-600 flag-box"
+                                    id="flag-z">Z</div>
+                            </div>
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-[9px] text-slate-500">Carry</span>
+                                <div class="w-8 h-8 rounded border-2 border-slate-600 flex items-center justify-center font-bold text-slate-600 flag-box"
+                                    id="flag-c">C</div>
+                            </div>
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-[9px] text-slate-500">Overflow</span>
+                                <div class="w-8 h-8 rounded border-2 border-slate-600 flex items-center justify-center font-bold text-slate-600 flag-box"
+                                    id="flag-v">V</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const buttons = document.querySelectorAll('.dial-btn');
+            const narrativeText = document.getElementById('narrative-text');
+
+            // UI Elements
+            const wireAMain = document.getElementById('wire-a-main');
+            const wireBMain = document.getElementById('wire-b-main');
+            const wireASplit = document.getElementById('wire-a-split');
+            const wireBSplit = document.getElementById('wire-b-split');
+
+            const wireADrops = [document.getElementById('wire-a-drop1'), document.getElementById('wire-a-drop2'), document.getElementById('wire-a-drop3')];
+            const wireBDrops = [document.getElementById('wire-b-drop1'), document.getElementById('wire-b-drop2'), document.getElementById('wire-b-drop3')];
+
+            const blockAnd = document.getElementById('block-and');
+            const blockOr = document.getElementById('block-or');
+            const blockAdd = document.getElementById('block-add');
+
+            const wireOutAnd = document.getElementById('wire-out-and');
+            const wireOutOr = document.getElementById('wire-out-or');
+            const wireOutAdd = document.getElementById('wire-out-add');
+
+            const muxSelector = document.getElementById('mux-selector');
+            const muxCtrlVal = document.getElementById('mux-ctrl-val');
+            const wireCtrlMux = document.getElementById('wire-ctrl-mux');
+            const wireFinalOut = document.getElementById('wire-final-out');
+
+            const resultBox = document.getElementById('result-box');
+            const resultValDec = document.getElementById('result-val-dec');
+            const resultValBin = document.getElementById('result-val-bin');
+
+            const flagN = document.getElementById('flag-n');
+            const flagZ = document.getElementById('flag-z');
+            const flagC = document.getElementById('flag-c');
+            const flagV = document.getElementById('flag-v');
+
+            const bInvertNode = document.getElementById('b-invert-node');
+            const carryInNode = document.getElementById('carry-in-node');
+
+            // Operation Data Map
+            // A = 5 (0101), B = 3 (0011)
+            const operations = {
+                '00': {
+                    name: 'AND', dec: '1', bin: '0001',
+                    n: 0, z: 0, c: 0, v: 0,
+                    color: 'blue', muxPos: '10%',
+                    narrative: "The ALUControl is <b class='text-blue-400'>00</b>. The Multiplexer connects the <b>AND Logic</b> output to the final Result. Note that all other blocks are still physically computing in the background, but their results are ignored by the MUX."
+                },
+                '01': {
+                    name: 'OR', dec: '7', bin: '0111',
+                    n: 0, z: 0, c: 0, v: 0,
+                    color: 'purple', muxPos: '48%',
+                    narrative: "The ALUControl is <b class='text-purple-400'>01</b>. The Multiplexer mechanically switches its internal routing to output the <b>OR Logic</b> block's result. No new hardware is needed; we just changed the path."
+                },
+                '10': {
+                    name: 'ADD', dec: '-8', bin: '1000',
+                    n: 1, z: 0, c: 0, v: 1, // 5 + 3 = 8 -> 1000 in 4-bit signed is -8. Overflow!
+                    color: 'emerald', muxPos: '85%',
+                    narrative: "The ALUControl is <b class='text-emerald-400'>10</b>. The MUX selects the <b>Adder</b>. Inputs 5 and 3 sum to 8 (1000 in binary). In 4-bit signed architecture, '1000' represents -8. This triggers the <b>Negative (N)</b> and <b>Overflow (V)</b> flags!"
+                },
+                '11': {
+                    name: 'SUB', dec: '2', bin: '0010',
+                    n: 0, z: 0, c: 1, v: 0, // 5 + (~3) + 1 = 5 + 12 + 1 = 18 = 10010 -> carry out is 1
+                    color: 'rose', muxPos: '85%',
+                    narrative: "The ALUControl is <b class='text-rose-400'>11</b>. This reuses the Adder for Subtraction by inverting Input B and setting CarryIn=1 (2's complement). The MUX routes the <b>Adder</b> output. 5 - 3 = 2. A <b>Carry (C)</b> flag is generated."
+                }
+            };
+
+            function clearStyles(el) {
+                el.className = el.className.replace(/glow-\w+|border-\w+-500|text-\w+-400|text-\w+-500|bg-\w+-900\/50/g, '').trim();
+            }
+
+            function setFlag(el, isActive) {
+                if (isActive) {
+                    el.classList.add('flag-active');
+                } else {
+                    el.classList.remove('flag-active');
+                }
+            }
+
+            function updateVisuals(opCode) {
+                const data = operations[opCode];
+
+                // 1. Update Buttons
+                buttons.forEach(btn => {
+                    btn.classList.remove('active', 'text-blue-400', 'text-purple-400', 'text-emerald-400', 'text-rose-400');
+                    btn.classList.add('text-slate-500');
+                    if (btn.dataset.op === opCode) {
+                        btn.classList.add('active', `text-${data.color}-400`);
+                        btn.classList.remove('text-slate-500');
+                    }
+                });
+
+                // 2. Narrative
+                narrativeText.style.opacity = 0;
+                setTimeout(() => {
+                    narrativeText.innerHTML = data.narrative;
+                    narrativeText.style.opacity = 1;
+                }, 200);
+
+                // 3. Reset all dynamic wires to default slate
+                const allDynamic = [
+                    wireOutAnd, wireOutOr, wireOutAdd, wireCtrlMux, wireFinalOut, muxCtrlVal,
+                    blockAnd, blockOr, blockAdd, resultBox, resultValDec, resultValBin
+                ];
+                allDynamic.forEach(el => clearStyles(el));
+
+                // Always active incoming wires (since hardware always computes)
+                [wireAMain, wireBMain, wireASplit, wireBSplit, ...wireADrops, ...wireBDrops].forEach(w => {
+                    w.classList.add('bg-slate-500'); // Dimmer than active, but "on"
+                });
+
+                // Subtraction special effects
+                if (opCode === '11') {
+                    bInvertNode.style.opacity = '1';
+                    bInvertNode.classList.add('border-rose-500', 'text-rose-400', 'shadow-[0_0_10px_rgba(244,63,94,0.5)]');
+                    carryInNode.style.opacity = '1';
+                    // Change last drop color
+                    wireBDrops[2].classList.replace('bg-slate-500', 'bg-rose-500');
+                    wireBDrops[2].classList.add('glow-rose');
+                } else {
+                    bInvertNode.style.opacity = '0.3';
+                    bInvertNode.classList.remove('border-rose-500', 'text-rose-400', 'shadow-[0_0_10px_rgba(244,63,94,0.5)]');
+                    carryInNode.style.opacity = '0';
+                    wireBDrops[2].classList.replace('bg-rose-500', 'bg-slate-500');
+                    wireBDrops[2].classList.remove('glow-rose');
+                }
+
+                // 4. Activate specific paths
+                muxCtrlVal.innerText = opCode;
+                muxCtrlVal.classList.add(`text-${data.color}-400`, `border-${data.color}-500/50`);
+                wireCtrlMux.classList.add(`glow-${data.color}`);
+
+                muxSelector.style.left = data.muxPos;
+                muxSelector.className = `w-4 h-4 rounded-full absolute -top-1.5 shadow-[0_0_10px_currentColor] transition-all duration-500 ease-in-out bg-${data.color}-500 text-${data.color}-500`;
+
+                if (opCode === '00') {
+                    blockAnd.classList.add(`border-${data.color}-500`, 'shadow-[0_0_15px_rgba(59,130,246,0.3)]');
+                    wireOutAnd.classList.add(`glow-${data.color}`);
+                } else if (opCode === '01') {
+                    blockOr.classList.add(`border-${data.color}-500`, 'shadow-[0_0_15px_rgba(168,85,247,0.3)]');
+                    wireOutOr.classList.add(`glow-${data.color}`);
+                } else {
+                    blockAdd.classList.add(`border-${data.color}-500`, `shadow-[0_0_15px_rgba(${opCode === '10' ? '16,185,129' : '244,63,94'},0.3)]`);
+                    wireOutAdd.classList.add(`glow-${data.color}`);
+                }
+
+                wireFinalOut.classList.add(`glow-${data.color}`);
+
+                resultBox.classList.add(`border-${data.color}-500/50`, `bg-${data.color}-900/10`);
+                resultValDec.innerText = data.dec;
+                resultValDec.classList.add(`text-${data.color}-400`);
+                resultValBin.innerText = data.bin;
+                resultValBin.classList.add(`text-${data.color}-300`);
+
+                // 5. Update Flags
+                setFlag(flagN, data.n);
+                setFlag(flagZ, data.z);
+                setFlag(flagC, data.c);
+                setFlag(flagV, data.v);
+            }
+
+            // Event Listeners
+            buttons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const op = e.currentTarget.dataset.op;
+                    updateVisuals(op);
+                });
+            });
+
+            // Init
+            updateVisuals('00');
+        });
+    </script>
+</body>
+
+</html>

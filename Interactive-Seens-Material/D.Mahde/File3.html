@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ripple Carry Adder Time Evolution</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow-x: hidden;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        .bg-grid {
+            background-size: 40px 40px;
+            background-image:
+                linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        }
+
+        /* Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
+            transition: transform 0.1s;
+        }
+
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        .digital-font {
+            font-family: 'Courier New', Courier, monospace;
+        }
+    </style>
+</head>
+
+<body class="bg-grid min-h-screen flex flex-col items-center py-12 px-4 relative">
+
+    <div class="max-w-6xl w-full flex flex-col xl:flex-row gap-12 items-start relative z-10">
+
+        <!-- Left Side: Controls & Narrative -->
+        <div class="w-full xl:w-1/3 flex flex-col sticky top-12">
+            <h1 class="text-3xl font-bold mb-2 text-white tracking-tight">Time Evolution</h1>
+            <h2 class="text-xl text-sky-400 mb-6 tracking-wide">Ripple Carry Adder</h2>
+            <p class="text-slate-400 text-sm mb-8 leading-relaxed">
+                Observe how physical time constraints affect logical operations. We are computing <b>0111 + 0001</b> (7
+                + 1 = 8 in decimal).
+            </p>
+
+            <div class="bg-slate-800/80 backdrop-blur p-6 rounded-xl border border-slate-700 shadow-xl mb-6">
+                <!-- Clock Meter -->
+                <div
+                    class="bg-slate-900 border border-slate-600 p-4 rounded-lg flex items-center justify-between mb-6 shadow-inner">
+                    <span class="text-slate-400 text-sm uppercase tracking-wider font-semibold flex items-center gap-2">
+                        <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Global Delay
+                    </span>
+                    <span id="clock-display"
+                        class="digital-font text-3xl font-bold text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]">
+                        0.00 Δt
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-4 mb-4">
+                    <button id="play-btn"
+                        class="bg-sky-500 hover:bg-sky-400 text-slate-900 font-bold py-2 px-4 rounded-lg transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(14,165,233,0.4)]">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                                clip-rule="evenodd"></path>
+                        </svg>
+                        <span>Simulate</span>
+                    </button>
+                    <div class="flex-grow">
+                        <input type="range" id="time-slider" min="0" max="400" value="0" class="w-full">
+                    </div>
+                </div>
+
+                <div class="h-40 relative mt-4">
+                    <div class="absolute inset-0 bg-slate-900/50 rounded-lg border border-slate-700 p-4">
+                        <p id="narrative-text"
+                            class="text-sm text-slate-300 leading-relaxed transition-opacity duration-300">
+                            AWAITING COMPUTATION: Inputs are ready. Time is frozen at t=0. Press Simulate or drag the
+                            slider to begin.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-rose-900/30 border border-rose-500/40 p-5 rounded-xl">
+                <h3 class="text-rose-400 font-semibold mb-2 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                        </path>
+                    </svg>
+                    The Grand Misconception
+                </h3>
+                <p class="text-xs text-rose-200/80 leading-relaxed">
+                    Software code (e.g., `A + B`) creates the illusion that multi-bit binary addition occurs
+                    instantaneously across all bits. In hardware, a Ripple Carry Adder suffers from <b>O(N) linear
+                        delay</b>. The Most Significant Bit (far left) cannot know its final state until the physical
+                    carry signal ripples sequentially through every preceding logic block.
+                </p>
+            </div>
+        </div>
+
+        <!-- Right Side: Circuit Diagram -->
+        <div
+            class="w-full xl:w-2/3 flex flex-col items-center justify-center pt-10 pb-20 overflow-x-auto min-h-[500px]">
+
+            <div
+                class="flex flex-col items-center bg-slate-800/40 p-12 rounded-2xl border border-slate-700/50 w-full min-w-[800px]">
+
+                <!-- Diagram Header Labels -->
+                <div class="w-full flex justify-between px-16 mb-6">
+                    <span class="text-slate-500 text-sm font-bold tracking-widest uppercase">Most Significant Bit
+                        (MSB)</span>
+                    <span class="text-slate-500 text-sm font-bold tracking-widest uppercase">Least Significant Bit
+                        (LSB)</span>
+                </div>
+
+                <!-- ADDER CHAIN CONTAINER (flex-row-reverse visually flows right to left) -->
+                <div class="flex justify-center items-center flex-row-reverse">
+
+                    <!-- LSB C_in (always 0) -->
+                    <div class="w-12 h-6 relative flex items-center shrink-0">
+                        <div class="absolute right-0 h-0.5 bg-slate-600 w-full"></div>
+                        <span
+                            class="absolute -top-6 text-xs font-bold text-slate-500 w-full text-right pr-2">C_in=0</span>
+                    </div>
+
+                    <!-- Generate 4 Full Adders using HTML structure -->
+                    <!-- FA 0 -->
+                    <div id="fa-0"
+                        class="adder-block relative w-24 h-32 rounded-xl border-2 border-slate-700 bg-slate-800 flex flex-col items-center justify-center transition-all duration-300 z-10 shrink-0">
+                        <div class="absolute -top-12 flex gap-6 w-full justify-center">
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-xs text-slate-400">A₀</span>
+                                <span
+                                    class="text-base font-bold text-white px-2 bg-slate-900 border border-slate-700 rounded shadow-inner">1</span>
+                                <div class="w-0.5 h-6 bg-slate-600"></div>
+                            </div>
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-xs text-slate-400">B₀</span>
+                                <span
+                                    class="text-base font-bold text-white px-2 bg-slate-900 border border-slate-700 rounded shadow-inner">1</span>
+                                <div class="w-0.5 h-6 bg-slate-600"></div>
+                            </div>
+                        </div>
+                        <h3 class="font-bold text-slate-500 tracking-wider">FA₀</h3>
+                        <div class="absolute -bottom-14 flex flex-col items-center">
+                            <div id="sum-wire-0" class="w-0.5 h-8 bg-slate-700 transition-colors"></div>
+                            <span id="sum-val-0"
+                                class="digital-font text-lg font-bold text-slate-600 border-2 border-slate-700 rounded px-3 py-1 bg-slate-900 transition-colors">?</span>
+                            <span class="text-xs text-emerald-500 mt-2 font-bold opacity-0 transition-opacity"
+                                id="sum-label-0">S₀</span>
+                        </div>
+                    </div>
+
+                    <!-- Carry Wire 0 -> 1 -->
+                    <div class="w-20 h-6 relative flex items-center shrink-0">
+                        <div class="absolute right-0 h-1 bg-slate-700 w-full"></div>
+                        <div id="carry-wire-0"
+                            class="absolute right-0 h-1 bg-cyan-400 shadow-[0_0_10px_cyan] transition-all"
+                            style="width: 0%;"></div>
+                        <span id="carry-val-0"
+                            class="absolute -top-7 text-xs font-bold text-cyan-400 w-full text-center opacity-0 transition-opacity">C=1</span>
+                        <!-- Flow arrow -->
+                        <div id="carry-arrow-0"
+                            class="absolute left-0 top-1/2 -translate-y-1/2 border-y-4 border-y-transparent border-r-[6px] border-r-slate-700 transition-colors">
+                        </div>
+                    </div>
+
+                    <!-- FA 1 -->
+                    <div id="fa-1"
+                        class="adder-block relative w-24 h-32 rounded-xl border-2 border-slate-700 bg-slate-800 flex flex-col items-center justify-center transition-all duration-300 z-10 shrink-0">
+                        <div class="absolute -top-12 flex gap-6 w-full justify-center">
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-xs text-slate-400">A₁</span>
+                                <span
+                                    class="text-base font-bold text-white px-2 bg-slate-900 border border-slate-700 rounded shadow-inner">1</span>
+                                <div class="w-0.5 h-6 bg-slate-600"></div>
+                            </div>
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-xs text-slate-400">B₁</span>
+                                <span
+                                    class="text-base font-bold text-white px-2 bg-slate-900 border border-slate-700 rounded shadow-inner">0</span>
+                                <div class="w-0.5 h-6 bg-slate-600"></div>
+                            </div>
+                        </div>
+                        <h3 class="font-bold text-slate-500 tracking-wider">FA₁</h3>
+                        <div class="absolute -bottom-14 flex flex-col items-center">
+                            <div id="sum-wire-1" class="w-0.5 h-8 bg-slate-700 transition-colors"></div>
+                            <span id="sum-val-1"
+                                class="digital-font text-lg font-bold text-slate-600 border-2 border-slate-700 rounded px-3 py-1 bg-slate-900 transition-colors">?</span>
+                            <span class="text-xs text-emerald-500 mt-2 font-bold opacity-0 transition-opacity"
+                                id="sum-label-1">S₁</span>
+                        </div>
+                    </div>
+
+                    <!-- Carry Wire 1 -> 2 -->
+                    <div class="w-20 h-6 relative flex items-center shrink-0">
+                        <div class="absolute right-0 h-1 bg-slate-700 w-full"></div>
+                        <div id="carry-wire-1"
+                            class="absolute right-0 h-1 bg-cyan-400 shadow-[0_0_10px_cyan] transition-all"
+                            style="width: 0%;"></div>
+                        <span id="carry-val-1"
+                            class="absolute -top-7 text-xs font-bold text-cyan-400 w-full text-center opacity-0 transition-opacity">C=1</span>
+                        <div id="carry-arrow-1"
+                            class="absolute left-0 top-1/2 -translate-y-1/2 border-y-4 border-y-transparent border-r-[6px] border-r-slate-700 transition-colors">
+                        </div>
+                    </div>
+
+                    <!-- FA 2 -->
+                    <div id="fa-2"
+                        class="adder-block relative w-24 h-32 rounded-xl border-2 border-slate-700 bg-slate-800 flex flex-col items-center justify-center transition-all duration-300 z-10 shrink-0">
+                        <div class="absolute -top-12 flex gap-6 w-full justify-center">
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-xs text-slate-400">A₂</span>
+                                <span
+                                    class="text-base font-bold text-white px-2 bg-slate-900 border border-slate-700 rounded shadow-inner">1</span>
+                                <div class="w-0.5 h-6 bg-slate-600"></div>
+                            </div>
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-xs text-slate-400">B₂</span>
+                                <span
+                                    class="text-base font-bold text-white px-2 bg-slate-900 border border-slate-700 rounded shadow-inner">0</span>
+                                <div class="w-0.5 h-6 bg-slate-600"></div>
+                            </div>
+                        </div>
+                        <h3 class="font-bold text-slate-500 tracking-wider">FA₂</h3>
+                        <div class="absolute -bottom-14 flex flex-col items-center">
+                            <div id="sum-wire-2" class="w-0.5 h-8 bg-slate-700 transition-colors"></div>
+                            <span id="sum-val-2"
+                                class="digital-font text-lg font-bold text-slate-600 border-2 border-slate-700 rounded px-3 py-1 bg-slate-900 transition-colors">?</span>
+                            <span class="text-xs text-emerald-500 mt-2 font-bold opacity-0 transition-opacity"
+                                id="sum-label-2">S₂</span>
+                        </div>
+                    </div>
+
+                    <!-- Carry Wire 2 -> 3 -->
+                    <div class="w-20 h-6 relative flex items-center shrink-0">
+                        <div class="absolute right-0 h-1 bg-slate-700 w-full"></div>
+                        <div id="carry-wire-2"
+                            class="absolute right-0 h-1 bg-cyan-400 shadow-[0_0_10px_cyan] transition-all"
+                            style="width: 0%;"></div>
+                        <span id="carry-val-2"
+                            class="absolute -top-7 text-xs font-bold text-cyan-400 w-full text-center opacity-0 transition-opacity">C=1</span>
+                        <div id="carry-arrow-2"
+                            class="absolute left-0 top-1/2 -translate-y-1/2 border-y-4 border-y-transparent border-r-[6px] border-r-slate-700 transition-colors">
+                        </div>
+                    </div>
+
+                    <!-- FA 3 (MSB) -->
+                    <div id="fa-3"
+                        class="adder-block relative w-24 h-32 rounded-xl border-2 border-slate-700 bg-slate-800 flex flex-col items-center justify-center transition-all duration-300 z-10 shrink-0">
+                        <div class="absolute -top-12 flex gap-6 w-full justify-center">
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-xs text-slate-400">A₃</span>
+                                <span
+                                    class="text-base font-bold text-white px-2 bg-slate-900 border border-slate-700 rounded shadow-inner">0</span>
+                                <div class="w-0.5 h-6 bg-slate-600"></div>
+                            </div>
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-xs text-slate-400">B₃</span>
+                                <span
+                                    class="text-base font-bold text-white px-2 bg-slate-900 border border-slate-700 rounded shadow-inner">0</span>
+                                <div class="w-0.5 h-6 bg-slate-600"></div>
+                            </div>
+                        </div>
+                        <h3 class="font-bold text-slate-500 tracking-wider">FA₃</h3>
+                        <div class="absolute -bottom-14 flex flex-col items-center">
+                            <div id="sum-wire-3" class="w-0.5 h-8 bg-slate-700 transition-colors"></div>
+                            <span id="sum-val-3"
+                                class="digital-font text-lg font-bold text-slate-600 border-2 border-slate-700 rounded px-3 py-1 bg-slate-900 transition-colors">?</span>
+                            <span class="text-xs text-emerald-500 mt-2 font-bold opacity-0 transition-opacity"
+                                id="sum-label-3">S₃</span>
+                        </div>
+                    </div>
+
+                    <!-- Final Carry Out -->
+                    <div class="w-20 h-6 relative flex items-center shrink-0">
+                        <div class="absolute right-0 h-1 bg-slate-700 w-full"></div>
+                        <div id="carry-wire-3" class="absolute right-0 h-1 bg-slate-500 transition-all"
+                            style="width: 0%;"></div>
+                        <span id="carry-val-3"
+                            class="absolute -top-7 text-xs font-bold text-slate-400 w-full text-center opacity-0 transition-opacity">C=0</span>
+                        <span id="cout-label"
+                            class="absolute left-[-30px] -top-3 text-xs font-bold text-slate-500 opacity-0 transition-opacity">C_out</span>
+                        <div id="carry-arrow-3"
+                            class="absolute left-0 top-1/2 -translate-y-1/2 border-y-4 border-y-transparent border-r-[6px] border-r-slate-700 transition-colors">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="final-result-box"
+                    class="mt-24 py-3 px-6 bg-slate-900 border border-slate-700 rounded-lg shadow-inner opacity-0 transition-opacity duration-1000 flex items-center gap-4">
+                    <span class="text-slate-400 font-semibold tracking-wider">FINAL RESULT (S₃S₂S₁S₀):</span>
+                    <span class="digital-font text-2xl font-bold text-emerald-400 tracking-[0.2em]">1000</span>
+                    <span class="text-slate-500 text-sm ml-2">(Binary 8)</span>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const slider = document.getElementById('time-slider');
+            const narrativeText = document.getElementById('narrative-text');
+            const clockDisplay = document.getElementById('clock-display');
+            const playBtn = document.getElementById('play-btn');
+            const resultBox = document.getElementById('final-result-box');
+
+            // Physical Block Configuration based on A=0111, B=0001
+            // A + B = Sum, Cout
+            // 1 + 1 + 0 = 0, C=1
+            // 1 + 0 + 1 = 0, C=1
+            // 1 + 0 + 1 = 0, C=1
+            // 0 + 0 + 1 = 1, C=0
+            const blocks = [
+                { id: 0, sum: 0, cout: 1 },
+                { id: 1, sum: 0, cout: 1 },
+                { id: 2, sum: 0, cout: 1 },
+                { id: 3, sum: 1, cout: 0 }
+            ];
+
+            const narratives = [
+                { threshold: 0, text: "AWAITING COMPUTATION: Inputs are ready. Time is frozen at t=0. Press Simulate or drag the slider to begin." },
+                { threshold: 10, text: "STAGE 0: FA₀ (Least Significant Bit) begins computing A₀+B₀. It physically processes voltage levels but the Carry output is not yet stable." },
+                { threshold: 100, text: "STAGE 1: FA₀ finishes at 1.0Δt. It outputs Sum₀=0 and Carry=1. The Carry signal physically travels along the wire into FA₁." },
+                { threshold: 120, text: "STAGE 1: FA₁ was blocked until now. Receiving Carry=1, it finally begins computing A₁+B₁+C. Higher bits remain dormant." },
+                { threshold: 200, text: "STAGE 2: FA₁ finishes at 2.0Δt. It outputs Sum₁=0 and propagates Carry=1 sequentially into FA₂." },
+                { threshold: 220, text: "STAGE 2: FA₂ receives Carry=1. Only now can it legitimately compute its sum and carry out. The delay compounds linearly." },
+                { threshold: 300, text: "STAGE 3: FA₂ finishes at 3.0Δt. It outputs Sum₂=0 and passes Carry=1. The Most Significant Bit (FA₃) finally receives its needed dependency." },
+                { threshold: 320, text: "FINAL STAGE: FA₃ computes the final addition based on the ripple effect spanning the entire chip." },
+                { threshold: 400, text: "COMPLETED: At 4.0Δt, the MSB completes. The final binary sum is ready. A simple N-bit addition required N physical time steps." }
+            ];
+
+            let isPlaying = false;
+            let playInterval;
+
+            function formatClock(val) {
+                return (val / 100).toFixed(2) + " Δt";
+            }
+
+            function updateVisualization() {
+                const val = parseInt(slider.value);
+
+                // Update Clock
+                clockDisplay.innerText = formatClock(val);
+                if (val > 0) {
+                    clockDisplay.classList.remove('text-amber-400');
+                    clockDisplay.classList.add('text-amber-300');
+                }
+
+                // Update Blocks and Wires
+                blocks.forEach((block, i) => {
+                    const start = i * 100;
+                    const end = (i + 1) * 100;
+
+                    const faEl = document.getElementById(`fa-${i}`);
+                    const titleEl = faEl.querySelector('h3');
+                    const sumWireEl = document.getElementById(`sum-wire-${i}`);
+                    const sumValEl = document.getElementById(`sum-val-${i}`);
+                    const sumLabelEl = document.getElementById(`sum-label-${i}`);
+                    const carryWireEl = document.getElementById(`carry-wire-${i}`);
+                    const carryValEl = document.getElementById(`carry-val-${i}`);
+                    const carryArrowEl = document.getElementById(`carry-arrow-${i}`);
+
+                    if (val <= start) {
+                        // 1. Dormant State
+                        faEl.className = "adder-block relative w-24 h-32 rounded-xl border-2 border-slate-700 bg-slate-800 flex flex-col items-center justify-center transition-colors duration-200 z-10 shrink-0";
+                        titleEl.className = "font-bold text-slate-500 tracking-wider";
+
+                        sumWireEl.className = "w-0.5 h-8 bg-slate-700 transition-colors";
+                        sumValEl.className = "digital-font text-lg font-bold text-slate-600 border-2 border-slate-700 rounded px-3 py-1 bg-slate-900 transition-colors";
+                        sumValEl.innerText = "?";
+                        sumLabelEl.style.opacity = "0";
+
+                        carryWireEl.style.width = "0%";
+                        carryValEl.style.opacity = "0";
+                        carryArrowEl.className = "absolute left-0 top-1/2 -translate-y-1/2 border-y-4 border-y-transparent border-r-[6px] border-r-slate-700 transition-colors";
+
+                    } else if (val > start && val < end) {
+                        // 2. Computing Phase (Amber Pulse)
+                        let p = (val - start) / 100; // 0 to 1
+
+                        if (p < 0.6) {
+                            // Internal processing (0% to 60% of step)
+                            faEl.className = "adder-block relative w-24 h-32 rounded-xl border-2 border-amber-500 bg-slate-800 flex flex-col items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.5)] transition-none z-10 shrink-0";
+                            titleEl.className = "font-bold text-amber-400 tracking-wider";
+
+                            sumValEl.innerText = "?";
+                            carryWireEl.style.width = "0%";
+                            carryValEl.style.opacity = "0";
+                        } else {
+                            // Signal propagating out (60% to 100% of step)
+                            let flowProgress = (p - 0.6) / 0.4; // normalized 0 to 1
+
+                            faEl.className = "adder-block relative w-24 h-32 rounded-xl border-2 border-emerald-500 bg-slate-800 flex flex-col items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-colors duration-300 z-10 shrink-0";
+                            titleEl.className = "font-bold text-emerald-400 tracking-wider";
+
+                            // Output sum
+                            sumWireEl.className = "w-0.5 h-8 bg-emerald-500 transition-colors";
+                            sumValEl.className = "digital-font text-lg font-bold text-emerald-400 border-2 border-emerald-500/50 rounded px-3 py-1 bg-slate-900 shadow-[0_0_10px_rgba(16,185,129,0.2)] transition-colors";
+                            sumValEl.innerText = block.sum;
+                            sumLabelEl.style.opacity = "1";
+
+                            // Animate Carry flow
+                            carryWireEl.style.width = `${flowProgress * 100}%`;
+                            carryValEl.style.opacity = flowProgress > 0.4 ? "1" : "0";
+
+                            if (block.cout === 1) {
+                                carryWireEl.className = "absolute right-0 h-1 bg-cyan-400 shadow-[0_0_10px_cyan]";
+                                carryValEl.className = "absolute -top-7 text-xs font-bold text-cyan-400 w-full text-center transition-opacity";
+                                if (flowProgress > 0.95) {
+                                    carryArrowEl.className = "absolute left-0 top-1/2 -translate-y-1/2 border-y-4 border-y-transparent border-r-[6px] border-r-cyan-400 drop-shadow-[0_0_5px_cyan]";
+                                }
+                            } else {
+                                carryWireEl.className = "absolute right-0 h-1 bg-slate-400";
+                                carryValEl.className = "absolute -top-7 text-xs font-bold text-slate-400 w-full text-center transition-opacity";
+                                if (flowProgress > 0.95) {
+                                    carryArrowEl.className = "absolute left-0 top-1/2 -translate-y-1/2 border-y-4 border-y-transparent border-r-[6px] border-r-slate-400";
+                                }
+                            }
+                        }
+                    } else {
+                        // 3. Completed State (Settled Emerald)
+                        faEl.className = "adder-block relative w-24 h-32 rounded-xl border-2 border-emerald-500/40 bg-slate-800 flex flex-col items-center justify-center transition-colors duration-500 z-10 shrink-0";
+                        titleEl.className = "font-bold text-emerald-500/80 tracking-wider";
+
+                        sumWireEl.className = "w-0.5 h-8 bg-emerald-500/60";
+                        sumValEl.className = "digital-font text-lg font-bold text-emerald-400 border-2 border-emerald-500/30 rounded px-3 py-1 bg-slate-900";
+                        sumValEl.innerText = block.sum;
+                        sumLabelEl.style.opacity = "1";
+
+                        carryWireEl.style.width = "100%";
+                        carryValEl.style.opacity = "1";
+
+                        if (block.cout === 1) {
+                            carryWireEl.className = "absolute right-0 h-1 bg-cyan-400 shadow-[0_0_6px_cyan]";
+                            carryValEl.className = "absolute -top-7 text-xs font-bold text-cyan-400 w-full text-center transition-opacity";
+                            carryArrowEl.className = "absolute left-0 top-1/2 -translate-y-1/2 border-y-4 border-y-transparent border-r-[6px] border-r-cyan-400";
+                        } else {
+                            carryWireEl.className = "absolute right-0 h-1 bg-slate-400";
+                            carryValEl.className = "absolute -top-7 text-xs font-bold text-slate-400 w-full text-center transition-opacity";
+                            carryArrowEl.className = "absolute left-0 top-1/2 -translate-y-1/2 border-y-4 border-y-transparent border-r-[6px] border-r-slate-400";
+                        }
+                    }
+                });
+
+                // Final Carry out Label visibility
+                if (val >= 400) {
+                    document.getElementById('cout-label').style.opacity = '1';
+                    resultBox.style.opacity = '1';
+                } else {
+                    document.getElementById('cout-label').style.opacity = '0';
+                    resultBox.style.opacity = '0';
+                }
+
+                // Update Narrative Text
+                let currentNarrative = narratives[0].text;
+                for (let i = narratives.length - 1; i >= 0; i--) {
+                    if (val >= narratives[i].threshold) {
+                        currentNarrative = narratives[i].text;
+                        break;
+                    }
+                }
+
+                if (narrativeText.innerText !== currentNarrative) {
+                    narrativeText.style.opacity = 0;
+                    setTimeout(() => {
+                        narrativeText.innerHTML = currentNarrative.replace(/(STAGE \d:|FINAL STAGE:|AWAITING COMPUTATION:|COMPLETED:)/g, '<b>$1</b>');
+                        narrativeText.style.opacity = 1;
+                    }, 150);
+                }
+            }
+
+            // Controls
+            slider.addEventListener('input', () => {
+                if (isPlaying) togglePlay(); // stop auto-play on manual override
+                updateVisualization();
+            });
+
+            function togglePlay() {
+                if (isPlaying) {
+                    clearInterval(playInterval);
+                    isPlaying = false;
+                    playBtn.innerHTML = `
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                        <span>Simulate</span>`;
+                    playBtn.classList.remove('bg-rose-500', 'hover:bg-rose-400', 'shadow-[0_0_15px_rgba(244,63,94,0.4)]');
+                    playBtn.classList.add('bg-sky-500', 'hover:bg-sky-400', 'shadow-[0_0_15px_rgba(14,165,233,0.4)]');
+                } else {
+                    if (parseInt(slider.value) >= 400) slider.value = 0; // restart
+
+                    isPlaying = true;
+                    playBtn.innerHTML = `
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                        <span>Pause</span>`;
+                    playBtn.classList.remove('bg-sky-500', 'hover:bg-sky-400', 'shadow-[0_0_15px_rgba(14,165,233,0.4)]');
+                    playBtn.classList.add('bg-rose-500', 'hover:bg-rose-400', 'shadow-[0_0_15px_rgba(244,63,94,0.4)]');
+
+                    playInterval = setInterval(() => {
+                        let v = parseInt(slider.value);
+                        if (v >= 400) {
+                            togglePlay(); // Reached end, stop automatically
+                            playBtn.innerHTML = `
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path></svg>
+                                <span>Reset</span>`;
+                        } else {
+                            slider.value = v + 1; // Smooth increment
+                            updateVisualization();
+                        }
+                    }, 15); // ~6 seconds total simulation
+                }
+            }
+
+            playBtn.addEventListener('click', togglePlay);
+
+            // Initialize view
+            updateVisualization();
+        });
+    </script>
+</body>
+
+</html>
