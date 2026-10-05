@@ -2,76 +2,124 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Inclined Plane Physics</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
         body {
             margin: 0;
             overflow: hidden;
             background-color: #0f172a; /* Tailwind slate-900 */
             color: #f8fafc;
-            font-family: 'Inter', sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
             user-select: none;
-        }
-        #canvas-container {
             width: 100vw;
             height: 100vh;
-            display: block;
+            height: 100dvh;
+        }
+        #canvas-container {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+            z-index: 1;
         }
         
         #ui-container {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(30, 41, 59, 0.9);
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.8);
+            top: 1rem;
+            left: 1rem;
+            background: rgba(30, 41, 59, 0.92);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.8), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(12px);
-            border: 1px solid rgba(148, 163, 184, 0.15);
-            width: 380px;
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 1rem;
+            width: calc(100vw - 2rem);
+            max-width: 380px;
+            max-height: calc(100dvh - 2rem);
             pointer-events: auto;
             z-index: 10;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.4); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.6); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.8); }
+
         .slider-container {
-            margin-bottom: 1.25rem;
+            margin-bottom: 0.75rem;
         }
         input[type=range] {
             width: 100%;
             accent-color: #38bdf8;
+            height: 28px;
+            background: transparent;
+            outline: none;
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
             height: 6px;
             border-radius: 3px;
             background: #334155;
-            outline: none;
-            -webkit-appearance: none;
         }
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 16px;
-            height: 16px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
             background: #38bdf8;
             cursor: pointer;
-            box-shadow: 0 0 5px rgba(56, 189, 248, 0.5);
+            margin-top: -7px;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+            transition: transform 0.15s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover,
+        input[type=range]:active::-webkit-slider-thumb {
+            transform: scale(1.15);
+        }
+        input[type=range]::-moz-range-track {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #334155;
+        }
+        input[type=range]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #38bdf8;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
         }
         
         #math-display {
-            font-family: 'Courier New', Courier, monospace;
-            background: rgba(15, 23, 42, 0.7);
-            padding: 16px;
-            border-radius: 8px;
-            margin-top: 16px;
-            font-size: 0.9rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            background: rgba(15, 23, 42, 0.75);
+            padding: 12px;
+            border-radius: 0.5rem;
+            font-size: 0.85rem;
             border: 1px solid rgba(56, 189, 248, 0.2);
         }
         .accel-gauge-bg {
             background-color: #1e293b;
-            height: 12px;
-            border-radius: 6px;
+            height: 10px;
+            border-radius: 5px;
             overflow: hidden;
-            margin-top: 8px;
+            margin-top: 6px;
             position: relative;
         }
         .accel-gauge-fill {
@@ -89,83 +137,139 @@
         
         .scene-label {
             position: absolute;
-            background: rgba(15, 23, 42, 0.8);
+            background: rgba(15, 23, 42, 0.85);
             color: white;
-            padding: 4px 8px;
+            padding: 3px 6px;
             border-radius: 4px;
-            font-size: 12px;
-            font-family: monospace;
+            font-size: 11px;
+            font-family: ui-monospace, monospace;
             pointer-events: none;
             transform: translate(-50%, -50%);
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.15);
             white-space: nowrap;
             transition: opacity 0.2s;
+            z-index: 5;
+        }
+
+        @media (max-width: 640px) {
+            #ui-container {
+                top: 0.75rem;
+                left: 0.75rem;
+                width: calc(100vw - 1.5rem);
+                max-width: calc(100vw - 1.5rem);
+                max-height: calc(100dvh - 1.5rem);
+            }
+        }
+        @media (max-height: 500px) and (orientation: landscape) {
+            #ui-container {
+                top: 0.5rem;
+                left: 0.5rem;
+                max-width: 320px;
+                max-height: calc(100dvh - 1rem);
+            }
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
-<body>
+<body class="select-none">
 
     <div id="ui-container">
-        <h1 class="text-xl font-bold mb-1 text-white">Block on Incline</h1>
-        <p class="text-sm text-slate-300 mb-5 border-b border-slate-600 pb-3">
-            Analyze the forces and sliding motion.
-        </p>
-        
-        <!-- Controls -->
-        <div class="slider-container">
-            <div class="flex justify-between text-sm mb-2">
-                <label for="angle-slider" class="text-slate-200">Inclination Angle (&theta;)</label>
-                <span id="angle-val" class="font-mono text-sky-400">20&deg;</span>
+        <!-- Header with Toggle Button -->
+        <div class="flex items-center justify-between p-3.5 sm:p-4 border-b border-slate-700/80 cursor-pointer select-none" id="ui-header">
+            <div class="flex items-center space-x-2">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse"></span>
+                <h1 class="text-base sm:text-lg font-bold text-white tracking-tight">Block on Incline</h1>
             </div>
-            <input type="range" id="angle-slider" min="0" max="60" step="1" value="20">
+            <button id="toggle-btn" class="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/60 transition" aria-label="Toggle UI Panel" title="Toggle Panel">
+                <svg id="toggle-icon" class="w-5 h-5 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
         </div>
 
-        <div class="slider-container">
-            <div class="flex justify-between text-sm mb-2">
-                <label for="fric-slider" class="text-slate-200">Friction Coeff (&mu;)</label>
-                <span id="fric-val" class="font-mono text-sky-400">0.30</span>
+        <!-- Collapsible Content -->
+        <div id="ui-content" class="p-3.5 sm:p-4 overflow-y-auto custom-scrollbar space-y-3 text-xs sm:text-sm">
+            <p class="text-xs text-slate-300 border-b border-slate-700/70 pb-2">
+                Analyze forces and sliding motion on an inclined plane.
+            </p>
+            
+            <!-- Controls -->
+            <div class="slider-container">
+                <div class="flex justify-between text-xs sm:text-sm mb-1">
+                    <label for="angle-slider" class="text-slate-200 font-medium">Angle (&theta;):</label>
+                    <span id="angle-val" class="font-mono text-sky-400 font-bold bg-slate-800/80 px-2 py-0.5 rounded border border-sky-500/30">20&deg;</span>
+                </div>
+                <input type="range" id="angle-slider" min="0" max="60" step="1" value="20" aria-label="Angle theta">
+                <div class="grid grid-cols-4 gap-1 pt-1">
+                    <button type="button" class="preset-angle px-1 py-0.5 text-[11px] bg-slate-700/70 hover:bg-slate-600 rounded text-slate-300 hover:text-white text-center" data-val="0">0&deg; (Flat)</button>
+                    <button type="button" class="preset-angle px-1 py-0.5 text-[11px] bg-slate-700/70 hover:bg-slate-600 rounded text-slate-300 hover:text-white text-center" data-val="20">20&deg;</button>
+                    <button type="button" class="preset-angle px-1 py-0.5 text-[11px] bg-slate-700/70 hover:bg-slate-600 rounded text-slate-300 hover:text-white text-center" data-val="35">35&deg;</button>
+                    <button type="button" class="preset-angle px-1 py-0.5 text-[11px] bg-slate-700/70 hover:bg-slate-600 rounded text-slate-300 hover:text-white text-center" data-val="50">50&deg; (Steep)</button>
+                </div>
             </div>
-            <input type="range" id="fric-slider" min="0" max="0.8" step="0.01" value="0.30">
+
+            <div class="slider-container">
+                <div class="flex justify-between text-xs sm:text-sm mb-1">
+                    <label for="fric-slider" class="text-slate-200 font-medium">Friction (&mu;):</label>
+                    <span id="fric-val" class="font-mono text-sky-400 font-bold bg-slate-800/80 px-2 py-0.5 rounded border border-sky-500/30">0.30</span>
+                </div>
+                <input type="range" id="fric-slider" min="0" max="0.8" step="0.01" value="0.30" aria-label="Friction coefficient mu">
+            </div>
+            
+            <div id="math-display">
+                <div class="flex justify-between mb-1">
+                    <span>Mass (m):</span> <span class="font-bold text-white">10 kg</span>
+                </div>
+                <div class="flex justify-between mb-2 pb-1.5 border-b border-slate-700/80">
+                    <span>Gravity (W):</span> <span class="c-w">98.1 N</span>
+                </div>
+                
+                <div class="space-y-1 mb-2 text-xs">
+                    <div class="flex justify-between">
+                        <span class="c-wpar">W<sub>&parallel;</sub> = W&middot;sin(&theta;)</span>
+                        <span id="calc-wpar" class="c-wpar">33.55 N</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="c-wperp">W<sub>&perp;</sub> = W&middot;cos(&theta;)</span>
+                        <span id="calc-wperp" class="c-wperp">92.18 N</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="c-fric">Max Friction = &mu;&middot;W<sub>&perp;</sub></span>
+                        <span id="calc-fric" class="c-fric">27.65 N</span>
+                    </div>
+                </div>
+                
+                <div id="status-box" class="p-1.5 rounded text-center font-bold text-xs mb-2 transition-colors">
+                    Static
+                </div>
+                
+                <div>
+                    <div class="flex justify-between text-xs font-medium">
+                        <span>Acceleration:</span>
+                        <span id="calc-accel" class="text-emerald-400 font-bold">0.00 m/s&sup2;</span>
+                    </div>
+                    <div class="accel-gauge-bg">
+                        <div id="accel-gauge" class="accel-gauge-fill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-1 text-[11px] text-slate-400">
+                <button id="reset-cam-btn" type="button" class="px-2.5 py-1 text-xs bg-slate-700/60 hover:bg-slate-600 text-slate-300 hover:text-white rounded transition flex items-center space-x-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    <span>Reset View</span>
+                </button>
+                <span id="gesture-hint" class="text-right">
+                    Drag to rotate • Pinch zoom
+                </span>
+            </div>
         </div>
-        
-        <div id="math-display">
-            <div class="flex justify-between mb-1">
-                <span>Mass (m):</span> <span class="font-bold">10 kg</span>
-            </div>
-            <div class="flex justify-between mb-3 pb-2 border-b border-slate-600">
-                <span>Gravity (W):</span> <span class="c-w">98.1 N</span>
-            </div>
-            
-            <div class="space-y-1 mb-3 text-sm">
-                <div class="flex justify-between">
-                    <span class="c-wpar">W<sub>&parallel;</sub> = W&middot;sin(&theta;)</span>
-                    <span id="calc-wpar" class="c-wpar">33.55 N</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="c-wperp">W<sub>&perp;</sub> = W&middot;cos(&theta;)</span>
-                    <span id="calc-wperp" class="c-wperp">92.18 N</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="c-fric">Max Friction = &mu;&middot;W<sub>&perp;</sub></span>
-                    <span id="calc-fric" class="c-fric">27.65 N</span>
-                </div>
-            </div>
-            
-            <div id="status-box" class="p-2 rounded text-center font-bold mb-2 transition-colors">
-                Static
-            </div>
-            
-            <div class="mt-2">
-                <div class="flex justify-between text-sm">
-                    <span>Acceleration</span>
-                    <span id="calc-accel" class="text-emerald-400 font-bold">0.00 m/s&sup2;</span>
-                </div>
-                <div class="accel-gauge-bg">
-                    <div id="accel-gauge" class="accel-gauge-fill"></div>
-                </div>
-            </div>
+
+        <!-- Collapsed Summary Bar -->
+        <div id="ui-collapsed-summary" class="hidden px-3.5 py-2 text-xs flex items-center justify-between text-slate-300 bg-slate-800/90 rounded-b-2xl border-t border-slate-700/50">
+            <span>&theta;: <b id="summary-angle" class="text-sky-400">20&deg;</b> | a: <b id="summary-accel" class="text-emerald-400">0.00</b></span>
+            <span id="summary-status" class="italic text-emerald-400 font-medium">Static</span>
         </div>
     </div>
 
@@ -187,17 +291,17 @@
         const G = 9.81;
         const W = MASS * G;
         const RAMP_LENGTH = 20;
+        const DEFAULT_CAM_POS = new THREE.Vector3(0, 5, 25);
         
         // Simulation State
         let angleDeg = 20;
         let mu = 0.30;
         let isSliding = false;
         let velocity = 0;
-        let posOnRamp = -RAMP_LENGTH / 2 + 2; // Start near the top
+        let posOnRamp = -RAMP_LENGTH / 2 + 2;
         const START_POS = -RAMP_LENGTH / 2 + 2;
-        
-        // Vectors scaling for visual representation
         const VEC_SCALE = 0.05; 
+        let isCollapsed = false;
         
         // DOM Elements
         const elAngle = document.getElementById('angle-slider');
@@ -210,6 +314,16 @@
         const boxStatus = document.getElementById('status-box');
         const txtAccel = document.getElementById('calc-accel');
         const gaugeAccel = document.getElementById('accel-gauge');
+        const toggleBtn = document.getElementById('toggle-btn');
+        const uiHeader = document.getElementById('ui-header');
+        const uiContent = document.getElementById('ui-content');
+        const toggleIcon = document.getElementById('toggle-icon');
+        const uiCollapsedSummary = document.getElementById('ui-collapsed-summary');
+        const summaryAngle = document.getElementById('summary-angle');
+        const summaryAccel = document.getElementById('summary-accel');
+        const summaryStatus = document.getElementById('summary-status');
+        const resetCamBtn = document.getElementById('reset-cam-btn');
+        const gestureHint = document.getElementById('gesture-hint');
 
         const labels = {
             W: document.getElementById('lbl-W'),
@@ -218,16 +332,76 @@
             Ff: document.getElementById('lbl-Ff')
         };
 
+        function togglePanel(e) {
+            if (e && e.target && (e.target.closest('#reset-cam-btn') || e.target.closest('input') || e.target.closest('button.preset-angle'))) return;
+            isCollapsed = !isCollapsed;
+            if (isCollapsed) {
+                uiContent.classList.add('hidden');
+                uiCollapsedSummary.classList.remove('hidden');
+                toggleIcon.style.transform = 'rotate(-90deg)';
+            } else {
+                uiContent.classList.remove('hidden');
+                uiCollapsedSummary.classList.add('hidden');
+                toggleIcon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        uiHeader.addEventListener('click', togglePanel);
+        toggleBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePanel(); });
+
+        document.querySelectorAll('.preset-angle').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                elAngle.value = btn.dataset.val;
+                onInputChanged();
+            });
+        });
+
+        resetCamBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            resetCamera();
+        });
+
+        function resetCamera() {
+            adaptCameraForScreen();
+            controls.target.set(0, 0, 0);
+            controls.update();
+        }
+
+        function adaptCameraForScreen() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            const isNarrow = width < 640 || width < height;
+
+            if (isNarrow) {
+                camera.position.set(0, 7, 30);
+                camera.fov = 52;
+            } else {
+                camera.position.copy(DEFAULT_CAM_POS);
+                camera.fov = 45;
+            }
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        }
+
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+            gestureHint.textContent = '1 finger rotate • Pinch zoom';
+        } else {
+            gestureHint.textContent = 'Left drag rotate • Scroll zoom';
+        }
+
         function init() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x0f172a); 
 
-            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-            camera.position.set(0, 5, 25);
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+            adaptCameraForScreen();
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.shadowMap.enabled = true;
             document.getElementById('canvas-container').appendChild(renderer.domElement);
 
@@ -237,69 +411,64 @@
             controls.target.set(0, 0, 0);
 
             // Lights
-            scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
             dirLight.position.set(10, 20, 10);
             dirLight.castShadow = true;
             scene.add(dirLight);
 
             const gridHelper = new THREE.GridHelper(30, 30, 0x334155, 0x1e293b);
-            gridHelper.position.y = -5; // Lower the grid
+            gridHelper.position.y = -5;
             scene.add(gridHelper);
 
             buildScene();
             setupVectors();
 
             window.addEventListener('resize', onWindowResize);
+            window.addEventListener('orientationchange', () => setTimeout(onWindowResize, 150));
             elAngle.addEventListener('input', onInputChanged);
             elFric.addEventListener('input', onInputChanged);
 
             updatePhysics();
+
+            if (window.innerHeight < 450 && window.innerWidth > window.innerHeight) {
+                togglePanel();
+            }
         }
 
         function buildScene() {
-            // Ramp Group (rotates)
             rampGroup = new THREE.Group();
             scene.add(rampGroup);
 
-            // The Ramp Mesh
             const rampGeo = new THREE.BoxGeometry(RAMP_LENGTH, 0.5, 6);
             const rampMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.7 });
             rampMesh = new THREE.Mesh(rampGeo, rampMat);
-            rampMesh.position.y = -0.25; // Align top surface to group's origin Y
+            rampMesh.position.y = -0.25;
             rampMesh.receiveShadow = true;
             rampGroup.add(rampMesh);
 
-            // The Block
             const blockGeo = new THREE.BoxGeometry(2, 2, 2);
             const blockMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.4, metalness: 0.1 });
             blockMesh = new THREE.Mesh(blockGeo, blockMat);
             blockMesh.castShadow = true;
-            // Block is placed slightly above the ramp surface
             blockMesh.position.set(posOnRamp, 1, 0); 
             rampGroup.add(blockMesh);
         }
 
         function setupVectors() {
             const origin = new THREE.Vector3(0,0,0);
-            
-            // Vector W (Gravity) - Points straight down
             wArrow = new THREE.ArrowHelper(new THREE.Vector3(0,-1,0), origin, 1, 0xf43f5e, 0.5, 0.3);
             scene.add(wArrow);
             
-            // Vector W_parallel - Points down incline
             wParArrow = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), origin, 1, 0xfacc15, 0.4, 0.25);
             scene.add(wParArrow);
 
-            // Vector W_perpendicular - Points into incline
             wPerpArrow = new THREE.ArrowHelper(new THREE.Vector3(0,-1,0), origin, 1, 0xfb923c, 0.4, 0.25);
             scene.add(wPerpArrow);
 
-            // Friction Vector - Points up incline
             fricArrow = new THREE.ArrowHelper(new THREE.Vector3(-1,0,0), origin, 1, 0x60a5fa, 0.4, 0.25);
             scene.add(fricArrow);
 
-            // Dashed lines for vector projection rectangle
             const dashMat = new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 0.2, gapSize: 0.1, opacity: 0.5, transparent: true });
             for(let i=0; i<2; i++) {
                 const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(1,1,1)]);
@@ -316,8 +485,8 @@
             
             txtAngle.innerHTML = `${angleDeg}&deg;`;
             txtFric.innerText = mu.toFixed(2);
+            summaryAngle.innerHTML = `${angleDeg}&deg;`;
             
-            // Reset sliding state when parameters change
             posOnRamp = START_POS;
             velocity = 0;
             isSliding = false;
@@ -326,67 +495,55 @@
         }
 
         function updatePhysics() {
-            // Apply rotation to ramp (negative Z rotates it down to the right)
             const angleRad = THREE.MathUtils.degToRad(angleDeg);
             rampGroup.rotation.z = -angleRad;
-            
-            // Position block
             blockMesh.position.x = posOnRamp;
             
-            // Force calculations
             const wPar = W * Math.sin(angleRad);
             const wPerp = W * Math.cos(angleRad);
             const maxFric = mu * wPerp;
             
-            // Update Text
             txtWPar.innerText = `${wPar.toFixed(2)} N`;
             txtWPerp.innerText = `${wPerp.toFixed(2)} N`;
             txtFricCalc.innerText = `${maxFric.toFixed(2)} N`;
             
-            // Determine state
             let netForce = 0;
             if (wPar > maxFric) {
-                netForce = wPar - maxFric; // Accelerating
+                netForce = wPar - maxFric;
                 boxStatus.innerText = "Sliding";
-                boxStatus.className = "p-2 rounded text-center font-bold mb-2 bg-rose-900 bg-opacity-60 text-rose-300 border border-rose-700";
+                boxStatus.className = "p-1.5 rounded text-center font-bold text-xs mb-2 bg-rose-900/60 text-rose-300 border border-rose-700";
+                summaryStatus.textContent = "Sliding";
+                summaryStatus.className = "italic text-rose-400 font-medium";
             } else {
-                netForce = 0; // Static
+                netForce = 0;
                 boxStatus.innerText = "Static";
-                boxStatus.className = "p-2 rounded text-center font-bold mb-2 bg-emerald-900 bg-opacity-60 text-emerald-300 border border-emerald-700";
+                boxStatus.className = "p-1.5 rounded text-center font-bold text-xs mb-2 bg-emerald-900/60 text-emerald-300 border border-emerald-700";
+                summaryStatus.textContent = "Static";
+                summaryStatus.className = "italic text-emerald-400 font-medium";
             }
             
             const accel = netForce / MASS;
             txtAccel.innerHTML = `${accel.toFixed(2)} m/s&sup2;`;
+            summaryAccel.textContent = accel.toFixed(2);
             
-            // Max possible acceleration is g (when angle is 90, mu=0)
             const gaugePercent = (accel / G) * 100;
             gaugeAccel.style.width = `${gaugePercent}%`;
             
-            // We'll let the animation loop handle position updates if isSliding = true
-            // But we need to update arrows immediately
             updateArrows(wPar, wPerp, Math.min(wPar, maxFric));
         }
 
         function updateArrows(wPar, wPerp, currentFric) {
-            // Get block's global position as origin for arrows
             const blockPos = new THREE.Vector3();
             blockMesh.getWorldPosition(blockPos);
             
             const angleRad = THREE.MathUtils.degToRad(angleDeg);
-            
-            // 1. Gravity (W) -> Always down
             wArrow.position.copy(blockPos);
             wArrow.setLength(W * VEC_SCALE, 0.5, 0.3);
             
-            // Calculate direction vectors in global space
-            // Ramp X-axis (down incline)
             const dirPar = new THREE.Vector3(Math.cos(-angleRad), Math.sin(-angleRad), 0).normalize();
-            // Ramp -Y-axis (into incline)
             const dirPerp = new THREE.Vector3(Math.sin(angleRad), -Math.cos(angleRad), 0).normalize();
-            // Up incline (for friction)
             const dirFric = dirPar.clone().negate();
 
-            // 2. Parallel Gravity (W_par)
             wParArrow.position.copy(blockPos);
             wParArrow.setDirection(dirPar);
             if (wPar > 0.1) {
@@ -394,7 +551,6 @@
                 wParArrow.visible = true;
             } else wParArrow.visible = false;
 
-            // 3. Perpendicular Gravity (W_perp)
             wPerpArrow.position.copy(blockPos);
             wPerpArrow.setDirection(dirPerp);
             if (wPerp > 0.1) {
@@ -402,7 +558,6 @@
                 wPerpArrow.visible = true;
             } else wPerpArrow.visible = false;
 
-            // 4. Friction
             fricArrow.position.copy(blockPos);
             fricArrow.setDirection(dirFric);
             if (currentFric > 0.1) {
@@ -410,14 +565,11 @@
                 fricArrow.visible = true;
             } else fricArrow.visible = false;
 
-            // Update Dashed Lines forming the rectangle
-            // Line 1: Tip of W_perp to Tip of W
             const tipWPerp = blockPos.clone().add(dirPerp.clone().multiplyScalar(wPerp * VEC_SCALE));
             const tipW = blockPos.clone().add(new THREE.Vector3(0,-1,0).multiplyScalar(W * VEC_SCALE));
             dashedLines[0].geometry.setFromPoints([tipWPerp, tipW]);
             dashedLines[0].computeLineDistances();
 
-            // Line 2: Tip of W_par to Tip of W
             const tipWPar = blockPos.clone().add(dirPar.clone().multiplyScalar(wPar * VEC_SCALE));
             dashedLines[1].geometry.setFromPoints([tipWPar, tipW]);
             dashedLines[1].computeLineDistances();
@@ -427,7 +579,6 @@
             const project = (vec, element, offset = {x:0, y:0}) => {
                 if(!element) return;
                 const pos = vec.clone().project(camera);
-                // Check if behind camera
                 if (pos.z > 1) { element.style.opacity = 0; return; }
                 
                 const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
@@ -446,30 +597,34 @@
             const blockPos = new THREE.Vector3();
             blockMesh.getWorldPosition(blockPos);
 
-            // W Label
             const tipW = blockPos.clone().add(new THREE.Vector3(0,-1,0).multiplyScalar(W * VEC_SCALE));
             project(tipW, labels.W, {x: 15, y: 15});
 
-            // W_par Label
             const dirPar = new THREE.Vector3(Math.cos(-angleRad), Math.sin(-angleRad), 0).normalize();
             const tipWPar = blockPos.clone().add(dirPar.clone().multiplyScalar(wPar * VEC_SCALE));
             project(tipWPar, labels.Wpar, {x: 20, y: 0});
 
-            // W_perp Label
             const dirPerp = new THREE.Vector3(Math.sin(angleRad), -Math.cos(angleRad), 0).normalize();
             const tipWPerp = blockPos.clone().add(dirPerp.clone().multiplyScalar(wPerp * VEC_SCALE));
             project(tipWPerp, labels.Wperp, {x: -20, y: 20});
 
-            // Friction Label
             const dirFric = dirPar.clone().negate();
             const tipFric = blockPos.clone().add(dirFric.clone().multiplyScalar(currentFric * VEC_SCALE));
             project(tipFric, labels.Ff, {x: -20, y: -10});
         }
 
         function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            camera.aspect = width / height;
+            if (width < 640 || width < height) {
+                camera.fov = 52;
+            } else {
+                camera.fov = 45;
+            }
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         }
 
         let lastTime = 0;
@@ -477,30 +632,25 @@
             requestAnimationFrame(animate);
             controls.update();
 
-            const delta = (time - lastTime) / 1000; // seconds
+            const delta = (time - lastTime) / 1000;
             lastTime = time;
 
-            // Physics step
             const angleRad = THREE.MathUtils.degToRad(angleDeg);
             const wPar = W * Math.sin(angleRad);
             const wPerp = W * Math.cos(angleRad);
             const maxFric = mu * wPerp;
             
             if (wPar > maxFric) {
-                // Accelerating
                 const accel = (wPar - maxFric) / MASS;
                 velocity += accel * delta;
                 posOnRamp += velocity * delta;
                 
-                // Stop at bottom of ramp
                 if (posOnRamp > RAMP_LENGTH / 2 - 1) {
                     posOnRamp = RAMP_LENGTH / 2 - 1;
-                    velocity = 0; // stop
+                    velocity = 0;
                 }
                 
-                // Update mesh
                 blockMesh.position.x = posOnRamp;
-                // Update arrows to follow block
                 updateArrows(wPar, wPerp, maxFric);
             }
 
