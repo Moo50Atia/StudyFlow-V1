@@ -2,48 +2,76 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Sphere and Plane Intersection - Step by Step</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
         body {
             margin: 0;
             overflow: hidden;
             background-color: #0f172a; /* Tailwind slate-900 */
-            color: #f8fafc; /* Tailwind slate-50 */
-            font-family: 'Inter', sans-serif;
-        }
-        #canvas-container {
+            color: #f8fafc;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
             width: 100vw;
             height: 100vh;
-            display: block;
+            height: 100dvh;
+        }
+        #canvas-container {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+            z-index: 1;
         }
         #ui-container {
             position: absolute;
-            top: 20px;
-            left: 20px;
+            top: 1rem;
+            left: 1rem;
+            z-index: 10;
             background: rgba(30, 41, 59, 0.9);
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(148, 163, 184, 0.2);
-            width: 380px;
+            border-radius: 1rem;
+            width: calc(100vw - 2rem);
+            max-width: 380px;
+            max-height: calc(100dvh - 2rem);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             pointer-events: auto;
         }
-        
+
+        /* Custom scrollbar for scrollable content on short screens */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.6);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.8);
+        }
+
         #math-display {
-            font-family: 'Courier New', Courier, monospace;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
             background: rgba(15, 23, 42, 0.8);
-            padding: 16px;
-            border-radius: 8px;
-            margin-top: 16px;
-            font-size: 0.95rem;
-            min-height: 180px;
+            border-radius: 0.5rem;
             border: 1px solid rgba(56, 189, 248, 0.2);
         }
         
-        .equation { margin-bottom: 8px; transition: opacity 0.5s ease; }
+        .equation { margin-bottom: 6px; transition: opacity 0.5s ease; }
         .highlight-text { color: #38bdf8; font-weight: bold; }
         .highlight-calc { color: #4ade80; font-weight: bold; }
         .highlight-var { color: #f472b6; font-weight: bold; }
@@ -51,8 +79,8 @@
         .btn {
             background-color: #3b82f6;
             color: white;
-            padding: 8px 16px;
-            border-radius: 6px;
+            padding: 8px 14px;
+            border-radius: 0.5rem;
             font-weight: 600;
             cursor: pointer;
             border: none;
@@ -61,22 +89,24 @@
         }
         .btn:hover { background-color: #2563eb; }
         .btn:active { transform: scale(0.98); }
-        .btn:disabled { background-color: #475569; cursor: not-allowed; transform: none; }
+        .btn:disabled { background-color: #475569; cursor: not-allowed; transform: none; opacity: 0.6; }
 
         /* 3D Scene HTML Labels */
         .scene-label {
             position: absolute;
-            background: rgba(15, 23, 42, 0.8);
+            background: rgba(15, 23, 42, 0.85);
             color: white;
             padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-family: monospace;
+            border-radius: 6px;
+            font-size: 11px;
+            font-family: ui-monospace, monospace;
             pointer-events: none;
             transform: translate(-50%, -50%);
-            border: 1px solid rgba(255,255,255,0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             display: none;
             white-space: nowrap;
+            z-index: 5;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
         
         .center-dot {
@@ -88,40 +118,90 @@
             color: #4ade80;
             font-weight: bold;
         }
+
+        /* Compact mobile styles */
+        @media (max-width: 640px) {
+            #ui-container {
+                top: 0.75rem;
+                left: 0.75rem;
+                width: calc(100vw - 1.5rem);
+                max-width: calc(100vw - 1.5rem);
+                max-height: calc(100dvh - 1.5rem);
+            }
+        }
+
+        /* Landscape mobile adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+            #ui-container {
+                top: 0.5rem;
+                left: 0.5rem;
+                max-width: 320px;
+                max-height: calc(100dvh - 1rem);
+            }
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
-<body>
+<body class="select-none">
 
     <div id="ui-container">
-        <h1 class="text-xl font-bold mb-2 text-white">Interactive Solution</h1>
-        <p class="text-sm text-slate-300 mb-4 border-b border-slate-600 pb-3">
-            Find the intersection of the sphere and the plane.
-        </p>
-        
-        <div class="flex justify-between items-center mb-4 space-x-2">
-            <button id="btn-prev" class="btn" style="background-color: #475569;">Previous</button>
-            <button id="btn-next" class="btn">Start Animation</button>
+        <!-- Header with Title and Collapse Button -->
+        <div class="flex items-center justify-between p-3.5 sm:p-4 border-b border-slate-700/80 cursor-pointer select-none" id="ui-header">
+            <div class="flex items-center space-x-2">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
+                <h1 class="text-base sm:text-lg font-bold text-white tracking-tight">Interactive Solution</h1>
+            </div>
+            <button id="toggle-btn" class="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/60 transition" aria-label="Toggle UI Panel" title="Toggle Panel">
+                <svg id="toggle-icon" class="w-5 h-5 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
         </div>
 
-        <!-- Step Indicator -->
-        <div class="flex justify-between mb-2 text-xs font-semibold text-slate-400">
-            <span id="step-1-ind" class="text-blue-400">1. Setup</span>
-            <span id="step-2-ind">2. Isolate</span>
-            <span id="step-3-ind">3. Substitute</span>
-            <span id="step-4-ind">4. Project</span>
+        <!-- Collapsible Content -->
+        <div id="ui-content" class="p-3.5 sm:p-4 overflow-y-auto custom-scrollbar space-y-3 sm:space-y-4 text-xs sm:text-sm">
+            <p class="text-xs sm:text-sm text-slate-300 border-b border-slate-700/80 pb-2.5">
+                Find the intersection of the sphere and the plane.
+            </p>
+            
+            <div class="flex justify-between items-center space-x-2">
+                <button id="btn-prev" class="btn bg-slate-600 hover:bg-slate-500 py-1.5 sm:py-2 text-xs sm:text-sm">Previous</button>
+                <button id="btn-next" class="btn py-1.5 sm:py-2 text-xs sm:text-sm">Start Animation</button>
+            </div>
+
+            <!-- Step Indicator -->
+            <div class="space-y-1.5">
+                <div class="flex justify-between text-[11px] sm:text-xs font-semibold text-slate-400">
+                    <span id="step-1-ind" class="text-blue-400">1. Setup</span>
+                    <span id="step-2-ind">2. Isolate</span>
+                    <span id="step-3-ind">3. Substitute</span>
+                    <span id="step-4-ind">4. Project</span>
+                </div>
+                <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
+                    <div id="progress-bar" class="bg-blue-500 h-full transition-all duration-500" style="width: 25%;"></div>
+                </div>
+            </div>
+            
+            <div id="math-display" class="p-3 min-h-[140px] text-xs sm:text-sm leading-relaxed">
+                <!-- Dynamic Math Content gets injected here -->
+            </div>
+            
+            <div class="flex items-center justify-between pt-1 text-[11px] text-slate-400">
+                <button id="reset-cam-btn" type="button" class="px-2.5 py-1 text-xs bg-slate-700/60 hover:bg-slate-600 text-slate-300 hover:text-white rounded transition flex items-center space-x-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    <span>Reset View</span>
+                </button>
+                <span id="gesture-hint" class="text-right">
+                    Drag to rotate • Pinch zoom
+                </span>
+            </div>
         </div>
-        <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden mb-2">
-            <div id="progress-bar" class="bg-blue-500 h-full transition-all duration-500" style="width: 25%;"></div>
-        </div>
-        
-        <div id="math-display">
-            <!-- Dynamic Math Content gets injected here -->
-        </div>
-        
-        <div class="mt-4 text-xs text-slate-400 text-center">
-            Left click + drag to rotate space.<br>Scroll to zoom.
+
+        <!-- Collapsed Summary Bar -->
+        <div id="ui-collapsed-summary" class="hidden px-3.5 py-2 text-xs flex items-center justify-between text-slate-300 bg-slate-800/90 rounded-b-2xl border-t border-slate-700/50">
+            <span>Step: <b id="summary-step" class="text-blue-400">1 / 4</b></span>
+            <span id="summary-action" class="italic text-slate-300">Tap to expand</span>
         </div>
     </div>
 
@@ -145,10 +225,12 @@
         const S_R = 5; // Sphere Radius
         const P_Z = 3; // Plane Z
         const I_R = 4; // Intersection Radius (sqrt(25 - 3^2))
+        const DEFAULT_CAM_POS = new THREE.Vector3(12, 8, 15);
         
         // -- State --
         let currentStep = 0;
         const totalSteps = 4; // 0: Setup, 1: Isolate, 2: Substitute, 3: Project
+        let isCollapsed = false;
         
         // -- Animation targets --
         let targetPlaneOpacity = 0.2;
@@ -162,43 +244,100 @@
         const progressBar = document.getElementById('progress-bar');
         const labelCenter = document.getElementById('label-center');
         const labelRadius = document.getElementById('label-radius');
+        const toggleBtn = document.getElementById('toggle-btn');
+        const uiHeader = document.getElementById('ui-header');
+        const uiContent = document.getElementById('ui-content');
+        const toggleIcon = document.getElementById('toggle-icon');
+        const uiCollapsedSummary = document.getElementById('ui-collapsed-summary');
+        const summaryStep = document.getElementById('summary-step');
+        const resetCamBtn = document.getElementById('reset-cam-btn');
+        const gestureHint = document.getElementById('gesture-hint');
+
+        function togglePanel(e) {
+            if (e && e.target && (e.target.closest('#reset-cam-btn') || e.target.closest('button.btn'))) return;
+            isCollapsed = !isCollapsed;
+            if (isCollapsed) {
+                uiContent.classList.add('hidden');
+                uiCollapsedSummary.classList.remove('hidden');
+                toggleIcon.style.transform = 'rotate(-90deg)';
+            } else {
+                uiContent.classList.remove('hidden');
+                uiCollapsedSummary.classList.add('hidden');
+                toggleIcon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        uiHeader.addEventListener('click', togglePanel);
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            togglePanel();
+        });
+
+        // Reset camera button
+        resetCamBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            resetCamera();
+        });
+
+        function resetCamera() {
+            adaptCameraForScreen();
+            controls.target.set(S_CX, S_CY, P_Z);
+            controls.update();
+        }
+
+        function adaptCameraForScreen() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            const isNarrowPortrait = width < 640 || width < height;
+
+            if (isNarrowPortrait) {
+                camera.position.set(15, 10, 19);
+                camera.fov = 55;
+            } else {
+                camera.position.copy(DEFAULT_CAM_POS);
+                camera.fov = 50;
+            }
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        }
+
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+            gestureHint.textContent = '1 finger rotate • Pinch zoom';
+        } else {
+            gestureHint.textContent = 'Left drag rotate • Scroll zoom';
+        }
 
         function init() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x0f172a); 
 
-            // Camera setup to look at the intersection area
-            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
-            camera.position.set(12, 8, 15);
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 100);
+            adaptCameraForScreen();
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.getElementById('canvas-container').appendChild(renderer.domElement);
 
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
-            controls.target.set(S_CX, S_CY, P_Z); // Look at the intersection center
+            controls.target.set(S_CX, S_CY, P_Z);
 
             // Lights
-            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
             dirLight.position.set(10, 10, 10);
             scene.add(dirLight);
 
-            // 1. Grid and Axes (Using Z as depth, XY as screen plane, standard Cartesian)
-            // Three.js standard is X right, Y up, Z forward. We will map:
-            // Math X -> Three.js X
-            // Math Y -> Three.js Y
-            // Math Z -> Three.js Z
-            
+            // 1. Grid and Axes
             const axesHelper = new THREE.AxesHelper(10);
             scene.add(axesHelper);
             
-            // Add grid in XY plane to ground the scene visually
             const gridHelper = new THREE.GridHelper(20, 20, 0x475569, 0x1e293b);
-            gridHelper.rotation.x = Math.PI / 2; // Make it XY plane
+            gridHelper.rotation.x = Math.PI / 2; // XY plane
             scene.add(gridHelper);
 
             // 2. Sphere
@@ -219,7 +358,7 @@
             // 3. Plane (z = 3)
             const planeGeo = new THREE.PlaneGeometry(16, 16);
             const planeMat = new THREE.MeshBasicMaterial({
-                color: 0xf472b6, // Pinkish
+                color: 0xf472b6,
                 transparent: true,
                 opacity: 0.2,
                 side: THREE.DoubleSide,
@@ -234,20 +373,25 @@
 
             // Event Listeners
             window.addEventListener('resize', onWindowResize);
+            window.addEventListener('orientationchange', () => {
+                setTimeout(onWindowResize, 150);
+            });
             btnNext.addEventListener('click', () => setStep(currentStep + 1));
             btnPrev.addEventListener('click', () => setStep(currentStep - 1));
 
             // Initial UI State
             updateUI();
+
+            if (window.innerHeight < 450 && window.innerWidth > window.innerHeight) {
+                togglePanel();
+            }
         }
 
         function setupIntersectionObjects() {
-            // Circle Line
             const circleGeo = new THREE.BufferGeometry();
             const points = [];
             for (let i = 0; i <= 64; i++) {
                 const theta = (i / 64) * Math.PI * 2;
-                // Circle in XY plane at Z=0 relative to its local group
                 points.push(new THREE.Vector3(Math.cos(theta), Math.sin(theta), 0));
             }
             circleGeo.setFromPoints(points);
@@ -255,11 +399,10 @@
             const lineMat = new THREE.LineBasicMaterial({ color: 0x4ade80, linewidth: 2 });
             intersectionLine = new THREE.Line(circleGeo, lineMat);
             intersectionLine.position.set(S_CX, S_CY, P_Z);
-            intersectionLine.scale.set(0.001, 0.001, 0.001); // Start invisible/tiny
+            intersectionLine.scale.set(0.001, 0.001, 0.001);
             intersectionLine.visible = false;
             scene.add(intersectionLine);
 
-            // Center Point
             const pointGeo = new THREE.SphereGeometry(0.15, 16, 16);
             const pointMat = new THREE.MeshBasicMaterial({ color: 0xf87171 });
             centerPoint = new THREE.Mesh(pointGeo, pointMat);
@@ -267,10 +410,9 @@
             centerPoint.visible = false;
             scene.add(centerPoint);
             
-            // Radius Line
             const radiusGeo = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(0, 0, 0), // Local center
-                new THREE.Vector3(1, 0, 0)  // Local edge (scale will stretch it)
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(1, 0, 0)
             ]);
             const rLineMat = new THREE.LineBasicMaterial({ color: 0xfacc15 });
             radiusLine = new THREE.Line(radiusGeo, rLineMat);
@@ -280,14 +422,12 @@
             scene.add(radiusLine);
         }
 
-        // --- Step Logic ---
         function setStep(step) {
             if (step < 0 || step >= totalSteps) return;
             currentStep = step;
             
-            // Apply 3D logic
             switch(step) {
-                case 0: // Setup
+                case 0:
                     targetPlaneOpacity = 0.15;
                     targetSphereOpacity = 0.35;
                     intersectionLine.visible = false;
@@ -296,7 +436,7 @@
                     labelCenter.style.display = 'none';
                     labelRadius.style.display = 'none';
                     break;
-                case 1: // Isolate Plane
+                case 1:
                     targetPlaneOpacity = 0.6;
                     targetSphereOpacity = 0.1;
                     intersectionLine.visible = false;
@@ -305,17 +445,17 @@
                     labelCenter.style.display = 'none';
                     labelRadius.style.display = 'none';
                     break;
-                case 2: // Substitute
+                case 2:
                     targetPlaneOpacity = 0.5;
                     targetSphereOpacity = 0.15;
                     intersectionLine.visible = true;
-                    targetRadiusScale = I_R; // Animate to full radius
+                    targetRadiusScale = I_R;
                     centerPoint.visible = false;
                     radiusLine.visible = false;
                     labelCenter.style.display = 'none';
                     labelRadius.style.display = 'none';
                     break;
-                case 3: // Project
+                case 3:
                     targetPlaneOpacity = 0.3;
                     targetSphereOpacity = 0.05;
                     intersectionLine.visible = true;
@@ -331,12 +471,11 @@
         }
 
         function updateUI() {
-            // Update buttons
             btnPrev.disabled = currentStep === 0;
             btnNext.disabled = currentStep === totalSteps - 1;
             btnNext.textContent = currentStep === totalSteps - 1 ? "Completed" : "Next Step";
+            summaryStep.textContent = `${currentStep + 1} / ${totalSteps}`;
             
-            // Update progress bar & indicators
             progressBar.style.width = `${(currentStep + 1) * 25}%`;
             for (let i = 0; i < totalSteps; i++) {
                 const el = document.getElementById(`step-${i+1}-ind`);
@@ -345,16 +484,15 @@
                 else el.className = "text-slate-500";
             }
             
-            // Update Math Text
             let html = "";
             switch(currentStep) {
                 case 0:
                     html = `
                         <div class="equation text-slate-300">Sphere:</div>
-                        <div class="equation highlight-text text-lg">(x-2)² + (y+1)² + z² = 25</div>
-                        <div class="equation text-slate-300 mt-4">Plane:</div>
-                        <div class="equation highlight-var text-lg">z = 3</div>
-                        <div class="mt-6 text-sm text-slate-400 border-t border-slate-700 pt-2">
+                        <div class="equation highlight-text text-base sm:text-lg font-mono">(x-2)² + (y+1)² + z² = 25</div>
+                        <div class="equation text-slate-300 mt-3">Plane:</div>
+                        <div class="equation highlight-var text-base sm:text-lg font-mono">z = 3</div>
+                        <div class="mt-4 text-xs text-slate-400 border-t border-slate-700/80 pt-2">
                             Goal: Find the exact shape and properties of the intersection.
                         </div>
                     `;
@@ -362,31 +500,31 @@
                 case 1:
                     html = `
                         <div class="equation text-slate-300">Isolate the cutting plane:</div>
-                        <div class="equation highlight-var text-xl">z = 3</div>
-                        <div class="mt-4 text-sm text-slate-300">
-                            The plane is fixed at a depth of 3 units along the Z-axis. Every point on our intersection must lie on this plane.
+                        <div class="equation highlight-var text-lg sm:text-xl font-mono">z = 3</div>
+                        <div class="mt-3 text-xs sm:text-sm text-slate-300">
+                            The plane is fixed at depth 3 along the Z-axis. Every point on our intersection must lie on this plane.
                         </div>
                     `;
                     break;
                 case 2:
                     html = `
-                        <div class="equation text-slate-300">Substitute <span class="highlight-var">z = 3</span> into the sphere:</div>
-                        <div class="equation">(x-2)² + (y+1)² + <span class="highlight-var">(3)</span>² = 25</div>
-                        <div class="equation mt-2">(x-2)² + (y+1)² + 9 = 25</div>
-                        <div class="equation mt-2 text-slate-400 text-xs">Subtract 9 from both sides:</div>
-                        <div class="equation highlight-calc text-lg bg-green-900 bg-opacity-30 p-2 rounded">
+                        <div class="equation text-slate-300">Substitute <span class="highlight-var font-mono">z = 3</span>:</div>
+                        <div class="equation font-mono">(x-2)² + (y+1)² + <span class="highlight-var">(3)</span>² = 25</div>
+                        <div class="equation font-mono mt-1">(x-2)² + (y+1)² + 9 = 25</div>
+                        <div class="equation text-slate-400 text-[11px] mt-1">Subtract 9 from both sides:</div>
+                        <div class="equation highlight-calc text-base sm:text-lg bg-green-950/40 border border-green-500/20 p-2 rounded font-mono">
                             (x-2)² + (y+1)² = 16
                         </div>
                     `;
                     break;
                 case 3:
                     html = `
-                        <div class="equation text-slate-300">The result is a 2D Circle equation:</div>
-                        <div class="equation mb-3">(x-<span class="text-red-400">2</span>)² + (y-(<span class="text-red-400">-1</span>))² = <span class="text-green-400">4</span>²</div>
-                        <ul class="list-disc pl-5 space-y-2 text-sm mt-4">
-                            <li>Lies on Plane: <span class="highlight-var">z = 3</span></li>
-                            <li>Center in 3D: <span class="text-red-400 font-bold">C(2, -1, 3)</span></li>
-                            <li>Radius: <span class="text-green-400 font-bold">r = √16 = 4</span></li>
+                        <div class="equation text-slate-300">2D Circle equation on plane:</div>
+                        <div class="equation mb-2 font-mono">(x-<span class="text-red-400">2</span>)² + (y-(<span class="text-red-400">-1</span>))² = <span class="text-green-400">4</span>²</div>
+                        <ul class="list-disc pl-4 space-y-1 text-xs sm:text-sm mt-3 text-slate-200">
+                            <li>Plane: <span class="highlight-var font-mono">z = 3</span></li>
+                            <li>3D Center: <span class="text-red-400 font-bold font-mono">C(2, -1, 3)</span></li>
+                            <li>Radius: <span class="text-green-400 font-bold font-mono">r = √16 = 4</span></li>
                         </ul>
                     `;
                     break;
@@ -395,20 +533,16 @@
         }
 
         function updateLabels() {
-            // Project 3D coordinates to 2D screen coordinates for HTML labels
             if (currentStep === 3) {
-                // Center Label
                 const centerVec = new THREE.Vector3(S_CX, S_CY, P_Z);
                 centerVec.project(camera);
                 const xC = (centerVec.x * 0.5 + 0.5) * window.innerWidth;
                 const yC = (centerVec.y * -0.5 + 0.5) * window.innerHeight;
                 
                 labelCenter.style.left = `${xC}px`;
-                labelCenter.style.top = `${yC - 20}px`; // slightly above
+                labelCenter.style.top = `${yC - 20}px`;
                 
-                // Radius Label (midpoint of radius line)
                 const radiusMidVec = new THREE.Vector3(S_CX + (I_R/2), S_CY, P_Z);
-                // Adjust if rotating radius line
                 radiusMidVec.x = S_CX + Math.cos(Date.now() * 0.001) * (I_R/2);
                 radiusMidVec.y = S_CY + Math.sin(Date.now() * 0.001) * (I_R/2);
                 
@@ -422,20 +556,27 @@
         }
 
         function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            
+            camera.aspect = width / height;
+            if (width < 640 || width < height) {
+                camera.fov = 55;
+            } else {
+                camera.fov = 50;
+            }
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         }
 
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
             
-            // Smoothly animate opacities
             planeMesh.material.opacity += (targetPlaneOpacity - planeMesh.material.opacity) * 0.1;
             sphereMesh.material.opacity += (targetSphereOpacity - sphereMesh.material.opacity) * 0.1;
             
-            // Smoothly animate circle radius (scale)
             if (currentStep >= 2) {
                 const currentScale = intersectionLine.scale.x;
                 const newScale = currentScale + (targetRadiusScale - currentScale) * 0.1;
@@ -443,22 +584,19 @@
                 
                 if (currentStep === 3) {
                     radiusLine.scale.set(newScale, 1, 1);
-                    // Slowly rotate the radius line to make it visible from all angles
                     const time = Date.now() * 0.001;
                     radiusLine.rotation.z = time; 
                 }
             }
 
-            // Update 2D HTML Labels to track 3D objects
             updateLabels();
-
             renderer.render(scene, camera);
         }
 
         window.onload = function() {
             init();
             animate();
-            setStep(0); // Initialize first step explicitely
+            setStep(0);
         };
     </script>
 </body>
