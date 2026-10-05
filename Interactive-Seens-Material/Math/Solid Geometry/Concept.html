@@ -2,85 +2,145 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Sphere and Plane Intersection</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #1a202c; /* Tailwind gray-900 */
-            color: #e2e8f0; /* Tailwind slate-200 */
-            font-family: 'Inter', sans-serif;
-        }
-        #canvas-container {
+            background-color: #0f172a; /* Slate 900 */
+            color: #e2e8f0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
             width: 100vw;
             height: 100vh;
-            display: block;
+            height: 100dvh;
+        }
+        #canvas-container {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+            z-index: 1;
         }
         #ui-container {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(30, 41, 59, 0.85); /* Tailwind slate-800 with opacity */
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            min-width: 300px;
+            top: 1rem;
+            left: 1rem;
+            z-index: 10;
+            background: rgba(30, 41, 59, 0.88);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 1rem;
+            width: calc(100vw - 2rem);
+            max-width: 360px;
+            max-height: calc(100dvh - 2rem);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: auto;
         }
-        
-        /* Custom range slider styling */
+
+        /* Custom scrollbar for scrollable content on short screens */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.6);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.8);
+        }
+
+        /* Responsive range slider with touch-friendly thumb */
         input[type=range] {
-            -webkit-appearance: none; /* Hides the slider so that custom slider can be made */
-            width: 100%; /* Specific width is required for Firefox. */
-            background: transparent; /* Otherwise white in Chrome */
-            margin-top: 10px;
-            margin-bottom: 20px;
-        }
-
-        input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            height: 20px;
-            width: 20px;
-            border-radius: 50%;
-            background: #3b82f6; /* Tailwind blue-500 */
+            appearance: none;
+            width: 100%;
+            background: transparent;
             cursor: pointer;
-            margin-top: -8px; /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
-            box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
-            transition: background 0.15s ease-in-out, transform 0.1s;
+            margin: 0.5rem 0;
+            height: 32px;
         }
-
-        input[type=range]::-webkit-slider-thumb:hover {
-            background: #60a5fa; /* Tailwind blue-400 */
-            transform: scale(1.1);
-        }
-
         input[type=range]::-webkit-slider-runnable-track {
             width: 100%;
-            height: 6px;
-            cursor: pointer;
-            background: #475569; /* Tailwind slate-600 */
-            border-radius: 3px;
+            height: 8px;
+            background: #334155;
+            border-radius: 9999px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #3b82f6;
+            margin-top: -8px;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.6);
+            border: 2px solid #ffffff;
+            transition: background 0.15s, transform 0.15s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover,
+        input[type=range]:active::-webkit-slider-thumb {
+            background: #60a5fa;
+            transform: scale(1.15);
+        }
+        input[type=range]::-moz-range-track {
+            width: 100%;
+            height: 8px;
+            background: #334155;
+            border-radius: 9999px;
+        }
+        input[type=range]::-moz-range-thumb {
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #3b82f6;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.6);
+        }
+        input[type=range]:focus {
+            outline: none;
         }
 
-        input[type=range]:focus {
-            outline: none; /* Removes the blue border. You should probably do some kind of focus styling for accessibility reasons though. */
-        }
-        
         #math-display {
-            font-family: 'Courier New', Courier, monospace;
-            background: rgba(15, 23, 42, 0.6); /* Darker background for math */
-            padding: 10px;
-            border-radius: 8px;
-            margin-top: 10px;
-            font-size: 0.95rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 0.5rem;
         }
-        
-        .highlight-value {
-            color: #60a5fa; /* Tailwind blue-400 */
-            font-weight: bold;
+
+        /* Compact mobile styles */
+        @media (max-width: 640px) {
+            #ui-container {
+                top: 0.75rem;
+                left: 0.75rem;
+                width: calc(100vw - 1.5rem);
+                max-width: calc(100vw - 1.5rem);
+                max-height: calc(100dvh - 1.5rem);
+            }
+        }
+
+        /* Landscape mobile adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+            #ui-container {
+                top: 0.5rem;
+                left: 0.5rem;
+                max-width: 320px;
+                max-height: calc(100dvh - 1rem);
+            }
         }
     </style>
     <!-- Load Three.js -->
@@ -88,37 +148,84 @@
     <!-- Load OrbitControls -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
-<body>
+<body class="select-none">
 
-    <div id="ui-container" class="text-sm">
-        <h1 class="text-xl font-bold mb-4 text-white border-b border-slate-600 pb-2">Sphere-Plane Intersection</h1>
-        
-        <div class="mb-2 flex justify-between items-center">
-            <label for="distance-slider" class="font-medium text-slate-300">Distance from center ($d$):</label>
-            <span id="distance-value" class="highlight-value">0.00</span>
-        </div>
-        <!-- Slider ranges from -1.5 to 1.5 to allow moving completely out of a unit sphere -->
-        <input type="range" id="distance-slider" min="-1.5" max="1.5" step="0.01" value="0">
-        
-        <div id="math-display" class="space-y-2">
-            <div>Sphere Equation: $x^2 + y^2 + z^2 = R^2$</div>
-            <div>Plane Equation: $y = d$</div>
-            <div class="mt-2 pt-2 border-t border-slate-600 text-slate-400">Intersection Calculation:</div>
-            <div>$x^2 + (d)^2 + z^2 = R^2$</div>
-            <div>$x^2 + z^2 = R^2 - d^2$</div>
-            <div class="mt-2 text-base">
-                Intersection Radius ($r$): 
-                <span id="radius-value" class="text-green-400 font-bold">1.00</span>
+    <div id="ui-container">
+        <!-- Header with Title and Collapse Button -->
+        <div class="flex items-center justify-between p-3.5 sm:p-4 border-b border-slate-700/80 cursor-pointer select-none" id="ui-header">
+            <div class="flex items-center space-x-2">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
+                <h1 class="text-base sm:text-lg font-bold text-white tracking-tight">Sphere-Plane Intersection</h1>
             </div>
-            <div id="status-message" class="mt-2 italic text-green-400">Status: Circle</div>
+            <button id="toggle-btn" class="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/60 transition" aria-label="Toggle UI Panel" title="Toggle Panel">
+                <svg id="toggle-icon" class="w-5 h-5 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
         </div>
-        
-        <div class="mt-4 text-xs text-slate-400">
-            Left click + drag to rotate.<br>
-            Scroll to zoom.
+
+        <!-- Collapsible Content -->
+        <div id="ui-content" class="p-3.5 sm:p-4 overflow-y-auto custom-scrollbar space-y-3.5 sm:space-y-4 text-xs sm:text-sm">
+            <!-- Distance Slider Control -->
+            <div class="space-y-1.5">
+                <div class="flex justify-between items-center text-xs sm:text-sm">
+                    <label for="distance-slider" class="font-medium text-slate-300">Distance from center (<span class="italic text-blue-300">d</span>):</label>
+                    <span id="distance-value" class="text-blue-400 font-mono font-bold bg-slate-800/80 px-2 py-0.5 rounded border border-blue-500/30">0.00</span>
+                </div>
+                
+                <div class="flex items-center space-x-2">
+                    <button type="button" id="btn-step-down" class="w-7 h-7 flex items-center justify-center bg-slate-700 hover:bg-slate-600 rounded text-white font-bold transition" title="Decrease d">-</button>
+                    <input type="range" id="distance-slider" min="-1.5" max="1.5" step="0.01" value="0" class="flex-1" aria-label="Distance d">
+                    <button type="button" id="btn-step-up" class="w-7 h-7 flex items-center justify-center bg-slate-700 hover:bg-slate-600 rounded text-white font-bold transition" title="Increase d">+</button>
+                </div>
+                
+                <!-- Quick Preset Buttons for Touch & Accessibility -->
+                <div class="grid grid-cols-4 gap-1.5 pt-0.5">
+                    <button type="button" class="preset-btn px-1.5 py-1 text-[11px] font-medium bg-slate-700/70 hover:bg-slate-600 rounded text-slate-300 hover:text-white transition text-center" data-val="0">Center (0)</button>
+                    <button type="button" class="preset-btn px-1.5 py-1 text-[11px] font-medium bg-slate-700/70 hover:bg-slate-600 rounded text-slate-300 hover:text-white transition text-center" data-val="0.707">d = 0.71</button>
+                    <button type="button" class="preset-btn px-1.5 py-1 text-[11px] font-medium bg-slate-700/70 hover:bg-slate-600 rounded text-slate-300 hover:text-white transition text-center" data-val="1">Tangent (1)</button>
+                    <button type="button" class="preset-btn px-1.5 py-1 text-[11px] font-medium bg-slate-700/70 hover:bg-slate-600 rounded text-slate-300 hover:text-white transition text-center" data-val="1.3">Outside</button>
+                </div>
+            </div>
+
+            <!-- Mathematical Display & Calculations -->
+            <div id="math-display" class="p-3 space-y-1.5 text-slate-300 text-xs sm:text-sm leading-relaxed">
+                <div class="text-slate-400">Sphere Equation: <span class="text-white font-mono">x² + y² + z² = R²</span></div>
+                <div class="text-slate-400">Plane Equation: <span class="text-white font-mono">y = d</span></div>
+                
+                <div class="pt-2 border-t border-slate-700/80 text-[11px] sm:text-xs text-slate-400 font-sans uppercase tracking-wider font-semibold">Intersection Calculation:</div>
+                <div class="font-mono text-slate-300">x² + (d)² + z² = R²</div>
+                <div class="font-mono text-slate-300">x² + z² = R² - d²</div>
+                
+                <div class="pt-2 border-t border-slate-700/80 flex justify-between items-center text-xs sm:text-sm">
+                    <span class="text-slate-300 font-sans font-medium">Intersection Radius (<span class="italic text-green-300">r</span>):</span>
+                    <span id="radius-value" class="text-green-400 font-mono font-bold text-sm sm:text-base">1.000</span>
+                </div>
+                <div id="status-message" class="text-xs sm:text-sm font-semibold italic text-green-400">
+                    Status: Circle
+                </div>
+            </div>
+
+            <!-- Reset Camera & Helpful Gesture Hint -->
+            <div class="flex items-center justify-between pt-1">
+                <button id="reset-cam-btn" type="button" class="px-2.5 py-1 text-xs bg-slate-700/60 hover:bg-slate-600 text-slate-300 hover:text-white rounded transition flex items-center space-x-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    <span>Reset View</span>
+                </button>
+                <span id="gesture-hint" class="text-[11px] text-slate-400 text-right">
+                    Drag to rotate • Pinch to zoom
+                </span>
+            </div>
+        </div>
+
+        <!-- Collapsed Summary Bar (shown only when collapsed on mobile/desktop) -->
+        <div id="ui-collapsed-summary" class="hidden px-3.5 py-2 text-xs flex items-center justify-between text-slate-300 bg-slate-800/90 rounded-b-2xl border-t border-slate-700/50">
+            <span>d: <b id="summary-d" class="text-blue-400">0.00</b> | r: <b id="summary-r" class="text-green-400 font-bold">1.00</b></span>
+            <span id="summary-status" class="italic text-green-400 font-medium">Circle</span>
         </div>
     </div>
 
+    <!-- 3D Canvas -->
     <div id="canvas-container"></div>
 
     <script>
@@ -130,40 +237,138 @@
         
         // Constants
         const SPHERE_RADIUS = 1.0;
+        const DEFAULT_CAM_POS = new THREE.Vector3(3, 2, 4);
         
         // DOM Elements
         const distanceSlider = document.getElementById('distance-slider');
         const distanceValueDisplay = document.getElementById('distance-value');
         const radiusValueDisplay = document.getElementById('radius-value');
         const statusMessage = document.getElementById('status-message');
+        const toggleBtn = document.getElementById('toggle-btn');
+        const uiHeader = document.getElementById('ui-header');
+        const uiContent = document.getElementById('ui-content');
+        const toggleIcon = document.getElementById('toggle-icon');
+        const uiCollapsedSummary = document.getElementById('ui-collapsed-summary');
+        const summaryD = document.getElementById('summary-d');
+        const summaryR = document.getElementById('summary-r');
+        const summaryStatus = document.getElementById('summary-status');
+        const resetCamBtn = document.getElementById('reset-cam-btn');
+        const btnStepDown = document.getElementById('btn-step-down');
+        const btnStepUp = document.getElementById('btn-step-up');
+        const gestureHint = document.getElementById('gesture-hint');
+
+        let isCollapsed = false;
+
+        function togglePanel(e) {
+            if (e && e.target && (e.target.closest('#reset-cam-btn') || e.target.closest('input') || e.target.closest('button.preset-btn') || e.target.closest('#btn-step-down') || e.target.closest('#btn-step-up'))) return;
+            isCollapsed = !isCollapsed;
+            if (isCollapsed) {
+                uiContent.classList.add('hidden');
+                uiCollapsedSummary.classList.remove('hidden');
+                toggleIcon.style.transform = 'rotate(-90deg)';
+            } else {
+                uiContent.classList.remove('hidden');
+                uiCollapsedSummary.classList.add('hidden');
+                toggleIcon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        uiHeader.addEventListener('click', togglePanel);
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            togglePanel();
+        });
+
+        // Quick Preset buttons
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const val = parseFloat(btn.dataset.val);
+                distanceSlider.value = val;
+                updateIntersection();
+            });
+        });
+
+        // Stepper buttons
+        btnStepDown.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const current = parseFloat(distanceSlider.value);
+            distanceSlider.value = Math.max(-1.5, current - 0.05).toFixed(2);
+            updateIntersection();
+        });
+        btnStepUp.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const current = parseFloat(distanceSlider.value);
+            distanceSlider.value = Math.min(1.5, current + 0.05).toFixed(2);
+            updateIntersection();
+        });
+
+        // Reset camera button
+        resetCamBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            resetCamera();
+        });
+
+        function resetCamera() {
+            adaptCameraForScreen();
+            controls.target.set(0, 0, 0);
+            controls.update();
+        }
+
+        function adaptCameraForScreen() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            const isNarrowPortrait = width < 640 || width < height;
+
+            if (isNarrowPortrait) {
+                camera.position.set(3.8, 2.5, 4.8);
+                camera.fov = 52;
+            } else {
+                camera.position.copy(DEFAULT_CAM_POS);
+                camera.fov = 45;
+            }
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        }
+
+        // Dynamic gesture hint detection
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+            gestureHint.textContent = '1 finger rotate • Pinch zoom';
+        } else {
+            gestureHint.textContent = 'Left drag rotate • Scroll zoom';
+        }
 
         function init() {
             // 1. Setup Scene, Camera, Renderer
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x1a202c); // Match body background
+            scene.background = new THREE.Color(0x0f172a); // Match slate-900
 
-            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-            camera.position.set(3, 2, 4);
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+            adaptCameraForScreen();
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.getElementById('canvas-container').appendChild(renderer.domElement);
 
             // Controls
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
+            controls.maxDistance = 20;
+            controls.minDistance = 1.5;
 
             // 2. Add Lights
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
             scene.add(ambientLight);
 
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.85);
             directionalLight.position.set(5, 10, 7);
             scene.add(directionalLight);
             
-            const pointLight = new THREE.PointLight(0x60a5fa, 0.5);
+            const pointLight = new THREE.PointLight(0x60a5fa, 0.6);
             pointLight.position.set(-5, -5, -5);
             scene.add(pointLight);
 
@@ -184,7 +389,7 @@
             scene.add(sphereMesh);
 
             // Grid helper for context
-            const gridHelper = new THREE.GridHelper(5, 20, 0x475569, 0x334155);
+            const gridHelper = new THREE.GridHelper(5, 20, 0x475569, 0x1e293b);
             gridHelper.position.y = -1.5;
             scene.add(gridHelper);
             
@@ -200,11 +405,10 @@
                 transparent: true,
                 opacity: 0.4,
                 side: THREE.DoubleSide,
-                depthWrite: false // Helps with transparency sorting
+                depthWrite: false
             });
             planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
-            // Rotate plane to be horizontal (xz plane)
-            planeMesh.rotation.x = -Math.PI / 2; 
+            planeMesh.rotation.x = -Math.PI / 2; // Horizontal (xz plane)
             scene.add(planeMesh);
 
             // Setup Intersection Highlights (Circle and Point)
@@ -212,15 +416,22 @@
 
             // 4. Setup Event Listeners
             window.addEventListener('resize', onWindowResize);
+            window.addEventListener('orientationchange', () => {
+                setTimeout(onWindowResize, 150);
+            });
             distanceSlider.addEventListener('input', updateIntersection);
 
             // Initial calculation
             updateIntersection();
+
+            // Auto-collapse on very small landscape screens initially so 3D scene is visible
+            if (window.innerHeight < 450 && window.innerWidth > window.innerHeight) {
+                togglePanel();
+            }
         }
 
         function setupIntersectionObjects() {
             // A. Intersection Circle (Line Loop)
-            // Create a circle with radius 1 initially, we will scale it dynamically
             const circleGeometry = new THREE.BufferGeometry();
             const points = [];
             const segments = 64;
@@ -230,20 +441,18 @@
             }
             circleGeometry.setFromPoints(points);
             
-            // Use a thick line material if possible, otherwise standard line
             const lineMaterial = new THREE.LineBasicMaterial({ 
                 color: 0x4ade80, // Green
-                linewidth: 3 // Note: linewidth often doesn't work well on Windows WebGL, but we try
+                linewidth: 3
             });
             
             intersectionLine = new THREE.Line(circleGeometry, lineMaterial);
-            // Slightly offset to avoid z-fighting with the plane
             intersectionLine.position.y = 0.001; 
-            planeMesh.add(intersectionLine); // Make it a child of the plane so it moves with it
+            planeMesh.add(intersectionLine);
 
             // B. Intersection Point (For tangent cases)
             const pointGeometry = new THREE.SphereGeometry(0.05, 16, 16);
-            const pointMaterial = new THREE.MeshBasicMaterial({ color: 0x4ade80 });
+            const pointMaterial = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
             intersectionPoint = new THREE.Mesh(pointGeometry, pointMaterial);
             intersectionPoint.visible = false;
             planeMesh.add(intersectionPoint);
@@ -251,49 +460,54 @@
 
         function updateIntersection() {
             const distance = parseFloat(distanceSlider.value);
+            const distStr = distance.toFixed(2);
             
             // Update UI
-            distanceValueDisplay.textContent = distance.toFixed(2);
+            distanceValueDisplay.textContent = distStr;
+            summaryD.textContent = distStr;
             
             // Move the plane vertically
             planeMesh.position.y = distance;
 
-            // Calculate intersection
-            // Equation: r^2 = R^2 - d^2
+            // Calculate intersection: r^2 = R^2 - d^2
             const dSquared = distance * distance;
             const rSquared = SPHERE_RADIUS * SPHERE_RADIUS - dSquared;
 
-            if (rSquared > 0) {
-                // Case 1: Intersecting forming a circle
+            if (rSquared > 0.0001) {
+                // Case 1: Circle intersection
                 const radius = Math.sqrt(rSquared);
+                const radStr = radius.toFixed(3);
                 
-                // Update Line
                 intersectionLine.visible = true;
                 intersectionLine.scale.set(radius, 1, radius);
-                
-                // Hide Point
                 intersectionPoint.visible = false;
                 
-                // Update UI Texts
-                radiusValueDisplay.textContent = radius.toFixed(3);
-                radiusValueDisplay.className = "text-green-400 font-bold";
+                radiusValueDisplay.textContent = radStr;
+                radiusValueDisplay.className = "text-green-400 font-mono font-bold text-sm sm:text-base";
                 statusMessage.textContent = "Status: Circle";
-                statusMessage.className = "mt-2 italic text-green-400";
+                statusMessage.className = "text-xs sm:text-sm font-semibold italic text-green-400";
                 
-                // Color the plane slightly differently when intersecting
+                summaryR.textContent = radius.toFixed(2);
+                summaryR.className = "text-green-400 font-bold";
+                summaryStatus.textContent = "Circle";
+                summaryStatus.className = "italic text-green-400 font-medium";
+                
                 planeMesh.material.color.setHex(0xf87171); 
                 
-            } else if (Math.abs(rSquared) < 0.001) { 
+            } else if (Math.abs(rSquared) <= 0.0001 || (distance >= 0.999 && distance <= 1.001) || (distance <= -0.999 && distance >= -1.001)) { 
                 // Case 2: Tangent (Point intersection)
-                // Using a small epsilon for floating point comparison
-                
                 intersectionLine.visible = false;
                 intersectionPoint.visible = true;
                 
-                radiusValueDisplay.textContent = "0.000";
-                radiusValueDisplay.className = "text-yellow-400 font-bold";
+                radiusValueDisplay.textContent = "0.000 (Point)";
+                radiusValueDisplay.className = "text-yellow-400 font-mono font-bold text-sm sm:text-base";
                 statusMessage.textContent = "Status: Point (Tangent)";
-                statusMessage.className = "mt-2 italic text-yellow-400";
+                statusMessage.className = "text-xs sm:text-sm font-semibold italic text-yellow-400";
+                
+                summaryR.textContent = "0.00";
+                summaryR.className = "text-yellow-400 font-bold";
+                summaryStatus.textContent = "Tangent";
+                summaryStatus.className = "italic text-yellow-400 font-medium";
                 
                 planeMesh.material.color.setHex(0xfacc15); // Yellow
 
@@ -303,33 +517,41 @@
                 intersectionPoint.visible = false;
                 
                 radiusValueDisplay.textContent = "NaN";
-                radiusValueDisplay.className = "text-red-400 font-bold";
+                radiusValueDisplay.className = "text-red-400 font-mono font-bold text-sm sm:text-base";
                 statusMessage.textContent = "Status: No Intersection";
-                statusMessage.className = "mt-2 italic text-red-400";
+                statusMessage.className = "text-xs sm:text-sm font-semibold italic text-red-400";
+                
+                summaryR.textContent = "NaN";
+                summaryR.className = "text-red-400 font-bold";
+                summaryStatus.textContent = "No Intersection";
+                summaryStatus.className = "italic text-red-400 font-medium";
                 
                 planeMesh.material.color.setHex(0x94a3b8); // Slate/Gray
             }
         }
 
         function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            
+            camera.aspect = width / height;
+            if (width < 640 || width < height) {
+                camera.fov = 52;
+            } else {
+                camera.fov = 45;
+            }
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         }
 
         function animate() {
             requestAnimationFrame(animate);
-            
-            // Update controls for damping
             controls.update();
-            
-            // Optional: gently rotate the sphere to show its 3D nature better
             sphereMesh.rotation.y += 0.001;
-            
             renderer.render(scene, camera);
         }
 
-        // Start everything once the window loads to ensure resources are ready
         window.onload = function() {
             init();
             animate();
