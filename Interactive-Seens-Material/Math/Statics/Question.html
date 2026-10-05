@@ -2,45 +2,64 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Moment Vector - Cross Product</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
         body {
             margin: 0;
             overflow: hidden;
             background-color: #0f172a; /* Tailwind slate-900 */
-            color: #f8fafc; /* Tailwind slate-50 */
-            font-family: 'Inter', sans-serif;
-        }
-        #canvas-container {
+            color: #f8fafc;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
             width: 100vw;
             height: 100vh;
-            display: block;
+            height: 100dvh;
+        }
+        #canvas-container {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+            z-index: 1;
         }
         #ui-container {
             position: absolute;
-            top: 20px;
-            left: 20px;
+            top: 1rem;
+            left: 1rem;
             background: rgba(30, 41, 59, 0.95);
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.8), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(148, 163, 184, 0.2);
-            width: 420px;
+            width: calc(100vw - 2rem);
+            max-width: 420px;
             pointer-events: auto;
             z-index: 10;
+            max-height: calc(100dvh - 2rem);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.4); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.6); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.8); }
         
         #math-display {
-            font-family: 'Courier New', Courier, monospace;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
             background: rgba(15, 23, 42, 0.8);
-            padding: 16px;
-            border-radius: 8px;
-            margin-top: 16px;
-            font-size: 0.95rem;
-            min-height: 250px;
+            padding: 14px;
+            border-radius: 0.5rem;
+            font-size: 0.85rem;
             border: 1px solid rgba(56, 189, 248, 0.2);
             position: relative;
         }
@@ -48,8 +67,8 @@
         .btn {
             background-color: #3b82f6;
             color: white;
-            padding: 8px 16px;
-            border-radius: 6px;
+            padding: 8px 14px;
+            border-radius: 0.5rem;
             font-weight: 600;
             cursor: pointer;
             border: none;
@@ -58,24 +77,24 @@
         }
         .btn:hover { background-color: #2563eb; }
         .btn:active { transform: scale(0.98); }
-        .btn:disabled { background-color: #475569; cursor: not-allowed; transform: none; }
+        .btn:disabled { background-color: #475569; cursor: not-allowed; transform: none; opacity: 0.6; }
 
         /* Custom Matrix Styling */
         .matrix-wrapper {
             display: flex;
             justify-content: center;
             align-items: center;
-            margin: 15px 0;
-            font-size: 1.1rem;
+            margin: 10px 0;
+            font-size: 0.95rem;
         }
         .matrix {
             display: inline-grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 10px 20px;
+            gap: 6px 14px;
             text-align: center;
             position: relative;
-            padding: 5px 15px;
-            margin: 0 10px;
+            padding: 4px 10px;
+            margin: 0 8px;
         }
         .matrix::before, .matrix::after {
             content: '';
@@ -91,22 +110,21 @@
         .matrix-val { transition: color 0.3s, text-shadow 0.3s; }
         
         /* Highlighters */
-        .hl-r { color: #facc15; font-weight: bold; } /* Yellow for position */
-        .hl-f { color: #ef4444; font-weight: bold; } /* Red for force */
-        .hl-m { color: #38bdf8; font-weight: bold; } /* Blue for moment */
+        .hl-r { color: #facc15; font-weight: bold; }
+        .hl-f { color: #ef4444; font-weight: bold; }
+        .hl-m { color: #38bdf8; font-weight: bold; }
         .hl-i { color: #a78bfa; font-weight: bold; }
         .hl-j { color: #34d399; font-weight: bold; }
         .hl-k { color: #f472b6; font-weight: bold; }
 
-        /* HTML 3D Labels */
         .scene-label {
             position: absolute;
-            background: rgba(15, 23, 42, 0.7);
+            background: rgba(15, 23, 42, 0.85);
             color: white;
             padding: 4px 8px;
             border-radius: 4px;
-            font-size: 12px;
-            font-family: monospace;
+            font-size: 11px;
+            font-family: ui-monospace, monospace;
             pointer-events: none;
             transform: translate(-50%, -50%);
             border: 1px solid rgba(255,255,255,0.15);
@@ -114,41 +132,89 @@
             white-space: nowrap;
             z-index: 5;
         }
-        .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+        .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; }
+
+        @media (max-width: 640px) {
+            #ui-container {
+                top: 0.75rem;
+                left: 0.75rem;
+                padding: 16px;
+                width: calc(100vw - 1.5rem);
+                max-width: calc(100vw - 1.5rem);
+                max-height: calc(100dvh - 1.5rem);
+            }
+        }
+        @media (max-height: 500px) and (orientation: landscape) {
+            #ui-container {
+                top: 0.5rem;
+                left: 0.5rem;
+                max-width: 320px;
+                max-height: calc(100dvh - 1rem);
+            }
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
-<body>
+<body class="select-none">
 
     <div id="ui-container">
-        <h1 class="text-xl font-bold mb-1 text-white">Moment via Cross Product</h1>
-        <p class="text-sm text-slate-300 mb-4 border-b border-slate-600 pb-3">
-            Calculate the moment <span class="hl-m">M</span> about point B caused by force <span class="hl-f">F</span> at point A.
-        </p>
-        
-        <div class="flex justify-between items-center mb-4 space-x-2">
-            <button id="btn-prev" class="btn" style="background-color: #475569;">Prev Step</button>
-            <button id="btn-next" class="btn">Next Step</button>
+        <!-- Header with Toggle Button -->
+        <div class="flex items-center justify-between pb-3 border-b border-slate-700/80 cursor-pointer select-none" id="ui-header">
+            <div class="flex items-center space-x-2">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
+                <h1 class="text-base sm:text-lg font-bold text-white tracking-tight">Moment via Cross Product</h1>
+            </div>
+            <button id="toggle-btn" class="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/60 transition" aria-label="Toggle UI Panel" title="Toggle Panel">
+                <svg id="toggle-icon" class="w-5 h-5 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
         </div>
 
-        <!-- Step Indicator -->
-        <div class="flex justify-between mb-2 text-xs font-semibold text-slate-400">
-            <span id="step-0-ind" class="text-blue-400">0. Setup</span>
-            <span id="step-1-ind">1. Vector r</span>
-            <span id="step-2-ind">2. Matrix</span>
-            <span id="step-3-ind">3. Result M</span>
+        <!-- Collapsible Content -->
+        <div id="ui-content" class="pt-3 overflow-y-auto custom-scrollbar space-y-3 text-xs sm:text-sm">
+            <p class="text-xs text-slate-300">
+                Calculate moment <span class="hl-m">M</span> about point B caused by force <span class="hl-f">F</span> at point A.
+            </p>
+            
+            <div class="flex justify-between items-center space-x-2">
+                <button id="btn-prev" class="btn bg-slate-600 hover:bg-slate-500 py-1.5 sm:py-2 text-xs sm:text-sm">Prev Step</button>
+                <button id="btn-next" class="btn py-1.5 sm:py-2 text-xs sm:text-sm">Next Step</button>
+            </div>
+
+            <!-- Step Indicator -->
+            <div class="space-y-1.5">
+                <div class="flex justify-between text-[11px] sm:text-xs font-semibold text-slate-400">
+                    <span id="step-0-ind" class="text-blue-400">0. Setup</span>
+                    <span id="step-1-ind">1. Vector r</span>
+                    <span id="step-2-ind">2. Matrix</span>
+                    <span id="step-3-ind">3. Result M</span>
+                </div>
+                <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
+                    <div id="progress-bar" class="bg-blue-500 h-full transition-all duration-500" style="width: 25%;"></div>
+                </div>
+            </div>
+            
+            <div id="math-display">
+                <!-- Dynamic Content -->
+            </div>
+            
+            <div class="flex items-center justify-between pt-1 text-[11px] text-slate-400">
+                <button id="reset-cam-btn" type="button" class="px-2.5 py-1 text-xs bg-slate-700/60 hover:bg-slate-600 text-slate-300 hover:text-white rounded transition flex items-center space-x-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    <span>Reset View</span>
+                </button>
+                <span id="gesture-hint" class="text-right">
+                    Drag to rotate • Pinch zoom
+                </span>
+            </div>
         </div>
-        <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden mb-2">
-            <div id="progress-bar" class="bg-blue-500 h-full transition-all duration-500" style="width: 25%;"></div>
-        </div>
-        
-        <div id="math-display">
-            <!-- Dynamic Content -->
-        </div>
-        
-        <div class="mt-4 text-xs text-slate-400 text-center">
-            Left click + drag to rotate 3D view.<br>Scroll to zoom.
+
+        <!-- Collapsed Summary Bar -->
+        <div id="ui-collapsed-summary" class="hidden pt-2 text-xs flex items-center justify-between text-slate-300">
+            <span>Step: <b id="summary-step" class="text-blue-400">0 / 3</b></span>
+            <span>M = <b id="summary-m" class="text-sky-400">-7i + 4j + 6k</b></span>
         </div>
     </div>
 
@@ -166,40 +232,41 @@
         let forceArrow, rArrow, mArrow;
         let pointA, pointB;
         
-        // --- Math Vectors ---
-        // Point A (Application of Force)
         const vecA = new THREE.Vector3(3, 2, 2);
-        // Point B (Point to calculate moment about)
         const vecB = new THREE.Vector3(1, 0, 1);
         
-        // Force Vector F = 0i + 3j - 2k
         const vecF = new THREE.Vector3(0, 3, -2);
         const lenF = vecF.length();
         const dirF = vecF.clone().normalize();
         
-        // Position Vector r = A - B = (3-1)i + (2-0)j + (2-1)k = 2i + 2j + 1k
         const vecR = new THREE.Vector3().subVectors(vecA, vecB);
         const lenR = vecR.length();
         const dirR = vecR.clone().normalize();
         
-        // Moment Vector M = r x F
         const vecM = new THREE.Vector3().crossVectors(vecR, vecF);
         const lenM = vecM.length();
         const dirM = vecM.clone().normalize();
+        const DEFAULT_CAM_POS = new THREE.Vector3(12, 10, 15);
 
-        // --- State ---
         let currentStep = 0;
         const totalSteps = 4;
+        let isCollapsed = false;
         
-        // Animation Targets
         let targetRLen = 0.001;
         let targetMLen = 0.001;
         
-        // DOM Elements
         const mathDisplay = document.getElementById('math-display');
         const btnNext = document.getElementById('btn-next');
         const btnPrev = document.getElementById('btn-prev');
         const progressBar = document.getElementById('progress-bar');
+        const toggleBtn = document.getElementById('toggle-btn');
+        const uiHeader = document.getElementById('ui-header');
+        const uiContent = document.getElementById('ui-content');
+        const toggleIcon = document.getElementById('toggle-icon');
+        const uiCollapsedSummary = document.getElementById('ui-collapsed-summary');
+        const summaryStep = document.getElementById('summary-step');
+        const resetCamBtn = document.getElementById('reset-cam-btn');
+        const gestureHint = document.getElementById('gesture-hint');
 
         const labels = {
             A: document.getElementById('label-A'),
@@ -209,16 +276,68 @@
             M: document.getElementById('label-M')
         };
 
+        function togglePanel(e) {
+            if (e && e.target && (e.target.closest('#reset-cam-btn') || e.target.closest('button.btn'))) return;
+            isCollapsed = !isCollapsed;
+            if (isCollapsed) {
+                uiContent.classList.add('hidden');
+                uiCollapsedSummary.classList.remove('hidden');
+                toggleIcon.style.transform = 'rotate(-90deg)';
+            } else {
+                uiContent.classList.remove('hidden');
+                uiCollapsedSummary.classList.add('hidden');
+                toggleIcon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        uiHeader.addEventListener('click', togglePanel);
+        toggleBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePanel(); });
+
+        resetCamBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            resetCamera();
+        });
+
+        function resetCamera() {
+            adaptCameraForScreen();
+            controls.target.set(1, 1, 1);
+            controls.update();
+        }
+
+        function adaptCameraForScreen() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            const isNarrow = width < 640 || width < height;
+
+            if (isNarrow) {
+                camera.position.set(14, 12, 18);
+                camera.fov = 55;
+            } else {
+                camera.position.copy(DEFAULT_CAM_POS);
+                camera.fov = 50;
+            }
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        }
+
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+            gestureHint.textContent = '1 finger rotate • Pinch zoom';
+        } else {
+            gestureHint.textContent = 'Left drag rotate • Scroll zoom';
+        }
+
         function init() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x0f172a); 
 
-            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
-            camera.position.set(12, 10, 15);
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 100);
+            adaptCameraForScreen();
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.getElementById('canvas-container').appendChild(renderer.domElement);
 
             controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -226,31 +345,32 @@
             controls.dampingFactor = 0.05;
             controls.target.set(1, 1, 1);
 
-            // Lights
             scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
             dirLight.position.set(10, 20, 10);
             scene.add(dirLight);
 
-            // Grid and Axes
             const axesHelper = new THREE.AxesHelper(8);
             scene.add(axesHelper);
             
-            // XZ Grid to ground it
             const gridHelper = new THREE.GridHelper(20, 20, 0x334155, 0x1e293b);
             scene.add(gridHelper);
 
             buildSceneObjects();
 
             window.addEventListener('resize', onWindowResize);
+            window.addEventListener('orientationchange', () => setTimeout(onWindowResize, 150));
             btnNext.addEventListener('click', () => setStep(currentStep + 1));
             btnPrev.addEventListener('click', () => setStep(currentStep - 1));
 
             setStep(0);
+
+            if (window.innerHeight < 450 && window.innerWidth > window.innerHeight) {
+                togglePanel();
+            }
         }
 
         function buildSceneObjects() {
-            // Points A and B
             const pointGeo = new THREE.SphereGeometry(0.15, 16, 16);
             
             pointA = new THREE.Mesh(pointGeo, new THREE.MeshBasicMaterial({ color: 0xffffff }));
@@ -261,16 +381,12 @@
             pointB.position.copy(vecB);
             scene.add(pointB);
 
-            // Vectors (Arrows)
-            // Force Arrow (Red, at Point A)
             forceArrow = new THREE.ArrowHelper(dirF, vecA, lenF, 0xef4444, 0.8, 0.3);
             scene.add(forceArrow);
 
-            // Position Vector r Arrow (Yellow, from B to A)
             rArrow = new THREE.ArrowHelper(dirR, vecB, 0.001, 0xfacc15, 0.6, 0.2);
             scene.add(rArrow);
 
-            // Moment Vector M Arrow (Blue, at Point B)
             mArrow = new THREE.ArrowHelper(dirM, vecB, 0.001, 0x38bdf8, 1.0, 0.4);
             scene.add(mArrow);
         }
@@ -278,28 +394,28 @@
         function setStep(step) {
             if (step < 0 || step >= totalSteps) return;
             currentStep = step;
+            summaryStep.textContent = `${step} / ${totalSteps - 1}`;
             
-            // 3D Visual Targets
             switch(step) {
-                case 0: // Setup
+                case 0:
                     targetRLen = 0.001;
                     targetMLen = 0.001;
                     labels.r.style.display = 'none';
                     labels.M.style.display = 'none';
                     break;
-                case 1: // Draw r
+                case 1:
                     targetRLen = lenR;
                     targetMLen = 0.001;
                     labels.r.style.display = 'block';
                     labels.M.style.display = 'none';
                     break;
-                case 2: // Matrix
+                case 2:
                     targetRLen = lenR;
                     targetMLen = 0.001;
                     labels.r.style.display = 'block';
                     labels.M.style.display = 'none';
                     break;
-                case 3: // Result M
+                case 3:
                     targetRLen = lenR;
                     targetMLen = lenM;
                     labels.r.style.display = 'block';
@@ -331,32 +447,29 @@
             switch(currentStep) {
                 case 0:
                     html = `
-                        <div class="mb-4">Given:</div>
-                        <ul class="list-disc pl-5 space-y-2 text-slate-300">
-                            <li>Force applied at <span class="font-bold text-white">A(3, 2, 2)</span></li>
-                            <li>Calculate Moment about <span class="font-bold text-white">B(1, 0, 1)</span></li>
-                            <li>Force vector <span class="hl-f font-bold text-lg">F = (0i + 3j - 2k) N</span></li>
+                        <div class="mb-2 text-slate-300 font-semibold">Given:</div>
+                        <ul class="list-disc pl-4 space-y-1 text-slate-300 text-xs sm:text-sm">
+                            <li>Force applied at <span class="font-bold text-white font-mono">A(3, 2, 2)</span></li>
+                            <li>Calculate Moment about <span class="font-bold text-white font-mono">B(1, 0, 1)</span></li>
+                            <li>Force vector: <span class="hl-f font-mono">F = (0i + 3j - 2k) N</span></li>
                         </ul>
                     `;
                     break;
                 case 1:
                     html = `
-                        <div class="mb-2">Step 1: Find Position Vector <span class="hl-r">r</span></div>
-                        <div class="text-sm text-slate-400 mb-3">Draw a vector from the reference point (B) to the point of force application (A).</div>
-                        <div class="bg-slate-900 bg-opacity-50 p-3 rounded text-center">
-                            <span class="hl-r">r</span> = A - B<br>
-                            <span class="hl-r">r</span> = (3-1)<span class="hl-i">i</span> + (2-0)<span class="hl-j">j</span> + (2-1)<span class="hl-k">k</span><br>
-                            <div class="mt-2 text-lg border-t border-slate-700 pt-2 font-bold text-yellow-400">
-                                r = 2i + 2j + 1k
-                            </div>
+                        <div class="mb-1 text-slate-200 font-semibold">Step 1: Position Vector <span class="hl-r font-mono">r</span></div>
+                        <p class="text-xs text-slate-400 mb-2">Vector from reference B to force application point A:</p>
+                        <div class="bg-slate-900/60 p-2 rounded text-center font-mono text-xs sm:text-sm border border-slate-700">
+                            <div>r = A - B</div>
+                            <div class="text-yellow-400 font-bold mt-1">r = 2i + 2j + 1k</div>
                         </div>
                     `;
                     break;
                 case 2:
                     html = `
-                        <div class="mb-2">Step 2: Setup Determinant</div>
-                        <div class="text-sm text-slate-400">The cross product M = r × F is computed using a 3x3 matrix determinant.</div>
-                        <div class="matrix-wrapper">
+                        <div class="mb-1 text-slate-200 font-semibold">Step 2: Setup Determinant</div>
+                        <p class="text-xs text-slate-400 mb-1">Compute M = r &times; F via 3&times;3 matrix:</p>
+                        <div class="matrix-wrapper font-mono">
                             <span class="hl-m mr-2 font-bold">M</span> = 
                             <div class="matrix">
                                 <span class="hl-i font-bold">i</span> <span class="hl-j font-bold">j</span> <span class="hl-k font-bold">k</span>
@@ -368,14 +481,14 @@
                     break;
                 case 3:
                     html = `
-                        <div class="mb-2">Step 3: Calculate Components</div>
-                        <div class="bg-slate-900 p-2 rounded text-sm mb-3 space-y-2 font-mono">
-                            <div><span class="hl-i">i</span>: [(<span class="hl-r">2</span>)(<span class="hl-f">-2</span>) - (<span class="hl-r">1</span>)(<span class="hl-f">3</span>)] = -4 - 3 = <b>-7</b></div>
-                            <div><span class="hl-j">-j</span>: [(<span class="hl-r">2</span>)(<span class="hl-f">-2</span>) - (<span class="hl-r">1</span>)(<span class="hl-f">0</span>)] = -4 - 0 = <b>-4</b></div>
-                            <div><span class="hl-k">k</span>: [(<span class="hl-r">2</span>)(<span class="hl-f">3</span>) - (<span class="hl-r">2</span>)(<span class="hl-f">0</span>)] = 6 - 0 = <b>6</b></div>
+                        <div class="mb-1 text-slate-200 font-semibold">Step 3: Component Expansion</div>
+                        <div class="bg-slate-900/60 p-2 rounded text-xs space-y-1 font-mono border border-slate-700">
+                            <div><span class="hl-i">i</span>: (2)(-2) - (1)(3) = <b>-7</b></div>
+                            <div><span class="hl-j">-j</span>: (2)(-2) - (1)(0) = <b>-4</b> (&rarr; +4j)</div>
+                            <div><span class="hl-k">k</span>: (2)(3) - (2)(0) = <b>+6</b></div>
                         </div>
-                        <div class="text-center text-lg bg-blue-900 bg-opacity-30 p-2 rounded border border-blue-800">
-                            <span class="hl-m font-bold">M = -7i + 4j + 6k</span>
+                        <div class="mt-2 text-center text-sm bg-blue-950/40 p-2 rounded border border-blue-500/40 font-mono font-bold">
+                            <span class="hl-m">M = -7i + 4j + 6k N&middot;m</span>
                         </div>
                     `;
                     break;
@@ -384,7 +497,6 @@
         }
 
         function updateLabels() {
-            // Helper function to project 3D to 2D
             const project = (vec, element, yOffset = 0) => {
                 if(element.style.display === 'none') return;
                 const pos = vec.clone().project(camera);
@@ -397,31 +509,35 @@
             project(vecA, labels.A, -20);
             project(vecB, labels.B, 20);
             
-            // F label at tip of Force vector
             const tipF = new THREE.Vector3().addVectors(vecA, vecF);
             project(tipF, labels.F, -20);
             
-            // r label at midpoint of r vector
             const midR = new THREE.Vector3().addVectors(vecB, vecR.clone().multiplyScalar(0.5));
             project(midR, labels.r, 20);
             
-            // M label at tip of Moment vector
             const tipM = new THREE.Vector3().addVectors(vecB, vecM);
             project(tipM, labels.M, -20);
         }
 
         function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            camera.aspect = width / height;
+            if (width < 640 || width < height) {
+                camera.fov = 55;
+            } else {
+                camera.fov = 50;
+            }
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         }
 
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
             
-            // Smoothly animate vector lengths
-            const currentRLen = rArrow.line.scale.y; // ArrowHelper length is scaled via line and cone
+            const currentRLen = rArrow.line.scale.y;
             if (Math.abs(targetRLen - currentRLen) > 0.01) {
                 const newLen = currentRLen + (targetRLen - currentRLen) * 0.1;
                 rArrow.setLength(newLen, Math.min(newLen*0.5, 0.6), Math.min(newLen*0.2, 0.2));
