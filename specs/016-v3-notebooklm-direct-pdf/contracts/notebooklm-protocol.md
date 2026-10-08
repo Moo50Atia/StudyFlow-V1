@@ -1,0 +1,109 @@
+# Contract: NotebookLM direct protocol v1
+
+This contract supersedes extraction, Coverage and staged prompt generation **only** for `notebooklm_combined_v1`. Other V3 contracts remain in force. Names/fields below are closed allowlists; unknown keys/enums fail validation.
+
+## Decoupled Python interfaces
+
+`v3_engine/notebooklm/ports.py` defines:
+
+- `SessionProvider.open(profile_ref) -> async context manager[ProviderSession]`: validate configured cache/origin, instantiate one client on the activity's event loop, close on exit. No browser launch. Secrets never returned to workflow/persistence.
+- `NotebookFiles.create_notebook(title) -> NotebookRef`; `get_notebook(id) -> NotebookInventory`; `upload_file(notebook_id, local_path, mime_type, title) -> SourceReceipt`; `get_source(notebook_id,source_id) -> SourceReceipt`. Receipt contains private ID, normalized type/title and `processing|ready|error`. Exceptions preserve known registered source ID/stage without logging payloads.
+- `NotebookConversation.configure_format(notebook_id, format_text)` and `get_format(notebook_id)`; `ask_once(notebook_id,question,source_ids,conversation_id) -> TurnAnswer`; `history(notebook_id,conversation_id,limit) -> ordered question/answer pairs`. Answer includes exact text and verified server-recorded conversation ID. Provider IDs exist only inside these ports and signed Laravel worker context.
+- `DirectNotebookProtocol.ingest(case_id,activation_ref)` and `process_work(case_id,work_ordinal) -> {status, binding_ref?, completion_ref?, work_ordinal?}`: educational sequencing, no SDK/cookie handling. It uses signed Laravel ledger operations before sends and persists responses before returning.
+
+SDK mapping: `client.notebooks.create/get`, `client.sources.add_file(...,mime_type=...,wait=False,title=...)`, `client.sources.get`, `client.chat.ask(...,source_ids=...,conversation_id=...)`, `client.chat.get_history`. Configure writes `ChatGoal.CUSTOM`, `ChatResponseLength.LONGER` and exact format text through `client.chat.configure`, then checks `get_settings`. The pin's optional MCP server is not used. Instantiate with rate-limit/server-error retries0, bounded timeouts and no replay of uncertain stateful requests. Upload is a multi-phase operation: registration, upload-session initialization, streaming/finalization and title assignment are legitimate distinct requests, not duplicate file sends. Assert one invocation per effect and no repeated uncertain mutation phase, including SDK auth-refresh paths. If the pinned API cannot enforce that boundary, stop adoption and document the gap rather than silently allowing replay.
+
+## Credentials and environment
+
+Explicit setup extends `scripts/v3/setup_local_credentials.py` to emit SDK-compatible **domain/path-aware storage state** for profile `v3-local`; preserve existing MCP cache. Flat `~/.notebooklm-mcp/auth.json` is not a storage-state file. A legacy flat import may be explicitly converted for supported origin cookies, but collision/missing metadata fails validation and instructs explicit dedicated-profile refresh. Do not infer four browser accounts from a Cookie header. Reuse the selected dedicated Brave setup account; never scan arbitrary profiles or import another account implicitly.
+
+New settings: `V3_NOTEBOOK_PROTOCOL=legacy_staged_v1` default; `V3_NOTEBOOKLM_STORAGE_STATE` absolute private file path; `NOTEBOOKLM_BASE_URL` explicitly mapped from the existing allowed personal NotebookLM origin. Allow only configured `https://notebooklm.google.com` or `https://notebook.google.com`, no arbitrary host/redirect origin. `V3_CALLBACK_HMAC_KEY` and existing bridge key remain the respective shared signing keys, no new guessed defaults. Cache files0600/directory0700 and atomic replacement. Refresh changes credentials, not captured case protocol/source identities. A bound notebook inaccessible after account switch remains unavailable; never create replacement sources for it.
+
+`check_notebooklm.py --adapter notebooklm_py` performs authenticated read-only verification and prints only adapter/version/origin/fixed status; no cookies/tokens/email/IDs. Runtime missing/expired session is `authentication_required`; it leaves work recoverable and never opens a window. Live read verification is not proof of PDF upload or lesson output.
+
+## Source sequence and evidence
+
+1. Resolve accepted PDF and captured framework through signed Laravel endpoints; stream to private activity-local temp files, verify exact digest/length, no unbounded in-memory PDF. Do not call extractor/OCR. Reject size/hash mismatch before notebook claim.
+2. Claim `notebook_create`; title `v3-case-{case_id}`. Confirm returned ID with exact-title, empty inventory check. An uncertain create may adopt only one uniquely validated exact-title candidate. SDK recent-notebook listing is incomplete: absence is never proof no notebook exists. Unknown ID remains uncertain; no automatic create retry.
+3. Claim/upload PDF first, then steps, with independent effects. Use `add_file`, including actual binary PDF and UTF-8 text file bytes, not `add_text`. Record a returned/exception-carried source ID immediately. If no ID is known after uncertainty, candidate title/type alone is **not** byte identity proof; do not adopt or retry that upload automatically.
+4. Poll known source IDs every10s, each activity attempt bounded300s and heartbeat30s; wait beyond300s through durable timer/new read-only polling, never reupload. On `ERROR`, record `source_processing_failed`; on timeout keep `processing`. Known title/type mismatch or extra sources is `source_conflict`. Framework title exactly `steps.txt`; PDF title uses case/hash only.
+5. After both ready, claim `chat_configure`, apply/read back the format profile; only then set binding bound. Lost acknowledgement reconciles read-back, never writes another configuration automatically. A mismatch remains uncertain/conflicted.
+
+Local hashes prove bytes supplied, while ready/type/title/source-ID checks prove provider registration/readiness. Provider extracted text is not a checksum of original PDF. No source content echoed to ordinary logs.
+
+## Conversation sequence and format profile
+
+Read canonical Divide/Execution from existing `v3_engine/lessons/canonical_prompts.py` and compare byte hashes to 009 canonical contract. Never retype/reformat them. Requests:
+
+| Query kind / ordinal | Exact question | Scope / conversation |
+|---|---|---|
+| `divide` /0 | unchanged Divide body | only PDF ID; initial conversation null, verified empty new notebook history |
+| `execution` /0 | unchanged Execution body | PDF+steps IDs; recorded Divide conversation |
+| `lesson_start` /1 | `Start with First lesson` | PDF+steps; recorded Execution conversation |
+| `lesson_continue` /2..N | `Continue` | PDF+steps; last committed Lesson conversation |
+
+Require stable nonempty server conversation ID after Divide and unchanged ID on subsequent turns; changed/missing ID is `conversation_conflict`, no guessed fallback. Do not send Coverage, extra format questions or standalone First/Second/Third. Do not pass `source_ids=None`. Only provider-generated map determines learning units; local parsing determines IDs/order, not content.
+
+The exact UTF-8 LF format configuration text (without fence delimiters or delimiter newline) is:
+
+```text
+RESPONSE FORMAT combined-envelope-v1
+The uploaded educational PDF supplies facts. steps.txt supplies the First, Second and Third framework. Preserve that framework unchanged.
+For the dividing request, return only its structural map.
+For the execution acknowledgement, return only System Ready.
+For Start with First lesson and each literal Continue, return all three output artifacts for exactly the current mapped work item, without reading ahead. X is its one-based depth-first work ordinal; a Mini Chapter without Lessons counts as one work item.
+Use these exact standalone delimiters in this order:
+=== FIRST ===
+The complete First output, including Lecture and every Section with its eleven fields.
+=== SECOND ===
+The complete Second output, including Lecture and each LecX (SecY) placeholder and Prepared Perspective Map.
+=== THIRD ===
+The complete Third output, including Lecture and one quoted final prompt per LecX (SecY).
+=== END ===
+Finish with exactly: ✅ Lesson [X] Completed. Awaiting 'Continue' for the next lesson.
+Do not include these delimiter lines inside an artifact. Return no other text outside the three artifacts and final completion marker.
+```
+
+This format reflects the owner's explicit all-three-output correction. It does not replace any prompt body. Provider inability to obey it blocks bundle acceptance; never hide that by extracting invented fields. Capture/profile-hash readback is required before any chat send.
+
+### Map grammar
+
+Reuse 009's label/number/delimiter/title rules, reject prose/orphans/empty maps/empty Chapters. Strip only optional Markdown heading markers and paired bold wrapper around a whole structural line; no text rewriting. Indented hierarchy uses0 spaces Chapter,2 Mini or direct Lesson,4 Lesson under Mini; optional bullet doesn't alter depth. Uniformly flat maps use most recent Chapter/Mini context like the legacy grammar; reject mixed indentation that makes parentage ambiguous. Assign each parent's child position from **one sibling counter across kinds**, avoiding collisions between direct Lessons and Minis. Duplicate titles are legal; ordinal/path identity is authoritative. Assign contiguous work ordinals depth-first including childless Minis. No synthetic page assignments; direct map declares `coverage_mode=not_requested_direct_pdf`.
+
+### Combined reply grammar and preservation
+
+Reject empty or >1MiB UTF-8 reply. Normalize CRLF/CR to LF for parsing only; raw stored bytes/hash stay unchanged. Require exactly one of each delimiter in order, three nonempty artifacts and terminal marker `✅ Lesson [W] Completed. Awaiting 'Continue' for the next lesson.` matching the claimed ordinal. A decimal unbracketed W is also allowed; no other completion marker or trailing nonblank content. Strip Markdown heading/bold wrappers **only around recognized structural labels**, not field values/prompt body. No external explanatory prose/code-fence wrappers.
+
+Each artifact has one `Lecture: <title>` matching the expected leaf title or full mapped path; all three use the same identity. Duplicate leaf titles are disambiguated by immutable map/work ordinal and completion/Lec identities, never by title lookup alone. First has Section1..S, S>=1, and exactly the eleven labels in `first_parser.CANONICAL_FIELD_LABELS`, in order; ten fields nonempty, `laws_if_any` may be empty. Preserve multiline Arabic/equations and internal whitespace. Record exact raw slices; parsed values remove only label separator/outer blank lines, not educational characters or indentation. No synthesis, dropping or merging fields.
+
+Second has exactly one `LecW (SecY):` block per First Section, contiguous/order-matched. Retain its quoted placeholder plus `Prepared Perspective Map` and thirteen named fields: `Primary learning objective`, `Scene Type`, `Baseline objects and state`, `Time Perspective`, `Custom Perspectives`, `Governing Behavior`, `Learner Investigations`, `Controls`, `Linked Views`, `Visual Learning Goal`, `Coverage`, `Acceptance Checks`, `Evidence Gaps`. Match case-insensitively with optional bullet/Markdown label wrapper and colon or period separator, each nonempty including explicit `Not applicable`; preserve its complete original text. Third has exactly one such block per Section, enclosing quoted prompt whose first line begins with one permitted type: `Process`, `Comparison`, `Accumulation`, `Parallel Flow`, `Time Evolution` (word boundary, optional colon/text afterward). `Scene Type: Comparison` is invalid for this v1 grammar; do not strip that text or invent a type. Each Third body is at most65536 UTF-8 bytes, retaining existing010's limit. Quoted blocks are delimited by structural block boundaries: outer opening/closing quotes only, inner quotes/equations remain intact. Never use a regex stopping at the first interior quote. Unknown/duplicate/missing Section, type, preparation or marker is `bundle_invalid`, with raw answer retained and no partial projection. Shared PHP/Python golden fixtures prove identical acceptance and extracted values.
+
+## Signed Laravel surface
+
+All worker routes are under existing `/api/internal/v1` and `v3.worker.signature`; use existing HMAC over **the exact bytes sent**. Sign once, send `content=body_bytes`; never sign httpx's private encode_json tuple. Unknown/missing/foreign refs share404 `resource_unavailable`; invalid payload422 `protocol_validation`; wrong phase/version/protocol409 `protocol_conflict`; missing captured artifact503 `source_integrity_failure|framework_unavailable`; invalid/missing signature401. Responses `private, no-store`; errors have only `{error:{code,message}}`, with fixed message and no private values.
+
+- Existing `GET source-activations/{activation_id}/pdf`: continue verified accepted-PDF stream; direct branch explicitly accepts source activation at sourcing stage and checks original active owner/control fences.
+- **New** `GET source-activations/{activation_id}/steps`: captured bytes, `text/plain; charset=utf-8`, Content-Length, `X-V3-Framework-SHA256`; same authorization/fences, no arbitrary file path.
+- Existing binding/context endpoints: direct worker result includes case/binding/protocol, notebook ID, two manifest records, document/page count, framework digest/version, recorded conversation and current cursor/version. Include a `next_request` closed object with operation/kind, ordinal, question hash/scope, artifact identity if applicable, expected version and Laravel-computed canonical request digest. Worker reads this before claim; it does not independently invent identity. Public teacher/admin projection never uses this resource class.
+- Existing source-effect claim/result: extend only operation allowlist and mode-specific validation. Claim body `{schema_version:1,activation_ref,request_digest}`; response `{data:{effect_ref,disposition:"send_now|reconcile_only|already_confirmed",state,provider_ref}}`. Result accepts `{schema_version:1,state:"confirmed|uncertain|blocked",provider_ref:null|string,error_code:null|code,source:{role,title,type,state}|null}`. Successfully uploaded file effect may be confirmed while its manifest source is still processing; readiness is separate. Read-only polls can update that same known source to ready without changing effect identity/count. Only coordinator-computed local input metadata is accepted, not caller hashes replacing captured artifacts.
+- Existing lesson query claim: direct closed body `{schema_version:1,binding_ref,expected_cursor_version:null|integer,conversation_in:null|string,request_sha256,history_length_before:integer,history_anchor_sha256:null|string}`; path supplies case/kind/ordinal. Ledger constructs question/scope from captured protocol and rejects caller digest mismatch; history anchor is captured from trusted worker read before claim and immutable on replay. Divide requires history length0/null anchor. Response `{data:{query_ref,disposition:"send_now|reconcile_only|already_recorded",claimed_cursor_version:null|integer,state}}`. GET query returns private recorded evidence/refs to same-case worker only.
+- **New** `POST lesson-queries/{query_ref}/combined-result`: `{schema_version:1,expected_cursor_version,answer,answer_sha256,conversation_out}` only. PHP validator derives mappings from answer; do not trust Python-supplied Sections. Return201 `{data:{bundle_ref,completion_ref,work_ordinal,cursor_version,section_refs,original_prompt_refs}}`; exact replay200 same refs/version. Body/cursor/map/answer/conversation conflict409; invalid reply422 with private raw evidence retained and query blocked.
+- Existing lesson query result: direct Divide body `{schema_version:1,answer,answer_sha256,conversation_out}` invokes direct map parser/validator; direct Execution same shape accepts only exact `System Ready` ignoring outer whitespace. They cannot invoke legacy First/Coverage acceptors. **New** `POST lesson-queries/{query_ref}/uncertain` accepts `{schema_version:1,error_code}` after a sending claim, preserving digest/version/count; no reset-to-prepared endpoint.
+
+Request digest: SHA-256 over compact JSON with keys in this exact order, UTF-8/unescaped Unicode, no spaces: `{protocol,case_id,binding_ref,kind,work_ordinal,expected_cursor_version,conversation_in,source_roles,framework_sha256,response_format_sha256,question_sha256}`. Roles are `["educational_pdf"]` or `["educational_pdf","framework_steps"]`. Source-effect digest uses ordered `{protocol,case_id,operation,notebook_title,notebook_id,role,title,artifact_sha256,artifact_bytes,response_format_sha256}`; irrelevant fields are null. Laravel computes both; Python receives the canonical request digest rather than inventing identity. Raw question/file/answer content never enters Temporal history.
+
+## Recovery, atomicity and errors
+
+Claim locks case/control→binding/effect or cursor/query and commits before a provider call. Only the first claimant receives `send_now`; all duplicates reconcile. Actual concurrent tests use two DB connections/processes and a barrier, not sequential calls. Hold/cancel/owner suspension checked before claims and before commits; an in-flight response may be retained privately but cannot advance a fenced case. After fence removal, commit the same known result; never resend. Explicit cancel retains evidence and prevents further work.
+
+Authentication/outage known **before** outbound authorization uses captured bounded technical retries. After authorization, missing acknowledgement is uncertain even if no actual send can be proven; never issue another mutation automatically. Read-only ID polling/history can retry with captured policy. Provider schema drift is `provider_contract_mismatch`; known invalid input `protocol_validation`; storage failure `storage_unavailable`; ambiguous send `provider_uncertain`; malformed known answer `bundle_invalid`; changed conversation `conversation_conflict`. These are worker/private codes; case events use existing broad `validation|provider_unavailable|internal|policy_denied` mapping.
+
+Before each chat claim, capture private conversation history length and hash of the preceding committed question/answer pair. Recovery fetches that **same** conversation with limit sufficient for all known turns (cap1000; larger history blocks automatic reconciliation). Match the next turn at the captured position against the exact expected question and previous anchor; exactly one valid successor permits local commit. Identical repeated `Continue` text alone never identifies a turn. History pairs with missing anchor, multiple successors, truncated inventory or manual interleaving remain uncertain. If Divide timed out without a durable conversation ID, listing/history cannot establish exact identity: remain uncertain, no new chat send.
+
+Coordinator validates the entire bundle before row creation, stages all private artifacts, locks the claimed cursor, then writes Sections, logical turns, original versions, states, completion and bundle in one transaction. Failure rolls back all rows/cursor; raw provider evidence/orphan files may remain for recovery. Outbox uses existing `NotifyLessonCompletionJob` after commit and receipt digest from009. Cursor refs are durable, notification acceptance is not workflow consumption. Existing direct case recovery command performs only read-only reconciliation/reposting known results; it never resolves uncertainty by replaying Start/Continue.
+
+## Workflow/control integration
+
+Capture protocol in authenticated workflow start/memo as safe enum; framework/provider IDs and content stay in Laravel. Absent protocol in old input means legacy, not current environment. Use a Temporal patch boundary plus captured version; replay old histories before release. Direct start projects `workflow_started/sourcing/queued`, discovers source activation for sourcing, and emits sourcing/mapping/prompting milestones only after matching durable evidence. No fabricated extraction milestones. Existing `ProjectCaseEvent` validates direct stage provenance separately.
+
+Direct activity returns refs/status only. After map/Execution, process each ordinal through combined activity; consume committed completion identity/version, then use existing qualification→authoring→scene-check/JEV→teacher review flow. Serial next-Lesson eligibility follows existing per-work downstream/review control gates; source cursor readiness alone does not bypass a hold or review wait. Event keys for per-work/per-section stages include work ordinal and immutable prompt/candidate ref where needed; no shared `prompt:qualification:completed` key across Lessons. Add authenticated `notebook_reconciled_v1({schema_version:1,case_id,query_ref,work_ordinal,cursor_version,completion_ref})` bridge signal plus consumed-query query for recovery; payload contains only opaque refs/integers. Workflow verifies refs against Laravel activity before proceeding. Scheduler retries exact signal; no `wait_condition(lambda:False)` for recoverable direct work. Use durable timed recheck if signal lost.

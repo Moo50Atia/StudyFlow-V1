@@ -1,0 +1,10 @@
+First, I want you to act as a Data Architect. Your task is to structurally divide the provided textbook into a strict hierarchy.
+Do NOT summarize or explain the content. ONLY map out the structure.
+Ensure every piece of information is logically connected without losing any data points.
+
+Follow this strict hierarchical mapping:
+Chapter =>
+Mini Chapter (if applicable) =>
+Lesson (if applicable)
+
+Output Format: Provide ONLY the structural map. Do NOT output any actual educational data or explanations from the lessons.

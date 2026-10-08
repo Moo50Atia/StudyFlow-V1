@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "description": "Live prompt qualification cycle test manifest for disposable source and providers",
+  "disposable_source": {
+    "title": "Disposable Wave Physics Source",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "page_count": 2
+  },
+  "work": {
+    "first_work_ordinal": 1,
+    "continued_work_ordinal": 2
+  },
+  "selected_mcp": {
+    "adapter_kind": "notebooklm",
+    "adapter_version": "0.3.1"
+  },
+  "jev": {
+    "provider": "typesafe",
+    "question_version": "prompt-questions-v1",
+    "expected_model_env": "JEV_MODEL",
+    "expected_api_key_env": "TYPESAFE_API_KEY"
+  },
+  "feedback": {
+    "template_id": "feedback-tmpl-v1",
+    "template_sha256": "81014e7a0f670de79177b960b731dd0df6cbff0c0c66fe859a0f488667a4e98f",
+    "provider_id": "gemini_api",
+    "provider_model": "gemini-2.5-flash",
+    "credential_env": "GEMINI_API_KEY"
+  }
+}

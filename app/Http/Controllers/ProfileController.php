@@ -40,13 +40,16 @@ class ProfileController extends Controller
     /**
      * Delete the user's account.
      */
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request, \App\Services\V3\Access\RetainV3Account $retainedAccount): RedirectResponse
     {
         $request->validateWithBag('userDeletion', [
             'password' => ['required', 'current_password'],
         ]);
 
         $user = $request->user();
+
+        // Check if user has retained V3 access before logout
+        $retainedAccount->assertCanDelete($user);
 
         Auth::logout();
 

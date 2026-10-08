@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    'v3' => [
+        'bridge_url' => env('V3_BRIDGE_URL', 'http://127.0.0.1:8765'),
+        'bridge_hmac_key' => env('V3_BRIDGE_HMAC_KEY'),
+        'callback_hmac_key' => env('V3_CALLBACK_HMAC_KEY'),
+        'jev_model' => env('JEV_MODEL'),
+        'notebook_protocol' => env('V3_NOTEBOOK_PROTOCOL', 'legacy_staged_v1'),
+        'notebooklm_storage_state' => env('V3_NOTEBOOKLM_STORAGE_STATE'),
+        'notebooklm_base_url' => env('NOTEBOOKLM_BASE_URL', 'https://notebooklm.google.com'),
+    ],
+
 ];

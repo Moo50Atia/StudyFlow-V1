@@ -19,6 +19,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        \Illuminate\Support\Facades\Gate::policy(\App\Models\V3\Document::class, \App\Policies\V3\DocumentPolicy::class);
+        \Illuminate\Support\Facades\Gate::policy(\App\Models\V3\UploadAttempt::class, \App\Policies\V3\UploadAttemptPolicy::class);
+        \Illuminate\Support\Facades\Gate::policy(\App\Models\V3\ProcessingCase::class, \App\Policies\V3\ProcessingCasePolicy::class);
     }
 }

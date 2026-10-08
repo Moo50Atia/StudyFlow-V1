@@ -1,0 +1,30 @@
+{
+  "checks": [
+    "integrity",
+    "entrypoint",
+    "assets",
+    "runtime",
+    "network",
+    "interaction",
+    "accessibility"
+  ],
+  "detail_codes": [
+    "integrity_mismatch",
+    "entrypoint_missing",
+    "entrypoint_empty",
+    "asset_missing",
+    "asset_undeclared",
+    "script_error",
+    "console_error",
+    "forbidden_request",
+    "popup_attempt",
+    "download_attempt",
+    "interaction_absent",
+    "interaction_no_change",
+    "keyboard_inoperable",
+    "accessible_name_missing",
+    "document_lang_missing",
+    "document_title_missing",
+    "not_run_due_to_prior_failure"
+  ]
+}

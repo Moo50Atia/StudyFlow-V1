@@ -1,0 +1,35 @@
+# Executable Tasks: V3 Versioned Settings
+
+**All pending.** Inputs: [spec](spec.md), [plan](plan.md), [schema/HTTP contract](contracts/settings.md), [acceptance matrix](contracts/acceptance-matrix.md). Complete in ID order. Each test task precedes the implementation it governs; a preexisting passing regression is recorded as such. A 404, missing import or syntax error alone is not meaningful red evidence.
+
+## Group A — baseline and persistence
+
+- [x] **T001** (entry; FR-001; S04) Record `git status`, relevant 004 route/middleware/class existence, PHP/composer versions and baseline auth/profile tests in `specs/005-v3-versioned-settings/implementation-report.md`. Completion: actual prerequisite and preexisting failures recorded; no application edits yet.
+- [x] **T002** (after T001; FR-002, FR-003, FR-009; S01, S07, S15) Write `tests/Feature/V3/Settings/SettingsSchemaTest.php`, `tests/Feature/V3/Settings/ApprovedTemplateTest.php` and `tests/Support/V3/SettingsFixtures.php` asserting exact tables, empty pointer/catalog, restrictive FKs, immutable rows, trusted CLI import, digest mismatch, duplicate same-ID behavior and no body in command output. Completion: meaningful schema/import assertions recorded before implementation.
+- [x] **T003** (after T002; FR-003, FR-009; S01, S07, S15) Create `database/migrations/2026_10_01_000005_create_v3_settings_tables.php`, `app/Models/V3/SettingsVersion.php`, `app/Models/V3/SettingsPublication.php`, `app/Models/V3/ActiveSettings.php`, `app/Models/V3/ApprovedTemplate.php` and `app/Console/Commands/V3/RegisterApprovedTemplate.php`. Completion: T002 passes; no seeded active version/template, no case table or credential column.
+
+## Group B — validation and real admin route
+
+- [x] **T004** (after T003; FR-001, FR-002, FR-007, FR-008, FR-009; S03, S04, S15) Write `tests/Feature/V3/Settings/SettingsValidationTest.php` and `tests/Feature/V3/Settings/SettingsBoundaryTest.php` with valid/invalid complete bodies, forged secret/canonical fields, unknown/wrong-kind/stale template digests and actual guest/teacher/inactive/admin HTTP requests. Completion: test cases and assertions are authored before their behavior; T005 begins with a minimal protected route skeleton, then records substantive red assertions rather than counting a 404.
+- [x] **T005** (after T004; FR-001, FR-002, FR-009; S03, S04, S15) Implement `app/Services/V3/Settings/SettingsSchema.php`, `app/Http/Requests/V3/PublishSettingsRequest.php`, admin routes in `routes/v3.php` and `app/Http/Controllers/V3/Admin/SettingsController.php` using 004 middleware. Completion: invalid-input and real boundary cases pass; positive publication is completed at T007; route names/CSRF/no-store match contract.
+
+## Group C — atomic publication and contention
+
+- [x] **T006** (after T005; FR-003/007; S01/S02/S05/S06/S07) Write `tests/Feature/V3/Settings/PublicationTest.php` for first/replacement/stale/identical payload, checksum/history preservation and injected audit/storage failure rollback. Completion: new publication assertions show substantive red before publisher exists; existing boundary assertions remain green.
+- [x] **T007** (after T006; FR-003; S01, S02, S05, S06, S07) Implement `app/Services/V3/Settings/CanonicalSettings.php`, `app/Services/V3/Settings/PublishSettings.php`, `app/Services/V3/Settings/SettingsUnavailable.php`, publication event creation and POST controller response. Completion: T006 passes with atomic pointer/version/event and freshly eligible actor.
+- [x] **T008** (after T007; FR-003; S05) Write `tests/Integration/V3/Settings/PublicationConcurrencyTest.php` plus `tests/Support/V3/ConcurrentSettingsWorker.php` using two independent connections/processes to one temporary SQLite file, a barrier and same expected version. Completion: one commit, one 409, one event, pointer to winner; if already passing, record valid regression coverage rather than manufacturing a red phase.
+- [x] **T009** (after T008; FR-003; S05) Fix any race found in `PublishSettings.php` or pointer-lock path; run T006/T008. Completion: true contention test is green repeatedly with no lock-error-as-success assertion.
+
+## Group D — selection without 006 production model
+
+- [x] **T010** (after T009; FR-004, FR-005, FR-008, FR-009; S08, S09, S10, S11, S14, S15) Write `tests/Feature/V3/Settings/CaptureContractTest.php` using a test-only table/consumer, plus `tests/Integration/V3/Settings/SelectionConcurrencyTest.php` with separate connections. Assert no-active failure, A-after-B, missing/corrupt row, same-transaction insert, publication race and exact approved template bytes after newer import. Completion: service behavior assertions precede implementation; fixture is explicitly not a ProcessingCase.
+- [x] **T011** (after T010; FR-004, FR-005, FR-009; S08, S09, S10, S11, S15) Implement `app/Services/V3/Settings/SelectCaseSettings.php`, `app/Services/V3/Settings/SettingsVersionRepository.php` and `app/Services/V3/Settings/ApprovedTemplateRepository.php`. Completion: T010 passes; no production case/worker/provider placeholder.
+
+## Group E — safe read surfaces and final evidence
+
+- [x] **T012** (after T011; FR-006, FR-007, FR-009; S12, S13, S15) Write `tests/Feature/V3/Settings/SettingsHistoryTest.php` and `tests/Feature/V3/Settings/SettingsPrivacyTest.php` with pagination, leaf-path diff, credential sentinel in rejected request/config fixture, DB/response/log/session-old-input inspection, catalog-list no-body assertion and no-store on error. Completion: assertions exercise real GET/POST routes and persistence.
+- [x] **T013** (after T012; FR-006, FR-007, FR-009; S12, S13, S15) Implement `app/Http/Resources/V3/SettingsResource.php`, GET controller actions and `resources/views/v3/admin/settings/show.blade.php`, `resources/views/v3/admin/settings/history.blade.php`, `resources/views/v3/admin/settings/templates.blade.php`. Completion: T012 passes with no raw model/request/template-body serialization.
+- [x] **T014** (after T013; FR-001, FR-006, FR-008, FR-009; S04, S07, S13, S15) Write `tests/Feature/V3/Settings/SettingsRouteInventoryTest.php`; inspect actual route list including legacy `/users`, `/study-flow`, `/api`, method/CSRF/no-store behavior and absence of edit/delete/teacher settings or template-body route. Completion: assertions pass against production route inventory, no test-only route is registered in production.
+- [x] **T015** (after T014; all FR/SC; S01–S15) Run the [quickstart](quickstart.md), focused and relevant regression tests, changed PHP formatting check and `git diff --check`; inspect changed files. Complete `specs/005-v3-versioned-settings/implementation-report.md` with per-scenario results, actual commands, baseline failures, approved-template import prerequisite, 006+ obligations, changed paths and truthful complete/partial/blocked status. Completion: all mandatory 005 cases green or marked unresolved; no app behavior claimed from fixture alone.
+
+Dependencies are sequential because routes, schema, singleton lock and actor state are shared. No task creates 006's case table or implements later provider/Temporal/JEV services.

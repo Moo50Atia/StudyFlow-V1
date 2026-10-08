@@ -1,0 +1,6 @@
+{
+  "name": "Math Vis: Exponents",
+  "description": "An interactive 3D visualizer for teaching exponents and numbers.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

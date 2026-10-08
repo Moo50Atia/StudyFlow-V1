@@ -60,6 +60,13 @@ return [
             'report' => false,
         ],
 
+        'v3_private' => [
+            'driver' => 'local',
+            'root' => storage_path('app/v3'),
+            'serve' => false,
+            'throw' => true,
+        ],
+
     ],
 
     /*

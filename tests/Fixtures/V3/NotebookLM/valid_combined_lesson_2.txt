@@ -1,0 +1,51 @@
+=== FIRST ===
+Lecture: W2 | Ordered Pairs and Coordinates
+
+Section 1:
+Section Identity: Cartesian Coordinates and Orthogonal Projection
+Core Understanding: An ordered pair represents a unique coordinate position in a 2D plane.
+Visual-First Explanation: Two intersecting perpendicular lines forming quadrants where points are projected onto each axis.
+Visual Scene Script: 2D grid appears with x and y axes. An ordered pair (3, 2) is plotted with drop-lines to axes.
+Dynamic View Blueprint: 2D plane canvas with interactive point handle and dynamic coordinate readouts.
+Visual Learning Outcome: Student sees order matters: (2, 3) is distinct from (3, 2).
+Concept Check: Why is (x, y) different from (y, x) when x != y?
+Conceptual Summary: Cartesian coordinates map 2D space bijectively to real number pairs.
+• شرح للجزء بالعامية المصرية: نظام الإحداثيات ده شبكة متعامدة، والزوج المرتب بيحدد مكان النقطة بدقة، والترتيب بيفرق جداً.
+القوانين (إن وُجدت): P = (x, y) \in \mathbb{R}^2
+إسقاط على مثال أو موقف من الحياة اليومية لتثبيت الفهم: عنوان بيتك بشارع ورقم عمارة، مينفعش تبدل رقم الشارع برقم العمارة.
+
+=== SECOND ===
+Lecture: W2 | Ordered Pairs and Coordinates
+
+Lec1 (Sec1):
+"Interactive 2D Cartesian grid exploring ordered pairs."
+Prepared Perspective Map:
+- Primary learning objective: Grasp ordered pairs and coordinate projection.
+- Scene Type: Process
+- Baseline objects and state: 2D coordinate grid with origin, x-axis, y-axis, and movable point.
+- Time Perspective: Not applicable
+- Custom Perspectives: Quadrant highlight perspective.
+- Governing Behavior: Point coordinates update in real time based on position.
+- Learner Investigations: Drag point to different quadrants and observe coordinate sign changes.
+- Controls: Draggable point handle and coordinate sliders.
+- Linked Views: Synchronized coordinate text and point visual marker.
+- Visual Learning Goal: Verify asymmetry of ordered pairs.
+- Coverage: 2D coordinate system and ordered pairs.
+- Acceptance Checks: Moving point to (3, -2) updates readout to (3, -2) in quadrant IV.
+- Evidence Gaps: Not applicable
+
+=== THIRD ===
+Lecture: W2 | Ordered Pairs and Coordinates
+
+Lec1 (Sec1):
+"Process: 2D Cartesian Coordinate Plotting
+Learning Target: Understand how ordered pairs uniquely identify planar positions.
+Scene Objects and Initial State: 2D coordinate plane with grid lines, origin at center, point P at (2, 4).
+Governing Rules: Position vector P = x * i + y * j.
+Learner Investigations and Controls: Drag point P across the plane, observe x and y projection lines.
+Linked Representations: Live display of (x, y) coordinate pair.
+Visual Outcome and Misconception Contrast: Demonstrates that (2, 4) != (4, 2).
+Acceptance Requirements: Projections remain orthogonal to axes at all coordinates."
+
+=== END ===
+✅ Lesson [2] Completed. Awaiting 'Continue' for the next lesson.

@@ -1,0 +1,50 @@
+=== FIRST ===
+Lecture: W1 | The Number Line and Real Numbers
+
+Section 1:
+Section Identity: Real Number Representation
+Core Understanding: Every real number corresponds to a unique point on a continuous line.
+Visual-First Explanation: A continuous line with an origin point 0 extending infinitely in positive and negative directions.
+Visual Scene Script: Number line renders from -10 to +10.
+Dynamic View Blueprint: Interactive 1D coordinate axis.
+Visual Learning Outcome: Learner sees density of real numbers.
+Concept Check: Is there an empty gap between rational numbers?
+• شرح للجزء بالعامية المصرية: خط الأعداد ده خط مستمر ملوش نهاية.
+القوانين (إن وُجدت): \forall x \in \mathbb{R}
+إسقاط على مثال أو موقف من الحياة اليومية لتثبيت الفهم: مسطرة القياس.
+
+=== SECOND ===
+Lecture: W1 | The Number Line and Real Numbers
+
+Lec1 (Sec1):
+"Interactive number line."
+Prepared Perspective Map:
+- Primary learning objective: Understand one-to-one correspondence.
+- Scene Type: Comparison
+- Baseline objects and state: Horizontal line, origin at 0.
+- Time Perspective: Not applicable
+- Custom Perspectives: Zoom perspective.
+- Governing Behavior: Point position linearly proportional to coordinate.
+- Learner Investigations: Drag point along line.
+- Controls: Slider for coordinate value.
+- Linked Views: Synchronized coordinate readout.
+- Visual Learning Goal: Comprehend density.
+- Coverage: Real number line definition.
+- Acceptance Checks: Moving slider updates marker position.
+- Evidence Gaps: Not applicable
+
+=== THIRD ===
+Lecture: W1 | The Number Line and Real Numbers
+
+Lec1 (Sec1):
+"Comparison: Real Number Line Continuum vs Discrete Sets
+Learning Target: Contrast discrete integer points with dense real number continuum.
+Scene Objects and Initial State: Continuous horizontal axis with origin '0'.
+Governing Rules: Order is strictly preserved.
+Learner Investigations and Controls: 'Zoom' button.
+Linked Representations: Numerical label linked to axis.
+Visual Outcome and Misconception Contrast: Shows real number continuity.
+Acceptance Requirements: Zooming maintains axis scale."
+
+=== END ===
+✅ Lesson [1] Completed. Awaiting 'Continue' for the next lesson.

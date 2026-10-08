@@ -44,6 +44,24 @@ return [
             'after_commit' => false,
         ],
 
+        'v3_intake' => [
+            'driver' => 'database',
+            'connection' => env('DB_QUEUE_CONNECTION'),
+            'table' => env('DB_QUEUE_TABLE', 'jobs'),
+            'queue' => 'v3_intake',
+            'retry_after' => 360,
+            'after_commit' => true,
+        ],
+
+        'v3_workflow' => [
+            'driver' => 'database',
+            'connection' => env('DB_QUEUE_CONNECTION'),
+            'table' => env('DB_QUEUE_TABLE', 'jobs'),
+            'queue' => 'v3_workflow',
+            'retry_after' => 90,
+            'after_commit' => true,
+        ],
+
         'beanstalkd' => [
             'driver' => 'beanstalkd',
             'host' => env('BEANSTALKD_QUEUE_HOST', 'localhost'),

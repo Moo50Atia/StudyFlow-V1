@@ -1,0 +1,6 @@
+{
+  "name": "Procedural vs. Object-Oriented Encapsulation Visualizer",
+  "description": "Interactive visual learning scene demonstrating the shift from procedural programming to object-oriented encapsulation, private data shields, and public portal validation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

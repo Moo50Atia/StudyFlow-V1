@@ -16,7 +16,7 @@ class UserRequest extends FormRequest
     {
         $userId = $this->route('user')?->id;
 
-        return [
+        $rules = [
             'name' => 'required|string|max:255',
             'email' => [
                 'required',
@@ -29,6 +29,13 @@ class UserRequest extends FormRequest
                 : 'nullable|string|min:8',
             'role' => 'required|in:admin,teacher,student',
         ];
+
+        if ($this->isMethod('PUT') || $this->isMethod('PATCH')) {
+            $rules['expected_version'] = ['required', 'integer', 'min:0'];
+            $rules['expected_role'] = ['required', 'string', 'in:admin,teacher,student'];
+        }
+
+        return $rules;
     }
 
     public function messages(): array

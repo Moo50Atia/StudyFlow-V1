@@ -1,0 +1,94 @@
+=== FIRST ===
+Lecture: W1 | The Number Line and Real Numbers
+
+Section 1:
+Section Identity: Real Number Representation
+Core Understanding: Every real number corresponds to a unique point on a continuous line.
+Visual-First Explanation: A continuous line with an origin point 0 extending infinitely in positive and negative directions.
+Visual Scene Script: Number line renders from -10 to +10. Marker highlights integer points, then zooms into fractions and irrationals.
+Dynamic View Blueprint: Interactive 1D coordinate axis with zoom levels from integer to continuous decimal values.
+Visual Learning Outcome: Learner sees density of real numbers between any two integers.
+Concept Check: Is there an empty gap between rational numbers on the line?
+Conceptual Summary: Real numbers form a complete continuum without gaps, represented by a one-dimensional coordinate.
+• شرح للجزء بالعامية المصرية: خط الأعداد ده خط مستمر ملوش نهاية،
+كل رقم حقيقي له نقطة واحدة محددة على الخط،
+ومفيش أي فراغات أو ثقوب بين الأرقام الحقيقية.
+القوانين (إن وُجدت): \forall x \in \mathbb{R}, \exists! P \in L : \text{coord}(P) = x
+إسقاط على مثال أو موقف من الحياة اليومية لتثبيت الفهم: مسطرة القياس الهندسية اللي بنقيس بيها، بس المسطرة دي ممتدة للمالانهاية في الاتجاهين الموجب والسالب.
+
+Section 2:
+Section Identity: Order and Absolute Value
+Core Understanding: The order of real numbers corresponds to their left-to-right relative position on the line.
+Visual-First Explanation: For two points a and b, a < b means a lies strictly to the left of b.
+Visual Scene Script: Two points a and b slide on the line. An indicator shows distance |a - b| dynamically updating.
+Dynamic View Blueprint: Dual-slider control driving point positions with real-time distance vector rendering.
+Visual Learning Outcome: Student recognizes distance as absolute value regardless of sign.
+Concept Check: Why is |a - b| equal to |b - a|?
+Conceptual Summary: Absolute value measures geometric distance between two coordinate positions on the 1D manifold.
+• شرح للجزء بالعامية المصرية: لما نقول رقم أصغر من رقم، يعني مكانه على الشمال على خط الأعداد.
+والمسافة دايماً موجبة، عشان كده القيمة المطلقة بتشيل الإشارة السالبة.
+القوانين (إن وُجدت): |a - b| = \sqrt{(a - b)^2} \ge 0
+إسقاط على مثال أو موقف من الحياة اليومية لتثبيت الفهم: المسافة بين بيتك والمدرسة، سواء مشيت من البيت للمدرسة أو العكس، المسافة هي هي 500 متر.
+
+=== SECOND ===
+Lecture: W1 | The Number Line and Real Numbers
+
+Lec1 (Sec1):
+"Interactive number line exploring real number continuum and density."
+Prepared Perspective Map:
+- Primary learning objective: Understand one-to-one correspondence between real numbers and points on a line.
+- Scene Type: Comparison
+- Baseline objects and state: Horizontal line, origin at 0, tick marks at integers from -5 to +5.
+- Time Perspective: Not applicable
+- Custom Perspectives: Zoom perspective showing infinite density between 0 and 1.
+- Governing Behavior: Point position linearly proportional to numerical coordinate.
+- Learner Investigations: Learner drags point along line and observes coordinate readout.
+- Controls: Slider for coordinate value from -10 to 10 with fine-tuning step.
+- Linked Views: Synchronized coordinate readout and point position on grid.
+- Visual Learning Goal: Comprehend that irrationals fill gaps between rationals.
+- Coverage: Real number line definition, ordering, and density.
+- Acceptance Checks: Moving slider updates marker position and value readout simultaneously.
+- Evidence Gaps: Not applicable
+
+Lec1 (Sec2):
+"Interactive comparison of real number order and absolute distance on a 1D line."
+Prepared Perspective Map:
+- Primary learning objective: Discover geometric meaning of absolute value as distance between points.
+- Scene Type: Process
+- Baseline objects and state: Two draggable markers 'a' and 'b' on a 1D axis with distance bracket.
+- Time Perspective: Not applicable
+- Custom Perspectives: Direction toggle showing signed displacement vs scalar distance.
+- Governing Behavior: Distance vector length equals absolute difference |a - b|.
+- Learner Investigations: Drag marker 'a' past marker 'b' to observe distance remaining positive.
+- Controls: Dual sliders for marker positions 'a' and 'b' in range [-10, 10].
+- Linked Views: Dynamic equation bar showing values of a, b, and |a - b|.
+- Visual Learning Goal: Establish invariance of distance under point interchange.
+- Coverage: Real number ordering, inequalities, and distance metric.
+- Acceptance Checks: Inverting positions a and b maintains positive distance readout.
+- Evidence Gaps: Not applicable
+
+=== THIRD ===
+Lecture: W1 | The Number Line and Real Numbers
+
+Lec1 (Sec1):
+"Comparison: Real Number Line Continuum vs Discrete Sets
+Learning Target: Contrast discrete integer points with dense real number continuum.
+Scene Objects and Initial State: Continuous horizontal axis with origin '0' marked in center. Points 1, 2, and sqrt(2) indicated with distinct colored markers.
+Governing Rules: For any real number x, position is proportional to x with scale factor S. Order is strictly preserved: a < b implies pos(a) < pos(b).
+Learner Investigations and Controls: 'Zoom in between 1 and 2' button and slider for coordinate position.
+Linked Representations: Numerical label 'x = 1.414...' linked to marker on axis.
+Visual Outcome and Misconception Contrast: Shows that irrational numbers like sqrt(2) occupy precise points, not gaps.
+Acceptance Requirements: Zooming maintains axis scale and reveals intermediate decimal ticks."
+
+Lec1 (Sec2):
+"Process: Absolute Value as Geometric Metric
+Learning Target: Understand |a - b| as the invariant physical distance between points on a line.
+Scene Objects and Initial State: Coordinate line from -10 to +10. Marker 'A' at -3 (blue) and Marker 'B' at +4 (orange). Spanning bracket indicating distance.
+Governing Rules: Distance d = |a - b| = |b - a|. Distance is strictly non-negative.
+Learner Investigations and Controls: Draggable markers for 'A' and 'B'. Toggle 'Show Signed Displacement' vs 'Show Distance'.
+Linked Representations: Live formula display '|(-3) - (4)| = 7' updating on every frame.
+Visual Outcome and Misconception Contrast: Moving A to the right of B keeps distance positive and equals |B - A|.
+Acceptance Requirements: Crossing markers does not invert or negate the distance readout."
+
+=== END ===
+✅ Lesson [1] Completed. Awaiting 'Continue' for the next lesson.

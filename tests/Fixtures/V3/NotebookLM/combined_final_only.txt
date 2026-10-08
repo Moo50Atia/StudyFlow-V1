@@ -1,0 +1,13 @@
+Lecture: W1 | The Number Line and Real Numbers
+
+Lec1 (Sec1):
+"Comparison: Real Number Line Continuum vs Discrete Sets
+Learning Target: Contrast discrete integer points with dense real number continuum.
+Scene Objects and Initial State: Continuous horizontal axis with origin '0' marked in center. Points 1, 2, and sqrt(2) indicated with distinct colored markers.
+Governing Rules: For any real number x, position is proportional to x with scale factor S. Order is strictly preserved: a < b implies pos(a) < pos(b).
+Learner Investigations and Controls: 'Zoom in between 1 and 2' button and slider for coordinate position.
+Linked Representations: Numerical label 'x = 1.414...' linked to marker on axis.
+Visual Outcome and Misconception Contrast: Shows that irrational numbers like sqrt(2) occupy precise points, not gaps.
+Acceptance Requirements: Zooming maintains axis scale and reveals intermediate decimal ticks."
+
+✅ Lesson [1] Completed. Awaiting 'Continue' for the next lesson.

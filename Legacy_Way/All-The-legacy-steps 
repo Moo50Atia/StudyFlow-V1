@@ -1,0 +1,624 @@
+# كود الكونسل عشان مش كل شوية نعمل Continue
+
+- هنا دا السؤال الي هنقوله لجيمناي
+    
+    بص الوقتي انا صممت سيستم بسيط علي Note Book LLM
+    
+    دا السيستم
+    
+    Frist
+    
+    You are an educational content architect and curriculum structurer.
+    
+    You will receive ONE university-level Lecture (notes, PDF, or text).
+    
+    Your task is NOT summarization. Your task is to decompose and restructure the Lecture for deep conceptual understanding and student-friendly learning.
+    
+    FOR THIS SINGLE LECTURE
+    
+    Identify all implicit and explicit Sections.
+    
+    Infer logical Sections if headings are missing.
+    
+    Treat each Section as an independent learning unit.
+    
+    FOR EACH SECTION, GENERATE EXACTLY:
+    
+    Section Identity
+    
+    Core Understanding
+    
+    Visual-First Explanation
+    
+    Visual Scene Script
+    
+    Dynamic View Blueprint
+    
+    Visual Learning Outcome
+    
+    Concept Check
+    
+    Conceptual Summary
+    
+    - شرح للجزء بالعامية المصرية
+    
+    القوانين (إن وُجدت)
+    
+    إسقاط على مثال أو موقف من الحياة اليومية لتثبيت الفهم
+    
+    RULES
+    
+    This is a SINGLE Lecture, not a full course.
+    
+    Do NOT add exam-style questions.
+    
+    Do NOT reference Dynamic View engines explicitly.
+    
+    Focus on clarity, intuition, and visualization readiness.
+    
+    Keep explanations student-oriented and simple.
+    
+    OUTPUT STRUCTURE
+    
+    Lecture:
+    
+    Section 1:
+    
+    Section 2:
+    
+    (and so on)
+    
+    Second
+    
+    You are a Dynamic View prompt preparation engine.
+    
+    You will receive ONE Lecture that is already structured into multiple Sections with rich educational content.
+    
+    YOUR TASK
+    
+    Prepare each Section for automatic conversion into Google Dynamic View scenes.
+    
+    You MUST NOT:
+    
+    Change any educational content
+    
+    Rephrase explanations
+    
+    Merge or split Sections
+    
+    Add or remove concepts
+    
+    PROCESSING GOAL (INTERNAL ONLY)
+    
+    For EACH Section, internally determine:
+    
+    Scene Type
+    
+    Visual Objects
+    
+    Animations
+    
+    Overlays
+    
+    User Interactions
+    
+    Visual Learning Goal
+    
+    DO NOT explain your reasoning. DO NOT generate the final prompts yet.
+    
+    OUTPUT STRUCTURE (STRICT)
+    
+    Lecture:
+    
+    Lec (Sec): ""
+    
+    Third
+    
+    Now generate the final Google Dynamic View prompts using the prepared mappings from the previous step.
+    
+    DYNAMIC VIEW PROMPT RULES
+    
+    Each Dynamic View Prompt MUST:
+    
+    Start with ONE Scene Type:
+    
+    Process
+    
+    Comparison
+    
+    Accumulation
+    
+    Parallel Flow
+    
+    Time Evolution
+    
+    Describe the scene using OBJECTS and ACTIONS only:
+    
+    Objects: devices, signals, graphs, meters, blocks, waves
+    
+    Actions: move, transform, accumulate, fade, split, highlight
+    
+    Include when applicable:
+    
+    Overlays / annotations
+    
+    Graphs or spatial visuals
+    
+    Cause–effect animation
+    
+    Optional user interaction (slider, toggle, time control)
+    
+    Encode the Visual Learning Outcome as the final visual state of the scene.
+    
+    Visually correct the key misconception implied by the Section.
+    
+    OUTPUT FORMAT (STRICT)
+    
+    Lecture:
+    
+    Lec (Sec): ""
+    
+    GLOBAL CONSTRAINTS
+    
+    Output ONLY the prompts
+    
+    No teaching explanations
+    
+    No repetition
+    
+    Concise, engine-oriented language
+    
+    فهوا فعلا كل Lesson بيطلعله المطاليب الي انا عايزها او انا قولت عليها
+    
+    والوقتي انا بقيت كل الي بعمله بكتب كلمة Continue وبس
+    
+    طيب دي مش منطقي اني كل شوية اسيب الي اعمله اروح اكتب كلمة Continue وامشي يبقي الي ناقص ايه ؟ ان كلمة Continue تتكتب لواحدها
+    
+    الوقتي انا مخطط ان دا يحصل من خلال JS Code في ال Consol
+    
+    بحيث ان هوا الوقتي احنا واقفين عند Lesson 5 يبقي الريسبونس الجاي اخر حاجه فيه هتبقي Lesson 6 بعدها هوا يقوم حاطط كلمه Continue ويعمل ال Event بتاع زرار ال send بحيث ان بعد ساعه او ايا كان لما اجي الاقي كل ال Lessons خلصت
+    
+    دول كده كل ال Lessons الي عندنا
+    
+    ### حط هنا التقسيمه الي طلعت
+    
+    يبقي الكود المفروض هيعمل العملية الي بقولك عليها $X مرة فممكن بدل ما نخلي ال Condition انو يدور علي ال Lesson ويعمل Verification لا
+    
+    وكمان استني الزرار الي بضغط عليه بيبقي ليه Statue لو انا بعت والنوت شغاله الوقتي مبعرفش اضغط الزرار بيتعمله disable فممكن دا يبقي الشرط بتاعك
+    
+    تتاكد ان كلمة Continue موجوده في اخر 10 كلمات في ال Response الي ظهر
+    
+    وتتاكد من حالة الزرار انو مش Disable وتعمل ال Event بتاعه
+    
+    وتحت هيكون اكواد ال HTML بتاعة العناصر الي انا ذكرتهالك
+    
+    دا شكل ايليمنت الزرار
+    
+    ### حط هنا كود ال HTML بتاع الزرار عشان نتاكد بس ان الكود هوا هوا
+    
+    دا شكل ايليمنت ال HTML الي بكتب فيه كلمة Continue
+    
+    ### Put here The HTML Content
+    
+    ودا كان شكل ال HTML الي فيه الحاجه الاخيره الي بتطلع في الريسبونس
+    
+    ### Put here The HTML Content
+    
+    والهدف ان الكود هيعمل عملية ال Check مرة كل 10 s 
+    
+    هل ناقصك اي معلومات او اي حاجه ؟
+    
+- دا الكود القديم
+    
+    (() => {
+    // إيقاف أي نسخة سابقة كانت تعمل في الخلفية
+    if (window.autoContinueTimer) {
+    clearInterval(window.autoContinueTimer);
+    console.log("🧹 تم إيقاف النسخة السابقة من السكربت.");
+    }
+    
+    ```
+    let currentIteration = 0;
+    **const maxIterations = 17; // Here The number of The Itrations** 
+    const checkIntervalMs = 10 * 1000; // Check every 10 S 
+    
+    console.log("%c🚀 تم تفعيل سكربت المتابعة التلقائية لـ NotebookLM...", "color: #00ff00; font-weight: bold; font-size: 13px;");
+    
+    // دالة لتجاوز Angular ControlValueAccessor وتحديث قيمة الـ Input برمجياً
+    function setAngularInputValue(element, val) {
+        const prototype = Object.getPrototypeOf(element);
+        const prototypeValueSetter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
+    
+        if (prototypeValueSetter) {
+            prototypeValueSetter.call(element, val);
+        } else {
+            element.value = val;
+        }
+    
+        element.dispatchEvent(new Event('input', { bubbles: true }));
+        element.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    
+    window.autoContinueTimer = setInterval(() => {
+        const textarea = document.querySelector('textarea.query-box-input, textarea[aria-label="Query box"]');
+        const submitBtn = document.querySelector('button.submit-button, button[aria-label="Submit"]');
+    
+        if (!textarea || !submitBtn) {
+            console.warn("⚠️ عناصر الواجهة غير متاحة حالياً، محاولة قادمة بعد دقيقتين...");
+            return;
+        }
+    
+        // 1. التأكد أن الموديل انتهى من الكتابة (عدم وجود زر Stop أو أيقونة stop)
+        const isStillGenerating = document.querySelector('mat-icon[data-mat-icon-name="stop"]') !== null ||
+                                  submitBtn.getAttribute('aria-label')?.toLowerCase().includes('stop') ||
+                                  document.querySelector('.stop-button') !== null;
+    
+        if (isStillGenerating) {
+            console.log("⏳ NotebookLM لا يزال يقوم بتوليد المحتوى...");
+            return;
+        }
+    
+        // 2. التحقق من ظهور جملة انتهاء الدرس
+        const pageText = document.body.innerText;
+        const isLessonCompleted = pageText.includes("Awaiting 'Continue'") ||
+                                  pageText.includes("Completed.") ||
+                                  pageText.slice(-300).toLowerCase().includes("continue");
+    
+        if (!isLessonCompleted) {
+            console.log("🔍 بانتظار اكتمال رد الدرس الحالي...");
+            return;
+        }
+    
+        // 3. حقن كلمة Continue أولاً لتفعيل الزرار في Angular
+        currentIteration++;
+        console.log(`%c⚡ تم اكتمال الدرس! جاري إرسال Continue (${currentIteration} من أصل ${maxIterations})...`, "color: #00bfff; font-weight: bold;");
+    
+        textarea.focus();
+        setAngularInputValue(textarea, 'Continue');
+    
+        // 4. الانتظار 350ms ليتعرف Angular على القيمة ويفك تعطيل الزر ثم الضغط
+        setTimeout(() => {
+            // ضغط الزرار
+            submitBtn.click();
+    
+            // إرسال حدث مفتاح Enter كإجراء احتياطي إضافي
+            const enterEvent = new KeyboardEvent('keydown', {
+                key: 'Enter',
+                code: 'Enter',
+                keyCode: 13,
+                which: 13,
+                bubbles: true,
+                cancelable: true
+            });
+            textarea.dispatchEvent(enterEvent);
+    
+            console.log("✅ تم إرسال الأمر بنجاح.");
+    
+            if (currentIteration >= maxIterations) {
+                clearInterval(window.autoContinueTimer);
+                console.log("%c🎉 انتهت الـ 17 درساً بالكامل! توقف السكربت تلقائياً.", "color: #ff00ff; font-weight: bold; font-size: 15px;");
+            }
+        }, 350);
+    
+    }, checkIntervalMs);
+    ```
+    
+    })();
+    
+- دا الكود بتاع انك تحمل النصوص
+    
+    (() => {
+    // تجميع النصوص الصافية من كل فقرات الرد
+    const messages = Array.from(document.querySelectorAll('.message-content, div[data-start-index], .chat-bubble'))
+    .map(el => el.innerText.trim())
+    .filter(text => text.length > 0);
+    
+    ```
+    const fullContent = messages.length > 0 ? messages.join('\n\n---\n\n') : document.body.innerText;
+    
+    // إنشاء ملف نصي وتحميله تلقائياً
+    const blob = new Blob([fullContent], { type: 'text/markdown;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `NotebookLM_Prompts_${new Date().toISOString().slice(0, 10)}.txt`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    
+    console.log("💾 تم حفظ كل الدروس في ملف نصي نظيف على جهازك بنجاح!");
+    ```
+    
+    })();
+    
+
+كل الي هتعمله يسطا انك تتاكد هل عناصر ال CSS ثابته زي ما هيا فبالتالي انا مش هعدل حاجه في الكود
+وطبعا طبعا متنساش تغير قيمة ال 17 الموجوده في الكود وتغيرها للعدد المناسب ليك حسب الحاله الي بتتعامل معاها احلي مسا من محمد القديم بيمسي عليك يا اخويا وبقولك صدقني انها هتعدي واتمني انك تكون في حته احسن من الي انا فيها الوقتي الحاجات الي مكتوبة تحت انا كاتبها من سنه او اكتر وجيت استعملها فانت لما تيجي اتمني يا معلم تبقي في حته احسن وانا جنبك كده كده 
+
+# في الاول هنعمل 3 برومبتس عشان نطلع Dynamic View
+
+لو انا بتعامل مع مذكرة مدرس او حاجه اعمل دا الاول 
+
+- Divide Correctly
+    
+    First, I want you to act as a Data Architect. Your task is to structurally divide the provided textbook into a strict hierarchy.
+    Do NOT summarize or explain the content. ONLY map out the structure.
+    Ensure every piece of information is logically connected without losing any data points.
+    
+    Follow this strict hierarchical mapping:
+    Chapter =>
+    Mini Chapter (if applicable) =>
+    Lesson (if applicable)
+    
+    Output Format: Provide ONLY the structural map. Do NOT output any actual educational data or explanations from the lessons.
+    
+- Make Sure That AI Connect Th Map With the Coming Steps
+    
+    ==================================================
+    EXECUTION PROTOCOL (LESSON BY LESSON)
+    You have successfully mapped the document structure. Now, we will process the content precisely.
+    
+    1. I have provided the Advanced  3-Step Framework (First, Second, Third) above.
+    2. You will strictly apply these 3 steps ONLY to the content of the very first "Lesson" in your structural map. Do NOT read ahead or summarize other lessons.
+    3. Once you generate the final Dynamic View prompt for this Lesson, STOP completely.
+    4. End your response with: "✅ Lesson [X] Completed. Awaiting 'Continue' for the next lesson."
+    5. Whenever I type ONLY the word "Continue", you will automatically move to the next Lesson in your map and apply the exact same 3 steps.
+    6. Note that if you didn't find a lesson in the mini Chapter Treat The Mini  Chapter as a lesson 
+    7. you will find the steps in file “steps.txt” 
+    
+    After the Third Step If you understand this strict iterative workflow, reply ONLY with: "System Ready 
+    
+- The prompts
+    - General
+        
+        
+        - Frist
+            
+            You are an educational content architect and curriculum structurer.
+            
+            You will receive ONE university-level Lecture (notes, PDF, or text).
+            
+            Your task is NOT summarization.
+            Your task is to decompose and restructure the Lecture
+            for deep conceptual understanding and student-friendly learning.
+            
+            # ==================================================
+            FOR THIS SINGLE LECTURE
+            
+            1. Identify all implicit and explicit Sections.
+            2. Infer logical Sections if headings are missing.
+            3. Treat each Section as an independent learning unit.
+            
+            # ==================================================
+            FOR EACH SECTION, GENERATE EXACTLY:
+            
+            - Section Identity
+            - Core Understanding
+            - Visual-First Explanation
+            - Visual Scene Script
+            - Dynamic View Blueprint
+            - Visual Learning Outcome
+            - Concept Check
+            - Conceptual Summary
+            - • شرح للجزء بالعامية المصرية
+            - القوانين (إن وُجدت)
+            - إسقاط على مثال أو موقف من الحياة اليومية لتثبيت الفهم
+            
+            # ==================================================
+            RULES
+            
+            - This is a SINGLE Lecture, not a full course.
+            - Do NOT add exam-style questions.
+            - Do NOT reference Dynamic View engines explicitly.
+            - Focus on clarity, intuition, and visualization readiness.
+            - Keep explanations student-oriented and simple.
+            
+            # ==================================================
+            OUTPUT STRUCTURE
+            
+            Lecture: <Lecture Name>
+            
+            Section 1:
+            <Full Section Content>
+            
+            Section 2:
+            <Full Section Content>
+            
+            (and so on)
+            
+        
+        - Second
+            
+            You are a Dynamic View prompt preparation engine.
+            
+            You will receive ONE Lecture that is already structured
+            into multiple Sections with rich educational content.
+            
+            # ==================================================
+            YOUR TASK
+            
+            Prepare each Section for automatic conversion
+            into Google Dynamic View scenes.
+            
+            You MUST NOT:
+            
+            - Change any educational content
+            - Rephrase explanations
+            - Merge or split Sections
+            - Add or remove concepts
+            
+            # ==================================================
+            PROCESSING GOAL (INTERNAL ONLY)
+            
+            For EACH Section, internally determine:
+            
+            - Scene Type
+            - Visual Objects
+            - Animations
+            - Overlays
+            - User Interactions
+            - Visual Learning Goal
+            
+            DO NOT explain your reasoning.
+            DO NOT generate the final prompts yet.
+            
+            # ==================================================
+            OUTPUT STRUCTURE (STRICT)
+            
+            Lecture: <Lecture Name>
+            
+            Lec<X> (Sec<Y>):
+            "<Dynamic View Prompt Placeholder>"
+            
+        
+        - Third
+            
+            Now generate the final Google Dynamic View prompts
+            using the prepared mappings from the previous step.
+            
+            # ==================================================
+            DYNAMIC VIEW PROMPT RULES
+            
+            Each Dynamic View Prompt MUST:
+            
+            1. Start with ONE Scene Type:
+                - Process
+                - Comparison
+                - Accumulation
+                - Parallel Flow
+                - Time Evolution
+            2. Describe the scene using OBJECTS and ACTIONS only:
+                - Objects: devices, signals, graphs, meters, blocks, waves
+                - Actions: move, transform, accumulate, fade, split, highlight
+            3. Include when applicable:
+                - Overlays / annotations
+                - Graphs or spatial visuals
+                - Cause–effect animation
+                - Optional user interaction (slider, toggle, time control)
+            4. Encode the Visual Learning Outcome
+            as the final visual state of the scene.
+            5. Visually correct the key misconception
+            implied by the Section.
+            
+            # ==================================================
+            OUTPUT FORMAT (STRICT)
+            
+            Lecture: <Lecture Name>
+            
+            Lec<X> (Sec<Y>):
+            "<Executable Google Dynamic View Prompt>"
+            
+            # ==================================================
+            GLOBAL CONSTRAINTS
+            
+            - Output ONLY the prompts
+            - No teaching explanations
+            - No repetition
+            - Concise, engine-oriented language
+        
+    - Medical
+        - First
+            
+            First
+            You are an Advanced Medical Content Architect specializing in Cardiology and Pathophysiology.
+            You will receive ONE postgraduate-level Medical Lecture or Guideline text.
+            Your task is NOT summarization.
+            Your task is to decompose and restructure the text for deep clinical intuition and advanced biomechanical understanding.
+            
+            # ==================================================
+            FOR THIS SINGLE LECTURE
+            Identify all implicit and explicit Sections (e.g., Pathophysiology, Clinical Presentation, Diagnostics, Management).
+            Treat each Section as an independent clinical learning unit.
+            
+            # FOR EACH SECTION, GENERATE EXACTLY:
+            Section Identity
+            Core Pathological Mechanism
+            Visual-First Explanation (Focus on hemodynamics and tissue-level changes)
+            Visual Scene Script
+            Dynamic View Blueprint
+            Clinical Learning Outcome
+            Concept Check
+            Conceptual Summary
+            • شرح للجزء بالعامية المصرية (لتبسيط الميكانيكية الطبية المعقدة)
+            Diagnostic/Pharmacological Rules (If applicable, e.g., ECG criteria or drug mechanisms)
+            إسقاط على حالة مريض في الطوارئ أو العيادة لتثبيت الفهم
+            
+            # RULES
+            This is a SINGLE clinical lecture.
+            Do NOT reference Dynamic View engines explicitly.
+            Focus on cellular/hemodynamic mechanisms, diagnostic visuals (ECG/Echo), and treatment pathways.
+            Keep explanations targeted at medical professionals.
+            
+            OUTPUT STRUCTURE
+            Lecture: <Lecture Name>
+            Section 1:
+            <Full Section Content>
+            Section 2:
+            <Full Section Content>
+            
+        - second
+            
+            Second
+            You are a Medical Dynamic View prompt preparation engine.
+            You will receive ONE clinical Lecture that is already structured.
+            
+            # ==================================================
+            YOUR TASK
+            Prepare each Section for automatic conversion into Google Dynamic View scenes.
+            You MUST NOT change clinical facts, rephrase medical terminology, or alter diagnostic criteria.
+            
+            PROCESSING GOAL (INTERNAL ONLY)
+            For EACH Section, internally determine:
+            Scene Type (e.g., Pathological Evolution, Hemodynamic Flow)
+            Medical 3D Objects (e.g., Vessels, Myocardium, Valves)
+            Physiological Animations
+            Clinical Overlays (e.g., ECG traces, Blood Pressure monitors, Angiography views)
+            Clinical User Interactions (e.g., Administer Drug, Induce Stress, Deploy Stent)
+            Visual Clinical Goal
+            DO NOT explain your reasoning.
+            DO NOT generate the final prompts yet.
+            
+            ==================================================
+            OUTPUT STRUCTURE (STRICT)
+            Lecture: <Lecture Name>
+            Lec<X> (Sec<Y>):
+            "<Dynamic View Prompt Placeholder>"
+            
+        - third
+            
+            Third
+            Now generate the final Google Dynamic View prompts specifically for ADVANCED MULTI-PERSPECTIVE CARDIOLOGY using the prepared mappings.
+            
+            ==================================================
+            DYNAMIC VIEW MULTI-PERSPECTIVE PROMPT RULES
+            
+            1. Evaluate Topic Complexity:
+            Analyze the medical section. If the concept spans multiple disciplines (e.g., a disease that has a physical cause, a drug treatment, and a diagnostic test), you MUST create a "View Mode Toggle" with up to 3 different perspectives. If it's a simple concept, use only 1 primary perspective.
+            2. Allowed Perspectives (Choose relevant ones):
+            - Mechanical/Hemodynamic View: Focuses on physical structures, fluid dynamics, plaque buildup, microvascular spasms (e.g., INOCA/ANOCA), and muscle ischemia.
+            - Chemical/Pharmacological View: Zooms in to the cellular/molecular level. Shows receptors, inflammatory markers, and drug molecules (e.g., Colchicine reducing plaque inflammation, SGLT2 inhibitors).
+            - Diagnostic/Imaging View: Shows how the 3D anatomy translates to 2D clinical tests (e.g., matching the 3D heart to an ECG trace, Echocardiogram, or CCTA scan).
+            - Interventional/Surgical View: Focuses on procedural mechanics (e.g., PCI Stent deployment vs. CABG routing).
+            1. Describe the scene using OBJECTS and ACTIONS specific to the active view.
+            
+            Interactions REQUIRED:
+            
+            - Perspective Toggle: (e.g., "Switch to Chemical View", "Switch to Diagnostic View") to change the entire visual context of the scene.
+            - Clinical Control: A slider or button (e.g., "Stress Level Slider", "Administer Drug Button") that works ACROSS all active perspectives.
+            
+            # Final State: Visually correct the core misconception by allowing the user to cross-reference the disease across different medical disciplines.
+            
+            OUTPUT FORMAT (STRICT)
+            Lecture: <Lecture Name>
+            Lec<X> (Sec<Y>):
+            "Scene Setup: [Briefly describe the overall 3D environment]
+            Interactions: [List the shared controls like sliders or buttons]
+            Perspectives:
+            
+            - [Perspective Name 1]: [Describe the specific visual state, objects, and actions when this view is active]
+            - [Perspective Name 2]: [Describe the visual state when switched to this view]
+            - (Add 3rd if applicable)"
+            
+            ==================================================
+            GLOBAL CONSTRAINTS
+            Output ONLY the prompts.
+            Do NOT output any educational explanations.
+            Use concise, engine-oriented language.

@@ -1,0 +1,130 @@
+import { z } from "zod";
+import { McpTool, pendingConfirmation } from "./index.js";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import * as os from "node:os";
+
+// notebook_add_text accepts a file_path from the MCP client. Without
+// validation, a hostile prompt could read arbitrary local files
+// (~/.ssh/id_rsa, /etc/passwd, etc) and ship them to NotebookLM as a
+// "source". Restrict to files under the server's CWD or the OS temp
+// directory. Users who need to ingest files elsewhere should copy them in.
+export function resolveAllowedReadPath(filePath: string): string {
+  const resolved = path.resolve(filePath);
+  const allowedRoots = [path.resolve(process.cwd()), path.resolve(os.tmpdir())];
+  const ok = allowedRoots.some(
+    (root) => resolved === root || resolved.startsWith(root + path.sep),
+  );
+  if (!ok) {
+    throw new Error(
+      `file_path "${filePath}" resolves to ${resolved}, which is outside the ` +
+        `allowed roots (cwd: ${allowedRoots[0]}, tmpdir: ${allowedRoots[1]}). ` +
+        `Move the file into the working directory or pass the content inline ` +
+        `via the "content" parameter.`,
+    );
+  }
+  return resolved;
+}
+
+export const sourceTools: McpTool<any>[] = [
+  {
+    name: "source_describe",
+    description: "Get metadata for a specific source in a notebook",
+    schema: {
+      notebook_id: z.string().describe("The notebook ID"),
+      source_id: z.string().describe("The source ID"),
+    },
+    execute: async (client, { notebook_id, source_id }) => {
+      const source = await client.getSource(source_id, notebook_id);
+      return { source };
+    },
+  },
+  {
+    name: "source_get_content",
+    description: "Get the underlying text content of a source (used by grounding tool)",
+    schema: {
+      notebook_id: z.string().describe("The notebook ID"),
+      source_id: z.string().describe("The document ID to retrieve"),
+    },
+    execute: async (client, { notebook_id, source_id }) => {
+      const source = await client.getSource(source_id, notebook_id);
+      return { text: source.content };
+    },
+  },
+  {
+    name: "notebook_add_url",
+    description: "Add a website URL source to a notebook",
+    schema: {
+      notebook_id: z.string().describe("The notebook ID"),
+      url: z.string().describe("The URL to add"),
+    },
+    execute: async (client, { notebook_id, url }) => {
+      await client.addUrlSource(notebook_id, url);
+      return { message: "URL source added" };
+    },
+  },
+  {
+    name: "notebook_add_text",
+    description: "Add a text document source to a notebook",
+    schema: {
+      notebook_id: z.string().describe("The notebook ID"),
+      content: z.string().optional().describe("The text content to add"),
+      file_path: z.string().optional().describe("Path to local file to read content from"),
+      title: z.string().describe("Title for the new source"),
+    },
+    execute: async (client, { notebook_id, content, file_path, title }) => {
+      let documentContent = content;
+      if (!documentContent && file_path) {
+        const safePath = resolveAllowedReadPath(file_path);
+        documentContent = fs.readFileSync(safePath, "utf8");
+      }
+      if (!documentContent) {
+        throw new Error("Must provide either content or file_path");
+      }
+      await client.addTextSource(notebook_id, documentContent, title);
+      return { message: "Text source added" };
+    },
+  },
+  {
+    name: "notebook_add_drive",
+    description: "Add a Google Drive file source to a notebook",
+    schema: {
+      notebook_id: z.string().describe("The notebook ID"),
+      file_id: z.string().describe("Google Drive file ID"),
+      title: z.string().describe("Document title"),
+      doc_type: z.string().describe("MIME type (e.g. application/vnd.google-apps.document)"),
+    },
+    execute: async (client, { notebook_id, file_id, title, doc_type }) => {
+      await client.addDriveSource(notebook_id, file_id, title, doc_type);
+      return { message: "Drive source added" };
+    },
+  },
+  {
+    name: "source_sync_drive",
+    description: "Sync all Drive sources in a notebook to pull latest changes",
+    schema: {
+      notebook_id: z.string().describe("The notebook ID"),
+      source_ids: z.array(z.string()).describe("Source IDs to sync"),
+      confirm: z.boolean().describe("Must be true to confirm sync"),
+    },
+    execute: async (client, { notebook_id, source_ids, confirm }) => {
+      if (!confirm) return pendingConfirmation("Set confirm=true to sync these Drive sources.");
+      await client.syncDrive(source_ids, notebook_id);
+      return { message: `Synced ${source_ids.length} sources` };
+    },
+  },
+  {
+    name: "source_delete",
+    description: "Delete a source from a notebook (requires confirm=true)",
+    schema: {
+      notebook_id: z.string().describe("The notebook ID"),
+      source_id: z.string().describe("The source ID"),
+      confirm: z.boolean().describe("Must be true to confirm deletion"),
+    },
+    execute: async (client, { notebook_id, source_id, confirm }) => {
+      if (!confirm) return pendingConfirmation("Set confirm=true to delete this source. This cannot be undone.");
+      await client.deleteSource(source_id, notebook_id);
+      return { message: "Source deleted" };
+    },
+  },
+];

@@ -1,0 +1,13 @@
+# 006 Foundations and Downstream Obligations
+
+006 proves the attempt/Document/Case records, private accepted file, teacher ownership boundary and durable initial `awaiting_workflow` case. It does not prove that Temporal starts, source text is extracted, NotebookLM is called, prompts are constructed, JEV is invoked, a scene is reviewed, or history/retention beyond pilot rows is implemented.
+
+| Consumer | Exact 006 surface to use | Consumer obligation and its own evidence |
+|---|---|---|
+| 007 workflow/progress | Query committed `v3_processing_cases.state='awaiting_workflow'` by opaque case ID; immutable `owner_user_id`, `document_id`, `settings_version_id`, `state_version=1` | Own durable Temporal start link/reconciliation with deterministic workflow identity, state transitions and role-safe progress; no new case on uncertain start. 007 may extend case state/version, but never owner/Document/settings. Its tests prove uncertain-start recovery and same-owner progress. |
+| 008 extraction/source | Resolve case → same-owner ready Document; internal `AcceptedPdfReader::openForCase` returns verified private stream; load captured settings ID | Perform local extraction/OCR under captured limits; send extracted text to NotebookLM `notebook_add_text` through selected MCP adapter. Do not reuse a teacher download URL or put bytes/path in workflow payload/admin projection. Its tests prove extraction and source binding. |
+| 009–012 mapping/prompt/JEV/scene | Case ID/settings ID and 008 source lineage only | Preserve canonical dividing/execution/First/Second/Third prompts and all eleven Section fields. NotebookLM does source-grounded learning-unit mapping/research. Use successful typed JEV Choice/Score/Noul directly under captured 005 policy. No 006 PDF decision substitutes for later content quality. |
+| 013 teacher review | Immutable case owner and later candidate identity | Reauthorize active original teacher at review time; admin never sees scene/note content. 006 does not create review records. |
+| 014 operations and 015 history | Case ID, safe state/timestamps, attempt safe reason codes; 004 closed operational DTO | Admin sees only allowed operational metadata. Any later history/audit retention must not serialize PDF bytes, filename, hash/path, parser/scanner output or teacher content. Keep referenced Document/settings while cases exist. |
+
+If a later spec needs an internal worker byte transport, it must add its own authenticated worker boundary. `AcceptedPdfReader` is a Laravel service operation; 006 does not create a public or admin extraction endpoint. Downstream services must fail on missing/corrupt accepted bytes and never look up a different teacher's same digest as fallback. Future-feature fixtures may live in tests only.

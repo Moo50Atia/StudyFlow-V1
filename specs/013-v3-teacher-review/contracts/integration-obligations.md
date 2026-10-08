@@ -1,0 +1,11 @@
+# 013 Foundations and Downstream Obligations
+
+After implementation and mandatory live gates, 013 supplies immutable original-teacher review decisions/notes, version-specific approval rows, one current approval pointer per 009 Section, routed correction effects and proof-backed 007 events. Its durable outbox proves what was committed and whether Temporal consumed the matching decision; a worker signal alone is never approval authority. 013 does not release scenes to students or expose educational content to admins.
+
+| Consumer | May use from 013 | Must still implement and prove |
+|---|---|---|
+| 014 admin operations | 004-safe case stage/status/error/count, dormant/pending/uncertain review and outbox IDs/timings; stable fixed correction workflow identity | Audited reminder, hold/cancel and reviewed reconciliation policy. Admin cannot open owner review URL, PNG, note, prompt, Section, scene code, provider response or private path. A disabled teacher's item stays with the original owner unless the run is cancelled; uncertain 010/011 sends are never blindly repeated. |
+| 015 history/evidence | Review item→candidate/version/qualification, immutable decision→actor/time/private note digest, approval→current/historical pointer, route/effect/outbox/Temporal IDs | Owner-only detailed lineage and retention-aware export, admin aggregate/redacted export, measured/estimated/unknown cost and timing. It must retain old approval when a later correction clears the current pointer; deletion must not remove referenced/uncertain proof. |
+| Later student delivery | Current active Section approval and exact candidate/qualification refs | Separate publication policy, licensing/LMS integration and content delivery authorization. A 013 approval does not itself create a public scene URL. |
+
+A future consumer must recheck 004 active original-owner policy before exposing note, prompt, Section, frame or scene content. `approved_scene_count` in 004/007 is the count of Section-current approval pointers; historical approvals remain in 013's immutable rows. Temporal history and admin operational DTOs carry only opaque refs, status and safe error categories. V2 scenes remain references; KOS/KIE and multitenancy remain future work.

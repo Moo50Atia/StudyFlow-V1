@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>No-op Control Autoplay Scene</title>
+</head>
+<body>
+    <h1>Autoplay Scene</h1>
+    <canvas id="c" width="400" height="300"></canvas>
+    <button id="dummy-btn" aria-label="Do Nothing">Do Nothing</button>
+    <script>
+        const canvas = document.getElementById("c");
+        const ctx = canvas.getContext("2d");
+        let t = 0;
+        function loop() {
+            t += 0.05;
+            ctx.clearRect(0, 0, 400, 300);
+            ctx.fillRect((t * 20) % 300, 50, 50, 50);
+            requestAnimationFrame(loop);
+        }
+        loop();
+        // Button does not react to pointer or keyboard
+    </script>
+</body>
+</html>

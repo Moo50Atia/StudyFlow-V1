@@ -1,0 +1,34 @@
+# Agent Task Execution Plan: 010
+
+This is the direct implementation plan. Follow [T001–T018](tasks.md) in order, using the [contract](contracts/prompt-qualification.md), [data model](data-model.md), [acceptance matrix](contracts/acceptance-matrix.md), and [verification commands](quickstart.md). Mark a task complete only against its stated observable condition.
+
+## Entry and workspace baseline
+
+1. Read 010 artifacts, 005 settings, 007 workflow, 008 adapter, 009 canonical/lesson contracts, 011 input contract, applicable AGENTS and actual code. Verify deployed 004–009 predecessors exist and match the stated worker/ownership operations. Confirm an operator-imported approved feedback template and captured settings row; no production default is allowed. Confirm TypeSafe/NotebookLM/feedback credentials only in deployment secrets, not docs or git.
+2. Run `git status --short` and `git diff --name-only` before changes; inventory preexisting modified/untracked files. Do not reset, clean, overwrite or commit the user's changes. Work only in 010 implementation paths required by [tasks](tasks.md), and distinguish your diff from baseline in the implementation report. If predecessor files differ from contracts, record exact contradiction and stop affected work rather than implementing a parallel substitute.
+3. Run baseline `php artisan test` and the 009/008 Python suites when present; record passing/failing/skipped tests and environment. A preexisting failure is not attributed to 010. If a required baseline cannot run, record the command/error and continue only independent work; do not claim a green release gate.
+
+## Ordered groups and checkpoints
+
+| Group | Tasks | Test before | Implement / checkpoint | Test after |
+|---|---|---|---|---|
+| A. Context and original prompts | T001–T004 | Author T002, run targeted PHP/Python tests; obtain behavioral red at route/parser boundary. | Schema and 010 signed context/turn/receipt services, then Python canonical parser/cycle. Inspect DB/file proof that every Third ref exists before 009 receipt. | `php artisan test tests/Feature/V3/Prompts/PromptTurnTest.php tests/Feature/V3/Prompts/WorkerBoundaryTest.php`; `python3 -m pytest -q v3_engine/tests/prompts/test_generation.py` |
+| B. Claims under race | T005–T006 | Run T005 with two connections/barrier on disposable shared DB and observe double-claim or conflict behavior; missing test DB is a blocked gate. | Add row locks/unique constraints and claim-before-send semantics. | Run `PromptRaceTest.php` at least once against shared DB; assert one send claim and no changed replay. |
+| C. Typed JEV | T007–T010 | Run T007 policy fixtures and T009 actual HMAC endpoint tests before implementation; syntax/import failure alone is setup, not red evidence. | Official named questions, captured policy, attempt ledger and Laravel-computed immutable verdict. Confirm no extra judge. | Run `test_jev_policy.py` and `QualificationTest.php`; inspect raw values, equality and no-verdict technical path. |
+| D. Feedback and privacy | T011–T014 | Run T011 revision and all three provider-adapter fixture tests and T013 actual owner/admin/V2/projection/retention tests before their governed services. | Captured feedback template/provider, immutable successor, safe 007 milestones, private artifact guard. | Run `test_revision.py`, `test_feedback_adapters.py`, `RevisionTest.php`, `AccessRegressionTest.php`, `ProjectionTest.php`, `RetentionTest.php`. |
+| E. 011 handoff and live path | T015–T018 | Run T015 signed resolver tests before T016. Author live T017 before final workflow wiring; an unavailable account is incomplete, not pass. | Current-pass resolver, 009 completion/Continue integration, 007 safe activity schedule; no future-feature production placeholder. | Run all commands in [quickstart](quickstart.md), including real selected-provider P18 and concurrency. |
+
+At each checkpoint inspect changed paths, test output and contract fields. Fix only 010-caused regressions; preserve unrelated baseline failures with evidence. Do not use skipped or mocked live tests as proof of NotebookLM/JEV/provider compatibility. Rerun a group after any change to its state/route/rule semantics.
+
+## Recovery and stop conditions
+
+- Stop affected work if the exact 009 Execution/Second/Third canonical SHA differs, the 008/009 selected MCP cannot prove source-scoped `query_once`/conversation behavior, 009 does not persist raw Continue for 010, or 004–009 ownership/HMAC/cursor contracts are absent or materially incompatible. Record the exact file/contract mismatch; do not edit another numbered spec as part of 010.
+- Stop a stateful effect after a committed send claim with unknown delivery; mark `uncertain`, preserve evidence and require 014 reviewed recovery. Never let Temporal retry re-send Execution, Second, Third or feedback. The same 009 completion receipt may be replayed because 009 explicitly makes exact replay idempotent.
+- Stop release completion if the real TypeSafe account/model rejects 101-level Score or returns a different named typed schema, if captured feedback provider/template is unavailable, or if live Execution/combined/staged Continue output cannot be parsed without changing canonical text. Document vendor response shape safely, propose a contract correction and obtain required owner input for any changed business rule.
+- A malformed Section/Third output, failed hash, stale cursor/current prompt, foreign ref or invalid HMAC is a deterministic block/conflict with no guessed repair or 011 handoff. A low typed JEV result is a policy decision, not a technical retry.
+
+## Final completion criteria and report
+
+Complete only when T001–T018 and P01–P18 pass, mandatory live P18 actually ran with real selected services, no new failing 004–009/011 contract regressions remain, 009 receipt refs resolve to durable exact original prompts, current-pass 011 boundary rejects stale/foreign refs, two-process claim race passes, and V2/admin/teacher access tests exercise actual routes. Confirm exact canonical digests, captured settings/template checksums, safe events/logs, no content in Temporal, and only expected implementation paths changed. Do not claim final-scene/teacher-review behavior from 010.
+
+Write an implementation report with: baseline git diff and preexisting failures; per-task/acceptance status; schema/routes/files changed; exact selected MCP adapter/version, TypeSafe endpoint/model/response schema and feedback provider/template ID/checksum; observed first and continued Lesson behavior; command/results including live/race environment and skips; request/response redaction evidence; concurrency/idempotency/recovery evidence; unresolved provider/access/blockers and deviations; and a statement distinguishing mock tests from real integration. Do not commit or deploy unless separately asked.

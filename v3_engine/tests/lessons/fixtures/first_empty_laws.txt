@@ -1,0 +1,14 @@
+Lecture: W1 | Chapter 1 / Lesson 1
+
+Section 1:
+Section Identity: Conceptual Classification
+Core Understanding: Fundamental units cannot be broken down further.
+Visual-First Explanation: Seven basic building blocks stacked at the base of physics.
+Visual Scene Script: Animate seven standard units glowing in foundation layout.
+Dynamic View Blueprint: Periodic table style layout for SI base units.
+Visual Learning Outcome: Student identifies the seven fundamental SI dimensions.
+Concept Check: Which unit is fundamental?
+Conceptual Summary: Seven dimensions form the basis of all physical units.
+• شرح للجزء بالعامية المصرية: في 7 وحدات أساسية هما أصل كل الوحدات التانية في الفيزياء.
+القوانين (إن وُجدت):
+إسقاط على مثال أو موقف من الحياة اليومية لتثبيت الفهم: زي الحروف الأبجدية اللي بيتكون منها كل الكلمات.

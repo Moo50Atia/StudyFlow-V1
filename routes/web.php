@@ -1,19 +1,19 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\LoveController;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\TeacherPermissionController;
-use App\Http\Controllers\SubjectController;
-use App\Http\Controllers\LectureController;
-use App\Http\Controllers\SectionController;
-use App\Http\Controllers\QuestionController;
-use App\Http\Controllers\ExamQuestionController;
-use App\Http\Controllers\StudyFlowController;
 use App\Http\Controllers\APIfilterController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ExamQuestionController;
+use App\Http\Controllers\LectureController;
+use App\Http\Controllers\LoveController;
 use App\Http\Controllers\MohammedTestController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\QuestionController;
+use App\Http\Controllers\SectionController;
+use App\Http\Controllers\StudyFlowController;
+use App\Http\Controllers\SubjectController;
+use App\Http\Controllers\TeacherPermissionController;
+use App\Http\Controllers\UserController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
@@ -33,7 +33,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/love/toggle', [LoveController::class, 'toggle'])->name('love.toggle');
 });
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';
 
 // Admin-only routes
 Route::middleware(['auth', 'role:admin'])->group(function () {
@@ -73,7 +73,6 @@ Route::middleware(['auth', 'teacher.access'])->group(function () {
 
 // API routes for dynamic filtering
 use App\Models\Lecture;
-use App\Models\Section;
 
 // Route::middleware('auth')->prefix('api')->group(function () {
 //     Route::get('/subjects/{subject}/lectures', function ($subjectId) {
@@ -90,3 +89,6 @@ Route::middleware('auth')->prefix('api')->group(function () {
 });
 
 Route::get('/mohammed-test', [MohammedTestController::class, 'index'])->name('mohammed-test');
+
+// Load V3 routes
+require __DIR__.'/v3.php';

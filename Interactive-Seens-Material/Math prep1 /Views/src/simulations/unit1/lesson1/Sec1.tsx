@@ -1,0 +1,1 @@
+export default function Sec1() { return <div className='flex items-center justify-center h-screen w-full bg-slate-950 text-white text-2xl font-light'>Unit 1, Lesson 1, Section 1 Simulation (Loaded via Lazy)</div>; }

@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unit 2: Objects & Classes — Procedural vs OOP Architecture</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            850: '#0f172a',
+                            900: '#0b1120',
+                            950: '#030712'
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom styles for accessibility, dark educational theme & layout */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .procedural-boundary {
+            background: radial-gradient(circle at top left, rgba(245, 158, 11, 0.04), transparent 70%), rgba(15, 23, 42, 0.85);
+            border: 1.5px dashed rgba(245, 158, 11, 0.35);
+        }
+        .oop-boundary {
+            background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.05), transparent 70%), rgba(15, 23, 42, 0.85);
+            border: 2px solid rgba(16, 185, 129, 0.45);
+            box-shadow: 0 10px 30px -10px rgba(16, 185, 129, 0.12);
+        }
+        .code-highlight {
+            background-color: rgba(56, 189, 248, 0.22);
+            border-left: 3px solid #38bdf8;
+            color: #f8fafc !important;
+        }
+        .code-error-highlight {
+            background-color: rgba(239, 68, 68, 0.25);
+            border-left: 3px solid #ef4444;
+            color: #fca5a5 !important;
+        }
+        .code-bypass-highlight {
+            background-color: rgba(245, 158, 11, 0.25);
+            border-left: 3px solid #f59e0b;
+            color: #fcd34d !important;
+        }
+        /* Grid background pattern */
+        .bg-grid-pattern {
+            background-image: radial-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        /* Signal animation path */
+        .pulse-signal {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 50;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 18px 4px currentColor;
+            transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        /* Visible keyboard focus */
+        button:focus-visible, input:focus-visible, select:focus-visible {
+            outline: 2px solid #38bdf8;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-cyan-500/30 overflow-x-hidden flex flex-col">
+
+    <!-- Top Navigation & Educational Header -->
+    <header class="w-full bg-slate-900/95 border-b border-slate-800 sticky top-0 z-40 px-4 py-3 shadow-md">
+        <div class="max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-start">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-cyan-500 to-emerald-500 flex items-center justify-center font-bold text-slate-950 text-lg shadow-md shadow-cyan-500/20">
+                        U2
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-xs uppercase tracking-wider font-semibold px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-700/50 text-cyan-400">Unit 2 • Objects & Classes Lec 1</span>
+                            <span class="text-xs text-slate-400">Procedural vs OOP</span>
+                        </div>
+                        <h1 class="text-base sm:text-lg font-bold text-slate-100">
+                            Data Organization, Encapsulation & Validation
+                        </h1>
+                    </div>
+                </div>
+
+                <!-- Mobile Reset Button -->
+                <button onclick="resetScene()" class="lg:hidden px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 border border-slate-700 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Reset
+                </button>
+            </div>
+
+            <!-- Perspective Controls -->
+            <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-center lg:justify-end">
+                <span class="text-xs text-slate-400 font-medium">Perspective:</span>
+                <nav class="inline-flex rounded-lg p-1 bg-slate-950 border border-slate-800 text-xs" aria-label="Perspective selector">
+                    <button id="tab-structure" onclick="setPerspective('structure')" class="px-2.5 py-1 rounded font-medium transition-all bg-cyan-600 text-white shadow-sm" aria-pressed="true">
+                        1. Structure
+                    </button>
+                    <button id="tab-direct" onclick="setPerspective('direct')" class="px-2.5 py-1 rounded font-medium transition-all text-slate-400 hover:text-slate-200" aria-pressed="false">
+                        2. Direct Access
+                    </button>
+                    <button id="tab-validation" onclick="setPerspective('validation')" class="px-2.5 py-1 rounded font-medium transition-all text-slate-400 hover:text-slate-200" aria-pressed="false">
+                        3. Validation
+                    </button>
+                    <button id="tab-execution" onclick="setPerspective('execution')" class="px-2.5 py-1 rounded font-medium transition-all text-slate-400 hover:text-slate-200" aria-pressed="false">
+                        4. Execution Order
+                    </button>
+                    <button id="tab-identity" onclick="setPerspective('identity')" class="px-2.5 py-1 rounded font-medium transition-all text-slate-400 hover:text-slate-200" aria-pressed="false">
+                        5. Object Identity
+                    </button>
+                </nav>
+
+                <div class="h-4 w-px bg-slate-800 hidden sm:block"></div>
+
+                <button onclick="resetScene()" class="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-xs font-semibold text-slate-300 border border-slate-700 transition-colors shadow-sm">
+                    <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Reset All (100)
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Global Educational Disclaimers & Validation Setting Bar -->
+    <section class="w-full bg-slate-900/80 border-b border-slate-800/90 px-4 py-2.5">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
+            <div class="flex items-center gap-2 text-slate-300 flex-wrap">
+                <span class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-cyan-400 font-semibold uppercase tracking-wider text-[10px]">
+                    Note
+                </span>
+                <span class="font-medium text-slate-200">Conceptual diagram — not a physical RAM layout.</span>
+                <span class="text-slate-400 hidden sm:inline">•</span>
+                <span class="text-slate-400">Encapsulation organizes access. Validation is implemented by method logic.</span>
+            </div>
+
+            <!-- Withdrawal Validation Master Toggle -->
+            <div class="flex items-center gap-3 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 shrink-0">
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" id="toggle-validation" checked onchange="handleValidationToggle(this.checked)" class="w-4 h-4 accent-cyan-500 rounded cursor-pointer">
+                    <span class="font-semibold text-slate-200">Withdrawal validation enabled</span>
+                </label>
+                <span id="validation-rule-tag" class="text-[11px] text-emerald-400 font-mono">
+                    Intended rule in this example: no overdraft when validation is enabled.
+                </span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Narrator Banner (Live Narrative & Educational Feedback) -->
+    <section class="w-full bg-slate-950/90 border-b border-slate-800 px-4 py-2">
+        <div class="max-w-7xl mx-auto flex items-start gap-3">
+            <div class="mt-0.5 p-1 rounded-md bg-cyan-950 border border-cyan-800/60 text-cyan-400 shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="w-full">
+                <p id="narrator" class="text-xs sm:text-sm text-slate-200 font-medium leading-snug">
+                    Controlled Initial State: Both comparison lanes start with exactly balance = 100. Notice the distinction: procedural code separates floating global data from standalone functions; OOP encapsulates private state inside an object boundary accessible via public methods. Both use the exact same validation rule.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Visual Canvas (Split-Screen Comparison) -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 relative bg-grid-pattern">
+
+        <!-- SVG Connection Overlay for Signals and Direct-Write Paths -->
+        <svg id="svg-overlay" class="absolute inset-0 w-full h-full pointer-events-none z-30" style="min-height: 100%;">
+            <defs>
+                <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="4" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+                <filter id="glow-amber" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="4" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+                <marker id="arrow-amber" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 1 L 10 5 L 0 9 z" fill="#f59e0b" />
+                </marker>
+                <marker id="arrow-cyan" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8" />
+                </marker>
+                <marker id="arrow-rose" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444" />
+                </marker>
+            </defs>
+
+            <!-- Dynamic Paths (Rendered dynamically) -->
+            <g id="svg-connections"></g>
+
+            <!-- Dynamic Traveling Pulse Elements -->
+            <circle id="pulse-procedural" r="7" fill="#f59e0b" filter="url(#glow-amber)" class="opacity-0"></circle>
+            <circle id="pulse-oop" r="7" fill="#38bdf8" filter="url(#glow-cyan)" class="opacity-0"></circle>
+        </svg>
+
+        <!-- ========================================== -->
+        <!-- LEFT PANEL: PROCEDURAL PROGRAMMING         -->
+        <!-- ========================================== -->
+        <div id="panel-procedural" class="procedural-boundary rounded-2xl p-4 sm:p-5 flex flex-col justify-between relative overflow-hidden transition-all duration-300">
+            <!-- Header -->
+            <div class="flex items-center justify-between pb-3 border-b border-amber-500/20">
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+                    <div>
+                        <h2 class="text-sm sm:text-base font-bold text-amber-400 tracking-wide flex items-center gap-2">
+                            Procedural Paradigm
+                            <span class="text-[10px] font-normal px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30">Global Scope Data</span>
+                        </h2>
+                        <p class="text-[11px] text-slate-400">Exposed global variable & standalone functions</p>
+                    </div>
+                </div>
+
+                <div id="proc-status-badge" class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 border border-amber-500/30 text-amber-300 flex items-center gap-1.5">
+                    <span id="proc-status-dot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+                    <span id="proc-status-text">Initial State</span>
+                </div>
+            </div>
+
+            <!-- Visual Arena (Procedural Structure) -->
+            <div class="my-4 flex-1 flex flex-col justify-around gap-4 min-h-[320px] relative">
+
+                <!-- External Caller Label (Procedural) -->
+                <div id="proc-caller-box" class="p-2.5 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">
+                    <span class="text-slate-400 flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                        Caller: <strong class="text-slate-200">ordinary external code</strong>
+                    </span>
+                    <span class="text-[10px] text-amber-400 font-mono">has direct access to global symbols</span>
+                </div>
+
+                <!-- Exposed Global Variable: balance -->
+                <div id="proc-balance-box" class="p-4 rounded-xl bg-slate-950 border-2 border-dashed border-amber-500/40 relative shadow-inner">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                            <span class="text-xs font-mono font-bold text-amber-300">double balance;</span>
+                            <span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-950/60 text-amber-400 border border-amber-800/40">exposed global</span>
+                        </div>
+                        <span class="text-[10px] text-slate-500 font-mono">initial: 100</span>
+                    </div>
+
+                    <div class="flex items-baseline justify-between mt-2">
+                        <div class="text-[11px] text-slate-400">
+                            Current Value:
+                        </div>
+                        <div class="text-right">
+                            <span id="proc-balance-val" class="text-3xl sm:text-4xl font-black font-mono text-amber-300 tracking-tight transition-colors">
+                                100
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Direct Write Path Indicator -->
+                    <div id="proc-direct-write-indicator" class="mt-2 text-[11px] text-amber-400/90 bg-amber-950/30 border border-amber-800/40 rounded px-2 py-1 flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                        <span>Direct-write path open: any statement can execute <code>balance = X;</code></span>
+                    </div>
+                </div>
+
+                <!-- Standalone Functions -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- Standalone deposit -->
+                    <div id="proc-func-deposit" class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 relative">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-mono font-bold text-slate-300 flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+                                deposit(amount)
+                            </span>
+                            <span class="text-[10px] text-slate-500 font-mono">standalone</span>
+                        </div>
+                        <p class="text-[11px] font-mono text-slate-400">balance += amount;</p>
+                    </div>
+
+                    <!-- Standalone withdraw -->
+                    <div id="proc-func-withdraw" class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 relative">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-mono font-bold text-slate-300 flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+                                withdraw(amount)
+                            </span>
+                            <span class="text-[10px] text-slate-500 font-mono">standalone</span>
+                        </div>
+                        <p id="proc-withdraw-code-inline" class="text-[11px] font-mono text-slate-400">
+                            if (val &amp;&amp; amt &gt; balance) return false;<br>balance -= amount;
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Synchronized Procedural Source Code -->
+                <div class="bg-slate-950 rounded-xl p-3 border border-slate-800 font-mono text-[11px] overflow-x-auto">
+                    <div class="text-[10px] text-slate-500 uppercase tracking-widest pb-1 border-b border-slate-800 mb-1.5 flex justify-between">
+                        <span>Procedural Implementation (C-Style)</span>
+                        <span class="text-amber-400">Global State</span>
+                    </div>
+                    <div id="pcode-line-1" class="px-2 py-0.5 rounded text-slate-400">// Global scope variable</div>
+                    <div id="pcode-line-2" class="px-2 py-0.5 rounded text-slate-400">double balance = 100.0;</div>
+                    <div id="pcode-line-3" class="px-2 py-0.5 rounded text-slate-400">void deposit(double amount) { balance += amount; }</div>
+                    <div id="pcode-line-4" class="px-2 py-0.5 rounded text-slate-400">bool withdraw(double amount) {</div>
+                    <div id="pcode-line-5" class="px-2 py-0.5 rounded text-slate-400 pl-4" id="pcode-val-check">if (validationEnabled &amp;&amp; amount &gt; balance) return false;</div>
+                    <div id="pcode-line-6" class="px-2 py-0.5 rounded text-slate-400 pl-4">balance -= amount; return true;</div>
+                    <div id="pcode-line-7" class="px-2 py-0.5 rounded text-slate-400">}</div>
+                    <div id="pcode-line-bypass" class="px-2 py-0.5 rounded text-slate-400 transition-colors">// Direct external assignment bypass</div>
+                    <div id="pcode-line-assign" class="px-2 py-0.5 rounded text-slate-400 font-bold transition-colors">balance = proposedValue; // BYPASSES withdraw()</div>
+                </div>
+            </div>
+
+            <!-- Footer note -->
+            <div class="pt-3 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+                <span>Access Control: <strong class="text-rose-400">None (Exposed)</strong></span>
+                <span>Validation: <strong class="text-slate-300" id="proc-val-status">Implemented in withdraw()</strong></span>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- RIGHT PANEL: OBJECT-ORIENTED PROGRAMMING   -->
+        <!-- ========================================== -->
+        <div id="panel-oop" class="oop-boundary rounded-2xl p-4 sm:p-5 flex flex-col justify-between relative overflow-hidden transition-all duration-300">
+            <!-- Header -->
+            <div class="flex items-center justify-between pb-3 border-b border-emerald-500/20">
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-emerald-400"></div>
+                    <div>
+                        <h2 class="text-sm sm:text-base font-bold text-emerald-400 tracking-wide flex items-center gap-2">
+                            Object-Oriented Paradigm
+                            <span class="text-[10px] font-normal px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">BankAccount Instance</span>
+                        </h2>
+                        <p class="text-[11px] text-slate-400">Private balance member inside object boundary with public methods</p>
+                    </div>
+                </div>
+
+                <div id="oop-status-badge" class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 flex items-center gap-1.5">
+                    <span id="oop-status-dot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span id="oop-status-text">Initial State</span>
+                </div>
+            </div>
+
+            <!-- Visual Arena (OOP Object Boundary) -->
+            <div class="my-4 flex-1 flex flex-col justify-around gap-4 min-h-[320px] relative">
+
+                <!-- External Caller Node (Outside Boundary) -->
+                <div id="oop-caller-box" class="p-2.5 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">
+                    <span class="text-slate-400 flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        Caller: <strong class="text-slate-200">ordinary external code — not a member or friend</strong>
+                    </span>
+                    <span class="text-[10px] text-emerald-400 font-mono">outside class boundary</span>
+                </div>
+
+                <!-- Unified Object Boundary: BankAccount account -->
+                <div id="oop-object-box" class="p-3.5 rounded-xl bg-slate-900/90 border-2 border-emerald-500/40 relative shadow-lg">
+
+                    <!-- Class & Instance Tag -->
+                    <div class="flex items-center justify-between pb-2 border-b border-slate-800 mb-2.5 text-xs">
+                        <span class="font-mono text-cyan-300 font-bold flex items-center gap-1.5">
+                            <span class="px-1.5 py-0.5 rounded bg-cyan-950 border border-cyan-800 text-[10px]">class BankAccount</span>
+                            <span>account(100.0)</span>
+                        </span>
+                        <span class="text-[10px] text-slate-400 font-mono">Object Boundary</span>
+                    </div>
+
+                    <!-- PUBLIC INTERFACE: Methods outside private memory -->
+                    <div class="mb-3">
+                        <div class="text-[10px] font-mono uppercase tracking-wider text-cyan-400 mb-1 flex items-center gap-1">
+                            <span>public interface methods:</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <div id="oop-method-deposit" class="p-2 rounded bg-slate-950 border border-cyan-500/30 text-center">
+                                <span class="text-[11px] font-mono text-cyan-300 font-semibold">+ deposit(amt)</span>
+                            </div>
+                            <div id="oop-method-withdraw" class="p-2 rounded bg-slate-950 border border-cyan-500/30 text-center">
+                                <span class="text-[11px] font-mono text-cyan-300 font-semibold">+ withdraw(amt)</span>
+                            </div>
+                            <div id="oop-method-getbalance" class="p-2 rounded bg-slate-950 border border-cyan-500/30 text-center">
+                                <span class="text-[11px] font-mono text-cyan-300 font-semibold">+ getBalance()</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PRIVATE MEMBER: Encapsulated State -->
+                    <div id="oop-private-sanctum" class="p-3 rounded-lg bg-slate-950/90 border border-emerald-500/40 relative">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-mono font-bold text-emerald-400 flex items-center gap-1">
+                                <svg class="w-3 h-3 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>
+                                private: double balance;
+                            </span>
+                            <span class="text-[10px] px-1.5 py-0.2 rounded bg-rose-950/60 text-rose-300 border border-rose-800/40 font-mono">
+                                private member
+                            </span>
+                        </div>
+
+                        <div class="flex items-baseline justify-between mt-2">
+                            <div class="text-[11px] text-slate-400">
+                                Encapsulated Value:
+                            </div>
+                            <div class="text-right">
+                                <span id="oop-balance-val" class="text-3xl sm:text-4xl font-black font-mono text-emerald-300 tracking-tight transition-colors">
+                                    100
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Simulated Compile-Time Access Diagnostic Box (Hidden by default) -->
+                        <div id="oop-compiler-diagnostic" class="mt-2 text-[11px] text-rose-300 bg-rose-950/80 border border-rose-500/60 rounded p-2 hidden">
+                            <div class="font-bold flex items-center gap-1 text-rose-400 mb-0.5">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                Compile-Time Access Check Failed:
+                            </div>
+                            <div class="font-mono text-[10px]">
+                                error: 'double BankAccount::balance' is private within this context<br>
+                                &gt; account.balance = <span id="diag-proposed-val">-100</span>;<br>
+                                <strong>Result:</strong> private member balance is inaccessible from ordinary external code. Assignment rejected before execution.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Synchronized OOP Source Code -->
+                <div class="bg-slate-950 rounded-xl p-3 border border-slate-800 font-mono text-[11px] overflow-x-auto">
+                    <div class="text-[10px] text-slate-500 uppercase tracking-widest pb-1 border-b border-slate-800 mb-1.5 flex justify-between">
+                        <span>Object-Oriented Implementation (C++)</span>
+                        <span class="text-emerald-400">Class Encapsulation</span>
+                    </div>
+                    <div id="ocode-line-1" class="px-2 py-0.5 rounded text-slate-400">class BankAccount {</div>
+                    <div id="ocode-line-2" class="px-2 py-0.5 rounded text-slate-400 pl-2">private: double balance;</div>
+                    <div id="ocode-line-3" class="px-2 py-0.5 rounded text-slate-400 pl-2">public:</div>
+                    <div id="ocode-line-4" class="px-2 py-0.5 rounded text-slate-400 pl-4">BankAccount(double init) : balance(init) {}</div>
+                    <div id="ocode-line-5" class="px-2 py-0.5 rounded text-slate-400 pl-4">void deposit(double amount) { balance += amount; }</div>
+                    <div id="ocode-line-6" class="px-2 py-0.5 rounded text-slate-400 pl-4">bool withdraw(double amount) {</div>
+                    <div id="ocode-line-7" class="px-2 py-0.5 rounded text-slate-400 pl-6" id="ocode-val-check">if (validationEnabled &amp;&amp; amount &gt; balance) return false;</div>
+                    <div id="ocode-line-8" class="px-2 py-0.5 rounded text-slate-400 pl-6">balance -= amount; return true;</div>
+                    <div id="ocode-line-9" class="px-2 py-0.5 rounded text-slate-400 pl-4">}</div>
+                    <div id="ocode-line-10" class="px-2 py-0.5 rounded text-slate-400 pl-4">double getBalance() const { return balance; }</div>
+                    <div id="ocode-line-11" class="px-2 py-0.5 rounded text-slate-400">};</div>
+                    <div id="ocode-line-reject" class="px-2 py-0.5 rounded text-slate-400 transition-colors">// External direct write attempt:</div>
+                    <div id="ocode-line-assign" class="px-2 py-0.5 rounded text-slate-400 font-bold transition-colors">account.balance = proposedValue; // COMPILE ERROR</div>
+                </div>
+            </div>
+
+            <!-- Footer note -->
+            <div class="pt-3 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+                <span>Access Control: <strong class="text-emerald-400">Enforced by Compiler</strong></span>
+                <span>Validation: <strong class="text-slate-300" id="oop-val-status">Implemented in withdraw()</strong></span>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- =================================================== -->
+    <!-- INTERACTIVE PERSPECTIVE WORKBENCHES & CONTROLS     -->
+    <!-- =================================================== -->
+    <section class="w-full bg-slate-900/95 border-t border-slate-800 p-4 sticky bottom-0 z-30 shadow-2xl backdrop-blur-md">
+        <div class="max-w-7xl mx-auto">
+
+            <!-- WORKBENCH 1: STRUCTURE & REGULAR OPERATIONS -->
+            <div id="workbench-structure" class="space-y-3">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <div>
+                        <h3 class="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-1.5">
+                            <span class="w-5 h-5 rounded bg-cyan-500/20 text-cyan-400 text-xs font-bold flex items-center justify-center">1</span>
+                            Perspective 1: Shared Operations on Initial Balance (100)
+                        </h3>
+                        <p class="text-[11px] text-slate-400">
+                            Apply the exact same operation and amount to both sides simultaneously to observe identical business logic.
+                        </p>
+                    </div>
+
+                    <!-- Fast Acceptance Test Buttons -->
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="text-[10px] text-slate-400 font-semibold">Acceptance Quick Actions:</span>
+                        <button onclick="runQuickAction('deposit', 30)" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-mono border border-slate-700">
+                            deposit(30) &rarr; 130
+                        </button>
+                        <button onclick="runQuickAction('withdraw', 30)" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-mono border border-slate-700">
+                            withdraw(30) &rarr; 70
+                        </button>
+                        <button onclick="runQuickAction('withdraw', 150)" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-mono border border-slate-700" title="Tests overdraft behavior with current validation setting">
+                            withdraw(150)
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <div class="flex items-center gap-2">
+                        <label for="op-select" class="text-xs text-slate-300 font-medium">Operation:</label>
+                        <select id="op-select" class="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs text-slate-200 font-mono">
+                            <option value="deposit">deposit(amount)</option>
+                            <option value="withdraw">withdraw(amount)</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <label for="amount-input" class="text-xs text-slate-300 font-medium">Amount:</label>
+                        <input id="amount-input" type="number" min="5" max="300" step="5" value="30" oninput="handleAmountInput(this.value)" class="w-20 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-cyan-300 font-mono font-bold">
+                        <input id="amount-slider" type="range" min="10" max="200" step="10" value="30" oninput="handleAmountSlider(this.value)" class="w-24 sm:w-32 accent-cyan-500 cursor-pointer">
+                    </div>
+
+                    <button id="btn-execute-op" onclick="executeSelectedOperation()" class="px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs transition-all shadow-md flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        Execute on Both Sides
+                    </button>
+                </div>
+            </div>
+
+            <!-- WORKBENCH 2: DIRECT ACCESS EXPERIMENT -->
+            <div id="workbench-direct" class="space-y-3 hidden">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <div>
+                        <h3 class="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-1.5">
+                            <span class="w-5 h-5 rounded bg-rose-500/20 text-rose-400 text-xs font-bold flex items-center justify-center">2</span>
+                            Perspective 2: Direct Access &amp; Compiler Access-Control Check
+                        </h3>
+                        <p class="text-[11px] text-slate-400">
+                            Caller is labeled <strong>ordinary external code — not a member or friend</strong>. Private access prevents the caller from naming the member; it does not automatically validate method logic.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-4 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <div class="flex items-center gap-2">
+                        <label for="proposed-input" class="text-xs text-slate-300 font-medium">Proposed Value (-200 to 200):</label>
+                        <input id="proposed-input" type="number" min="-200" max="200" step="10" value="-100" oninput="handleProposedInput(this.value)" class="w-24 bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs text-rose-300 font-mono font-bold">
+                        <input id="proposed-slider" type="range" min="-200" max="200" step="10" value="-100" oninput="handleProposedSlider(this.value)" class="w-28 sm:w-36 accent-rose-500 cursor-pointer">
+                    </div>
+
+                    <button id="btn-attempt-direct" onclick="attemptDirectAssignment()" class="px-4 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs transition-all shadow-md flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        Attempt external assignment
+                    </button>
+
+                    <button onclick="restoreDirectBalances()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs border border-slate-700">
+                        Restore Balances to 100
+                    </button>
+                </div>
+            </div>
+
+            <!-- WORKBENCH 3: VALIDATION EXPERIMENT -->
+            <div id="workbench-validation" class="space-y-3 hidden">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <div>
+                        <h3 class="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-1.5">
+                            <span class="w-5 h-5 rounded bg-emerald-500/20 text-emerald-400 text-xs font-bold flex items-center justify-center">3</span>
+                            Perspective 3: Encapsulation and Validation Solve Different Problems
+                        </h3>
+                        <p class="text-[11px] text-slate-400">
+                            Observe withdraw(150) from initial balance of 100 with validation enabled vs disabled.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 flex flex-col justify-between">
+                        <div>
+                            <div class="text-xs font-semibold text-emerald-400 mb-1">Case A: Validation Enabled (Default)</div>
+                            <p class="text-[11px] text-slate-300">
+                                Testing <code>withdraw(150)</code> from 100. Both procedural and OOP methods execute the check: <code>amount &gt; balance</code>. Both reject the operation and retain 100.
+                            </p>
+                        </div>
+                        <button onclick="runValidationCase(true)" class="mt-2.5 px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white font-medium text-xs">
+                            Test Validated withdraw(150) &rarr; Both Remain 100
+                        </button>
+                    </div>
+
+                    <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 flex flex-col justify-between">
+                        <div>
+                            <div class="text-xs font-semibold text-amber-400 mb-1">Case B: Validation Disabled (Demonstration)</div>
+                            <p class="text-[11px] text-slate-300">
+                                Testing <code>withdraw(150)</code> from 100 with validation condition intentionally omitted. Both sides become <strong>-50</strong>. This shows validation logic is not automatically created by OOP.
+                            </p>
+                        </div>
+                        <button onclick="runValidationCase(false)" class="mt-2.5 px-3 py-1.5 rounded bg-amber-700 hover:bg-amber-600 text-white font-medium text-xs">
+                            Test Unvalidated withdraw(150) &rarr; Both Become -50
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WORKBENCH 4: EXECUTION ORDER EXPERIMENT -->
+            <div id="workbench-execution" class="space-y-3 hidden">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <div>
+                        <h3 class="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-1.5">
+                            <span class="w-5 h-5 rounded bg-indigo-500/20 text-indigo-400 text-xs font-bold flex items-center justify-center">4</span>
+                            Perspective 4: Execution Order Progression (Logical Time)
+                        </h3>
+                        <p class="text-[11px] text-slate-400">
+                            <strong>“Time here means logical execution order, not elapsed seconds.”</strong> Notice how order alters validity.
+                        </p>
+                    </div>
+
+                    <!-- Presets A & B -->
+                    <div class="flex items-center gap-2">
+                        <button onclick="loadQueuePreset('A')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs text-indigo-300 border border-slate-700">
+                            Load Sequence A
+                        </button>
+                        <button onclick="loadQueuePreset('B')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs text-cyan-300 border border-slate-700">
+                            Load Sequence B
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Queue Display & Operations List -->
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-300 font-semibold flex items-center gap-1.5">
+                            <span>Operation Queue:</span>
+                            <span id="queue-step-indicator" class="text-[11px] text-cyan-400 font-mono">(Step 0 of 2)</span>
+                        </span>
+                        <div class="flex items-center gap-2">
+                            <button id="btn-queue-step" onclick="executeQueueStep()" class="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
+                                Execute Next Step
+                            </button>
+                            <button onclick="runEntireQueue()" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs border border-slate-700">
+                                Run All
+                            </button>
+                            <button onclick="resetQueueExecution()" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs border border-slate-700">
+                                Reset Queue to Start
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Visual Queue Steps -->
+                    <div id="queue-list" class="flex flex-wrap items-center gap-2 text-xs font-mono">
+                        <!-- Populated dynamically -->
+                    </div>
+
+                    <div class="flex items-center gap-2 pt-2 border-t border-slate-900 text-xs">
+                        <span class="text-slate-400">Add to Queue:</span>
+                        <select id="queue-add-op" class="bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-xs text-slate-200">
+                            <option value="withdraw">withdraw</option>
+                            <option value="deposit">deposit</option>
+                        </select>
+                        <input id="queue-add-amt" type="number" min="10" max="300" step="10" value="50" class="w-16 bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-xs text-cyan-300 font-mono">
+                        <button onclick="addToQueue()" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs border border-slate-700">
+                            + Add
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WORKBENCH 5: OBJECT IDENTITY EXPERIMENT -->
+            <div id="workbench-identity" class="space-y-3 hidden">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <div>
+                        <h3 class="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-1.5">
+                            <span class="w-5 h-5 rounded bg-cyan-500/20 text-cyan-400 text-xs font-bold flex items-center justify-center">5</span>
+                            Perspective 5: Object Identity (accountA vs accountB)
+                        </h3>
+                        <p class="text-[11px] text-slate-400">
+                            <strong>“Different object instances hold separate state while using the same class-defined operations.”</strong>
+                            (Does not imply each object stores separate physical copies of method code).
+                        </p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <!-- Instance A -->
+                    <div class="p-3 rounded-lg bg-slate-900 border border-slate-800">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-mono font-bold text-cyan-300">BankAccount accountA;</span>
+                            <span class="text-[10px] text-slate-400 font-mono">Instance ID: #001</span>
+                        </div>
+                        <div class="text-2xl font-black font-mono text-cyan-400 mb-2">
+                            balance = <span id="identity-balance-a">100</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="depositInstance('A', 40)" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs text-cyan-300 border border-slate-700">
+                                deposit(40) to accountA
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Instance B -->
+                    <div class="p-3 rounded-lg bg-slate-900 border border-slate-800">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-mono font-bold text-emerald-300">BankAccount accountB;</span>
+                            <span class="text-[10px] text-slate-400 font-mono">Instance ID: #002</span>
+                        </div>
+                        <div class="text-2xl font-black font-mono text-emerald-400 mb-2">
+                            balance = <span id="identity-balance-b">100</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="depositInstance('B', 50)" class="px-2.5 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-xs text-white">
+                                deposit(50) to accountB
+                            </button>
+                            <button onclick="withdrawInstance('B', 30)" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs text-emerald-300 border border-slate-700">
+                                withdraw(30)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Operation Feedback & History Tracker -->
+            <div class="mt-3 pt-2.5 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+                <div class="flex items-center gap-2 text-slate-400 w-full sm:w-auto">
+                    <span class="font-semibold text-slate-300">Last Action Result:</span>
+                    <span id="last-action-feedback" class="text-slate-200 font-mono">Initialized at balance = 100</span>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <span class="text-slate-400 text-[11px]">History:</span>
+                    <span id="history-badge" class="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-slate-300 font-mono text-[11px]">0 operations</span>
+                    <button onclick="toggleMatrixModal(true)" class="px-2.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-medium border border-slate-700">
+                        View Comparison Matrix &rarr;
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- COMPARISON MATRIX MODAL                    -->
+    <!-- ========================================== -->
+    <div id="matrix-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-slate-900 border border-slate-700 max-w-2xl w-full rounded-2xl p-5 sm:p-6 shadow-2xl relative">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 flex items-center justify-center font-bold">
+                        &infin;
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-100">Comparison Matrix: Procedural vs Object-Oriented</h3>
+                        <p class="text-xs text-slate-400">Clarifying organization, access control, and validation logic</p>
+                    </div>
+                </div>
+                <button onclick="toggleMatrixModal(false)" class="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200" aria-label="Close dialog">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs font-sans">
+                    <thead>
+                        <tr class="border-b border-slate-800 text-slate-400 font-semibold uppercase text-[10px]">
+                            <th class="py-2.5 px-3">Concept</th>
+                            <th class="py-2.5 px-3 text-amber-400">Procedural Example</th>
+                            <th class="py-2.5 px-3 text-emerald-400">Object-Oriented Example</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60 text-slate-300">
+                        <tr>
+                            <td class="py-2.5 px-3 font-semibold text-slate-200">Data Organization</td>
+                            <td class="py-2.5 px-3 text-amber-300/90">Floating global balance variable; standalone functions</td>
+                            <td class="py-2.5 px-3 text-emerald-300/90">Balance encapsulated as member variable inside BankAccount object</td>
+                        </tr>
+                        <tr>
+                            <td class="py-2.5 px-3 font-semibold text-slate-200">Access Control</td>
+                            <td class="py-2.5 px-3 text-rose-400">None: External code can directly reassign global balance</td>
+                            <td class="py-2.5 px-3 text-emerald-300">Compiler rejects external code from naming private balance</td>
+                        </tr>
+                        <tr>
+                            <td class="py-2.5 px-3 font-semibold text-slate-200">Validation Origin</td>
+                            <td class="py-2.5 px-3 text-slate-300">Implemented explicitly inside withdraw() function</td>
+                            <td class="py-2.5 px-3 text-slate-300">Implemented explicitly inside withdraw() method (not automatic!)</td>
+                        </tr>
+                        <tr>
+                            <td class="py-2.5 px-3 font-semibold text-slate-200">Overdraft Behavior</td>
+                            <td class="py-2.5 px-3 text-slate-400">Blocked when validation is enabled; allowed when validation is omitted</td>
+                            <td class="py-2.5 px-3 text-slate-400">Blocked when validation is enabled; allowed when validation is omitted</td>
+                        </tr>
+                        <tr>
+                            <td class="py-2.5 px-3 font-semibold text-slate-200">Key Educational Takeaway</td>
+                            <td class="py-2.5 px-3 text-amber-300/80" colspan="2">
+                                Encapsulation organizes access. Validation is implemented by method logic. OOP does not automatically guarantee valid state; it prevents bypass of member logic.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-800 flex justify-end">
+                <button onclick="toggleMatrixModal(false)" class="px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold">
+                    Close Matrix
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =================================================== -->
+    <!-- UNIFIED STATE MODEL & INTERACTION ENGINE            -->
+    <!-- =================================================== -->
+    <script>
+        /* ==================================================
+           1. SHARED MODEL (Strict separation from animation)
+           ================================================== */
+        const INITIAL_STATE = {
+            proceduralBalance: 100.0,
+            oopBalance: 100.0,
+            accountA: 100.0,
+            accountB: 100.0,
+            validationEnabled: true,
+            proposedValue: -100.0,
+            amount: 30.0,
+            currentPerspective: 'structure',
+            history: [],
+            queue: [
+                { type: 'withdraw', amount: 150 },
+                { type: 'deposit', amount: 100 }
+            ],
+            queueIndex: 0
+        };
+
+        // Live mutable state
+        let state = JSON.parse(JSON.stringify(INITIAL_STATE));
+
+        // Animation session management to prevent stale callbacks upon reset
+        let currentSessionId = 0;
+        let isProcessing = false;
+
+        const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+        /* ==================================================
+           2. DOM ELEMENT REFERENCES
+           ================================================= */
+        const narratorEl = document.getElementById('narrator');
+        const procBalanceEl = document.getElementById('proc-balance-val');
+        const oopBalanceEl = document.getElementById('oop-balance-val');
+        const toggleValEl = document.getElementById('toggle-validation');
+        const valRuleTag = document.getElementById('validation-rule-tag');
+        const procValStatus = document.getElementById('proc-val-status');
+        const oopValStatus = document.getElementById('oop-val-status');
+        const procStatusText = document.getElementById('proc-status-text');
+        const procStatusDot = document.getElementById('proc-status-dot');
+        const oopStatusText = document.getElementById('oop-status-text');
+        const oopStatusDot = document.getElementById('oop-status-dot');
+        const lastActionFeedback = document.getElementById('last-action-feedback');
+        const historyBadge = document.getElementById('history-badge');
+        const oopCompilerDiagnostic = document.getElementById('oop-compiler-diagnostic');
+        const diagProposedVal = document.getElementById('diag-proposed-val');
+        const matrixModal = document.getElementById('matrix-modal');
+
+        // Queue elements
+        const queueList = document.getElementById('queue-list');
+        const queueStepIndicator = document.getElementById('queue-step-indicator');
+
+        // Identity balances
+        const identityBalanceA = document.getElementById('identity-balance-a');
+        const identityBalanceB = document.getElementById('identity-balance-b');
+
+        // Inputs
+        const amountInput = document.getElementById('amount-input');
+        const amountSlider = document.getElementById('amount-slider');
+        const proposedInput = document.getElementById('proposed-input');
+        const proposedSlider = document.getElementById('proposed-slider');
+
+        /* ==================================================
+           3. SYNCHRONIZATION & RENDERING
+           ================================================= */
+        function syncUI() {
+            // Update Balances
+            procBalanceEl.textContent = state.proceduralBalance;
+            oopBalanceEl.textContent = state.oopBalance;
+            identityBalanceA.textContent = state.accountA;
+            identityBalanceB.textContent = state.accountB;
+
+            // Highlight negative balance as deliberate demonstration of omitted validation
+            if (state.proceduralBalance < 0) {
+                procBalanceEl.className = "text-3xl sm:text-4xl font-black font-mono text-rose-400 tracking-tight transition-colors";
+                procStatusText.textContent = "Negative Balance (-" + Math.abs(state.proceduralBalance) + ")";
+                procStatusDot.className = "w-2 h-2 rounded-full bg-rose-500 animate-pulse";
+            } else {
+                procBalanceEl.className = "text-3xl sm:text-4xl font-black font-mono text-amber-300 tracking-tight transition-colors";
+                procStatusText.textContent = state.history.length > 0 ? "Active State" : "Initial State (100)";
+                procStatusDot.className = "w-2 h-2 rounded-full bg-amber-400";
+            }
+
+            if (state.oopBalance < 0) {
+                oopBalanceEl.className = "text-3xl sm:text-4xl font-black font-mono text-rose-400 tracking-tight transition-colors";
+                oopStatusText.textContent = "Negative Balance (-" + Math.abs(state.oopBalance) + ")";
+                oopStatusDot.className = "w-2 h-2 rounded-full bg-rose-500 animate-pulse";
+            } else {
+                oopBalanceEl.className = "text-3xl sm:text-4xl font-black font-mono text-emerald-300 tracking-tight transition-colors";
+                oopStatusText.textContent = state.history.length > 0 ? "Active State" : "Initial State (100)";
+                oopStatusDot.className = "w-2 h-2 rounded-full bg-emerald-400";
+            }
+
+            // Validation status text
+            toggleValEl.checked = state.validationEnabled;
+            if (state.validationEnabled) {
+                valRuleTag.textContent = "Intended rule in this example: no overdraft when validation is enabled.";
+                valRuleTag.className = "text-[11px] text-emerald-400 font-mono";
+                procValStatus.textContent = "Enabled (no overdraft)";
+                oopValStatus.textContent = "Enabled (no overdraft)";
+                document.getElementById('pcode-val-check').textContent = "if (validationEnabled && amount > balance) return false;";
+                document.getElementById('ocode-val-check').textContent = "if (validationEnabled && amount > balance) return false;";
+            } else {
+                valRuleTag.textContent = "Notice: Validation omitted for this test. Both paradigms allow overdraft.";
+                valRuleTag.className = "text-[11px] text-amber-400 font-mono font-bold";
+                procValStatus.textContent = "Omitted (Demonstration)";
+                oopValStatus.textContent = "Omitted (Demonstration)";
+                document.getElementById('pcode-val-check').textContent = "// validation condition removed!";
+                document.getElementById('ocode-val-check').textContent = "// validation condition removed!";
+            }
+
+            // History badge
+            historyBadge.textContent = state.history.length + " operations";
+
+            // Queue rendering
+            renderQueue();
+        }
+
+        /* ==================================================
+           4. PERSPECTIVE SWITCHING (State is fully preserved!)
+           ================================================== */
+        function setPerspective(mode) {
+            state.currentPerspective = mode;
+            const tabs = ['structure', 'direct', 'validation', 'execution', 'identity'];
+
+            tabs.forEach(t => {
+                const btn = document.getElementById('tab-' + t);
+                const wb = document.getElementById('workbench-' + t);
+                if (t === mode) {
+                    btn.className = "px-2.5 py-1 rounded font-medium transition-all bg-cyan-600 text-white shadow-sm";
+                    btn.setAttribute('aria-pressed', 'true');
+                    wb.classList.remove('hidden');
+                } else {
+                    btn.className = "px-2.5 py-1 rounded font-medium transition-all text-slate-400 hover:text-slate-200";
+                    btn.setAttribute('aria-pressed', 'false');
+                    wb.classList.add('hidden');
+                }
+            });
+
+            // Update narrator context
+            if (mode === 'structure') {
+                narratorEl.textContent = "Perspective 1 (Structure): Side-by-side comparison of procedural exposed global variable vs OOP encapsulated object boundary. Both start at 100.";
+            } else if (mode === 'direct') {
+                narratorEl.textContent = "Perspective 2 (Direct Access): Ordinary external code attempts direct assignment. Procedural allows direct variable mutation; OOP compiler rejects the access before execution.";
+            } else if (mode === 'validation') {
+                narratorEl.textContent = "Perspective 3 (Validation): Encapsulation and validation solve different problems. Compare withdraw(150) from 100 with validation enabled vs disabled.";
+            } else if (mode === 'execution') {
+                narratorEl.textContent = "Perspective 4 (Execution Order): 'Time here means logical execution order, not elapsed seconds.' Compare Sequence A vs Sequence B from identical reset states.";
+            } else if (mode === 'identity') {
+                narratorEl.textContent = "Perspective 5 (Object Identity): Two distinct BankAccount instances (accountA and accountB). Operations on accountB leave accountA unchanged.";
+            }
+
+            clearCodeHighlights();
+        }
+
+        /* ==================================================
+           5. SHARED MODEL OPERATIONS: deposit & withdraw
+           ================================================== */
+        function modelDeposit(currentBalance, amount) {
+            return currentBalance + amount;
+        }
+
+        function modelWithdraw(currentBalance, amount, validationEnabled) {
+            if (validationEnabled) {
+                if (amount > currentBalance) {
+                    return { success: false, newBalance: currentBalance, message: "Insufficient funds" };
+                }
+            }
+            return { success: true, newBalance: currentBalance - amount, message: "Operation completed" };
+        }
+
+        async function executeSelectedOperation() {
+            if (isProcessing) return;
+            const op = document.getElementById('op-select').value;
+            const amount = parseFloat(amountInput.value) || 30.0;
+            await executeOperationBoth(op, amount);
+        }
+
+        async function runQuickAction(op, amount) {
+            if (isProcessing) return;
+            amountInput.value = amount;
+            amountSlider.value = amount;
+            document.getElementById('op-select').value = op;
+            await executeOperationBoth(op, amount);
+        }
+
+        async function executeOperationBoth(op, amount) {
+            isProcessing = true;
+            const sessionId = ++currentSessionId;
+
+            clearCodeHighlights();
+            let resultProc, resultOop;
+
+            if (op === 'deposit') {
+                resultProc = { success: true, newBalance: modelDeposit(state.proceduralBalance, amount), message: "Deposit completed" };
+                resultOop = { success: true, newBalance: modelDeposit(state.oopBalance, amount), message: "Deposit completed" };
+
+                highlightLine('pcode-line-3', 'code-highlight');
+                highlightLine('ocode-line-5', 'code-highlight');
+
+                animateSignalPulse('procedural', '#f59e0b');
+                animateSignalPulse('oop', '#38bdf8');
+
+                narratorEl.textContent = `deposit(${amount}): Added to both sides. Procedural global balance: ${resultProc.newBalance}, OOP private balance: ${resultOop.newBalance}.`;
+                lastActionFeedback.textContent = `deposit(${amount}) &rarr; Balances: ${resultProc.newBalance}`;
+
+            } else if (op === 'withdraw') {
+                resultProc = modelWithdraw(state.proceduralBalance, amount, state.validationEnabled);
+                resultOop = modelWithdraw(state.oopBalance, amount, state.validationEnabled);
+
+                highlightLine('pcode-line-5', 'code-highlight');
+                highlightLine('ocode-line-7', 'code-highlight');
+
+                if (!resultOop.success) {
+                    // Insufficient funds on both sides
+                    highlightLine('pcode-line-5', 'code-error-highlight');
+                    highlightLine('ocode-line-7', 'code-error-highlight');
+                    narratorEl.innerHTML = `withdraw(${amount}) rejected by validation: <strong class="text-rose-400">Insufficient funds</strong>! Balance preserved at ${state.oopBalance} on both sides.`;
+                    lastActionFeedback.innerHTML = `<span class="text-rose-400">withdraw(${amount}) rejected: Insufficient funds (balance remains ${state.oopBalance})</span>`;
+                } else {
+                    animateSignalPulse('procedural', '#f59e0b');
+                    animateSignalPulse('oop', '#38bdf8');
+                    narratorEl.textContent = `withdraw(${amount}) executed: Both sides updated to ${resultOop.newBalance}.`;
+                    lastActionFeedback.textContent = `withdraw(${amount}) &rarr; Balances: ${resultOop.newBalance}`;
+                }
+            }
+
+            await sleep(400);
+            if (currentSessionId !== sessionId) return;
+
+            // Apply results to state
+            state.proceduralBalance = resultProc.newBalance;
+            state.oopBalance = resultOop.newBalance;
+            state.history.push({ op, amount, proc: state.proceduralBalance, oop: state.oopBalance, time: Date.now() });
+
+            syncUI();
+            isProcessing = false;
+        }
+
+        /* ==================================================
+           6. DIRECT ACCESS EXPERIMENT
+           ================================================== */
+        function handleProposedInput(val) {
+            state.proposedValue = parseFloat(val) || 0;
+            proposedSlider.value = state.proposedValue;
+            diagProposedVal.textContent = state.proposedValue;
+        }
+
+        function handleProposedSlider(val) {
+            state.proposedValue = parseFloat(val) || 0;
+            proposedInput.value = state.proposedValue;
+            diagProposedVal.textContent = state.proposedValue;
+        }
+
+        async function attemptDirectAssignment() {
+            if (isProcessing) return;
+            isProcessing = true;
+            const sessionId = ++currentSessionId;
+
+            const proposed = state.proposedValue;
+            diagProposedVal.textContent = proposed;
+
+            // Procedural outcome: exposed global variable changes directly, bypassing withdraw()
+            state.proceduralBalance = proposed;
+            highlightLine('pcode-line-assign', 'code-bypass-highlight');
+
+            // OOP outcome: do not execute assignment! Show simulated compile-time error
+            highlightLine('ocode-line-assign', 'code-error-highlight');
+            oopCompilerDiagnostic.classList.remove('hidden');
+
+            narratorEl.innerHTML = `
+                <span class="text-amber-400 font-bold">Procedural:</span> balance = ${proposed} executed directly, bypassing withdraw() validation!
+                <br>
+                <span class="text-emerald-400 font-bold">OOP:</span> account.balance = ${proposed} REJECTED at compile time: private member balance is inaccessible from ordinary external code. OOP balance remains ${state.oopBalance}.
+            `;
+
+            lastActionFeedback.innerHTML = `
+                Procedural mutated to ${proposed} (bypassed validation) | OOP balance unchanged (${state.oopBalance})
+            `;
+
+            state.history.push({ op: `direct-assign(${proposed})`, proc: state.proceduralBalance, oop: state.oopBalance });
+            syncUI();
+
+            await sleep(1500);
+            if (currentSessionId !== sessionId) return;
+            isProcessing = false;
+        }
+
+        function restoreDirectBalances() {
+            state.proceduralBalance = 100.0;
+            state.oopBalance = 100.0;
+            oopCompilerDiagnostic.classList.add('hidden');
+            clearCodeHighlights();
+            narratorEl.textContent = "Balances restored to 100.00.";
+            lastActionFeedback.textContent = "Balances restored to 100.00";
+            syncUI();
+        }
+
+        /* ==================================================
+           7. VALIDATION EXPERIMENT
+           ================================================== */
+        function handleValidationToggle(checked) {
+            state.validationEnabled = checked;
+            syncUI();
+            narratorEl.textContent = checked 
+                ? "Withdrawal validation is enabled. Insufficient funds rule active: no overdraft allowed."
+                : "Withdrawal validation is disabled. This is a deliberate demonstration of omitted validation, not an inherent property of either paradigm.";
+        }
+
+        async function runValidationCase(valEnabled) {
+            // Reset to clean 100 first to test from a fresh state
+            state.proceduralBalance = 100.0;
+            state.oopBalance = 100.0;
+            state.validationEnabled = valEnabled;
+            toggleValEl.checked = valEnabled;
+            syncUI();
+
+            narratorEl.textContent = `Testing withdraw(150) from balance 100 with validation ${valEnabled ? 'ENABLED' : 'DISABLED'}...`;
+            await sleep(300);
+            await executeOperationBoth('withdraw', 150.0);
+        }
+
+        /* ==================================================
+           8. EXECUTION ORDER (QUEUE) EXPERIMENT
+           ================================================== */
+        function loadQueuePreset(preset) {
+            resetScene();
+            if (preset === 'A') {
+                // Sequence A: withdraw(150) -> deposit(100)
+                state.queue = [
+                    { type: 'withdraw', amount: 150 },
+                    { type: 'deposit', amount: 100 }
+                ];
+                narratorEl.innerHTML = "<strong>Sequence A loaded:</strong> 1. withdraw(150) &rarr; 2. deposit(100). With validation enabled: withdraw is rejected at 100, then deposit brings balance to 200.";
+            } else if (preset === 'B') {
+                // Sequence B: deposit(100) -> withdraw(150)
+                state.queue = [
+                    { type: 'deposit', amount: 100 },
+                    { type: 'withdraw', amount: 150 }
+                ];
+                narratorEl.innerHTML = "<strong>Sequence B loaded:</strong> 1. deposit(100) &rarr; 2. withdraw(150). With validation enabled: deposit produces 200, withdraw succeeds, final balance is 50.";
+            }
+            state.queueIndex = 0;
+            syncUI();
+        }
+
+        function renderQueue() {
+            queueList.innerHTML = '';
+            queueStepIndicator.textContent = `(Step ${state.queueIndex} of ${state.queue.length})`;
+
+            state.queue.forEach((item, idx) => {
+                const stepBadge = document.createElement('div');
+                const isCurrent = idx === state.queueIndex;
+                const isCompleted = idx < state.queueIndex;
+
+                stepBadge.className = `px-2.5 py-1 rounded border flex items-center gap-1.5 transition-all ${
+                    isCompleted 
+                        ? 'bg-slate-900 border-slate-700 text-slate-400' 
+                        : isCurrent 
+                            ? 'bg-cyan-950 border-cyan-500 text-cyan-300 ring-1 ring-cyan-400 font-bold' 
+                            : 'bg-slate-900 border-slate-800 text-slate-300'
+                }`;
+
+                stepBadge.innerHTML = `
+                    <span class="text-[10px] text-slate-500 font-sans">${idx + 1}.</span>
+                    <span>${item.type}(${item.amount})</span>
+                    ${isCompleted ? '<span class="text-emerald-400">&check;</span>' : ''}
+                `;
+                queueList.appendChild(stepBadge);
+            });
+        }
+
+        async function executeQueueStep() {
+            if (isProcessing) return;
+            if (state.queueIndex >= state.queue.length) {
+                narratorEl.textContent = `Queue finished! Final balance on both sides is ${state.oopBalance}. Click 'Reset Queue to Start' to test again.`;
+                return;
+            }
+
+            const currentOp = state.queue[state.queueIndex];
+            state.queueIndex++;
+            renderQueue();
+
+            await executeOperationBoth(currentOp.type, currentOp.amount);
+        }
+
+        async function runEntireQueue() {
+            if (isProcessing) return;
+            while (state.queueIndex < state.queue.length) {
+                await executeQueueStep();
+                await sleep(500);
+            }
+        }
+
+        function resetQueueExecution() {
+            state.proceduralBalance = 100.0;
+            state.oopBalance = 100.0;
+            state.queueIndex = 0;
+            syncUI();
+            narratorEl.textContent = "Queue reset to Step 0. Balances restored to 100.";
+            lastActionFeedback.textContent = "Queue reset to Step 0";
+        }
+
+        function addToQueue() {
+            const type = document.getElementById('queue-add-op').value;
+            const amount = parseFloat(document.getElementById('queue-add-amt').value) || 50;
+            state.queue.push({ type, amount });
+            renderQueue();
+        }
+
+        /* ==================================================
+           9. OBJECT IDENTITY EXPERIMENT (accountA vs accountB)
+           ================================================== */
+        function depositInstance(target, amt) {
+            if (target === 'A') {
+                state.accountA += amt;
+                narratorEl.textContent = `deposit(${amt}) into accountA: only accountA changed to ${state.accountA}. accountB remains unchanged (${state.accountB}).`;
+                lastActionFeedback.textContent = `accountA deposited ${amt} &rarr; ${state.accountA}`;
+            } else if (target === 'B') {
+                state.accountB += amt;
+                narratorEl.textContent = `deposit(${amt}) into accountB: only accountB changed to ${state.accountB}. accountA remains unchanged (${state.accountA}).`;
+                lastActionFeedback.textContent = `accountB deposited ${amt} &rarr; ${state.accountB}`;
+            }
+            syncUI();
+        }
+
+        function withdrawInstance(target, amt) {
+            if (target === 'B') {
+                if (state.validationEnabled && amt > state.accountB) {
+                    narratorEl.textContent = `withdraw(${amt}) from accountB rejected: Insufficient funds. Balance remains ${state.accountB}.`;
+                    lastActionFeedback.textContent = `accountB withdraw rejected (balance: ${state.accountB})`;
+                    return;
+                }
+                state.accountB -= amt;
+                narratorEl.textContent = `withdraw(${amt}) from accountB: accountB is now ${state.accountB}. accountA remains ${state.accountA}.`;
+                lastActionFeedback.textContent = `accountB withdrew ${amt} &rarr; ${state.accountB}`;
+                syncUI();
+            }
+        }
+
+        /* ==================================================
+           10. ANIMATION & CODE HIGHLIGHT HELPERS
+           ================================================== */
+        function clearCodeHighlights() {
+            const highlighted = document.querySelectorAll('.code-highlight, .code-error-highlight, .code-bypass-highlight');
+            highlighted.forEach(el => el.classList.remove('code-highlight', 'code-error-highlight', 'code-bypass-highlight'));
+            oopCompilerDiagnostic.classList.add('hidden');
+        }
+
+        function highlightLine(id, className) {
+            const el = document.getElementById(id);
+            if (el) el.classList.add(className);
+        }
+
+        function animateSignalPulse(panel, color) {
+            // Simple accessible pulse simulation without physically breaking diagrams
+            const pulse = panel === 'procedural' ? document.getElementById('pulse-procedural') : document.getElementById('pulse-oop');
+            const target = panel === 'procedural' ? document.getElementById('proc-balance-box') : document.getElementById('oop-object-box');
+
+            if (!pulse || !target) return;
+            const rect = target.getBoundingClientRect();
+            const svgRect = document.getElementById('svg-overlay').getBoundingClientRect();
+
+            pulse.setAttribute('fill', color);
+            pulse.setAttribute('cx', rect.left + rect.width / 2 - svgRect.left);
+            pulse.setAttribute('cy', rect.top + rect.height / 2 - svgRect.top);
+            pulse.setAttribute('class', 'opacity-100 transition-opacity duration-300');
+
+            setTimeout(() => {
+                pulse.setAttribute('class', 'opacity-0 transition-opacity duration-300');
+            }, 500);
+        }
+
+        function handleAmountInput(val) {
+            state.amount = parseFloat(val) || 30;
+            amountSlider.value = state.amount;
+        }
+
+        function handleAmountSlider(val) {
+            state.amount = parseFloat(val) || 30;
+            amountInput.value = state.amount;
+        }
+
+        /* ==================================================
+           11. FULL RESET & RELIABILITY
+           ================================================== */
+        function resetScene() {
+            // Cancel any pending animations/callbacks by changing session ID
+            currentSessionId++;
+            isProcessing = false;
+
+            // Restore all state values
+            state.proceduralBalance = 100.0;
+            state.oopBalance = 100.0;
+            state.accountA = 100.0;
+            state.accountB = 100.0;
+            state.validationEnabled = true;
+            state.proposedValue = -100.0;
+            state.amount = 30.0;
+            state.history = [];
+            state.queue = [
+                { type: 'withdraw', amount: 150 },
+                { type: 'deposit', amount: 100 }
+            ];
+            state.queueIndex = 0;
+
+            // Reset inputs
+            amountInput.value = 30;
+            amountSlider.value = 30;
+            proposedInput.value = -100;
+            proposedSlider.value = -100;
+            diagProposedVal.textContent = "-100";
+            document.getElementById('op-select').value = 'deposit';
+
+            // Clear visual effects
+            clearCodeHighlights();
+            oopCompilerDiagnostic.classList.add('hidden');
+
+            narratorEl.textContent = "Reset complete: Both sides restored to initial balance = 100. Withdrawal validation enabled. Operation history cleared.";
+            lastActionFeedback.textContent = "Scene reset to initial state (100)";
+
+            syncUI();
+        }
+
+        function toggleMatrixModal(show) {
+            if (show) {
+                matrixModal.classList.remove('hidden');
+                setTimeout(() => matrixModal.classList.remove('opacity-0'), 10);
+            } else {
+                matrixModal.classList.add('opacity-0');
+                setTimeout(() => matrixModal.classList.add('hidden'), 300);
+            }
+        }
+
+        // Initialize on DOM load
+        document.addEventListener('DOMContentLoaded', () => {
+            syncUI();
+        });
+    </script>
+</body>
+</html>

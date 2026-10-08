@@ -1,0 +1,453 @@
+import { execSync, execFileSync, spawn, type ChildProcess } from "node:child_process";
+import { mkdirSync, readFileSync, readlinkSync, rmSync, existsSync } from "node:fs";
+import { join } from "node:path";
+import { homedir } from "node:os";
+import type { Readable } from "node:stream";
+import WebSocket from "ws";
+import type { AuthTokens } from "./types.js";
+import { BASE_URL, REQUIRED_COOKIES } from "./constants.js";
+import { validateCookies, saveTokens } from "./auth.js";
+
+// Bind exclusively to loopback. Without --remote-debugging-address Chrome
+// may listen on 0.0.0.0 on some platforms (notably WSL2), exposing the
+// DevTools Protocol — and the live Google session — to anyone on the LAN.
+const CDP_HOST = "127.0.0.1";
+
+// Default DevTools-port discovery timeout. Chrome usually prints
+// "DevTools listening on ..." within ~1s on a warm profile, ~3s cold.
+const PORT_DISCOVERY_TIMEOUT_MS = 10_000;
+
+export function findChrome(): string | null {
+  const explicit = process.env.NOTEBOOKLM_BROWSER_PATH;
+  if (explicit) {
+    try { execFileSync(explicit, ["--version"], { stdio: "ignore" }); return explicit; }
+    catch { throw new Error("Configured NotebookLM browser executable is unavailable"); }
+  }
+  const candidates: string[] = [];
+
+  if (process.platform === "darwin") {
+    candidates.push(
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+      "/Applications/Chromium.app/Contents/MacOS/Chromium",
+      "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary",
+    );
+  } else if (process.platform === "linux") {
+    candidates.push(
+      "google-chrome",
+      "google-chrome-stable",
+      "chromium",
+      "chromium-browser",
+      "/usr/bin/google-chrome",
+      "/usr/bin/chromium",
+      "/usr/bin/chromium-browser",
+    );
+  } else if (process.platform === "win32") {
+    candidates.push(
+      "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+      "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+      `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe`,
+      `${process.env.LOCALAPPDATA}\\Chromium\\Application\\chrome.exe`,
+    );
+  }
+
+  for (const candidate of candidates) {
+    try {
+      const cmd =
+        process.platform === "win32"
+          ? `"${candidate}" --version`
+          : `"${candidate}" --version`;
+      execSync(cmd, { stdio: "ignore" });
+      return candidate;
+    } catch {
+      // not found, try next
+    }
+  }
+  return null;
+}
+
+async function getDebuggerUrl(port: number): Promise<string> {
+  const maxRetries = 20;
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const response = await fetch(`http://${CDP_HOST}:${port}/json/list`);
+      if (response.ok) {
+        const data = (await response.json()) as any[];
+        if (Array.isArray(data)) {
+          const notebookTab = data.find(
+            (target) =>
+              target?.type === "page" &&
+              typeof target?.url === "string" &&
+              target.url.startsWith(BASE_URL) &&
+              typeof target?.webSocketDebuggerUrl === "string",
+          );
+          if (notebookTab) return notebookTab.webSocketDebuggerUrl;
+
+          const firstPage = data.find(
+            (target) =>
+              target?.type === "page" &&
+              typeof target?.webSocketDebuggerUrl === "string",
+          );
+          if (firstPage) return firstPage.webSocketDebuggerUrl;
+        }
+      }
+    } catch {
+      // wait and retry
+    }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  throw new Error("Could not connect to Chrome remote debugging port.");
+}
+
+// Read Chrome's stderr until we see the "DevTools listening on ws://..."
+// line, then return the port. Lets us launch with --remote-debugging-port=0
+// (OS-assigned) instead of a hardcoded port, removing the fixed-port
+// race / squat risk where another process on the host could pre-bind 9229
+// and impersonate Chrome.
+export async function discoverDevtoolsPort(
+  stderr: Readable,
+  timeoutMs: number = PORT_DISCOVERY_TIMEOUT_MS,
+): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const re = /DevTools listening on ws:\/\/127\.0\.0\.1:(\d+)\//;
+    let buf = "";
+    const timer = setTimeout(() => {
+      stderr.off("data", onData);
+      reject(
+        new Error(
+          `Timed out after ${timeoutMs}ms waiting for Chrome to print its DevTools URL.`,
+        ),
+      );
+    }, timeoutMs);
+    const onData = (chunk: Buffer | string) => {
+      buf += chunk.toString();
+      const m = re.exec(buf);
+      if (m) {
+        clearTimeout(timer);
+        stderr.off("data", onData);
+        resolve(Number(m[1]));
+      }
+    };
+    stderr.on("data", onData);
+  });
+}
+
+// True if `pid` still names a Chrome/Chromium process. Guards against killing
+// an unrelated process that reused a PID recorded in a stale SingletonLock.
+// Linux-only proc inspection; best-effort (assume yes) on other platforms.
+function isChromeProcess(pid: number): boolean {
+  if (process.platform !== "linux") return true;
+  try {
+    const cmd = readFileSync(`/proc/${pid}/cmdline`, "utf-8");
+    return cmd.includes("chrome") || cmd.includes("chromium") || cmd.includes("brave");
+  } catch {
+    return false;
+  }
+}
+
+// A Chrome instance already holding `userDataDir` makes every subsequent
+// launch delegate the URL to it and exit WITHOUT printing its own DevTools
+// "listening on ..." line — so discoverDevtoolsPort times out and the whole
+// auth flow fails. This happened routinely: the previous run's Chrome leaked
+// (spawned detached, survived node exiting) and kept the profile lock.
+//
+// Kill the process named in SingletonLock, then remove the singleton lock
+// files and the stale DevToolsActivePort so the next launch starts its own
+// fresh instance (which prints its DevTools URL normally). The dedicated
+// profile is only ever used by this tool, so the login persists across the
+// kill/relaunch — the user does not re-login.
+export function releaseProfile(userDataDir: string): void {
+  const singletonLock = join(userDataDir, "SingletonLock");
+  try {
+    if (existsSync(singletonLock)) {
+      // SingletonLock is a symlink whose target looks like "<host>-<pid>".
+      const pid = Number(readlinkSync(singletonLock).split("-").pop());
+      if (Number.isInteger(pid) && pid > 0 && isChromeProcess(pid)) {
+        try {
+          process.kill(pid, "SIGKILL");
+        } catch {
+          // already gone
+        }
+      }
+    }
+  } catch {
+    // ignore — best-effort
+  }
+  for (const f of [
+    "SingletonLock",
+    "SingletonSocket",
+    "SingletonCookie",
+    "DevToolsActivePort",
+  ]) {
+    try {
+      rmSync(join(userDataDir, f), { force: true });
+    } catch {
+      // ignore
+    }
+  }
+}
+
+export interface LaunchedChrome {
+  proc: ChildProcess;
+  port: number;
+}
+
+export async function launchChrome(headless: boolean): Promise<LaunchedChrome> {
+  if (process.env.NOTEBOOKLM_NO_BROWSER === "1") throw new Error("authentication_required: browser launch disabled");
+  const chromePath = findChrome();
+  if (!chromePath) {
+    throw new Error(
+      "Could not find Google Chrome or Chromium. Please use manual auth.",
+    );
+  }
+
+  const userDataDir = process.env.NOTEBOOKLM_BROWSER_PROFILE_DIR || join(homedir(), ".notebooklm-mcp", "chrome-profile");
+  mkdirSync(userDataDir, { recursive: true, mode: 0o700 });
+
+  // Clear any leftover Chrome + lock files holding this profile, otherwise the
+  // new instance delegates to the old one and never reports its DevTools port.
+  releaseProfile(userDataDir);
+
+  const args = [
+    // Port 0 → OS assigns an ephemeral port; address pinned to loopback.
+    "--remote-debugging-port=0",
+    `--remote-debugging-address=${CDP_HOST}`,
+    `--user-data-dir=${userDataDir}`,
+    "--profile-directory=Default",
+    "--no-first-run",
+    "--no-default-browser-check",
+    // Prevent Google from flagging this as an automated browser
+    "--disable-blink-features=AutomationControlled",
+    "--disable-features=IsolateOrigins,site-per-process,ProfilePickerOnStartup",
+    "--disable-infobars",
+    "--disable-dev-shm-usage",
+    `--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36`,
+    BASE_URL,
+  ];
+
+  if (headless) {
+    args.push("--headless=new");
+  }
+
+  // Not detached: tie Chrome's lifetime to this process. The auth flow always
+  // awaits extraction and then kills proc in a finally, so detaching only
+  // risked leaking a Chrome that survives node and poisons the next run by
+  // holding the profile lock (the very bug releaseProfile now cleans up).
+  const proc = spawn(chromePath, args, {
+    // Capture stderr so we can read the DevTools port line; stdout/stdin ignored.
+    stdio: ["ignore", "ignore", "pipe"],
+  });
+
+  if (!proc.stderr) {
+    proc.kill();
+    throw new Error(
+      "Chrome process did not expose stderr; cannot discover DevTools port.",
+    );
+  }
+
+  try {
+    const port = await discoverDevtoolsPort(proc.stderr);
+    return { proc, port };
+  } catch (err) {
+    proc.kill();
+    throw err;
+  }
+}
+
+async function extractCookiesViaCDP(
+  timeoutMs: number,
+  showProgress: boolean,
+  port: number,
+): Promise<AuthTokens> {
+  const wsUrl = await getDebuggerUrl(port);
+  const ws = new WebSocket(wsUrl);
+
+  return new Promise((resolve, reject) => {
+    let messageId = 0;
+    let timer: NodeJS.Timeout;
+    let globalTimeout: NodeJS.Timeout;
+    let lastCdpError: string | null = null;
+    let lastExtractedTokens: AuthTokens | null = null;
+
+    const cleanup = () => {
+      clearInterval(timer);
+      clearTimeout(globalTimeout);
+      ws.close();
+    };
+
+    const send = (method: string, params: any = {}) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ id: ++messageId, method, params }));
+      }
+    };
+
+    globalTimeout = setTimeout(() => {
+      cleanup();
+      reject(
+        new Error(
+          lastCdpError
+            ? `Authentication timed out after ${timeoutMs / 1000}s (CDP error: ${lastCdpError}).`
+            : `Authentication timed out after ${timeoutMs / 1000}s.`,
+        ),
+      );
+    }, timeoutMs);
+
+    ws.on("open", () => {
+      // Enable runtime to allow JS evaluation
+      send("Runtime.enable", {});
+      
+      // Wait a bit for initial page load
+      setTimeout(() => {
+        timer = setInterval(() => {
+          send("Network.getCookies", { urls: [`${BASE_URL}/`] });
+        }, 2000);
+      }, 5000);
+    });
+
+    ws.on("close", () => {
+      cleanup();
+      reject(
+        new Error(
+          "Browser connection closed before authentication was complete.",
+        ),
+      );
+    });
+
+    ws.on("error", (err) => {
+      cleanup();
+      reject(err);
+    });
+
+    ws.on("message", (data) => {
+      try {
+        const response = JSON.parse(data.toString());
+        if (response.error) {
+          lastCdpError = response.error.message || JSON.stringify(response.error);
+          return;
+        }
+        if (response.result && response.result.cookies) {
+          const cookies: Record<string, string> = {};
+          for (const c of response.result.cookies) {
+            cookies[c.name] = c.value;
+          }
+
+          if (validateCookies(cookies)) {
+            // Cookies look complete — but verify we're actually ON NotebookLM
+            // (not on accounts.google.com login/chooser page)
+            send("Runtime.evaluate", {
+              expression: `JSON.stringify({
+                href: window.location.href,
+                csrf: (window.WIZ_global_data && window.WIZ_global_data.SNlM0e) || null,
+                sid: (window.WIZ_global_data && window.WIZ_global_data.FdrFJe) || null,
+                bl: (window.WIZ_global_data && window.WIZ_global_data.cfb2h) || null
+              })`
+            });
+
+            const tokens: AuthTokens = {
+              cookies,
+              csrf_token: "",
+              session_id: "",
+              extracted_at: Date.now() / 1000,
+            };
+
+            lastExtractedTokens = tokens;
+            // showProgress is always `true` for runBrowserAuthFlow /
+            // refreshCookiesHeadless (the only callers). The else-if's
+            // false branch is unreachable from production code paths.
+            /* v8 ignore start */
+          } else if (showProgress) {
+            process.stderr.write(".");
+          }
+          /* v8 ignore stop */
+        }
+
+        if (response.result?.result?.value && lastExtractedTokens) {
+          try {
+            const data = JSON.parse(response.result.result.value);
+            // Only resolve if we're actually on NotebookLM — not the login page
+            if (!data.href || new URL(data.href).origin !== BASE_URL) {
+              // Still on Google login/chooser — reset and keep polling
+              lastExtractedTokens = null;
+              if (process.env.NOTEBOOKLM_DEBUG) {
+                process.stderr.write(`\n[debug] href=${data.href} csrf=${!!data.csrf} sid=${!!data.sid}\n`);
+              }
+              // showProgress always true from production callers (see above).
+              /* v8 ignore next */
+              if (showProgress) process.stderr.write("🔑");
+              return;
+            }
+            // The landing origin can be present before Google has finished
+            // rotating cookies and initializing the authenticated application.
+            // Saving at that point produces a cache that immediately fails RPCs.
+            if (typeof data.csrf !== "string" || !data.csrf ||
+                typeof data.sid !== "string" || !data.sid) {
+              lastExtractedTokens = null;
+              return;
+            }
+            lastExtractedTokens.csrf_token = data.csrf || "";
+            lastExtractedTokens.session_id = data.sid || "";
+            lastExtractedTokens.bl = data.bl || "";
+            saveTokens(lastExtractedTokens);
+            send("Browser.close");
+            cleanup();
+            resolve(lastExtractedTokens);
+          } catch (e) {
+            // ignore parse errors
+          }
+        }
+      } catch (e) {
+        // ignore parse errors
+      }
+    });
+  });
+}
+
+export async function refreshCookiesHeadless(): Promise<AuthTokens> {
+  console.error("🔄 Attempting background session refresh...");
+  // Use non-headless to avoid Google's detection of automated environments
+  const { proc, port } = await launchChrome(false);
+
+  try {
+    const tokens = await extractCookiesViaCDP(30000, true, port);
+    console.error("✅ Background refresh successful.");
+    return tokens;
+  } finally {
+    proc.kill();
+    proc.stderr?.destroy();
+    proc.unref();
+  }
+}
+
+export async function runBrowserAuthFlow(): Promise<AuthTokens> {
+  console.error("✨ Initializing Smart Authentication... (Setting up a secure session)");
+  console.error(
+    `   Dedicated browser profile: ${process.env.NOTEBOOKLM_BROWSER_PROFILE_DIR || join(homedir(), ".notebooklm-mcp", "chrome-profile")}`,
+  );
+
+  const { proc, port } = await launchChrome(false);
+
+  try {
+    console.error("\n🔓 Ready for login! If you're already signed into Google, we'll handle the rest automatically.\n");
+
+    const timeoutMs = Number(process.env.NOTEBOOKLM_AUTH_TIMEOUT_MS || "120000");
+    if (!Number.isFinite(timeoutMs) || timeoutMs < 1000 || timeoutMs > 600000) throw new Error("Invalid browser authentication timeout");
+    const tokens = await extractCookiesViaCDP(timeoutMs, true, port);
+    console.error("\n✅ Connection secured! Your NotebookLM session is now synchronized.");
+    return tokens;
+  } catch (error) {
+    // extractCookiesViaCDP always rejects with Error instances; the else
+    // branch exists only to forward truly exotic throw-values that bypass
+    // the wrap above. Unreachable in normal operation.
+    /* v8 ignore else */
+    if (error instanceof Error) {
+      throw new Error(
+        `Smart Auth failed: ${error.message}\nTry manual auth instead.`,
+      );
+    }
+    /* v8 ignore next */
+    throw error;
+  } finally {
+    proc.kill();
+    proc.stderr?.destroy();
+    proc.unref();
+  }
+}

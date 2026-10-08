@@ -34,6 +34,14 @@ class User extends Authenticatable
     }
 
     /**
+     * V3 Account Access relationship.
+     */
+    public function v3Access()
+    {
+        return $this->hasOne(\App\Models\V3\V3AccountAccess::class, 'user_id');
+    }
+
+    /**
      * Loved lectures.
      */
     public function lovedLectures()

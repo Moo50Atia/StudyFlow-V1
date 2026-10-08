@@ -1,0 +1,27 @@
+Lecture: W1 | Chapter 1 / Lesson 1
+
+Section 1:
+Section Identity: Vectors vs Scalars
+Core Understanding: Scalars have magnitude only while vectors have magnitude and direction.
+Visual-First Explanation: A point with an arrow growing outwards representing magnitude and angle.
+Visual Scene Script: Display a scalar as a growing bar and a vector as a rotating directional vector.
+Dynamic View Blueprint: Split screen comparing speed speedometer and velocity vector arrow.
+Visual Learning Outcome: Student recognizes the directional component of vector quantities.
+Concept Check: Is temperature a scalar or vector?
+Conceptual Summary: Direction distinguishes vectors from scalar quantities.
+• شرح للجزء بالعامية المصرية: الكميات القياسية ليها مقدار بس لكن المتجهة ليها مقدار واتجاه.
+القوانين (إن وُجدت): \vec{v} = \frac{\Delta \vec{x}}{\Delta t}
+إسقاط على مثال أو موقف من الحياة اليومية لتثبيت الفهم: لما تقول العربية ماشية بسرعة 60 كم في الساعة مقارنة بـ 60 كم في اتجاه القاهرة.
+
+Section 2:
+Section Identity: Vector Addition
+Core Understanding: Vectors add tip-to-tail to form a resultant vector.
+Visual-First Explanation: Two arrows chained together tip to tail with a resultant third arrow.
+Visual Scene Script: Move second vector to the tip of the first, animate resultant from origin to tip.
+Dynamic View Blueprint: Interactive canvas allowing dragging vector endpoints.
+Visual Learning Outcome: Student visualizes geometric addition of force vectors.
+Concept Check: What happens to resultant when angle is 180 degrees?
+Conceptual Summary: Resultant vector represents cumulative effect of all vectors.
+• شرح للجزء بالعامية المصرية: لما تجمع متجهين بتحط ديل التاني على راس الأولاني والخط اللي يوصل من البداية للنهاية هو المحصلة.
+القوانين (إن وُجدت): \vec{R} = \vec{A} + \vec{B}
+إسقاط على مثال أو موقف من الحياة اليومية لتثبيت الفهم: اتنين بيشدوا صندوق بحبلين في اتجاهين مختلفين والصندوق بيتحرك في الاتجاه المحصل.

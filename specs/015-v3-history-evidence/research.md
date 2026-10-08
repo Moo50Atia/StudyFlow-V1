@@ -1,0 +1,14 @@
+# Research and Design Decisions: 015
+
+| Decision | Repository/prerequisite evidence | Rejected alternative and reason |
+|---|---|---|
+| Project lineage from committed IDs/FKs | 006 case pins Document/settings; 008 binding/extraction, 009 map/Section, 010 prompt versions/JEV, 011 candidate, 012 checks/repair and 013 review/approval already hold immutable references. 013 current pointer distinguishes active from historical approval. | A new `LineageEdge` table would copy relationships, demand dual writes across all prerequisites and risk certifying a stale or fabricated edge. |
+| Compute metrics from existing attempt/effect rows | 007 events hold safe stage times; 008/009/010/012/013 ledger rows contain send/record/decision boundaries; 011 coding attempts already define nullable tokens, reported cost and duration. The repository has no V3 telemetry worker today. | Adding a Python callback that claims exact vendor billing or active human time would invent data not supplied by those contracts. |
+| Treat missing cost as unknown and show subtotal | NotebookLM MCP and several JEV/checker/human steps do not promise monetary charges. 005 settings has no price catalog or labor rate. | Treating null as zero, estimating from a model label or applying an unapproved tariff would make the pilot business metric misleading. |
+| Export separately materialized private JSON | 004 requires fresh owner/admin gates and no-store; 006's `v3_private` is not directly served. 014 grants admin operational metadata only. | A single serializer with conditional field hiding or a signed storage URL could leak content on alternate download paths. |
+| Retain all referenced pilot evidence | 006–013 contracts restrict deletion and retain referenced/uncertain artifacts; 014 `pilot-retain-v1` only records a deferred deletion assessment. No duration or hold release is approved. | Executing physical deletion from a stale 014 assessment would conflict with unresolved Temporal/provider evidence and erase the trace the pilot needs. |
+| Do not reuse legacy content routes | Actual `routes/web.php` has V2 `/subjects`, `/lectures`, `/sections` and `/api` endpoints; `TeacherAccessMiddleware` admits admin to V2 content. No `routes/v3.php` or `v3_engine` exists yet. | Mounting 015 on legacy middleware or tables would bypass the V3 original-owner/admin boundary. |
+
+## Open owner decisions
+
+The pilot can implement complete lineage, known metrics, unknown-cost reporting and private exports under `pilot-retain-v1`. A later monetary estimate needs an approved versioned rate card and its effective-time/currency rules. Physical deletion needs an approved duration, scope, legal/evidence holds and recovery policy. Neither can be supplied from current code or 014's assessment. The ongoing owner clarification about estimate source may refine this document; until then no estimate is generated.

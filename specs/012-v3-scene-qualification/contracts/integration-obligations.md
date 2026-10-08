@@ -1,0 +1,11 @@
+# 012 Foundations and Downstream Obligations
+
+012 proves, **only after implementation and mandatory container/JEV gates pass**, that a current 011 candidate has a private deterministic check and a direct typed JEV scene qualification. Its signed `review-eligible` resolver returns an opaque current candidate/version/qualification tuple. The service rechecks 010 current pass, 011 file digests and the latest repair-chain tip on every call. This is a prerequisite proof for review, not a teacher approval or a browser viewer.
+
+| Consumer | May use | Must still implement and prove |
+|---|---|---|
+| 013 teacher review | Signed eligibility resolver and immutable candidate/qualification/repair lineage | Active original-owner authorization at open and decision, isolated scene viewer, private notes, stale/version conflict handling, approval/change decision and durable ReviewGate signal. A candidate ref or old pass cannot authorize review alone. Teacher-requested visual repair may extend 012's guarded repair claim only after a committed owner decision; factual/source/mixed feedback reopens 010 prompt qualification and then 011→012. 012 creates no production review item, decision, note or signal. |
+| 014 admin operations | Safe Section/case states, fixed errors, check/JEV/repair uncertainty refs and timings | Audited hold/retry/cancel/reconciliation policy that cannot reveal prompt, files, screenshot, JEV answer, Section values or review notes to admin. Unknown 011 coding sends are not automatically resent by 012. |
+| 015 history/evidence | Immutable check run, JEV typed result, repair predecessor and artifact hashes | Owner-only detailed chain/export and redacted admin aggregates. Preserve referenced and uncertain private evidence while active; define later retention/deletion without erasing proof for an approved scene or unresolved effect. |
+
+Temporal may carry only opaque refs/status, and Laravel remains the authority for identity, ownership, current prompt, current candidate and review eligibility. JEV's textual pass does not certify screenshot pixels or replace the original teacher's final judgment. V2 scenes are reference-only; KOS/KIE, multitenancy and student delivery remain future work.

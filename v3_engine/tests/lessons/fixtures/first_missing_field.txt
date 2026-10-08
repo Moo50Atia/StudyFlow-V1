@@ -1,0 +1,13 @@
+Lecture: W1 | Chapter 1 / Lesson 1
+
+Section 1:
+Section Identity: Incomplete Section
+Core Understanding: Missing concept check field.
+Visual-First Explanation: Incomplete description.
+Visual Scene Script: Scene script without check.
+Dynamic View Blueprint: Blueprint text.
+Visual Learning Outcome: Outcome description.
+Conceptual Summary: Summary description.
+• شرح للجزء بالعامية المصرية: شرح بالعامية بدون سؤال تقييم.
+القوانين (إن وُجدت): F = ma
+إسقاط على مثال أو موقف من الحياة اليومية لتثبيت الفهم: مثال واقعي.
