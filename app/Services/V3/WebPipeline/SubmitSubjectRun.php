@@ -79,7 +79,7 @@ class SubmitSubjectRun
         }
 
         $qualificationMode = $payload['qualification_mode'] ?? 'real_jev';
-        if ($qualificationMode === 'owner_waived_demo') throw new HttpException(403, 'Only the platform owner may waive qualification.');
+        if ($qualificationMode === 'owner_waived_demo' && ! (bool) config('services.v3_teacher_demo_waiver_enabled', false)) throw new HttpException(403, 'Only the platform owner may waive qualification.');
         if (! in_array($qualificationMode, ['owner_waived_demo', 'real_jev'], true)) {
             throw new HttpException(422, 'Invalid qualification_mode.');
         }

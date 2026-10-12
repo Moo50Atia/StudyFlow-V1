@@ -46,6 +46,18 @@ class PostapprovalCorrectionController extends Controller
             return response()->json(['error' => $res['error']], $res['status'])
                 ->header('Cache-Control', 'private, no-store');
         }
+        \Illuminate\Support\Facades\DB::transaction(function () use ($approvalModel, $request) {
+            \Illuminate\Support\Facades\DB::table('v3_scene_publications')->where('approval_id', $approvalModel->id)->delete();
+            $source = $approvalModel->section;
+            if ($source) {
+                $link = \Illuminate\Support\Facades\DB::table('v3_section_pipeline_links')->where('teacher_section_id', $source->id)->first();
+                if ($link) \Illuminate\Support\Facades\DB::table('sections')->where('id', $link->section_id)->update(['dynamic_view_link' => null]);
+                \Illuminate\Support\Facades\DB::table('v3_lesson_publication_events')->insert([
+                    'work_node_id' => $source->work_node_id, 'actor_user_id' => $request->user()->id,
+                    'action' => 'scene_correction', 'details' => json_encode(['approval_id' => $approvalModel->id]), 'created_at' => now(),
+                ]);
+            }
+        });
 
         return response()->json(['data' => $res['data']], $res['status'])
             ->header('Cache-Control', 'private, no-store');

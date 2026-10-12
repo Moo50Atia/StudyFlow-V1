@@ -4,6 +4,7 @@ namespace App\Services\V3\Access;
 
 use App\Models\User;
 use App\Models\V3\V3AccountAccess;
+use App\Services\LearningAccess;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -55,6 +56,7 @@ class ChangeAccountAccess
             if (! $target) {
                 abort(404, 'The requested account is unavailable.');
             }
+            abort_if(strcasecmp($target->email, 'admin@test.com') === 0 && ! app(LearningAccess::class)->isOwner($freshActor), 403);
 
             // 4. Validate expected_role
             if ($target->role !== $expectedRole) {
@@ -205,6 +207,7 @@ class ChangeAccountAccess
             }
 
             $role = $identityData['role'] ?? 'student';
+            abort_if(strcasecmp($identityData['email'], 'admin@test.com') === 0 && ! app(LearningAccess::class)->isOwner($freshActor), 403);
             if (! in_array($role, ['admin', 'teacher', 'student'], true)) {
                 throw ValidationException::withMessages(['role' => 'Invalid role.']);
             }
@@ -265,6 +268,8 @@ class ChangeAccountAccess
         if (! $target) {
             abort(404, 'The requested user is unavailable.');
         }
+        abort_if((strcasecmp($target->email, 'admin@test.com') === 0 || strcasecmp($identityData['email'] ?? '', 'admin@test.com') === 0)
+            && ! app(LearningAccess::class)->isOwner($freshActor), 403);
 
         $access = V3AccountAccess::where('user_id', $target->id)->first();
 

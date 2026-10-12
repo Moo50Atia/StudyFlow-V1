@@ -120,7 +120,8 @@ test('S21: review eligibility returns 200 only for current passing chain tip, 40
         ]
     );
 
-    // Now eligible -> 200
+    // Now eligible -> 200; the stored screenshot is part of the passing chain.
+    Storage::disk('v3_private')->put('screen.png', 'test screenshot');
     $resPass = SceneQualificationFixtures::getSigned($this, $eligiblePath);
     $resPass->assertStatus(200);
     expect($resPass->json('data.candidate_ref'))->toBe($this->candidate->id);

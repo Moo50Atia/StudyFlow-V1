@@ -42,6 +42,13 @@ def test_direct_divide_parser_accepts_notebooklm_arrow_hierarchy():
     ]
 
 
+def test_direct_divide_parser_splits_one_line_chapter_and_lesson():
+    nodes = parse_direct_divide_map("Chapter 1: Motion => Lesson 1: Average Velocity [1]")
+    assert [(node.title, node.work_ordinal) for node in nodes] == [
+        ("Motion", None), ("Average Velocity [1]", 1),
+    ]
+
+
 def test_direct_divide_parser_accepts_notebooklm_unicode_tree_hierarchy():
     """NotebookLM may render a valid map with Unicode tree branches and vertical guides."""
     result = parse_direct_divide_map(

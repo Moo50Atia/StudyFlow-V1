@@ -31,9 +31,10 @@ class AccessFixtures
     {
         $email = $email ?? ('user_'.strtolower(Str::random(8)).'@example.com');
 
-        return User::create([
+        return User::forceCreate([
             'name' => $name,
             'email' => $email,
+            'email_verified_at' => now(),
             'password' => Hash::make($password),
             'role' => $role,
         ]);

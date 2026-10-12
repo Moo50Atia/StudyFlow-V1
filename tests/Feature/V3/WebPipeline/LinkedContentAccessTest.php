@@ -246,8 +246,152 @@ class LinkedContentAccessTest extends TestCase
     public function test_public_test_endpoint_does_not_leak_linked_lecture_content(): void
     {
         $response = $this->get('/mohammed-test');
-        $response->assertOk();
+        $response->assertRedirect(route('login'));
         $response->assertDontSee($this->linkedLecture->title);
         $response->assertDontSee($this->linkedSection->title);
+    }
+
+    public function test_publication_opens_legacy_routes_and_correction_revokes_them(): void
+    {
+        $source = $this->linkedSection->pipelineLink->teacherSection;
+        foreach (\App\Services\V3\WebPipeline\LessonProjection::REQUIRED as $field) {
+            $source->{$field} = $field;
+        }
+        $source->save();
+        DB::table('v3_lesson_publications')->insert([
+            'work_node_id' => $source->work_node_id,
+            'lecture_id' => $this->linkedLecture->id,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $this->actingAs($this->student)->get(route('sections.show', $this->linkedSection))->assertForbidden();
+        $this->actingAs($this->teacherAlpha)->post(route('lessons.publication.update', $source->work_node_id), ['published' => 1])->assertRedirect();
+        $this->actingAs($this->student)->get(route('sections.show', $this->linkedSection))->assertOk();
+
+        $this->actingAs($this->teacherAlpha)->put(route('sections.update', $this->linkedSection), [
+            'lecture_id' => $this->linkedLecture->id,
+            'title' => 'Corrected title',
+            'core_concept' => 'Corrected concept',
+        ])->assertRedirect();
+        $this->actingAs($this->student)->get(route('sections.show', $this->linkedSection))->assertForbidden();
+        $this->assertDatabaseHas('v3_lesson_publication_events', ['work_node_id' => $source->work_node_id, 'actor_user_id' => $this->teacherAlpha->id, 'action' => 'correction']);
+    }
+
+    public function test_teacher_creates_owned_subject_and_other_teacher_cannot_open_it(): void
+    {
+        $response = $this->actingAs($this->teacherAlpha)->post(route('subjects.store'), ['name' => 'New private course']);
+        $response->assertRedirect();
+        $subject = Subject::where('name', 'New private course')->firstOrFail();
+        $this->assertSame($this->teacherAlpha->id, $subject->owner_user_id);
+        $this->assertDatabaseHas('teacher_permissions', ['teacher_id' => $this->teacherAlpha->id, 'subject_id' => $subject->id, 'lecture_id' => null]);
+        $this->actingAs($this->teacherBeta)->get(route('subjects.show', $subject))->assertForbidden();
+        $this->actingAs($this->student)->get(route('subjects.show', $subject))->assertForbidden();
+    }
+
+    public function test_projection_fills_empty_legacy_fields_without_overwriting_edits_or_duplicating(): void
+    {
+        $source = $this->linkedSection->pipelineLink->teacherSection;
+        $source->update([
+            'section_identity' => 'Original title',
+            'conceptual_summary' => 'Notebook summary',
+            'core_understanding' => 'Notebook core',
+            'colloquial_egyptian_explanation' => 'شرح مصري',
+            'laws_if_any' => 'F = ma',
+            'real_life_example' => 'A car accelerating',
+        ]);
+        $service = app(\App\Services\V3\WebPipeline\LessonProjection::class);
+        $itemId = $this->linkedSection->pipelineLink->item_id;
+        $service->project($source, $this->linkedLecture->id, $this->teacherAlpha->id, $itemId);
+        $service->project($source, $this->linkedLecture->id, $this->teacherAlpha->id, $itemId);
+        $this->linkedSection->refresh();
+        $this->assertSame('Curvilinear Kinematics Section', $this->linkedSection->title);
+        $this->assertSame('Tangential and normal acceleration', $this->linkedSection->core_concept);
+        $this->assertSame('Notebook summary', $this->linkedSection->quick_summary);
+        $this->assertSame('شرح مصري', $this->linkedSection->egyptian_explain);
+        $this->assertSame('F = ma', $this->linkedSection->formulas);
+        $this->assertSame('A car accelerating', $this->linkedSection->real_life);
+        $this->assertSame(1, SectionPipelineLink::where('teacher_section_id', $source->id)->count());
+    }
+
+    public function test_owner_only_features_and_private_mindmap_asset(): void
+    {
+        $owner = User::factory()->create(['email' => 'admin@test.com', 'role' => 'admin']);
+        $this->linkedLecture->update(['mindmap_path' => 'lectures/mindmaps/private.png']);
+        \Illuminate\Support\Facades\Storage::fake('local');
+        \Illuminate\Support\Facades\Storage::disk('local')->put('lectures/mindmaps/private.png', 'image bytes');
+        $asset = route('owner-assets.show', ['kind' => 'lecture', 'id' => $this->linkedLecture->id, 'field' => 'mindmap_path']);
+        $this->actingAs($this->student)->get($asset)->assertForbidden();
+        $this->actingAs($this->teacherAlpha)->get($asset)->assertForbidden();
+        $this->actingAs($owner)->get($asset)->assertOk();
+        $this->actingAs($this->teacherAlpha)->get(route('questions.index'))->assertForbidden();
+        $this->actingAs($this->student)->get(route('exam_questions.index'))->assertForbidden();
+        $this->actingAs($this->teacherAlpha)->post(route('questions.store'), ['lecture_id' => $this->linkedLecture->id, 'question_text' => 'Forged'])->assertForbidden();
+        $this->actingAs($this->student)->post(route('exam_questions.store'), ['lecture_id' => $this->linkedLecture->id])->assertForbidden();
+        $this->actingAs($this->teacherAlpha)->post(route('love.toggle'), ['type' => 'question', 'id' => 1])->assertForbidden();
+        $this->actingAs($this->admin)->get($asset)->assertForbidden();
+    }
+
+    public function test_role_dashboards_render_without_restricted_features(): void
+    {
+        $this->actingAs($this->teacherAlpha)->get(route('dashboard'))
+            ->assertOk()->assertSee('Create Subject')->assertSee('Upload PDFs')->assertDontSee('Manage Questions');
+        $this->actingAs($this->student)->get(route('dashboard'))
+            ->assertOk()->assertSee('Learning workspace')->assertDontSee('Exam questions');
+        $this->actingAs($this->admin)->get(route('dashboard'))
+            ->assertOk()->assertSee('Operations')->assertDontSee('Educational content');
+        $owner = User::factory()->create(['email' => 'admin@test.com', 'role' => 'admin']);
+        $this->actingAs($owner)->get(route('dashboard'))
+            ->assertOk()->assertSee('Educational content')->assertSee('Notebook health check');
+    }
+
+    public function test_limited_admin_cannot_claim_or_change_owner_account(): void
+    {
+        $this->actingAs($this->admin)->patch(route('profile.update'), [
+            'name' => $this->admin->name, 'email' => 'admin@test.com',
+        ])->assertForbidden();
+        $owner = User::factory()->create(['email' => 'admin@test.com', 'role' => 'admin']);
+        $this->actingAs($this->admin)->delete(route('users.destroy', $owner))->assertForbidden();
+        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        app(\App\Services\V3\Access\ChangeAccountAccess::class)->updateAccess(
+            $this->admin, $owner->id, 'student', false, 0, 'admin', 'change_role'
+        );
+    }
+
+    public function test_teacher_cannot_delete_lecture_containing_owner_question(): void
+    {
+        \App\Models\Question::create(['lecture_id' => $this->unlinkedLecture->id, 'question_text' => 'Owner question']);
+        $this->actingAs($this->teacherAlpha)->delete(route('lectures.destroy', $this->unlinkedLecture))->assertForbidden();
+        $this->assertDatabaseHas('questions', ['lecture_id' => $this->unlinkedLecture->id]);
+        $this->actingAs($this->teacherAlpha)->delete(route('subjects.destroy', $this->subject))->assertForbidden();
+        $this->assertDatabaseHas('subjects', ['id' => $this->subject->id]);
+    }
+
+    public function test_teacher_cannot_upload_or_replace_mindmap(): void
+    {
+        $upload = \Illuminate\Http\UploadedFile::fake()->image('map.png');
+        $this->actingAs($this->teacherAlpha)->post(route('lectures.store'), [
+            'subject_id' => $this->subject->id, 'title' => 'Mind map attempt', 'mindmap_path' => $upload,
+        ])->assertForbidden();
+        $this->actingAs($this->teacherAlpha)->put(route('lectures.update', $this->unlinkedLecture), [
+            'subject_id' => $this->subject->id, 'title' => $this->unlinkedLecture->title,
+            'mindmap_path' => \Illuminate\Http\UploadedFile::fake()->image('replacement.png'),
+        ])->assertForbidden();
+    }
+
+    public function test_final_reset_callback_marks_run_completed(): void
+    {
+        $item = SubjectRunItem::findOrFail($this->linkedLecture->pipelineLink->item_id);
+        $item->update(['state' => 'archived', 'archive_ref' => 'private-archive-ref']);
+        $path = "/api/v3/internal/web-pipeline/items/{$item->id}/reset-verified";
+        $body = [
+            'run_id' => $item->run_id,
+            'archive_ref' => 'private-archive-ref',
+            'reset_history_sha256' => hash('sha256', ''),
+        ];
+        $headers = \Tests\Support\V3\WorkflowFixtures::signCallbackRequest('POST', $path, $body);
+        $this->json('POST', $path, $body, array_intersect_key($headers, array_flip([
+            'X-V3-Timestamp', 'X-V3-Signature', 'X-V3-Contract-Version',
+        ])))->assertOk();
+        $this->assertSame('completed', SubjectRun::findOrFail($item->run_id)->state);
     }
 }

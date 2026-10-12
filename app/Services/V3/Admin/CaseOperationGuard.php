@@ -19,15 +19,6 @@ class CaseOperationGuard
             return false;
         }
 
-        if ($case->owner_user_id) {
-            $ownerAccess = \Illuminate\Support\Facades\DB::table('v3_account_access')
-                ->where('user_id', $case->owner_user_id)
-                ->first();
-            if ($ownerAccess && ! (bool) $ownerAccess->is_active) {
-                return false;
-            }
-        }
-
         $control = CaseOperationControl::where('case_id', $caseId)->first();
         if ($control && $control->mode !== 'normal') {
             return false;

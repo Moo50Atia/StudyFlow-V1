@@ -53,6 +53,10 @@ class SubjectController extends Controller
 
     public function destroy(Subject $subject): \Illuminate\Http\RedirectResponse
     {
+        $access = app(\App\Services\LearningAccess::class);
+        abort_unless($access->isOwner(auth()->user()) || (int) $subject->owner_user_id === (int) auth()->id(), 403);
+        abort_if($subject->lectures()->where(fn ($q) => $q->whereNotNull('mindmap_path')
+            ->orWhereHas('questions')->orWhereHas('examQuestions')->orWhereHas('pipelineLink'))->exists(), 403);
         $subject->delete();
         return redirect()->route('subjects.index')->with('success', 'Subject deleted successfully!');
     }

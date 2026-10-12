@@ -34,5 +34,6 @@
                 </div>
             @empty <p>Lessons will appear after PDF processing.</p> @endforelse
         </section>
+        <section class="rounded-xl bg-white dark:bg-gray-800 p-6 shadow"><h2 class="text-lg font-semibold mb-4">Approved scenes</h2>@forelse($scenes as $scene)<div class="border-t border-gray-200 dark:border-gray-700 py-3 flex flex-wrap items-center justify-between gap-3"><span>{{ $scene->section_identity }} · {{ $scene->published_at ? 'Scene released' : 'Scene private' }}</span><form method="post" action="{{ route('student-scenes.publication', $scene->id) }}">@csrf<input type="hidden" name="published" value="{{ $scene->published_at ? '0' : '1' }}"><button class="rounded bg-indigo-600 px-3 py-2 text-sm text-white">{{ $scene->published_at ? 'Hide scene' : 'Release scene' }}</button></form></div>@empty<p>No approved scenes yet.</p>@endforelse</section>
     </main>
 </x-app-layout>

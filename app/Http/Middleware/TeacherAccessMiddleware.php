@@ -17,6 +17,10 @@ class TeacherAccessMiddleware
         $access = app(LearningAccess::class);
         $linked = app(LinkedContentAccess::class);
         $resource = $request->route()->getName();
+        if ($user->role === 'admin' && ! $access->isOwner($user)
+            && (str_starts_with((string) $resource, 'subjects.') || str_starts_with((string) $resource, 'lectures.') || str_starts_with((string) $resource, 'sections.'))) {
+            abort(403);
+        }
         if (str_starts_with((string) $resource, 'questions.') || str_starts_with((string) $resource, 'exam_questions.')) {
             abort_unless($access->isOwner($user), 403);
         }
@@ -35,7 +39,6 @@ class TeacherAccessMiddleware
         if ($user->role === 'student') {
             abort_unless($request->isMethod('GET') && (str_ends_with((string) $resource, '.index') || str_ends_with((string) $resource, '.show')), 403);
         }
-        if ($user->role === 'admin' && ! $access->isOwner($user) && ($subject || $lecture || $section)) abort(403);
         return $next($request);
     }
 }

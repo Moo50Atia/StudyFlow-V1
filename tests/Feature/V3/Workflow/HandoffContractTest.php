@@ -45,6 +45,8 @@ test('W17: production workflow engine contains no synthetic extraction, prompt, 
         'ingest_case_source.py',
         'map_case.py',
         'prepare_lesson.py',
+        'process_notebook_lesson.py',
+        'reconcile_notebook_query.py',
     ]);
 
     // Workflow code must truthfully park at handoff

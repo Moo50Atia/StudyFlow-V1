@@ -27,7 +27,9 @@ class LessonProjection
 
     public function missing(TeacherSection $source): array
     {
-        return array_values(array_filter(self::REQUIRED, fn ($field) => trim((string) $source->{$field}) === ''));
+        return array_values(array_filter(self::REQUIRED, fn ($field) => $field === 'laws_if_any'
+            ? $source->{$field} === null
+            : trim((string) $source->{$field}) === ''));
     }
 
     public function project(TeacherSection $source, int $lectureId, int $itemOwnerId, string $itemId, bool $dryRun = false): ?Section

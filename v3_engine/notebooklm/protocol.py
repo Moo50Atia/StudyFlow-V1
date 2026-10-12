@@ -314,7 +314,11 @@ def parse_direct_divide_map(raw_text: str) -> List[ParsedLessonNode]:
     if not raw_text or not raw_text.strip():
         raise ProviderError("protocol_validation", "Divide response is empty")
 
-    lines = raw_text.strip().splitlines()
+    raw_text = re.sub(
+        r"(?<=\S)\s*=>\s*(?=(?:Mini\s+Chapter|Lesson)\s+[0-9IVXLCDM]+\s*[:\-])",
+        "\n", raw_text.strip(), flags=re.IGNORECASE,
+    )
+    lines = raw_text.splitlines()
     nodes: List[ParsedLessonNode] = []
 
     current_chapter: Optional[ParsedLessonNode] = None

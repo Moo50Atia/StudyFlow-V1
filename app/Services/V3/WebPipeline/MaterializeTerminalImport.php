@@ -202,6 +202,24 @@ class MaterializeTerminalImport
                         $pOrd = (int) ($hf['pdf_ordinal'] ?? ($hf['pdf']['ordinal'] ?? 1));
                         $lOrd = (int) ($hf['lesson_ordinal'] ?? 1);
                         $handoffsByKey["{$pOrd}:{$lOrd}"] = $hf;
+                        // Real terminal archives may retain per-PDF handoffs
+                        // without a top-level scene-prompts export.
+                        if (empty($lessonsByPdf[$pOrd])) {
+                            $lessonsByPdf[$pOrd] = [];
+                        }
+                        if (! collect($lessonsByPdf[$pOrd])->contains(fn ($l) => (int) ($l['lesson_ordinal'] ?? 0) === $lOrd)) {
+                            $lessonsByPdf[$pOrd][] = [
+                                'pdf_ordinal' => $pOrd,
+                                'lesson_ordinal' => $lOrd,
+                                'lesson_title' => $hf['mapped_title'] ?? "Lesson {$lOrd}",
+                                'scenes' => array_map(fn ($scene) => [
+                                    'scene_ordinal' => $scene['scene_ordinal'] ?? 1,
+                                    'scene_title' => $scene['scene_title'] ?? ($hf['mapped_title'] ?? "Scene {$lOrd}"),
+                                    'scene_type' => $scene['scene_type'] ?? 'Interactive Visualization',
+                                    'prompt' => $scene['generated_prompt'] ?? ($scene['prompt'] ?? ''),
+                                ], $hf['scenes'] ?? []),
+                            ];
+                        }
                     }
 
                     $totalCommittedLessons = 0;

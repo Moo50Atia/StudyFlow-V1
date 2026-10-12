@@ -33,6 +33,7 @@ class LearningAccess
             return $query->where(fn ($q) => $q->where('owner_user_id', $user->id)
                 ->orWhereHas('teacherPermissions', fn ($p) => $p->where('teacher_id', $user->id)));
         }
+        if ($user?->role === 'admin') return $query->whereRaw('1 = 0');
         return $query->whereHas('lectures', fn ($q) => app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->scopeVisibleLectures($q, $user));
     }
 }

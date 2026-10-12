@@ -39,6 +39,7 @@ class SubjectRunIntakeTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config()->set('services.v3_teacher_demo_waiver_enabled', true);
 
         Storage::fake('v3_private');
 
@@ -623,8 +624,8 @@ class SubjectRunIntakeTest extends TestCase
 
         $resp->assertStatus(200);
         $resp->assertSee('Upload Curriculum PDFs');
-        $resp->assertSee('Export / Manual');
-        $resp->assertSee('JEV is waived for this demo');
+        $resp->assertSee('manual review');
+        $resp->assertDontSee('Owner-Waived Demo');
     }
 
     public function test_teacher_can_render_subject_run_show_view_with_export_buttons(): void

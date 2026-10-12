@@ -34,6 +34,8 @@ class LoveController extends Controller
             'exam_question' => ExamQuestion::findOrFail($request->id),
             'section' => Section::findOrFail($request->id),
         };
+        if ($model instanceof Lecture) abort_unless(app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessLecture($user, $model), 403);
+        if ($model instanceof Section) abort_unless(app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessSection($user, $model), 403);
 
         // Toggle love status
         $isLoved = $user->toggleLove($model);

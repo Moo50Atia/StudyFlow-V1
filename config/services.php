@@ -2,6 +2,7 @@
 
 return [
     'v3_teacher_paid_scenes_enabled' => (bool) env('V3_TEACHER_PAID_SCENES_ENABLED', false),
+    'v3_teacher_demo_waiver_enabled' => (bool) env('V3_TEACHER_DEMO_WAIVER_ENABLED', false),
 
     /*
     |--------------------------------------------------------------------------

@@ -41,6 +41,7 @@ class TeacherSceneUiTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config()->set('services.v3_teacher_paid_scenes_enabled', true);
         Storage::fake('v3_private');
 
         $this->admin = WebPipelineFixtures::createAdmin();

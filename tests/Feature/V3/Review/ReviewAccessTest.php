@@ -125,7 +125,6 @@ test('R04: Owner review show returns exact prompt and all eleven fields in order
         'visual_scene_script',
         'dynamic_view_blueprint',
         'visual_learning_outcome',
-        'concept_check',
         'conceptual_summary',
         'colloquial_egyptian_explanation',
         'laws_if_any',

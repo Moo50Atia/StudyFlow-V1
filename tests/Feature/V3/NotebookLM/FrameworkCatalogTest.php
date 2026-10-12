@@ -87,7 +87,7 @@ test('N02: command imports approved framework with exact slices and updates poin
         ->and($version->first_sha256)->toBe('10cebd8977aa86fbfed4760cb9b4669ffcbb2a5314d7e67b4ce39b773ccd4037')
         ->and($version->second_sha256)->toBe('8116bf1f518cd1968f4ff93b7b4c3ad66d7ee90ae42f90a45b5a29fa6c084e1e')
         ->and($version->third_sha256)->toBe('fbad0853cabbfcbc787da9198c8ed9c9de8e69e0e591b678a02865eee861b85c')
-        ->and($version->response_format_sha256)->toBe('b7c49fb0ef3b62264c5b81d5673ace865e9d497ee1100f2e22675abbc614e105');
+        ->and($version->response_format_sha256)->toBe(FrameworkCatalog::RESPONSE_FORMAT_SHA256);
 
     // Stored privately
     expect(Storage::disk('v3_private')->exists($version->body_path))->toBeTrue();

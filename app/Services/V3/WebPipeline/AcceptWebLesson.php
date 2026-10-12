@@ -268,7 +268,7 @@ class AcceptWebLesson
 
             // 5. Project First fields
             $proj = $this->projector->projectFirstFields($firstRaw);
-            $title = $firstRaw['title'] ?? ($firstRaw['lesson_title'] ?? ($firstRaw['section_identity'] ?? "Section {$lessonOrdinal}"));
+            $title = $firstRaw['section_identity'] ?? ($firstRaw['title'] ?? ($firstRaw['lesson_title'] ?? "Section {$lessonOrdinal}"));
 
             $secId = (string) Str::uuid();
             DB::table('v3_teacher_sections')->insert([
@@ -279,18 +279,18 @@ class AcceptWebLesson
                 'query_id' => $query->id,
                 'ordinal_in_work' => $sectionOrdinal,
                 'section_identity' => $title,
-                'core_understanding' => $firstRaw['summary'] ?? ($proj['fields']['core_concept'] ?? null),
-                'visual_first_explanation' => $proj['fields']['visual_representation'] ?? null,
-                'visual_scene_script' => $proj['fields']['interactive_controls'] ?? null,
-                'dynamic_view_blueprint' => $proj['fields']['variables_and_ranges'] ?? null,
-                'visual_learning_outcome' => is_array($firstRaw['learning_objectives'] ?? null)
+                'core_understanding' => $proj['fields']['core_understanding'] ?? ($firstRaw['summary'] ?? ($proj['fields']['core_concept'] ?? null)),
+                'visual_first_explanation' => $proj['fields']['visual_first_explanation'] ?? ($proj['fields']['visual_representation'] ?? null),
+                'visual_scene_script' => $proj['fields']['visual_scene_script'] ?? ($proj['fields']['interactive_controls'] ?? null),
+                'dynamic_view_blueprint' => $proj['fields']['dynamic_view_blueprint'] ?? ($proj['fields']['variables_and_ranges'] ?? null),
+                'visual_learning_outcome' => $proj['fields']['visual_learning_outcome'] ?? (is_array($firstRaw['learning_objectives'] ?? null)
                     ? json_encode($firstRaw['learning_objectives'])
-                    : ($firstRaw['learning_objectives'] ?? ($proj['fields']['learning_objectives'] ?? null)),
-                'concept_check' => $proj['fields']['misconceptions'] ?? null,
-                'conceptual_summary' => $firstRaw['summary'] ?? ($proj['fields']['lesson_title'] ?? null),
-                'colloquial_egyptian_explanation' => null,
-                'laws_if_any' => $firstRaw['laws_if_any'] ?? null,
-                'real_life_example' => $proj['fields']['real_world_application'] ?? null,
+                    : ($firstRaw['learning_objectives'] ?? ($proj['fields']['learning_objectives'] ?? null))),
+                'concept_check' => $proj['fields']['concept_check'] ?? ($proj['fields']['misconceptions'] ?? null),
+                'conceptual_summary' => $proj['fields']['conceptual_summary'] ?? ($firstRaw['summary'] ?? ($proj['fields']['lesson_title'] ?? null)),
+                'colloquial_egyptian_explanation' => $proj['fields']['colloquial_egyptian_explanation'] ?? null,
+                'laws_if_any' => $proj['fields']['laws_if_any'] ?? ($firstRaw['laws_if_any'] ?? null),
+                'real_life_example' => $proj['fields']['real_life_example'] ?? ($proj['fields']['real_world_application'] ?? null),
                 'first_prompt_sha256' => $firstSha,
                 'answer_sha256' => $incomingAnswerSha,
                 'origin' => 'pipeline',

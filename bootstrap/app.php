@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'teacher.access' => \App\Http\Middleware\TeacherAccessMiddleware::class,
+            'platform.owner' => \App\Http\Middleware\RequirePlatformOwner::class,
             'v3.access' => \App\Http\Middleware\V3\RequireV3Access::class,
             'v3.role' => \App\Http\Middleware\V3\RequireV3Access::class,
             'v3.private' => \App\Http\Middleware\V3\V3PrivateResponse::class,

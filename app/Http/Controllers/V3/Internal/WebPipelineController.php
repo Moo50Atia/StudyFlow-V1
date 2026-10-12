@@ -291,7 +291,9 @@ class WebPipelineController extends Controller
             }
             $subjectItem->update(['state' => 'completed', 'state_version' => $subjectItem->state_version + 1]);
             $run = SubjectRun::whereKey($subjectItem->run_id)->lockForUpdate()->firstOrFail();
+            $allCompleted = ! SubjectRunItem::where('run_id', $run->id)->where('state', '!=', 'completed')->exists();
             $run->update([
+                'state' => $allCompleted ? 'completed' : 'running',
                 'total_lessons' => (int) SubjectRunItem::where('run_id', $run->id)->sum('saved_lesson_count'),
                 'total_scenes' => (int) SubjectRunItem::where('run_id', $run->id)->sum('prompt_count'),
                 'last_updated_at' => now(),

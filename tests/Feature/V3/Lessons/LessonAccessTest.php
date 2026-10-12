@@ -238,13 +238,13 @@ test('L08: owner teacher can view teacher section via JSON and HTML with all ele
         'visual_scene_script',
         'dynamic_view_blueprint',
         'visual_learning_outcome',
-        'concept_check',
         'conceptual_summary',
         'colloquial_egyptian_explanation',
         'laws_if_any',
         'real_life_example',
     ]);
     expect($fields['section_identity'])->toBe('Vectors vs Scalars');
+    expect($fields)->not->toHaveKey('concept_check');
     expect($fields['colloquial_egyptian_explanation'])->toBe('الكميات القياسية ليها مقدار بس.');
 
     // HTML response

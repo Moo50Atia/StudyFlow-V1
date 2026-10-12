@@ -578,14 +578,23 @@ class AcceptCombinedLesson
 
     private function matchesMappedTitle(string $actualTitle, int $workOrdinal, string $mappedTitle): bool
     {
-        return $this->normalizeMappedTitle($actualTitle, $workOrdinal)
-            === $this->normalizeMappedTitle('W' . $workOrdinal . ' | ' . $mappedTitle, $workOrdinal);
+        $actual = $this->normalizeMappedTitle($actualTitle, $workOrdinal);
+        $mapped = $this->normalizeMappedTitle('W' . $workOrdinal . ' | ' . $mappedTitle, $workOrdinal);
+
+        if ($actual === $mapped) {
+            return true;
+        }
+
+        // Some combined responses name the chapter before the exact mapped lesson.
+        return preg_match('/^.+\s+[-–—]\s+' . preg_quote($mapped, '/') . '$/iu', $actual) === 1;
     }
 
     private function normalizeMappedTitle(string $title, int $workOrdinal): string
     {
         $title = trim($title);
         $title = preg_replace('/^W' . $workOrdinal . '\\s*\\|\\s*/i', '', $title) ?? $title;
+        // NotebookLM can retain a chapter heading before the lesson title.
+        $title = preg_replace('/^.*\\bLesson\\s+' . $workOrdinal . '\\s*:\\s*/iu', '', $title) ?? $title;
         $title = preg_replace('/^Lesson\\s+' . $workOrdinal . '\\s*:\\s*/i', '', $title) ?? $title;
         // NotebookLM may append source citation markers to structural titles.
         $title = preg_replace('/(?:\\s+\\[\\d+\\])+\\s*$/u', '', $title) ?? $title;

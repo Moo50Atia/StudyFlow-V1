@@ -60,6 +60,7 @@ class UserController extends Controller
     public function destroy(Request $request, User $user, RetainV3Account $retainedAccount): \Illuminate\Http\RedirectResponse
     {
         $actor = $request->user();
+        abort_if(strcasecmp($user->email, 'admin@test.com') === 0 && ! app(\App\Services\LearningAccess::class)->isOwner($actor), 403);
         $actorAccess = V3AccountAccess::where('user_id', $actor->id)->first();
         if (! $actorAccess || ! $actorAccess->is_active) {
             abort(403, 'V3 access is unavailable.');

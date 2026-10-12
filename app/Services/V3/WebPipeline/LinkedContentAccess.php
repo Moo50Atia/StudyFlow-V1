@@ -71,7 +71,7 @@ class LinkedContentAccess
         $ownerId = $this->getLectureOwnerId($lecture);
         if ($ownerId === null) {
             if ($user->role === 'student') return $lecture->subject?->owner_user_id === null;
-            if ($user->role === 'admin') return app(\App\Services\LearningAccess::class)->isOwner($user) || $lecture->subject?->owner_user_id === null;
+            if ($user->role === 'admin') return app(\App\Services\LearningAccess::class)->isOwner($user);
             return app(\App\Services\LearningAccess::class)->canTeach($user, (int) $lecture->subject_id);
         }
         if ($user->role === 'student') {
@@ -116,7 +116,7 @@ class LinkedContentAccess
                 ->orWhereHas('teacherPermissions', fn ($p) => $p->where('teacher_id', $user->id)))
                 ->where(fn ($q) => $q->whereDoesntHave('pipelineLink')->orWhereHas('pipelineLink', fn ($l) => $l->where('owner_user_id', $user->id))));
         }
-        return $query->whereHas('subject', fn ($s) => $s->whereNull('owner_user_id'))->whereDoesntHave('pipelineLink');
+        return $query->whereRaw('1 = 0');
     }
 
     /**

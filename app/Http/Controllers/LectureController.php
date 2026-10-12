@@ -80,6 +80,7 @@ class LectureController extends Controller
         $data = $request->validated();
         abort_unless(app(\App\Services\LearningAccess::class)->canManage($request->user(), (int) $data['subject_id']), 403);
         abort_if($request->hasFile('mindmap_path') && ! app(\App\Services\LearningAccess::class)->isOwner($request->user()), 403);
+        abort_if($lecture->pipelineLink && ((int) $data['subject_id'] !== (int) $lecture->subject_id || $request->hasFile('pdf_path')), 422);
 
         // Handle PDF upload
         if ($request->hasFile('pdf_path')) {
@@ -92,18 +93,28 @@ class LectureController extends Controller
         // Handle Mind Map upload
         if ($request->hasFile('mindmap_path')) {
             if ($lecture->mindmap_path) {
-                Storage::disk('public')->delete($lecture->mindmap_path);
+                Storage::disk('local')->delete($lecture->mindmap_path);
             }
             $data['mindmap_path'] = $request->file('mindmap_path')->store('lectures/mindmaps', 'local');
         }
 
-        $lecture->update($data);
+        $changedContent = $lecture->pipelineLink && (($data['title'] ?? $lecture->title) !== $lecture->title || ($data['summary'] ?? $lecture->summary) !== $lecture->summary);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($lecture, $data, $changedContent, $request) {
+            $lecture->update($data);
+            if ($changedContent) {
+                foreach ($lecture->sections()->whereHas('pipelineLink')->pluck('id') as $sectionId) {
+                    app(\App\Services\V3\WebPipeline\LessonPublication::class)->revokeForLegacySection($sectionId, $request->user()->id, ['lecture_fields' => ['title', 'summary']]);
+                }
+            }
+        });
         return redirect()->route('lectures.index')->with('success', 'Lecture updated successfully!');
     }
 
     public function destroy(Lecture $lecture): \Illuminate\Http\RedirectResponse
     {
         abort_if($lecture->mindmap_path && ! app(\App\Services\LearningAccess::class)->isOwner(auth()->user()), 403);
+        abort_if(! app(\App\Services\LearningAccess::class)->isOwner(auth()->user())
+            && ($lecture->questions()->exists() || $lecture->examQuestions()->exists()), 403);
         abort_if($lecture->pipelineLink, 403);
         if (! app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessLecture(auth()->user(), $lecture)) {
             abort(403);
@@ -115,7 +126,7 @@ class LectureController extends Controller
 
         // Delete Mind Map file if exists
         if ($lecture->mindmap_path) {
-            Storage::disk('public')->delete($lecture->mindmap_path);
+            Storage::disk('local')->delete($lecture->mindmap_path);
         }
 
         $lecture->delete();

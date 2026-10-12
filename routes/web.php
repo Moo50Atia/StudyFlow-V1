@@ -27,6 +27,8 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 Route::middleware('auth')->group(function () {
     Route::get('/owner-assets/{kind}/{id}/{field}/{index?}', [\App\Http\Controllers\OwnerAssetController::class, 'show'])->name('owner-assets.show');
     Route::post('/lessons/{node}/publication', [\App\Http\Controllers\V3\LessonPublicationController::class, 'update'])->name('lessons.publication.update');
+    Route::post('/scenes/{approval}/publication', [\App\Http\Controllers\V3\StudentSceneController::class, 'publication'])->name('student-scenes.publication');
+    Route::get('/scenes/{approval}/{file}', [\App\Http\Controllers\V3\StudentSceneController::class, 'file'])->name('student-scenes.file');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -40,10 +42,10 @@ require __DIR__.'/auth.php';
 // Admin-only routes
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::resource('/users', UserController::class);
-    Route::resource('/teacher_permissions', TeacherPermissionController::class);
+    Route::resource('/teacher_permissions', TeacherPermissionController::class)->middleware('platform.owner');
 
     // Study Flow routes (Admin only)
-    Route::prefix('study-flow')->group(function () {
+    Route::prefix('study-flow')->middleware('platform.owner')->group(function () {
         Route::get('/start', [StudyFlowController::class, 'start'])->name('study-flow.start');
         Route::post('/subjects/{subject}/lectures', [StudyFlowController::class, 'storeBulkLectures'])->name('study-flow.bulk-lectures');
         Route::post('/lectures/{lecture}/sections', [StudyFlowController::class, 'storeBulkSections'])->name('study-flow.bulk-sections');
@@ -90,7 +92,7 @@ Route::middleware('auth')->prefix('api')->group(function () {
     Route::get('/lectures/{lecture}/sections', [APIfilterController::class, 'getSections']);
 });
 
-Route::get('/mohammed-test', [MohammedTestController::class, 'index'])->name('mohammed-test');
+Route::get('/mohammed-test', [MohammedTestController::class, 'index'])->middleware('auth')->name('mohammed-test');
 
 // Load V3 routes
 require __DIR__.'/v3.php';

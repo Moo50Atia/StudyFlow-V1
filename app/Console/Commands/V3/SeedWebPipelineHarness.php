@@ -9,7 +9,7 @@ use App\Services\V3\NotebookLM\FrameworkCatalog;
 use App\Services\V3\Settings\PublishSettings;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use Tests\Support\V3\SettingsFixtures;
+use App\Support\V3\HarnessSettings;
 
 class SeedWebPipelineHarness extends Command
 {
@@ -67,6 +67,8 @@ class SeedWebPipelineHarness extends Command
                 'role' => 'student',
             ]
         );
+        DB::table('users')->whereIn('id', [$teacherA->id, $teacherB->id, $admin->id, $student->id])
+            ->update(['email_verified_at' => $now]);
 
         // 2. V3 Account Access
         foreach ([$teacherA, $teacherB, $admin] as $u) {
@@ -110,8 +112,8 @@ class SeedWebPipelineHarness extends Command
         );
 
         // 5. Approved Templates & Settings
-        SettingsFixtures::registerDefaultTemplates();
-        $payload = SettingsFixtures::validPayload();
+        HarnessSettings::registerDefaultTemplates();
+        $payload = HarnessSettings::validPayload();
         $publisher = app(PublishSettings::class);
         $publisher->publish($payload, 0, $admin->id);
         $settingsId = (int) DB::table('v3_settings_versions')->max('id');

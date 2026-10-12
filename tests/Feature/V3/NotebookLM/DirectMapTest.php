@@ -36,6 +36,24 @@ test('N10: Direct map parser accepts NotebookLM arrow-prefixed lesson children',
         ->and($nodes[1]['work_ordinal'])->toBe(1);
 });
 
+test('direct map parser splits a live one-line chapter and lesson', function () {
+    $nodes = \App\Services\V3\NotebookLM\DirectMapParser::parse('Chapter 1: Motion => Lesson 1: Average Velocity [1]');
+    expect($nodes)->toHaveCount(2)
+        ->and($nodes[0]['title'])->toBe('Motion')
+        ->and($nodes[1]['title'])->toBe('Average Velocity [1]')
+        ->and($nodes[1]['work_ordinal'])->toBe(1);
+});
+
+test('combined lesson title accepts a chapter-prefixed mapped lesson only', function () {
+    $reflection = new \ReflectionClass(\App\Services\V3\NotebookLM\AcceptCombinedLesson::class);
+    $service = $reflection->newInstanceWithoutConstructor();
+    $matches = $reflection->getMethod('matchesMappedTitle');
+    expect($matches->invoke($service, 'Chapter 1: Motion - Lesson 1: Average Velocity', 1, 'Average Velocity [1]'))->toBeTrue()
+        ->and($matches->invoke($service, 'Chapter 1: Motion - Lesson 1: Acceleration', 1, 'Average Velocity [1]'))->toBeFalse()
+        ->and($matches->invoke($service, 'Dynamics - Net Force and Acceleration', 1, 'Net Force and Acceleration'))->toBeTrue()
+        ->and($matches->invoke($service, 'Dynamics - Average Velocity', 1, 'Net Force and Acceleration'))->toBeFalse();
+});
+
 test('direct map parser accepts NotebookLM Unicode tree hierarchies and repeated guides', function () {
     $nodes = \App\Services\V3\NotebookLM\DirectMapParser::parse(
         "Chapter: Unit 3: Geometry\n" .

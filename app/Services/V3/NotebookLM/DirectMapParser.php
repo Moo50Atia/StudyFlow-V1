@@ -27,6 +27,9 @@ class DirectMapParser
             throw new InvalidArgumentException("Divide response is empty");
         }
 
+        // Some live replies join a parent and its lesson with an arrow on
+        // one line. Split only when the arrow introduces a structural label.
+        $rawText = preg_replace('/(?<=\S)\s*=>\s*(?=(?:Mini\s+Chapter|Lesson)\s+[0-9IVXLCDM]+\s*[:\-])/iu', "\n", $rawText) ?? $rawText;
         $lines = preg_split("/\r\n|\n|\r/", $rawText);
         $nodes = [];
 

@@ -1,33 +1,64 @@
 *.log
 .DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Environment & Secrets
 .env
 .env.backup
 .env.production
+auth.json
+
+# IDE & Editors
 .phpactor.json
-.phpunit.result.cache
 /.fleet
 /.idea
 /.nova
-/.phpunit.cache
 /.vscode
 /.zed
-/auth.json
-/node_modules
+
+# PHP & Laravel
+.phpunit.result.cache
+/.phpunit.cache
 /public/build
 /public/hot
 /public/storage
 /storage/*.key
 /storage/pail
+/storage/testing/
+storage/testing/
 /storage/app/private/v3/notebooklm-handoffs/
 /vendor
 Homestead.json
 Homestead.yaml
-Thumbs.db
 
-# Python
+# Node & Frontend
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Python & Testing
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 .venv/
 venv/
+env/
 dist/
+build/
 *.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# V3 Engine / Browser Binaries (large offline qualification distributions)
+v3_engine/qualification/chrome_dist/
+**/chrome_dist/
+*.sqlite-journal
+*.sqlite-wal
+

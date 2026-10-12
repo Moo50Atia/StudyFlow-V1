@@ -10,6 +10,7 @@ use App\Http\Controllers\V3\Internal\SourceInputController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('internal/v1')->middleware('v3.worker.signature')->group(function () {
+    Route::get('cases/{case_id}/operation-control', [\App\Http\Controllers\V3\Internal\OperationControlController::class, 'show'])->name('api.v3.internal.cases.operation-control.show');
     Route::post('case-events', [CaseEventController::class, 'store'])->name('api.v3.internal.case-events.store');
     Route::get('source-activations/{activation_id}/pdf', [SourceInputController::class, 'streamPdf'])->name('api.v3.internal.source-activations.pdf');
     Route::get('source-activations/{activation_id}/steps', [SourceInputController::class, 'streamSteps'])->name('api.v3.internal.source-activations.steps');
