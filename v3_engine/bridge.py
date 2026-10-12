@@ -23,8 +23,14 @@ from v3_engine.client import get_temporal_client
 from v3_engine.review.preview_gateway import PreviewGateway
 from v3_engine.settings import get_settings
 from v3_engine.workflows.case_workflow import CaseWorkflow
+from v3_engine.web_pipeline.artifact_refs import is_valid_uuid_ref
 
 app = FastAPI(title="V3 Engine Bridge")
+
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok", "service": "v3_bridge"}
 
 def status_to_str(st: Optional[WorkflowExecutionStatus]) -> str:
     if st == WorkflowExecutionStatus.RUNNING:
@@ -673,6 +679,57 @@ async def close_review_preview_session_endpoint(viewer_ref: str, request: Reques
     gateway.close_session(viewer_ref)
     return Response(status_code=status.HTTP_204_NO_CONTENT, headers={"Cache-Control": "private, no-store"})
 
+async def _review_temporal_client(workflow_id: str) -> Client:
+    if hasattr(app.state, "temporal_client") and app.state.temporal_client:
+        return app.state.temporal_client
+    if workflow_id.startswith("v3-web-review-"):
+        from v3_engine.terminal_pipeline.settings import get_terminal_settings
+        settings = get_terminal_settings()
+        return await Client.connect(settings.temporal_address, namespace=settings.temporal_namespace)
+    return await get_temporal_client()
+
+
+@app.post("/internal/v1/web-reviews/{review_ref}/start")
+async def start_web_review_endpoint(review_ref: str, request: Request) -> Any:
+    raw_body = await request.body()
+    auth_err = await verify_request_signature(request, raw_body)
+    if auth_err:
+        return auth_err
+    try:
+        expected = json.loads(raw_body)
+    except Exception:
+        expected = None
+    if (not isinstance(expected, dict) or expected.get("schema_version") != 1
+        or expected.get("review_ref") != review_ref
+        or any(not is_valid_uuid_ref(expected.get(key)) for key in
+               ("case_id", "section_ref", "review_ref", "candidate_ref"))
+        or not isinstance(expected.get("candidate_version"), int)
+        or isinstance(expected.get("candidate_version"), bool)
+        or expected["candidate_version"] < 1):
+        return JSONResponse(status_code=422, content={"error": {"code": "contract_invalid", "message": "Invalid review identity"}})
+
+    workflow_id = f"v3-web-review-{review_ref}"
+    try:
+        from v3_engine.web_pipeline.review_workflow import WebReviewWorkflow
+        client = await _review_temporal_client(workflow_id)
+        await client.start_workflow(
+            WebReviewWorkflow.run, expected, id=workflow_id,
+            task_queue="v3-terminal-control",
+            id_reuse_policy=WorkflowIDReusePolicy.REJECT_DUPLICATE,
+        )
+        return JSONResponse(status_code=202, content={"data": {"workflow_id": workflow_id, "review_ref": review_ref}})
+    except WorkflowAlreadyStartedError:
+        try:
+            recorded = await client.get_workflow_handle(workflow_id).query("review_identity_v1")
+            if recorded == expected:
+                return JSONResponse(status_code=200, content={"data": {"workflow_id": workflow_id, "review_ref": review_ref}})
+        except Exception:
+            pass
+        return JSONResponse(status_code=409, content={"error": {"code": "review_conflict", "message": "Review workflow identity differs"}})
+    except Exception:
+        return JSONResponse(status_code=503, content={"error": {"code": "workflow_unavailable", "message": "Review workflow could not be started"}})
+
+
 @app.post("/internal/v1/workflows/{workflow_id}/review-decisions")
 async def review_decision_endpoint(workflow_id: str, request: Request) -> Any:
     raw_body = await request.body()
@@ -706,10 +763,7 @@ async def review_decision_endpoint(workflow_id: str, request: Request) -> Any:
         )
 
     try:
-        if hasattr(app.state, "temporal_client") and app.state.temporal_client:
-            client = app.state.temporal_client
-        else:
-            client = await get_temporal_client()
+        client = await _review_temporal_client(workflow_id)
     except Exception as e:
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -766,10 +820,7 @@ async def query_review_decision_endpoint(workflow_id: str, decision_ref: str, re
         return auth_err
 
     try:
-        if hasattr(app.state, "temporal_client") and app.state.temporal_client:
-            client = app.state.temporal_client
-        else:
-            client = await get_temporal_client()
+        client = await _review_temporal_client(workflow_id)
     except Exception as e:
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -853,8 +904,8 @@ async def start_correction_endpoint(workflow_id: str, request: Request) -> Any:
         else:
             client = await get_temporal_client()
         from v3_engine.review.correction_workflow import CorrectionWorkflow
-        from v3_engine.settings import get_settings
-        settings = get_settings()
+        from v3_engine.terminal_pipeline.settings import get_terminal_settings
+        terminal_settings = get_terminal_settings()
         try:
             handle = await client.start_workflow(
                 CorrectionWorkflow.run,
@@ -867,7 +918,7 @@ async def start_correction_endpoint(workflow_id: str, request: Request) -> Any:
                     "feedback_kind": data.get("feedback_kind", "visual_interaction"),
                 },
                 id=workflow_id,
-                task_queue=settings.task_queue,
+                task_queue=terminal_settings.control_queue,
                 id_reuse_policy=WorkflowIDReusePolicy.REJECT_DUPLICATE,
                 memo={"case_id": data["case_id"], "correction_ref": data["correction_ref"], "schema_version": 1},
             )
@@ -935,6 +986,63 @@ async def health_endpoint(request: Request) -> Any:
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             content={"error": {"code": "workflow_unavailable", "message": "Bridge probe failed"}},
+            headers={"Cache-Control": "private, no-store"},
+        )
+
+
+@app.post("/internal/v1/notebooklm/health")
+async def notebooklm_health_endpoint(request: Request) -> Any:
+    """Read-only authenticated check of the configured NotebookLM session."""
+    raw_body = await request.body()
+    auth_err = await verify_request_signature(request, raw_body)
+    if auth_err:
+        return auth_err
+
+    try:
+        import asyncio
+        from datetime import datetime, timezone
+        from v3_engine.notebooklm.credentials import CredentialsValidationError
+        from v3_engine.notebooklm.ports import AuthenticationRequiredError, ProviderError
+        from v3_engine.notebooklm.sdk_provider import SdkSessionProvider
+
+        async with asyncio.timeout(15):
+            async with SdkSessionProvider().open() as session:
+                # Listing is read-only and verifies that the saved Google
+                # session can reach NotebookLM. No prompts or paid generation.
+                await session.files.list_notebooks()
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"data": {"healthy": True, "state": "ready", "checked_at": datetime.now(timezone.utc).isoformat()}},
+            headers={"Cache-Control": "private, no-store"},
+        )
+    except AuthenticationRequiredError:
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"data": {"healthy": False, "state": "authentication_required"}},
+            headers={"Cache-Control": "private, no-store"},
+        )
+    except CredentialsValidationError as exc:
+        if exc.code == "authentication_required":
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content={"data": {"healthy": False, "state": "authentication_required"}},
+                headers={"Cache-Control": "private, no-store"},
+            )
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"error": {"code": "notebooklm_unavailable", "message": "NotebookLM health could not be verified."}},
+            headers={"Cache-Control": "private, no-store"},
+        )
+    except (TimeoutError, ProviderError):
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"error": {"code": "notebooklm_unavailable", "message": "NotebookLM health could not be verified."}},
+            headers={"Cache-Control": "private, no-store"},
+        )
+    except Exception:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"error": {"code": "notebooklm_unavailable", "message": "NotebookLM health could not be verified."}},
             headers={"Cache-Control": "private, no-store"},
         )
 
@@ -1039,5 +1147,9 @@ async def query_admin_control_endpoint(workflow_id: str, command_ref: str, reque
             content={"data": {"command_ref": command_ref, "control_version": 0, "state": "closed"}},
             headers={"Cache-Control": "private, no-store"},
         )
+
+
+from v3_engine.web_pipeline.bridge import router as application_pipeline_router
+app.include_router(application_pipeline_router)
 
 

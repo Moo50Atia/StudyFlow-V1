@@ -11,6 +11,7 @@ class SettingsSchema
         'gemini_api' => 'GEMINI_API_KEY',
         'glm_api' => 'GLM_API_KEY',
         'deepseek_api' => 'DEEPSEEK_API_KEY',
+        'qwen_api' => 'QWEN_API_KEY',
     ];
 
     public static function validate(array $data): array

@@ -28,6 +28,10 @@ class QuestionController extends Controller
             $query->where('lecture_id', $request->lecture_id);
         }
 
+        $query->whereHas('lecture', function ($q) {
+            app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->scopeVisibleLectures($q, auth()->user());
+        });
+
         $questions = $query->latest()->paginate(12)->withQueryString();
 
         // Get data for filters
@@ -36,15 +40,17 @@ class QuestionController extends Controller
 
         // If subject is selected, get its lectures
         if ($request->filled('subject_id')) {
-            $lectures = Lecture::where('subject_id', $request->subject_id)->orderBy('title')->get();
+            $lecQuery = Lecture::where('subject_id', $request->subject_id)->orderBy('title');
+            $lectures = app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->scopeVisibleLectures($lecQuery, auth()->user())->get();
         }
-        dd($questions);
+
         return view('questions.index', compact('questions', 'subjects', 'lectures'));
     }
 
     public function create(): \Illuminate\Contracts\View\View
     {
-        $lectures = Lecture::with('subject')->orderBy('title')->get();
+        $lecQuery = Lecture::with('subject')->orderBy('title');
+        $lectures = app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->scopeVisibleLectures($lecQuery, auth()->user())->get();
         return view('questions.create', compact('lectures'));
     }
 
@@ -52,16 +58,21 @@ class QuestionController extends Controller
     {
         $data = $request->validated();
 
+        $lecture = Lecture::findOrFail($data['lecture_id']);
+        if (! app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessLecture(auth()->user(), $lecture)) {
+            abort(403);
+        }
+
         // Handle question image upload
         if ($request->hasFile('question_image')) {
-            $data['question_image'] = $request->file('question_image')->store('questions/images', 'public');
+            $data['question_image'] = $request->file('question_image')->store('questions/images', 'local');
         }
 
         // Handle multiple solution images
         if ($request->hasFile('solution_images')) {
             $solutionImages = [];
             foreach ($request->file('solution_images') as $image) {
-                $solutionImages[] = $image->store('questions/solutions', 'public');
+                $solutionImages[] = $image->store('questions/solutions', 'local');
             }
             $data['solution_images'] = $solutionImages;
         }
@@ -72,26 +83,46 @@ class QuestionController extends Controller
 
     public function show(Question $question): \Illuminate\Contracts\View\View
     {
+        if ($question->lecture && ! app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessLecture(auth()->user(), $question->lecture)) {
+            abort(403);
+        }
+
         $question->load('lecture.subject');
         return view('questions.show', compact('question'));
     }
 
     public function edit(Question $question): \Illuminate\Contracts\View\View
     {
-        $lectures = Lecture::with('subject')->orderBy('title')->get();
+        if ($question->lecture && ! app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessLecture(auth()->user(), $question->lecture)) {
+            abort(403);
+        }
+
+        $lecQuery = Lecture::with('subject')->orderBy('title');
+        $lectures = app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->scopeVisibleLectures($lecQuery, auth()->user())->get();
         return view('questions.edit', compact('question', 'lectures'));
     }
 
     public function update(QuestionRequest $request, Question $question): \Illuminate\Http\RedirectResponse
     {
+        if ($question->lecture && ! app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessLecture(auth()->user(), $question->lecture)) {
+            abort(403);
+        }
+
         $data = $request->validated();
+
+        if (isset($data['lecture_id']) && $data['lecture_id'] != $question->lecture_id) {
+            $newLecture = Lecture::findOrFail($data['lecture_id']);
+            if (! app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessLecture(auth()->user(), $newLecture)) {
+                abort(403);
+            }
+        }
 
         // Handle question image upload
         if ($request->hasFile('question_image')) {
             if ($question->question_image) {
-                Storage::disk('public')->delete($question->question_image);
+                Storage::disk('local')->delete($question->question_image);
             }
-            $data['question_image'] = $request->file('question_image')->store('questions/images', 'public');
+            $data['question_image'] = $request->file('question_image')->store('questions/images', 'local');
         }
 
         // Handle multiple solution images
@@ -99,12 +130,12 @@ class QuestionController extends Controller
             // Delete old images if replacing
             if ($question->solution_images) {
                 foreach ($question->solution_images as $oldImage) {
-                    Storage::disk('public')->delete($oldImage);
+                    Storage::disk('local')->delete($oldImage);
                 }
             }
             $solutionImages = [];
             foreach ($request->file('solution_images') as $image) {
-                $solutionImages[] = $image->store('questions/solutions', 'public');
+                $solutionImages[] = $image->store('questions/solutions', 'local');
             }
             $data['solution_images'] = $solutionImages;
         }
@@ -115,13 +146,17 @@ class QuestionController extends Controller
 
     public function destroy(Question $question): \Illuminate\Http\RedirectResponse
     {
+        if ($question->lecture && ! app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessLecture(auth()->user(), $question->lecture)) {
+            abort(403);
+        }
+
         // Delete images if exist
         if ($question->question_image) {
-            Storage::disk('public')->delete($question->question_image);
+            Storage::disk('local')->delete($question->question_image);
         }
         if ($question->solution_images) {
             foreach ($question->solution_images as $image) {
-                Storage::disk('public')->delete($image);
+                Storage::disk('local')->delete($image);
             }
         }
 

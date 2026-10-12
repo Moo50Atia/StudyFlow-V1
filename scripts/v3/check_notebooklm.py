@@ -8,14 +8,14 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from v3_engine.sources.mcp_client import NotebookLmMcpClient, McpToolError
-from v3_engine.notebooklm.credentials import get_storage_state_path, validate_storage_state, CredentialsValidationError
+from v3_engine.notebooklm.credentials import get_storage_state_path, get_terminal_run_storage_state, validate_storage_state, CredentialsValidationError
 from v3_engine.notebooklm.ports import ProviderError
 from v3_engine.notebooklm.sdk_provider import SdkSessionProvider
 
-async def check(origin: str, notebook_id: str | None, adapter: str = "notebooklm_mcp") -> int:
+async def check(origin: str, notebook_id: str | None, adapter: str = "notebooklm_mcp", run_dir: Path | None = None) -> int:
     if adapter == "notebooklm_py":
-        storage_path = get_storage_state_path()
         try:
+            storage_path = get_terminal_run_storage_state(run_dir) if run_dir else get_storage_state_path()
             validate_storage_state(storage_path)
         except CredentialsValidationError as exc:
             print(f"{origin}: {exc.code}. No browser login was attempted.")
@@ -39,6 +39,8 @@ async def check(origin: str, notebook_id: str | None, adapter: str = "notebooklm
             return 0
         except ProviderError as exc:
             print(f"{origin}: {exc.code}. No browser login was attempted.")
+            if exc.code == "authentication_required":
+                print("The SDK could not obtain or use the NotebookLM session/CSRF tokens. Cookie equality does not prove live access.")
             return 2
         except (OSError, RuntimeError, TimeoutError):
             print(f"{origin}: transport unavailable or timed out. Check network connectivity.")
@@ -73,10 +75,14 @@ async def check(origin: str, notebook_id: str | None, adapter: str = "notebooklm
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    from dotenv import dotenv_values
-    configured_origin = os.getenv('NOTEBOOKLM_ORIGIN') or dotenv_values(Path(__file__).resolve().parents[2] / '.env').get('NOTEBOOKLM_ORIGIN') or 'https://notebooklm.google.com'
+    from v3_engine.local_env import load_local_env
+    load_local_env(Path(__file__).resolve().parents[2] / '.env')
+    configured_origin = os.getenv('NOTEBOOKLM_ORIGIN') or os.getenv('NOTEBOOKLM_BASE_URL') or 'https://notebooklm.google.com'
     parser.add_argument('--origin', choices=['https://notebooklm.google.com', 'https://notebook.google.com'], default=configured_origin)
     parser.add_argument('--notebook-id', help='Existing notebook to verify; never creates one')
     parser.add_argument('--adapter', choices=['notebooklm_mcp', 'notebooklm_py'], default='notebooklm_mcp')
+    parser.add_argument('--run-dir', type=Path, help='Check this existing terminal run\'s isolated session rather than the main imported session')
     args = parser.parse_args()
-    raise SystemExit(asyncio.run(check(args.origin, args.notebook_id, args.adapter)))
+    if args.run_dir and args.adapter != 'notebooklm_py':
+        parser.error('--run-dir requires --adapter notebooklm_py')
+    raise SystemExit(asyncio.run(check(args.origin, args.notebook_id, args.adapter, args.run_dir)))

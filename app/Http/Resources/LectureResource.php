@@ -17,7 +17,9 @@ class LectureResource extends JsonResource
         return [
             "lecture" => $this->title,
             "lecture ID" => $this->id,
-            "The Sections data" => $this->sections->map(function ($section) {
+            "The Sections data" => $this->sections->filter(function ($section) use ($request) {
+                return app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessSection($request->user(), $section);
+            })->map(function ($section) {
                 return [
                     "title" => $section->title,
                     "core_concept" => $section->core_concept,
@@ -27,7 +29,7 @@ class LectureResource extends JsonResource
                     "real_life" => $section->real_life,
                 ];
             }),
-            "questions" => $this->questions->map(function ($question) {
+            "questions" => app(\App\Services\LearningAccess::class)->isOwner($request->user()) ? $this->questions->map(function ($question) {
                 return [
                     "question ID" => $question->id,
                     "question_text" => $question->question_text,
@@ -39,7 +41,7 @@ class LectureResource extends JsonResource
                     "solution_explanation" => $question->solution_explanation,
                     "end of solution explanation" => " ////////////////////////////////////////////////////////////////////////////////////////////////////",
                 ];
-            })
+            }) : []
         ];
     }
 }

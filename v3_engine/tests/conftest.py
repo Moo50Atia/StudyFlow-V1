@@ -8,6 +8,14 @@ require explicit opt-in via pytest markers (-m), CLI options, or environment var
 """
 
 import os
+import sys
+from pathlib import Path
+
+# Ensure .venv site-packages is in sys.path
+_venv_site = Path(__file__).resolve().parent.parent.parent / ".venv" / "lib" / "python3.12" / "site-packages"
+if _venv_site.exists() and str(_venv_site) not in sys.path:
+    sys.path.insert(0, str(_venv_site))
+
 import pytest
 
 
@@ -103,3 +111,24 @@ def setup_test_hmac_keys(monkeypatch):
         monkeypatch.setenv("V3_BRIDGE_HMAC_KEY", "test-suite-bridge-key")
     if "V3_CALLBACK_HMAC_KEY" not in os.environ:
         monkeypatch.setenv("V3_CALLBACK_HMAC_KEY", "test-suite-callback-key")
+
+
+@pytest.fixture
+async def temporal_local_env(tmp_path: Path):
+    """Start an isolated local Temporal dev server using the installed CLI and temp database."""
+    from temporalio.testing import WorkflowEnvironment
+
+    db_file = tmp_path / "server.sqlite"
+    temporal_bin = "/home/moahmmed/.local/bin/temporal"
+    if not os.path.isfile(temporal_bin):
+        pytest.skip(f"Temporal CLI binary not found at {temporal_bin}")
+
+    env = await WorkflowEnvironment.start_local(
+        dev_server_existing_path=temporal_bin,
+        namespace="v3-terminal",
+        dev_server_database_filename=str(db_file),
+    )
+    try:
+        yield env
+    finally:
+        await env.shutdown()

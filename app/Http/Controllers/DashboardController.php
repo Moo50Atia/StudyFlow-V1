@@ -2,120 +2,60 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Models\Subject;
 use App\Models\Lecture;
-use App\Models\Section;
-use App\Models\Question;
-use App\Models\ExamQuestion;
-use App\Models\TeacherPermission;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Subject;
+use App\Models\V3\SubjectRun;
+use App\Models\V3\TeacherSection;
+use App\Services\LearningAccess;
+use App\Services\V3\WebPipeline\LinkedContentAccess;
+use App\Services\V3\WebPipeline\LessonProjection;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    /**
-     * Show the appropriate dashboard based on user role.
-     */
     public function index()
     {
-
-        if (!Auth::check()) {
-            return redirect()->route('login');
+        $user = auth()->user();
+        $access = app(LearningAccess::class);
+        if ($user->role === 'teacher') {
+            $subjects = $access->scopeSubjects(Subject::query(), $user)->orderBy('name')->get();
+            $runs = SubjectRun::with('items')->where('owner_user_id', $user->id)->latest()->limit(20)->get();
+            $lessons = DB::table('v3_lesson_publications as p')
+                ->join('lectures as l', 'l.id', '=', 'p.lecture_id')
+                ->join('v3_lecture_pipeline_links as link', 'link.lecture_id', '=', 'l.id')
+                ->join('v3_lesson_nodes as n', 'n.id', '=', 'p.work_node_id')
+                ->where('link.owner_user_id', $user->id)
+                ->select('p.*', 'l.title as lecture_title', 'n.title as lesson_title')->orderByDesc('p.created_at')->limit(30)->get();
+            $this->decorateLessons($lessons);
+            return view('dashboards.teacher', compact('subjects', 'runs', 'lessons'));
         }
-        $user = Auth::user();
-
-        return match ($user->role) {
-            'admin' => $this->adminDashboard(),
-            'teacher' => $this->teacherDashboard(),
-            'student' => $this->studentDashboard(),
-            default => redirect()->route('login'),
-        };
+        if ($user->role === 'student') {
+            $subjects = $access->scopeSubjects(Subject::query(), $user)->withCount('lectures')->orderBy('name')->get();
+            $query = Lecture::with('subject')->latest();
+            $lectures = app(LinkedContentAccess::class)->scopeVisibleLectures($query, $user)->limit(20)->get();
+            return view('dashboards.student', compact('subjects', 'lectures'));
+        }
+        if ($user->role === 'admin') {
+            $isOwner = $access->isOwner($user);
+            $runs = $isOwner ? SubjectRun::with('items')->latest()->limit(20)->get() : collect();
+            $lessons = $isOwner ? DB::table('v3_lesson_publications as p')
+                ->join('lectures as l', 'l.id', '=', 'p.lecture_id')
+                ->join('v3_lesson_nodes as n', 'n.id', '=', 'p.work_node_id')
+                ->select('p.*', 'l.title as lecture_title', 'n.title as lesson_title')->orderByDesc('p.created_at')->limit(30)->get() : collect();
+            if ($isOwner) $this->decorateLessons($lessons);
+            return view('dashboards.admin', compact('isOwner', 'runs', 'lessons'));
+        }
+        abort(403);
     }
 
-    /**
-     * Admin Dashboard - Full access to everything.
-     */
-    private function adminDashboard()
+    private function decorateLessons($lessons): void
     {
-        $stats = [
-            'users' => User::count(),
-            'subjects' => Subject::count(),
-            'lectures' => Lecture::count(),
-            'sections' => Section::count(),
-            'questions' => Question::count(),
-            'exam_questions' => ExamQuestion::count(),
-        ];
-
-        $recentUsers = User::latest()->take(5)->get();
-        $recentSubjects = Subject::latest()->take(5)->get();
-        $recentLectures = Lecture::with('subject')->latest()->take(5)->get();
-
-        return view('dashboards.admin', compact('stats', 'recentUsers', 'recentSubjects', 'recentLectures'));
-    }
-
-    /**
-     * Teacher Dashboard - Access based on TeacherPermission.
-     */
-    private function teacherDashboard()
-    {
-        $user = Auth::user();
-
-        // Get teacher's permissions
-        $permissions = TeacherPermission::where('teacher_id', $user->id)
-            ->with(['subject', 'lecture'])
-            ->get();
-
-        $allowedSubjectIds = $permissions->pluck('subject_id')->unique();
-        $allowedLectureIds = $permissions->pluck('lecture_id')->unique();
-
-        // Get allowed content
-        $subjects = Subject::whereIn('id', $allowedSubjectIds)->get();
-        $lectures = Lecture::whereIn('id', $allowedLectureIds)->with('subject')->get();
-        $sections = Section::whereIn('lecture_id', $allowedLectureIds)->with('lecture')->get();
-        $questions = Question::whereIn('lecture_id', $allowedLectureIds)->with('lecture')->get();
-        $examQuestions = ExamQuestion::whereIn('lecture_id', $allowedLectureIds)->with('lecture')->get();
-
-        // Get loved items
-        $lovedLectures = $user->lovedLectures()->with('subject')->get();
-        $lovedQuestions = $user->lovedQuestions()->with('lecture')->get();
-        $lovedExamQuestions = $user->lovedExamQuestions()->with('lecture')->get();
-
-        return view('dashboards.teacher', compact(
-            'subjects',
-            'lectures',
-            'sections',
-            'questions',
-            'examQuestions',
-            'lovedLectures',
-            'lovedQuestions',
-            'lovedExamQuestions',
-            'permissions'
-        ));
-    }
-
-    /**
-     * Student Dashboard - View only with loved items.
-     */
-    private function studentDashboard()
-    {
-        $user = Auth::user();
-
-        // Get all content for viewing
-        $subjects = Subject::withCount('lectures')->get();
-        $recentLectures = Lecture::with('subject')->latest()->take(10)->get();
-
-        // Get loved items
-        $lovedLectures = $user->lovedLectures()->with('subject')->get();
-        $lovedQuestions = $user->lovedQuestions()->with('lecture')->get();
-        $lovedExamQuestions = $user->lovedExamQuestions()->with('lecture')->get();
-
-        return view('dashboards.student', compact(
-            'subjects',
-            'recentLectures',
-            'lovedLectures',
-            'lovedQuestions',
-            'lovedExamQuestions'
-        ));
+        foreach ($lessons as $lesson) {
+            $sections = TeacherSection::where('work_node_id', $lesson->work_node_id)->orderBy('ordinal_in_work')->get();
+            $lesson->missing_fields = $sections->isEmpty() ? ['no sections'] : $sections->flatMap(fn ($s) => app(LessonProjection::class)->missing($s))->unique()->values()->all();
+            $lesson->first_section_id = DB::table('v3_section_pipeline_links as l')
+                ->join('v3_teacher_sections as s', 's.id', '=', 'l.teacher_section_id')
+                ->where('s.work_node_id', $lesson->work_node_id)->orderBy('s.ordinal_in_work')->value('l.section_id');
+        }
     }
 }

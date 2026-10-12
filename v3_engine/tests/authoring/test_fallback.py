@@ -92,12 +92,12 @@ async def test_provider_tuple_contract_creates_candidate_and_preserves_response_
     client = MagicMock()
     client.get_context = AsyncMock(return_value={
         **base_context,
-        "coding_order": [{"id": "gemini_api", "model": "gemini-2.5-pro", "credential_ref": "gemini_api_key"}],
+        "coding_order": [{"id": "gemini_api", "model": "gemini-2.5-pro", "credential_ref": "gemini_api_key", "thinking_budget": 12000}],
         "coding_attempts": 1,
     })
     client.reserve_attempt = AsyncMock(return_value={
         "attempt_ref": "attempt-1",
-        "provider": {"id": "gemini_api", "model": "gemini-2.5-pro", "credential_ref": "gemini_api_key"},
+        "provider": {"id": "gemini_api", "model": "gemini-2.5-pro", "credential_ref": "gemini_api_key", "thinking_budget": 12000},
     })
     client.record_result = AsyncMock(return_value={"candidate_ref": "candidate-1"})
     package_text = '{"schema_version":1,"files":[{"path":"index.html","content":"<!doctype html><html><body>Scene</body></html>"}]}'
@@ -108,7 +108,10 @@ async def test_provider_tuple_contract_creates_candidate_and_preserves_response_
         outcome = await AuthoringRunner(client, {"gemini_api_key": "fixture-key"}).run("case-1", "request-1")
 
     assert outcome == AuthoringOutcome(status="candidate_ready", candidate_ref="candidate-1")
-    call_provider.assert_awaited_once_with("gemini-2.5-pro", "fixture-key", base_context["template_text"], base_context["prompt"])
+    call_provider.assert_awaited_once_with(
+        "gemini-2.5-pro", "fixture-key", base_context["template_text"], base_context["prompt"],
+        thinking_budget=12000,
+    )
     result = client.record_result.await_args.kwargs["payload"]
     assert result["outcome"] == "candidate"
     assert result["provider_response_id"] == "response-1"

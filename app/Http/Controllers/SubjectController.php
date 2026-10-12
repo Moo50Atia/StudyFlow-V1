@@ -10,7 +10,7 @@ class SubjectController extends Controller
 {
     public function index(): \Illuminate\Contracts\View\View
     {
-        $subjects = Subject::latest()->paginate(10);
+        $subjects = app(\App\Services\LearningAccess::class)->scopeSubjects(Subject::query(), auth()->user())->latest()->paginate(10);
         return view('subjects.index', compact('subjects'));
     }
 
@@ -21,13 +21,22 @@ class SubjectController extends Controller
 
     public function store(SubjectRequest $request): \Illuminate\Http\RedirectResponse
     {
-        Subject::create($request->validated());
+        \Illuminate\Support\Facades\DB::transaction(function () use ($request) {
+            $subject = Subject::create($request->validated() + ['owner_user_id' => $request->user()->role === 'teacher' ? $request->user()->id : null]);
+            if ($request->user()->role === 'teacher') {
+                \App\Models\TeacherPermission::firstOrCreate([
+                    'teacher_id' => $request->user()->id, 'subject_id' => $subject->id, 'lecture_id' => null,
+                ]);
+            }
+        });
         return redirect()->route('subjects.index')->with('success', 'Subject created successfully!');
     }
 
     public function show(Subject $subject): \Illuminate\Contracts\View\View
     {
-        $subject->load('lectures');
+        $subject->load(['lectures' => function ($query) {
+            app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->scopeVisibleLectures($query, auth()->user());
+        }]);
         return view('subjects.show', compact('subject'));
     }
 

@@ -12,9 +12,15 @@ class Subject extends Model
     protected $fillable = [
         'name',
         'description',
+        'owner_user_id',
     ];
     public function lectures()
     {
         return $this->hasMany(Lecture::class);
+    }
+
+    public function teacherPermissions()
+    {
+        return $this->hasMany(TeacherPermission::class);
     }
 }

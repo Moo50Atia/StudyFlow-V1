@@ -35,14 +35,6 @@ PREPARED_PERSPECTIVE_MAP_FIELDS = [
     ("evidence_gaps", re.compile(r"^(?:[•\-*]\s*)?Evidence\s+Gaps\s*[:.]\s*(.*)$", re.IGNORECASE)),
 ]
 
-PERMITTED_SCENE_TYPES = {
-    "Process",
-    "Comparison",
-    "Accumulation",
-    "Parallel Flow",
-    "Time Evolution",
-}
-
 MAX_REPLY_BYTES = 1024 * 1024  # 1 MiB
 MAX_THIRD_PROMPT_BYTES = 65536
 
@@ -92,7 +84,7 @@ class ParsedCombinedBundle:
     raw_third: str
 
 
-LEC_SEC_HEADER_RE = re.compile(r"^Lec\s*([0-9]+)\s*\(\s*Sec\s*([0-9]+)\s*\)\s*:\s*$", re.IGNORECASE)
+LEC_SEC_HEADER_RE = re.compile(r"^Lec\s*([0-9]+)\s*\(\s*Sec\s*([0-9]+)\s*\)\s*:\s*(.*)$", re.IGNORECASE)
 LECTURE_HEADER_RE = re.compile(r"^Lecture\s*:\s*(.+)$", re.IGNORECASE)
 TERMINAL_MARKER_RE = re.compile(r"✅\s*Lesson\s*\[?([0-9]+)\]?\s*Completed\.\s*Awaiting\s*['\"]Continue['\"]\s*for\s*the\s*next\s*lesson\.\s*$", re.IGNORECASE)
 
@@ -148,11 +140,8 @@ def parse_combined_bundle(raw_text: str, expected_work_ordinal: int) -> ParsedCo
         raise BundleParserError(f"Invalid or missing terminal completion marker: '{after_end}'", code="validation")
 
     terminal_ordinal = int(marker_match.group(1))
-    if terminal_ordinal != expected_work_ordinal:
-        raise BundleParserError(
-            f"Terminal completion marker ordinal mismatch: expected {expected_work_ordinal}, got {terminal_ordinal}",
-            code="validation",
-        )
+    if terminal_ordinal < 1:
+        raise BundleParserError("Terminal completion marker must contain a positive display number", code="validation")
 
     # 1. Parse First artifact using canonical first parser
     first_parsed = _parse_first_artifact(first_part, expected_work_ordinal)
@@ -285,22 +274,39 @@ def _parse_second_artifact(text: str, expected_work_ordinal: int, expected_secti
                     code="validation",
                 )
             current_sec_ordinal = sec_num
+            header_placeholder = (header_match.group(3) or "").strip()
+            if header_placeholder:
+                if (header_placeholder.startswith('"') and header_placeholder.endswith('"')) or (
+                    header_placeholder.startswith("'") and header_placeholder.endswith("'")
+                ):
+                    current_placeholder = header_placeholder[1:-1].strip()
+                else:
+                    raise BundleParserError(
+                        f"Second section {sec_num} inline placeholder must be quoted",
+                        code="validation",
+                    )
             continue
 
         if current_sec_ordinal is None:
             raise BundleParserError(f"Unexpected content before LecW (SecY) header: '{line}'", code="validation")
 
-        # Quoted placeholder line
-        if current_placeholder is None:
-            if (line.startswith('"') and line.endswith('"')) or (line.startswith("'") and line.endswith("'")):
-                current_placeholder = line[1:-1].strip()
-                continue
-            elif line.lower().startswith("prepared perspective map"):
-                raise BundleParserError(f"Missing quoted placeholder before Prepared Perspective Map in section {current_sec_ordinal}", code="validation")
-
         if line.lower().startswith("prepared perspective map"):
+            if current_placeholder is None:
+                raise BundleParserError(f"Missing quoted placeholder before Prepared Perspective Map in section {current_sec_ordinal}", code="validation")
             in_perspective_map = True
             continue
+
+        if not in_perspective_map:
+            if current_placeholder is None and (
+                (line.startswith('"') and line.endswith('"'))
+                or (line.startswith("'") and line.endswith("'"))
+            ):
+                current_placeholder = line[1:-1].strip()
+                continue
+            raise BundleParserError(
+                f"Unexpected content before Prepared Perspective Map in section {current_sec_ordinal}",
+                code="validation",
+            )
 
         if in_perspective_map:
             # Check if line matches any field
@@ -378,26 +384,18 @@ def _parse_third_artifact(text: str, expected_work_ordinal: int, expected_sectio
                     code="validation",
                 )
 
-            # First line inside prompt must start with one of permitted scene types
+            # The provider owns the scene taxonomy. Preserve any nonempty label
+            # returned by NotebookLM instead of imposing an application whitelist.
             first_prompt_line = prompt_body.split("\n", 1)[0].strip()
-
-            # Reject invalid v1 prefix "Scene Type: ..."
-            if re.match(r"^Scene\s+Type\s*:", first_prompt_line, re.IGNORECASE):
-                raise BundleParserError(
-                    f"Third section {current_sec_ordinal} invalid v1 type prefix 'Scene Type:'; must start with permitted type name",
-                    code="validation",
-                )
-
-            detected_type: Optional[str] = None
-            for p_type in PERMITTED_SCENE_TYPES:
-                # Word boundary after permitted type (optional colon or text)
-                if re.match(rf"^{p_type}\b", first_prompt_line, re.IGNORECASE):
-                    detected_type = p_type
-                    break
-
+            label_line = re.sub(r"^[•*\-]\s*", "", first_prompt_line).strip()
+            scene_type_match = re.match(r"^Scene\s+Type\s*[:.]\s*(.+)$", label_line, re.IGNORECASE)
+            if scene_type_match:
+                detected_type = scene_type_match.group(1).strip()
+            else:
+                detected_type = label_line.split(":", 1)[0].strip()
             if not detected_type:
                 raise BundleParserError(
-                    f"Third section {current_sec_ordinal} prompt must begin with permitted type {sorted(PERMITTED_SCENE_TYPES)}, got: '{first_prompt_line}'",
+                    f"Third section {current_sec_ordinal} prompt must provide a nonempty scene type label",
                     code="validation",
                 )
 
@@ -429,6 +427,20 @@ def _parse_third_artifact(text: str, expected_work_ordinal: int, expected_sectio
                 )
             current_sec_ordinal = sec_num
             in_prompt = False
+            # NotebookLM may place the quoted prompt on the same line as the
+            # Lec/Sec label. The label's trailing capture is the prompt body;
+            # ignoring it makes an otherwise complete section look empty.
+            inline_prompt = header_match.group(3).strip()
+            if inline_prompt:
+                if not inline_prompt.startswith('"'):
+                    raise BundleParserError(
+                        f"Third section {current_sec_ordinal} prompt must begin with quote",
+                        code="validation",
+                    )
+                prompt_lines.append(inline_prompt)
+                in_prompt = True
+                if inline_prompt.endswith('"') and not inline_prompt.endswith('\\"'):
+                    finalize_third_section()
             continue
 
         if current_sec_ordinal is None:

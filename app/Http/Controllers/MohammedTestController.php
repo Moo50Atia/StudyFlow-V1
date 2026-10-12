@@ -2,25 +2,30 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Lecture;
-use Illuminate\Http\Request;
-use App\Models\Section;
 use App\Http\Resources\LectureResource;
+use App\Models\Lecture;
+use App\Models\Section;
+use App\Services\V3\WebPipeline\LinkedContentAccess;
+use Illuminate\Http\Request;
 
 class MohammedTestController extends Controller
 {
     public function index()
     {
+        $linkedAccess = app(LinkedContentAccess::class);
+
         // To Get All "core_concept" in Sections about Specific Subject 
-        $sections = Section::whereHas('lecture.subject', function ($query) {
+        $secQuery = Section::whereHas('lecture.subject', function ($query) {
             $query->where('name', 'Electrical measurement');
-        })->get("core_concept");
+        });
+        $sections = $linkedAccess->scopeVisibleSections($secQuery, auth()->user())->get("core_concept");
 
         // Get Better Structure With name under it The Sections Core Concept   
-        $lectures = Lecture::whereHas("subject", function ($query) {
+        $lecQuery = Lecture::whereHas("subject", function ($query) {
             $query->where("name", "Electrical measurement");
-        })->with("sections")->get();
-        // return view('mohammed-test');
+        })->with("sections");
+        $lectures = $linkedAccess->scopeVisibleLectures($lecQuery, auth()->user())->get();
+
         return response()->json(LectureResource::collection($lectures));
     }
 }

@@ -62,7 +62,7 @@ return [
 
         'v3_private' => [
             'driver' => 'local',
-            'root' => storage_path('app/v3'),
+            'root' => env('V3_PRIVATE_ROOT', storage_path('app/v3')),
             'serve' => false,
             'throw' => true,
         ],

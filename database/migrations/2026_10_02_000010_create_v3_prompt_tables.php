@@ -92,7 +92,7 @@ return new class extends Migration
             $table->string('body_path', 255);
             $table->char('body_sha256', 64);
             $table->unsignedInteger('body_bytes');
-            $table->string('scene_type', 32); // Process|Comparison|Accumulation|Parallel Flow|Time Evolution
+            $table->string('scene_type', 255); // Provider-defined scene type label
             $table->char('section_fields_sha256', 64);
             $table->char('canonical_third_sha256', 64);
             $table->timestamp('created_at')->useCurrent();

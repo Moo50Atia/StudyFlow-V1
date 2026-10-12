@@ -19,8 +19,11 @@ class ClaimSceneCheck
 {
     public function __construct(
         protected SceneCandidateResolver $candidateResolver,
-        protected QualifiedPromptResolver $promptResolver
-    ) {}
+        protected QualifiedPromptResolver $promptResolver,
+        protected ?EligiblePromptResolver $eligibleResolver = null
+    ) {
+        $this->eligibleResolver = $eligibleResolver ?? app(EligiblePromptResolver::class);
+    }
 
     public function claim(string $caseId, array $payload): array
     {
@@ -54,10 +57,16 @@ class ClaimSceneCheck
             throw new ServiceUnavailableHttpException(null, "Candidate verification failed: " . $e->getMessage());
         }
 
-        try {
-            $this->promptResolver->resolve($caseId, $candidate->prompt_version_id);
-        } catch (\Throwable $e) {
-            throw new NotFoundHttpException("Prompt is not currently qualified or valid: " . $e->getMessage());
+        if ($candidate->origin !== 'manual_import') {
+            $resolver = ($case->isWebPipelineCase() || $candidate->prompt_gate_id !== null)
+                ? $this->eligibleResolver
+                : $this->promptResolver;
+
+            try {
+                $resolver->resolve($caseId, $candidate->prompt_version_id);
+            } catch (\Throwable $e) {
+                throw new NotFoundHttpException("Prompt is not currently qualified or valid: " . $e->getMessage());
+            }
         }
 
         return DB::transaction(function () use ($case, $candidate, $attemptNo) {

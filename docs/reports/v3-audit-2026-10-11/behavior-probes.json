@@ -1,0 +1,264 @@
+{
+  "fastapi_routes": [
+    {
+      "path": "/internal/v1/workflows/start",
+      "methods": [
+        "post"
+      ]
+    },
+    {
+      "path": "/internal/v1/workflows/{workflow_id}",
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "path": "/internal/v1/workflows/{workflow_id}/activate-source",
+      "methods": [
+        "post"
+      ]
+    },
+    {
+      "path": "/internal/v1/workflows/{workflow_id}/activate-map",
+      "methods": [
+        "post"
+      ]
+    },
+    {
+      "path": "/internal/v1/workflows/{workflow_id}/lesson-ready",
+      "methods": [
+        "post"
+      ]
+    },
+    {
+      "path": "/internal/v1/workflows/{workflow_id}/notebook-reconciled",
+      "methods": [
+        "post"
+      ]
+    },
+    {
+      "path": "/internal/v1/workflows/{workflow_id}/consumed-query",
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "path": "/internal/v1/review-preview/sessions",
+      "methods": [
+        "post"
+      ]
+    },
+    {
+      "path": "/internal/v1/review-preview/sessions/{viewer_ref}/actions",
+      "methods": [
+        "post"
+      ]
+    },
+    {
+      "path": "/internal/v1/review-preview/sessions/{viewer_ref}/frames/{frame_no}",
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "path": "/internal/v1/review-preview/sessions/{viewer_ref}",
+      "methods": [
+        "delete"
+      ]
+    },
+    {
+      "path": "/internal/v1/workflows/{workflow_id}/review-decisions",
+      "methods": [
+        "post"
+      ]
+    },
+    {
+      "path": "/internal/v1/workflows/{workflow_id}/review-decisions/{decision_ref}",
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "path": "/internal/v1/workflows/{workflow_id}/start-correction",
+      "methods": [
+        "post"
+      ]
+    },
+    {
+      "path": "/internal/v1/workflows/{workflow_id}/describe-correction",
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "path": "/internal/v1/health",
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "path": "/internal/v1/workflows/{workflow_id}/admin-controls",
+      "methods": [
+        "post"
+      ]
+    },
+    {
+      "path": "/internal/v1/workflows/{workflow_id}/admin-controls/{command_ref}",
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "path": "/internal/v1/application-pipeline/submissions",
+      "methods": [
+        "post"
+      ]
+    },
+    {
+      "path": "/internal/v1/application-pipeline/commands",
+      "methods": [
+        "post"
+      ]
+    },
+    {
+      "path": "/internal/v1/application-pipeline/receipts/{command_id}",
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "path": "/internal/v1/application-pipeline/runs/{run_id}/status",
+      "methods": [
+        "get"
+      ]
+    }
+  ],
+  "admission_with_unresolvable_manifest": {
+    "http_status": 202,
+    "body": {
+      "outcome": "accepted",
+      "submission_id": "aa76657d-6630-4c46-8325-bfa09b44bcdd",
+      "run_id": "6212225b-2396-4faa-9b6f-c45bb27de8ae",
+      "state": "queued"
+    }
+  },
+  "status_after_admission": {
+    "http_status": 200,
+    "body": {
+      "run_id": "6212225b-2396-4faa-9b6f-c45bb27de8ae",
+      "status": "queued"
+    }
+  },
+  "pause_command": {
+    "http_status": 202,
+    "body": {
+      "outcome": "accepted",
+      "command_id": "dee65c6a-097c-4f1b-801d-a3fea5607577",
+      "run_id": "6212225b-2396-4faa-9b6f-c45bb27de8ae",
+      "action": "pause",
+      "applied": false
+    }
+  },
+  "pause_receipt": {
+    "http_status": 200,
+    "body": {
+      "command_id": "dee65c6a-097c-4f1b-801d-a3fea5607577",
+      "consumed": true,
+      "digest": "6210c0bf05396716df932f0729df69de0533933e5ad9871fd07b61811c4c28df",
+      "version": 1
+    }
+  },
+  "status_after_pause": {
+    "http_status": 200,
+    "body": {
+      "run_id": "6212225b-2396-4faa-9b6f-c45bb27de8ae",
+      "status": "queued"
+    }
+  },
+  "invalid_oversized_command": {
+    "http_status": 202,
+    "body": {
+      "outcome": "accepted",
+      "command_id": "not-a-uuid",
+      "run_id": "not-a-run",
+      "action": "unsupported_action",
+      "applied": false
+    }
+  },
+  "status_after_module_restart": {
+    "http_status": 200,
+    "body": {
+      "run_id": "6212225b-2396-4faa-9b6f-c45bb27de8ae",
+      "status": "unknown"
+    }
+  },
+  "receipt_after_module_restart": {
+    "http_status": 404,
+    "body": {
+      "error": {
+        "code": "receipt_not_found",
+        "message": "Command dee65c6a-097c-4f1b-801d-a3fea5607577 not found"
+      }
+    }
+  },
+  "workflow_without_sources": {
+    "result": {
+      "outcome": "prompts_exported",
+      "safe_code": "ok",
+      "pdfs_completed": 2,
+      "pdfs_failed": 0,
+      "prompts_saved": 2,
+      "lessons_saved": 2
+    },
+    "progress": {
+      "phase": "prompts_ready",
+      "status": "completed",
+      "generation_phase": "prompts_exported",
+      "lessons_saved": 2,
+      "prompts_saved": 2,
+      "scenes_generated": 0,
+      "scenes_built": 0,
+      "pdfs_completed": 2,
+      "pdfs_failed": 0,
+      "total_pdfs": 2,
+      "current_pdf_ordinal": 2,
+      "paused": false,
+      "cancelled": false,
+      "state_version": 1,
+      "mode": "export_manual"
+    },
+    "activities": [
+      "execute_divide_turn",
+      "execute_lesson_turns",
+      "reset_conversation_activity",
+      "execute_divide_turn",
+      "execute_lesson_turns",
+      "reset_conversation_activity",
+      "export_prompts_activity"
+    ]
+  },
+  "workflow_with_failed_lesson_and_export": {
+    "outcome": "prompts_exported",
+    "safe_code": "ok",
+    "pdfs_completed": 1,
+    "pdfs_failed": 0,
+    "prompts_saved": 0,
+    "lessons_saved": 0
+  },
+  "archive_verification_without_manifest": {
+    "outcome": "completed",
+    "safe_code": "ok",
+    "receipt_ref": "0e52279b-cc3b-59a3-829d-d167bf55ec58"
+  },
+  "archive_copy_missing_destination": {
+    "outcome": "completed",
+    "safe_code": "ok",
+    "receipt_ref": "98ba0fc2-3c0f-574e-a553-24cfb962f319"
+  },
+  "new_operation_store_has_old_records": false,
+  "worker_expected_import_activities": {
+    "commit_import_item_activity": false,
+    "plan_import_items_activity": false,
+    "read_import_manifest_activity": false
+  }
+}

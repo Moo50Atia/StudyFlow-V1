@@ -69,7 +69,7 @@ class BridgeRequestSigner
         ?string $secret = null,
         ?int $timestamp = null
     ): array {
-        $secret = $secret ?? config('services.v3.callback_hmac_key');
+        $secret = $secret ?? (config('services.v3.callback_hmac_key') ?: config('services.v3.worker_hmac_key') ?: config('services.v3.web_pipeline_hmac_secret'));
         if (empty($secret)) {
             throw new \InvalidArgumentException('Callback HMAC secret key is not configured.');
         }

@@ -1,0 +1,4 @@
+Framework instruction steps for educational pipeline tests.
+Step 1: Divide into Chapters and Lessons.
+Step 2: Execution plan.
+Step 3: Lessons generation.

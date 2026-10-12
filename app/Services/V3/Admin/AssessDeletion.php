@@ -205,6 +205,16 @@ class AssessDeletion
             return 'review_pending';
         }
 
+        if (Schema::hasTable('v3_review_routes')) {
+            $openRoutes = DB::table('v3_review_routes')
+                ->where('case_id', $case->id)
+                ->whereIn('state', ['pending', 'routing'])
+                ->exists();
+            if ($openRoutes) {
+                return 'review_pending';
+            }
+        }
+
         // 4. effect_uncertain
         if (OperationSummaryV1::countUncertainEffects((string) $case->id) > 0) {
             return 'effect_uncertain';
@@ -224,6 +234,22 @@ class AssessDeletion
             ->exists();
         if ($uncertainDeliveries) {
             return 'effect_uncertain';
+        }
+
+        if (Schema::hasTable('v3_review_outbox')) {
+            $unresolvedReviewEffects = DB::table('v3_review_outbox')
+                ->where(function ($q) use ($case) {
+                    $q->whereIn('review_decision_id', function ($sub) use ($case) {
+                        $sub->select('id')->from('v3_teacher_review_decisions')->where('case_id', $case->id);
+                    })->orWhereIn('postapproval_correction_id', function ($sub) use ($case) {
+                        $sub->select('id')->from('v3_postapproval_corrections')->where('case_id', $case->id);
+                    });
+                })
+                ->whereIn('state', ['pending', 'sending', 'uncertain'])
+                ->exists();
+            if ($unresolvedReviewEffects) {
+                return 'effect_uncertain';
+            }
         }
 
         return null;

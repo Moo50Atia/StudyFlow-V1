@@ -23,6 +23,7 @@ class EngineSettings:
     gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")
     glm_api_key: str = os.getenv("GLM_API_KEY", "")
     deepseek_api_key: str = os.getenv("DEEPSEEK_API_KEY", "")
+    qwen_api_key: str = os.getenv("QWEN_API_KEY", "")
 
     @property
     def laravel_api_origin(self) -> str:
@@ -57,4 +58,5 @@ def get_settings() -> EngineSettings:
         gemini_api_key=os.getenv("GEMINI_API_KEY", ""),
         glm_api_key=os.getenv("GLM_API_KEY", ""),
         deepseek_api_key=os.getenv("DEEPSEEK_API_KEY", ""),
+        qwen_api_key=os.getenv("QWEN_API_KEY", ""),
     )

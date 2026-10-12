@@ -70,6 +70,16 @@ class SceneCandidate extends Model implements V3OwnedResource
         return $this->belongsTo(SettingsVersion::class, 'settings_version_id', 'id');
     }
 
+    public function manualImport(): BelongsTo
+    {
+        return $this->belongsTo(ManualSceneImport::class, 'manual_import_id', 'id');
+    }
+
+    public function promptGate(): BelongsTo
+    {
+        return $this->belongsTo(QualificationGate::class, 'prompt_gate_id', 'id');
+    }
+
     public function v3OwnerId(): int
     {
         if ($this->relationLoaded('processingCase') && $this->processingCase) {

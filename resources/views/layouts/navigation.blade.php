@@ -15,11 +15,7 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
-                    @if (Auth::check() && in_array(Auth::user()->role, ['teacher', 'admin']))
-                        <x-nav-link :href="route('v3.entry')" :active="request()->is('v3*')">
-                            {{ __('V3 Workspace') }}
-                        </x-nav-link>
-                    @endif
+
                 </div>
             </div>
 

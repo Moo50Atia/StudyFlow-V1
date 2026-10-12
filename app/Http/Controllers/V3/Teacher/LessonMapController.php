@@ -7,6 +7,8 @@ use App\Models\V3\LessonCursor;
 use App\Models\V3\LessonMap;
 use App\Models\V3\LessonNode;
 use App\Models\V3\ProcessingCase;
+use App\Models\V3\ScenePromptVersion;
+use App\Models\V3\SubjectRunItem;
 use App\Models\V3\TeacherSection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -77,6 +79,32 @@ class LessonMapController extends Controller
             ];
         }
 
+        // Keep the JSON lesson-map contract compact and stable. The HTML view
+        // also needs owner-visible destinations for each saved section and
+        // its exact prompt export so imported content is navigable from the
+        // actual lesson map.
+        $viewWorkItems = $workItems;
+        $workNodeIds = $workNodes->pluck('id')->all();
+        $sectionsByWorkNode = TeacherSection::whereIn('work_node_id', $workNodeIds)
+            ->orderBy('ordinal_in_work')
+            ->get(['id', 'work_node_id', 'ordinal_in_work', 'section_identity'])
+            ->groupBy('work_node_id');
+        $promptSectionIds = ScenePromptVersion::whereIn(
+            'section_id',
+            $sectionsByWorkNode->flatten(1)->pluck('id')->all()
+        )->distinct()->pluck('section_id')->flip();
+        $promptRunId = SubjectRunItem::where('case_id', $caseModel->id)->value('run_id');
+
+        foreach ($viewWorkItems as $index => $item) {
+            $viewWorkItems[$index]['sections'] = ($sectionsByWorkNode->get($item['work_node_ref']) ?? collect())
+                ->map(fn (TeacherSection $section) => [
+                    'id' => $section->id,
+                    'ordinal' => (int) $section->ordinal_in_work,
+                    'identity' => $section->section_identity,
+                    'has_prompt' => $promptSectionIds->has($section->id),
+                ])->all();
+        }
+
         $payload = [
             'case_id' => $caseModel->id,
             'map_ref' => $map->id,
@@ -95,7 +123,8 @@ class LessonMapController extends Controller
         return response()->view('v3.teacher.lessons.map', [
             'map' => $payload,
             'case' => $caseModel,
-            'workItems' => $workItems,
+            'workItems' => $viewWorkItems,
+            'promptRunId' => $promptRunId,
         ])->header('Cache-Control', 'private, no-store');
     }
 }

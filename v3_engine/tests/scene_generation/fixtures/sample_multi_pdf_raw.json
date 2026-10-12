@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "kind": "notebooklm_multi_pdf_lesson_raw_handoff",
+  "notebook_id": "test-nb-001",
+  "conversation_id": "test-conv-001",
+  "lesson_ordinal": 1,
+  "mapped_title": "Mechanics Kinematics Overview",
+  "scenes": [
+    {
+      "scene_ordinal": 1,
+      "scene_type": "Comparison | Objects",
+      "generated_prompt": "Scene Type: Comparison | Visual split screen comparing 1D position and velocity vectors."
+    },
+    {
+      "scene_ordinal": 2,
+      "scene_type": "Time Evolution",
+      "generated_prompt": "Scene Type: Time Evolution | Slider scrubbing particle motion from origin to endpoint."
+    },
+    {
+      "scene_ordinal": 3,
+      "scene_type": "Process",
+      "generated_prompt": "Scene Type: Process | Particle traverses calibrated track with timer gauges."
+    },
+    {
+      "scene_ordinal": 4,
+      "scene_type": "Accumulation",
+      "generated_prompt": "Scene Type: Accumulation | Tangent line rotating to instantaneous slope."
+    }
+  ]
+}

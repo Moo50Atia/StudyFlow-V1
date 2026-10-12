@@ -84,6 +84,7 @@
                         </div>
                         @endif
 
+                        @if(app(\App\Services\LearningAccess::class)->isOwner(auth()->user()))
                         <a href="{{ route('questions.index', ['subject_id' => $section->lecture->subject_id ?? '', 'lecture_id' => $section->lecture_id ?? '']) }}" class="flex items-center p-4 bg-gradient-to-r from-purple-50 to-indigo-100 dark:from-gray-700 dark:to-gray-600 rounded-xl hover:shadow-lg transition-all duration-200">
                             <div class="w-12 h-12 rounded-lg bg-indigo-500 flex items-center justify-center text-white mr-4 shadow-md">❓</div>
                             <div>
@@ -91,10 +92,18 @@
                                 <p class="text-sm text-gray-500 dark:text-gray-400">View all for this lecture</p>
                             </div>
                         </a>
+                        @endif
                     </div>
 
                     <!-- Learning Content Sections -->
                     <div class="space-y-6 mb-8">
+                        @if($section->pipelineLink?->teacherSection)
+                        @foreach(['visual_first_explanation' => 'Visual explanation', 'visual_scene_script' => 'Scene script', 'dynamic_view_blueprint' => 'Interactive blueprint', 'visual_learning_outcome' => 'Learning outcome'] as $field => $label)
+                            @if($section->pipelineLink->teacherSection->{$field})
+                            <div class="rounded-xl bg-indigo-50 dark:bg-gray-700 p-5"><h4 class="font-semibold mb-2">{{ $label }}</h4><p class="whitespace-pre-line">{{ $section->pipelineLink->teacherSection->{$field} }}</p></div>
+                            @endif
+                        @endforeach
+                        @endif
                         <!-- Core Concept -->
                         @if($section->core_concept)
                         <div class="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-6 border border-blue-100 dark:border-blue-800 animate-fade-in-up" style="animation-delay: 0.05s">
@@ -176,6 +185,7 @@
                         </a>
                     </div> -->
 
+                    @if(app(\App\Services\LearningAccess::class)->isOwner(auth()->user()))
                     <!-- Questions List -->
                     @if($section->lecture && $section->lecture->questions && $section->lecture->questions->count() > 0)
                     <div class="mb-6">
@@ -226,6 +236,7 @@
                             @endforeach
                         </div>
                     </div>
+                    @endif
                     @endif
 
                     <!-- Navigation Footer -->
@@ -321,7 +332,7 @@
             @endif
 
             <!-- Teacher Study Flow: Content Management Panel -->
-            @if(session('study_flow') && Auth::check() && Auth::user()->role === 'teacher')
+            @if(false) {{-- Teacher question creation is reserved for the platform owner. --}}
             <div class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl shadow-xl p-6 mb-8 animate-fade-in-up" style="animation-delay: 0.1s">
                 <div class="flex items-center justify-between mb-6">
                     <h4 class="text-xl font-bold text-gray-900 dark:text-gray-100">🎯 Add Content (Teacher Flow)</h4>

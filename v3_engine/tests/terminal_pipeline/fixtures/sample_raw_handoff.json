@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "export_kind": "notebooklm_multi_pdf_lesson_raw_handoff",
+  "notebook_id": "85b76e80-ea8a-4f86-9311-185634fcd2ed",
+  "conversation_id": "conv-001",
+  "lesson_ordinal": 1,
+  "mapped_title": "Introduction to Kinematics",
+  "raw_response": "## Lesson 1: Kinematics\n\n```json\n{\"scenes\": [{\"scene_ordinal\": 1, \"prompt\": \"Interactive displacement vector diagram\"}]}\n```",
+  "scenes": [
+    {
+      "scene_ordinal": 1,
+      "prompt": "Interactive displacement vector diagram",
+      "scene_type": "interactive_diagram"
+    }
+  ]
+}

@@ -8,6 +8,7 @@ use App\Models\V3\SceneCheckAttempt;
 use App\Models\V3\SceneCheckRun;
 use App\Services\V3\Authoring\SceneCandidateResolver;
 use App\Services\V3\Prompts\QualifiedPromptResolver;
+use App\Services\V3\Review\EnsureReviewReady;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -33,10 +34,15 @@ class RecordSceneCheck
     public const MAX_SCREENSHOT_BYTES = 2097152; // 2 MiB
     public const MAX_DURATION_MS = 60000;      // 60 seconds
 
+    protected RecordQualificationGate $qualificationGateService;
+
     public function __construct(
         protected SceneCandidateResolver $candidateResolver,
-        protected QualifiedPromptResolver $promptResolver
-    ) {}
+        protected QualifiedPromptResolver $promptResolver,
+        ?RecordQualificationGate $qualificationGateService = null
+    ) {
+        $this->qualificationGateService = $qualificationGateService ?? app(RecordQualificationGate::class);
+    }
 
     public function record(string $caseId, string $attemptRef, array $payload, string $rawBytes): array
     {
@@ -273,11 +279,57 @@ class RecordSceneCheck
             $state = SceneCandidateState::where('candidate_id', $candidate->id)->lockForUpdate()->first();
             if ($state) {
                 if ($verdict === 'pass') {
+                    $isDemoOrManual = ($candidate->origin === 'manual_import') || ($candidate->prompt_gate_id !== null);
+                    if ($isDemoOrManual) {
+                        $nextStatus = 'demo_review_ready';
+
+                        $commandId = null;
+                        $promptGate = null;
+                        if ($candidate->prompt_gate_id) {
+                            $promptGate = DB::table('v3_qualification_gates')->where('id', $candidate->prompt_gate_id)->first();
+                            $commandId = $promptGate?->command_id;
+                        }
+                        if (!$commandId && $candidate->manual_import_id) {
+                            $manualImport = DB::table('v3_manual_scene_imports')->where('id', $candidate->manual_import_id)->first();
+                            $commandId = $manualImport?->command_id;
+                        }
+
+                        if ($commandId) {
+                            $case = DB::table('v3_processing_cases')->where('id', $caseId)->first();
+                            $promptVersion = DB::table('v3_scene_prompt_versions')->where('id', $candidate->prompt_version_id)->first();
+
+                            $this->qualificationGateService->record([
+                                'case_id' => $caseId,
+                                'section_id' => $candidate->section_id,
+                                'prompt_version_id' => $candidate->prompt_version_id,
+                                'candidate_id' => $candidate->id,
+                                'gate_stage' => 'scene',
+                                'basis' => 'owner_waived_demo',
+                                'real_qualification_id' => null,
+                                'waived_by_owner_id' => $promptGate ? $promptGate->waived_by_owner_id : ($case ? $case->owner_user_id : null),
+                                'policy_version' => $promptGate ? $promptGate->policy_version : 'spec_019_web_demo_v1',
+                                'policy_sha256' => $promptGate ? $promptGate->policy_sha256 : hash('sha256', 'spec_019_web_demo_v1'),
+                                'prompt_sha256' => $promptGate ? $promptGate->prompt_sha256 : ($promptVersion ? $promptVersion->body_sha256 : hash('sha256', 'prompt')),
+                                'candidate_manifest_sha256' => $candidate->manifest_sha256,
+                                'missing_fields' => $promptGate ? json_decode($promptGate->missing_fields_json ?? '[]', true) : [],
+                                'command_id' => $commandId,
+                            ]);
+                        }
+                    } else {
+                        $nextStatus = 'awaiting_jev';
+                    }
+
                     $state->update([
-                        'status' => 'awaiting_jev',
+                        'status' => $nextStatus,
                         'check_run_id' => $run->id,
                         'state_version' => $state->state_version + 1,
                     ]);
+                    if ($nextStatus === 'demo_review_ready') {
+                        $review = app(EnsureReviewReady::class)->ensure($caseId, $candidate->id);
+                        if (($review['status'] ?? 'unavailable') === 'unavailable') {
+                            throw new ConflictHttpException('Passing candidate could not enter owner review.');
+                        }
+                    }
                 } else {
                     $state->update([
                         'status' => 'repair_pending',

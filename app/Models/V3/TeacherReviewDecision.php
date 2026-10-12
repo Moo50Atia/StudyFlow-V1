@@ -53,6 +53,11 @@ class TeacherReviewDecision extends Model implements V3OwnedResource
         return $this->belongsTo(SceneQualification::class, 'qualification_id', 'id');
     }
 
+    public function qualificationGate(): BelongsTo
+    {
+        return $this->belongsTo(QualificationGate::class, 'qualification_gate_id', 'id');
+    }
+
     public function actorUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'actor_user_id', 'id');

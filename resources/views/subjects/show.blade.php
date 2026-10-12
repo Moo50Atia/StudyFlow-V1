@@ -40,16 +40,24 @@
                             <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ $subject->name }}</h3>
                             <p class="text-gray-500 dark:text-gray-400">{{ $subject->lectures->count() }} Lectures</p>
                         </div>
-                        @if(Auth::check() && Auth::user()->role === 'admin')
-                        <div class="ml-auto">
+                        <div class="ml-auto flex items-center space-x-3">
+                            @if(Auth::check() && in_array(Auth::user()->role, ['teacher', 'admin']))
+                            <a href="{{ route('v3.teacher.subject-runs.create', $subject) }}" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold text-sm hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-lg">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                                Upload Curriculum (PDFs)
+                            </a>
+                            @endif
+                            @if(Auth::check() && Auth::user()->role === 'admin')
                             <a href="{{ route('lectures.create', ['subject_id' => $subject->id]) }}" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold text-sm hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg">
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                                 </svg>
                                 Add Lecture
                             </a>
+                            @endif
                         </div>
-                        @endif
                     </div>
                     <p class="text-gray-600 dark:text-gray-400">{{ $subject->description ?? 'No description available' }}</p>
                 </div>
@@ -100,7 +108,14 @@
                         <a href="{{ route('lectures.show', $lecture) }}" class="block p-4 bg-gray-50 dark:bg-gray-700 rounded-xl hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 animate-fade-in-up" style="animation-delay: {{ 0.3 + ($index * 0.05) }}s">
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <p class="font-medium text-gray-900 dark:text-gray-100">{{ $lecture->title }}</p>
+                                    <div class="flex items-center space-x-2">
+                                        <p class="font-medium text-gray-900 dark:text-gray-100">{{ $lecture->title }}</p>
+                                        @if($lecture->pipelineLink)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
+                                            {{ ($lecture->pipelineLink->item?->run?->origin ?? '') === 'historical_import' ? 'Historical' : 'Pipeline' }}
+                                        </span>
+                                        @endif
+                                    </div>
                                     <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ $lecture->sections->count() ?? 0 }} sections</p>
                                 </div>
                                 <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -10,6 +10,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from v3_engine.notebooklm.ports import (
+    AuthenticationRequiredError,
     ProviderError,
     SessionProvider,
 )
@@ -28,12 +29,13 @@ COMBINED_RESPONSE_FORMAT_TEXT = (
     "=== SECOND ===\n"
     "The complete Second output, including Lecture and each LecX (SecY) placeholder and Prepared Perspective Map.\n"
     "=== THIRD ===\n"
-    "The complete Third output, including Lecture and one quoted final prompt per LecX (SecY).\n"
+    "The Third artifact must begin immediately with its Lecture: header, followed only by one LecX (SecY) entry for each section.\n"
+    "For every entry, put the opening double quote immediately after the LecX (SecY): header, then enclose the ENTIRE multi-line final prompt in that single pair of double quotes. Do not close the quote until the final line of the prompt. Do not put explanatory text before the quote, after the closing quote, or between prompts.\n"
     "=== END ===\n"
     "Finish with exactly: ✅ Lesson [X] Completed. Awaiting 'Continue' for the next lesson.\n"
     "Do not include these delimiter lines inside an artifact. Return no other text outside the three artifacts and final completion marker."
 )
-COMBINED_RESPONSE_FORMAT_SHA256 = "b7c49fb0ef3b62264c5b81d5673ace865e9d497ee1100f2e22675abbc614e105"
+COMBINED_RESPONSE_FORMAT_SHA256 = "d1c517a59d71d2e79d511b1ab2f945d6eb65f3dcffc24e802823a617c2d95580"
 
 
 def compute_source_effect_digest(
@@ -302,7 +304,7 @@ class ParsedLessonNode:
 
 
 LINE_PATTERN = re.compile(
-    r"^(?P<indent>\s*)(?:[-*]\s+)?(?P<kind>Chapter|Mini\s+Chapter|Lesson)(?:\s+(?:[0-9]+(?:\.[0-9]+)*|[IVXLCDMivxlcdm]+))?\s*(?::|-|=>)\s*(?P<title>.+)$",
+    r"^(?P<indent>\s*)(?P<tree>(?:[│|]\s*)*[├└]──\s*)?(?:=>\s*)?(?:[-*]\s+)?(?P<kind>Chapter|Mini\s+Chapter|Lesson)(?:\s+(?:[0-9]+(?:\.[0-9]+)*|[IVXLCDMivxlcdm]+))?\s*(?::|-|=>)\s*(?P<title>.+)$",
     re.IGNORECASE,
 )
 
@@ -326,7 +328,11 @@ def parse_direct_divide_map(raw_text: str) -> List[ParsedLessonNode]:
     mini_children: Dict[str, List[ParsedLessonNode]] = {}
 
     # Check for indentation presence across lines
-    has_indentation = any(len(l) - len(l.lstrip(" ")) > 0 for l in lines if l.strip())
+    has_indentation = any(
+        len(line) - len(line.lstrip(" ")) > 0 or re.search(r"[│|├└]", line)
+        for line in lines
+        if line.strip()
+    )
 
     for raw_line in lines:
         line = raw_line.strip()
@@ -340,7 +346,12 @@ def parse_direct_divide_map(raw_text: str) -> List[ParsedLessonNode]:
         if not match:
             raise ProviderError("protocol_validation", f"Prose or invalid line format: '{line}'")
 
-        indent_len = len(match.group("indent"))
+        tree_prefix = match.group("tree") or ""
+        tree_depth = (
+            len(re.findall(r"[│|]", tree_prefix))
+            + int(bool(re.search(r"[├└]──", tree_prefix)))
+        )
+        indent_len = len(match.group("indent")) + tree_depth * 2
         raw_kind = match.group("kind")
         title = match.group("title").strip()
 
@@ -360,6 +371,21 @@ def parse_direct_divide_map(raw_text: str) -> List[ParsedLessonNode]:
             kind = "lesson"
         else:
             raise ProviderError("protocol_validation", f"Unrecognized node kind: '{raw_kind}'")
+
+        # NotebookLM's Unicode tree output can repeat continuation bars for
+        # earlier siblings. Those bars increase the visual prefix depth even
+        # when the node remains a Lesson under the current Mini Chapter. The
+        # protocol's semantic hierarchy has only Chapter -> Mini Chapter ->
+        # Lesson, so normalize deep tree-only lesson prefixes to that leaf
+        # level. Keep plain whitespace indentation strict below.
+        if kind == "lesson" and indent_len not in (0, 2, 4):
+            # The live NotebookLM map may prefix a lesson with an arrow and
+            # nonstandard spaces (for example "   => Lesson 1"). The map's
+            # hierarchy is still unambiguous from the lesson label; treat
+            # these provider-specific leaf indents as the deepest supported
+            # lesson level so one formatting quirk cannot stop the Continue
+            # sequence for every remaining work item.
+            indent_len = 4
 
         # Validate hierarchy and indentation
         if has_indentation:
@@ -518,7 +544,60 @@ class DirectLessonProtocol:
         if existing:
             if existing["binding_ref"] != binding_ref or existing["conversation_in"] != conversation_id:
                 raise ProviderError("conversation_conflict", "Existing query identity differs from the captured conversation")
-            return {"query_ref": existing["query_ref"], "disposition": "reconcile_only"}
+            if existing.get("state") == "recorded":
+                return {**existing, "disposition": "already_recorded"}
+            if existing.get("state") not in {"sending", "uncertain"}:
+                return {**existing, "disposition": "reconcile_only"}
+
+            # A remote send may have completed immediately before a worker
+            # restart. Reconcile from the exact expected NotebookLM history
+            # position; never blindly resend a claimed chat operation.
+            binding = await self.laravel.get_binding_by_ref(case_id, binding_ref)
+            history = []
+            if conversation_id:
+                history = await session.conversation.history(binding["notebook_id"], conversation_id, limit=1000)
+            base_length = {
+                "divide": 0,
+                "execution": 1,
+                "lesson_start": 2,
+                "lesson_continue": work_ordinal + 1,
+            }[kind]
+            prefix = {
+                "divide": [],
+                "execution": [DIVIDE_PROMPT],
+                "lesson_start": [DIVIDE_PROMPT, EXECUTION_PROMPT],
+                "lesson_continue": [DIVIDE_PROMPT, EXECUTION_PROMPT]
+                    + ["Start with First lesson"]
+                    + ["Continue"] * max(0, work_ordinal - 2),
+            }[kind]
+            if len(history) == base_length and [entry[0] for entry in history] == prefix:
+                return {**existing, "disposition": "uncertain"}
+            if len(history) != base_length + 1 or [entry[0] for entry in history[:base_length]] != prefix:
+                raise ProviderError("history_conflict", "Notebook history differs from the claimed operation position")
+            if history[-1][0] != question:
+                raise ProviderError("history_conflict", "Notebook history does not contain the claimed question")
+            recovered_answer = history[-1][1]
+            query_ref = existing["query_ref"]
+            if kind == "divide":
+                result = await self.laravel.record_divide_result(query_ref, recovered_answer, str(conversation_id))
+                nodes = parse_direct_divide_map(recovered_answer)
+                recovered = {"map_ref": result.get("map_ref"), "work_count": sum(n.work_ordinal is not None for n in nodes)}
+            elif kind == "execution":
+                result = await self.laravel.record_execution_result(query_ref, recovered_answer, str(conversation_id))
+                recovered = {"cursor_version": result.get("cursor_version")}
+            else:
+                result = await self.laravel.record_combined_lesson_result(
+                    query_ref,
+                    {
+                        "schema_version": 1,
+                        "expected_cursor_version": existing.get("expected_cursor_version"),
+                        "answer": recovered_answer,
+                        "answer_sha256": hashlib.sha256(recovered_answer.encode("utf-8")).hexdigest(),
+                        "conversation_out": conversation_id,
+                    },
+                )
+                recovered = result
+            return {**existing, **recovered, "disposition": "already_recorded"}
         binding = await self.laravel.get_binding_by_ref(case_id, binding_ref)
         roles = ["educational_pdf"] if kind == "divide" else ["educational_pdf", "framework_steps"]
         history: list[tuple[str, str]] = []
@@ -561,6 +640,18 @@ class DirectLessonProtocol:
                 notebook_id=notebook_id, question=question,
                 source_ids=source_ids, conversation_id=conversation_id,
             )
+        except AuthenticationRequiredError:
+            # Authentication failure is a known precondition failure, not an
+            # uncertain provider send. Preserve the typed safe outcome.
+            raise
+        except ProviderError:
+            try:
+                await self.laravel.record_lesson_query_uncertain(
+                    claim["query_ref"], {"schema_version": 1, "error_code": "provider_uncertain"},
+                )
+            except Exception:
+                pass
+            raise
         except Exception:
             try:
                 await self.laravel.record_lesson_query_uncertain(
@@ -580,6 +671,13 @@ class DirectLessonProtocol:
     ) -> dict[str, Any]:
         async with self.provider.open(self.profile_ref) as session:
             claim = await self._claim(session, case_id, binding_ref, "divide", 0, DIVIDE_PROMPT, None, expected_cursor_version)
+            if claim.get("disposition") == "already_recorded":
+                return {
+                    "status": "recorded", "conversation_id": claim.get("conversation_out"),
+                    "work_count": int(claim.get("work_count") or 0), "map_ref": claim.get("map_ref"),
+                }
+            if claim.get("disposition") != "send_now":
+                return {"status": "uncertain", "query_ref": claim.get("query_ref"), "kind": "divide"}
             answer = await self._ask_claimed(session, claim, notebook_id, DIVIDE_PROMPT, [pdf_source_id], None)
             if answer is None:
                 return {"status": "uncertain", "query_ref": claim["query_ref"], "kind": "divide"}
@@ -613,6 +711,10 @@ class DirectLessonProtocol:
     ) -> dict[str, Any]:
         async with self.provider.open(self.profile_ref) as session:
             claim = await self._claim(session, case_id, binding_ref, "execution", 0, EXECUTION_PROMPT, conversation_id, expected_cursor_version)
+            if claim.get("disposition") == "already_recorded":
+                return {"status": "acknowledged", "conversation_id": conversation_id, "cursor_version": claim.get("cursor_version")}
+            if claim.get("disposition") != "send_now":
+                return {"status": "uncertain", "query_ref": claim.get("query_ref"), "kind": "execution"}
             answer = await self._ask_claimed(session, claim, notebook_id, EXECUTION_PROMPT, [pdf_source_id, steps_source_id], conversation_id)
             if answer is None:
                 return {"status": "uncertain", "query_ref": claim["query_ref"], "kind": "execution"}
@@ -622,7 +724,7 @@ class DirectLessonProtocol:
                     f"Execution returned changed conversation ID: expected {conversation_id}, got {answer.conversation_id}",
                 )
 
-            await self.laravel.record_execution_result(
+            result = await self.laravel.record_execution_result(
                 query_ref=claim["query_ref"],
                 answer=answer.text,
                 conversation_out=answer.conversation_id,
@@ -633,6 +735,7 @@ class DirectLessonProtocol:
             return {
                 "status": "acknowledged",
                 "conversation_id": answer.conversation_id,
+                "cursor_version": result.get("cursor_version"),
             }
 
     async def process_lesson(
@@ -650,6 +753,10 @@ class DirectLessonProtocol:
         async with self.provider.open(self.profile_ref) as session:
             kind = "lesson_start" if work_ordinal == 1 else "lesson_continue"
             claim = await self._claim(session, case_id, binding_ref, kind, work_ordinal, question, conversation_id, expected_cursor_version)
+            if claim.get("disposition") == "already_recorded":
+                return {"status": "completed", **claim}
+            if claim.get("disposition") != "send_now":
+                return {"status": "uncertain", "query_ref": claim.get("query_ref"), "kind": kind}
             answer = await self._ask_claimed(session, claim, notebook_id, question, [pdf_source_id, steps_source_id], conversation_id)
             if answer is None:
                 return {"status": "uncertain", "query_ref": claim["query_ref"], "kind": kind}

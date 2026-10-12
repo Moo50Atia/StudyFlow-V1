@@ -186,6 +186,35 @@ export function releaseProfile(userDataDir: string): void {
   }
 }
 
+function assertExistingProfileIsClosed(userDataDir: string): void {
+  const singletonLock = join(userDataDir, "SingletonLock");
+  if (!existsSync(singletonLock)) return;
+
+  let pid: number;
+  try {
+    pid = Number(readlinkSync(singletonLock).split("-").pop());
+  } catch {
+    throw new Error("Could not verify the Brave profile lock. Close Brave and retry.");
+  }
+  if (!Number.isInteger(pid) || pid <= 0) {
+    throw new Error("The Brave profile is locked or has an unreadable lock. Close Brave and retry.");
+  }
+
+  try {
+    process.kill(pid, 0);
+    throw new Error("Close all Brave windows using this profile before refreshing NotebookLM credentials.");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ESRCH") {
+      if (error instanceof Error && error.message.startsWith("Close all Brave windows")) throw error;
+      throw new Error("Could not verify that the Brave profile is closed. Close Brave and retry.");
+    }
+  }
+
+  // Only stale lock files are cleaned. A live user profile is never killed or
+  // modified while Brave is running.
+  releaseProfile(userDataDir);
+}
+
 export interface LaunchedChrome {
   proc: ChildProcess;
   port: number;
@@ -201,18 +230,27 @@ export async function launchChrome(headless: boolean): Promise<LaunchedChrome> {
   }
 
   const userDataDir = process.env.NOTEBOOKLM_BROWSER_PROFILE_DIR || join(homedir(), ".notebooklm-mcp", "chrome-profile");
+  const useExistingProfile = process.env.NOTEBOOKLM_USE_EXISTING_PROFILE === "1";
+  const profileDirectory = process.env.NOTEBOOKLM_BROWSER_PROFILE_DIRECTORY || "Default";
+  if (!profileDirectory || profileDirectory.includes("/") || profileDirectory.includes("\\") || profileDirectory === "." || profileDirectory === "..") {
+    throw new Error("Invalid Brave profile directory name.");
+  }
   mkdirSync(userDataDir, { recursive: true, mode: 0o700 });
 
-  // Clear any leftover Chrome + lock files holding this profile, otherwise the
-  // new instance delegates to the old one and never reports its DevTools port.
-  releaseProfile(userDataDir);
+  if (useExistingProfile) {
+    assertExistingProfileIsClosed(userDataDir);
+  } else {
+    // The MCP-owned profile is safe to recover automatically; never do this to
+    // an explicitly selected, user-owned profile.
+    releaseProfile(userDataDir);
+  }
 
   const args = [
     // Port 0 → OS assigns an ephemeral port; address pinned to loopback.
     "--remote-debugging-port=0",
     `--remote-debugging-address=${CDP_HOST}`,
     `--user-data-dir=${userDataDir}`,
-    "--profile-directory=Default",
+    `--profile-directory=${profileDirectory}`,
     "--no-first-run",
     "--no-default-browser-check",
     // Prevent Google from flagging this as an automated browser

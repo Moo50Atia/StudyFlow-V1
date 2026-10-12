@@ -56,6 +56,7 @@
                             @error('pdf_path')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
                         </div>
 
+                        @if(app(\App\Services\LearningAccess::class)->isOwner(auth()->user()))
                         <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.35s">
                             <label for="mindmap_path" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Mind Map Image (PNG)</label>
                             <div id="mindmap-drop-zone" class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-xl hover:border-emerald-500 transition-colors duration-200 cursor-pointer">
@@ -77,6 +78,7 @@
                             @error('mindmap_path')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
                         </div>
 
+                        @endif
                         <div class="mb-8 animate-fade-in-up" style="animation-delay: 0.4s">
                             <label for="summary" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Summary</label>
                             <textarea name="summary" id="summary" rows="4" class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200">{{ old('summary') }}</textarea>

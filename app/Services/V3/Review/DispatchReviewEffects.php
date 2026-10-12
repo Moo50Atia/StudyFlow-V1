@@ -87,14 +87,29 @@ class DispatchReviewEffects
                         'candidate_version' => (int) $decision->candidate_version,
                         'outcome' => $decision->decision,
                     ];
-                    $proof = $this->gateway->queryDecision($item->workflow_id, $decision->id);
-                    if (($proof['status'] ?? 503) < 400 && ($proof['consumed'] ?? false) === true) {
-                        $delivered = true;
-                    } else {
-                        $sent = $this->gateway->sendDecisionSignal($item->workflow_id, $payload);
-                        if (($sent['accepted'] ?? false) === true) {
-                            $proof = $this->gateway->queryDecision($item->workflow_id, $decision->id);
-                            $delivered = ($proof['status'] ?? 503) < 400 && ($proof['consumed'] ?? false) === true;
+                    $reviewOwnerReady = true;
+                    if (str_starts_with($item->workflow_id, 'v3-web-review-')) {
+                        $started = $this->gateway->startWebReview($decision->review_item_id, [
+                            'schema_version' => 1,
+                            'case_id' => $decision->case_id,
+                            'section_ref' => $decision->section_id,
+                            'review_ref' => $decision->review_item_id,
+                            'candidate_ref' => $decision->candidate_id,
+                            'candidate_version' => (int) $decision->candidate_version,
+                        ]);
+                        $reviewOwnerReady = ($started['accepted'] ?? false) === true;
+                        if (! $reviewOwnerReady) $errorCode = 'review_owner_unavailable';
+                    }
+                    if ($reviewOwnerReady) {
+                        $proof = $this->gateway->queryDecision($item->workflow_id, $decision->id);
+                        if (($proof['status'] ?? 503) < 400 && ($proof['consumed'] ?? false) === true) {
+                            $delivered = true;
+                        } else {
+                            $sent = $this->gateway->sendDecisionSignal($item->workflow_id, $payload);
+                            if (($sent['accepted'] ?? false) === true) {
+                                $proof = $this->gateway->queryDecision($item->workflow_id, $decision->id);
+                                $delivered = ($proof['status'] ?? 503) < 400 && ($proof['consumed'] ?? false) === true;
+                            }
                         }
                     }
 

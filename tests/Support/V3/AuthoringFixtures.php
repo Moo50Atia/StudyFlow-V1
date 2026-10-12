@@ -24,7 +24,7 @@ use Illuminate\Support\Str;
 
 class AuthoringFixtures
 {
-    public static function createAuthoringEnvironment(array $settingsOverrides = []): array
+    public static function createAuthoringEnvironment(array $settingsOverrides = [], ?string $pipelineVersion = null): array
     {
         $teacher = AccessFixtures::createEnrolledTeacher('Authoring Teacher ' . Str::random(5));
         $admin = AccessFixtures::createEnrolledAdmin('Authoring Admin ' . Str::random(5));
@@ -66,6 +66,7 @@ class AuthoringFixtures
             'action' => 'process',
             'state' => 'ready',
             'state_version' => 1,
+            'pipeline_version' => $pipelineVersion ?? 'v3_per_pdf',
             'created_at' => now(),
             'updated_at' => now(),
         ]);

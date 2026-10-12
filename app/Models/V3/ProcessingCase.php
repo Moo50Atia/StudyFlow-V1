@@ -115,4 +115,12 @@ class ProcessingCase extends Model implements V3OwnedResource
     {
         return ($this->pipeline_version ?? '') === 'notebooklm_combined_v1';
     }
+
+    public function isWebPipelineCase(): bool
+    {
+        // Web intake reuses the combined NotebookLM case protocol. The subject
+        // run item is the durable link that distinguishes it from CLI cases.
+        return ($this->pipeline_version ?? '') === 'notebooklm_per_pdf_web_v1'
+            || SubjectRunItem::where('case_id', $this->id)->exists();
+    }
 }

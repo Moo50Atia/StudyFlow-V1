@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "submission_id": "d27dc9d6-69e4-48c6-9993-c55e9d40bc36",
+  "subjects": [
+    {
+      "subject_key": "mechanics-eight-pdfs-sequential",
+      "mode": "new",
+      "display_title": "Mechanics — eight PDFs, separate lesson maps",
+      "provider": "gemini",
+      "model": "gemini-2.5-flash",
+      "timeout_seconds": 300,
+      "account_check_notebook_id": "85b76e80-ea8a-4f86-9311-185634fcd2ed",
+      "pdf_processing": "per_pdf",
+      "pdf_files": [
+        "notebooklm_mechanics_8pdf_test/محاضره ميكانيكا 1.pdf",
+        "notebooklm_mechanics_8pdf_test/محاضره ميكانيكا 2.pdf",
+        "notebooklm_mechanics_8pdf_test/محاضره ميكانيكا 3.pdf",
+        "notebooklm_mechanics_8pdf_test/محاضره ميكانيكا 4.pdf",
+        "notebooklm_mechanics_8pdf_test/محاضره ميناميكا 5.pdf",
+        "notebooklm_mechanics_8pdf_test/محاضره ميكانيكا 6.pdf",
+        "notebooklm_mechanics_8pdf_test/ميكانيكا 8.pdf",
+        "notebooklm_mechanics_8pdf_test/ميكانيكا 10.pdf"
+      ],
+      "steps": "steps.txt"
+    }
+  ]
+}

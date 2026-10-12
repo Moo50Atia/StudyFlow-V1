@@ -31,6 +31,13 @@ class BundleInvalidError(ProviderError):
         super().__init__("bundle_invalid", message, raw_detail)
 
 
+class ProviderRateLimitError(ProviderUnavailableError):
+    def __init__(self, message: str = "NotebookLM provider rate limit reached.", retry_after_seconds: Optional[float] = None, raw_detail: Optional[str] = None):
+        super().__init__(message=message, raw_detail=raw_detail)
+        self.code = "provider_rate_limit"
+        self.retry_after_seconds = retry_after_seconds
+
+
 @dataclass(frozen=True)
 class NotebookRef:
     id: str
@@ -82,6 +89,12 @@ class NotebookFiles(Protocol):
     async def get_source(self, notebook_id: str, source_id: str) -> SourceReceipt:
         ...
 
+    async def list_sources(self, notebook_id: str) -> list[SourceReceipt]:
+        ...
+
+    async def verify_owner(self, proof_notebook_id: str) -> str:
+        ...
+
 
 class NotebookConversation(Protocol):
     async def configure_format(self, notebook_id: str, format_text: str) -> None:
@@ -96,6 +109,7 @@ class NotebookConversation(Protocol):
         question: str,
         source_ids: Sequence[str],
         conversation_id: Optional[str] = None,
+        fresh_after_conversation_id: Optional[str] = None,
     ) -> TurnAnswer:
         ...
 
@@ -105,6 +119,13 @@ class NotebookConversation(Protocol):
         conversation_id: str,
         limit: int = 100,
     ) -> list[Tuple[str, str]]:
+        ...
+
+    async def current_conversation_id(self, notebook_id: str) -> Optional[str]:
+        ...
+
+    async def reset_conversation(self, notebook_id: str, conversation_id: str) -> None:
+        """Permanently clear exactly this conversation after its local archive is verified."""
         ...
 
 

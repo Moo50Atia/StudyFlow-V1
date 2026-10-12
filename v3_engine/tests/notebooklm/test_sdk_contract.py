@@ -6,10 +6,11 @@ import pytest
 from unittest.mock import AsyncMock, patch
 
 from notebooklm import ChatGoal, ChatResponseLength, NotebookLMClient
-from notebooklm.types import Notebook, Source, AskResult
+from notebooklm.types import Notebook, Source, AskResult, SharePermission
 from notebooklm._types.chat import ChatSettings
 
 from v3_engine.notebooklm.ports import (
+    AuthenticationRequiredError,
     SessionProvider,
     NotebookFiles,
     NotebookConversation,
@@ -77,6 +78,17 @@ async def test_sdk_instantiation_disables_retries():
 
 
 @pytest.mark.asyncio
+async def test_owner_verification_uses_the_sdk_permission_enum():
+    client = AsyncMock()
+    client.notebooks.get.return_value = Notebook(
+        id="proof-notebook", title="approved proof", role=SharePermission.OWNER,
+    )
+    session = SdkProviderSession(client)
+    assert await session.verify_owner("proof-notebook") == "owner"
+    client.notebooks.get.assert_awaited_once_with("proof-notebook")
+
+
+@pytest.mark.asyncio
 async def test_sdk_http_transport_single_send_on_error(monkeypatch):
     """Provider errors do not cause the wrapper to issue another chat request."""
     from notebooklm.exceptions import RateLimitError
@@ -121,6 +133,41 @@ async def test_sdk_file_port_uses_real_namespaces_and_exposes_source_inventory(t
         "notebook-1", str(pdf_path), mime_type="application/pdf",
         wait=False, title="accepted.pdf",
     )
+
+
+@pytest.mark.asyncio
+async def test_sdk_upload_gives_opaque_pdf_a_private_pdf_suffix(tmp_path):
+    client = AsyncMock()
+    staged_paths = []
+
+    async def add_file(*args, **kwargs):
+        staged_path = Path(args[1])
+        staged_paths.append(staged_path)
+        assert staged_path.suffix == ".pdf"
+        assert staged_path.exists()
+        assert staged_path.stat().st_mode & 0o777 == 0o600
+        assert staged_path.read_bytes() == body
+        return SimpleNamespace(
+            id="source-opaque-pdf", title=kwargs["title"],
+            content_mime="application/pdf", is_ready=False, is_error=False,
+        )
+
+    client.sources.add_file.side_effect = add_file
+    session = SdkProviderSession(client)
+    opaque_path = tmp_path / "a7b2c4d6.bin"
+    body = b"%PDF-1.4 private fixture"
+    opaque_path.write_bytes(body)
+
+    receipt = await session.files.upload_file(
+        "notebook-1", opaque_path, "application/pdf", "lesson-source.pdf",
+    )
+
+    staged_path = staged_paths[0]
+    assert staged_path != opaque_path
+    assert staged_path.suffix == ".pdf"
+    assert not staged_path.exists(), "Temporary provider copy must be removed after upload."
+    assert opaque_path.read_bytes() == body, "Canonical opaque artifact must remain unchanged."
+    assert receipt.source_id == "source-opaque-pdf"
 
 
 def _create_synthetic_storage_state(path: Path):
@@ -312,3 +359,49 @@ async def test_sdk_session_provider_lifecycle(tmp_path):
     finally:
         httpx.AsyncClient.send = orig_send
 
+
+@pytest.mark.asyncio
+async def test_sdk_session_provider_normalizes_csrf_bootstrap_failure(tmp_path, monkeypatch):
+    """A missing CSRF token is reported as authentication_required, not a traceback."""
+    from v3_engine.notebooklm.sdk_provider import SdkSessionProvider
+
+    state_file = tmp_path / "storage_state.json"
+    _create_synthetic_storage_state(state_file)
+
+    class BrokenClientContext:
+        async def __aenter__(self):
+            raise ValueError("CSRF token not found in HTML")
+
+        async def __aexit__(self, *args):
+            return False
+
+    monkeypatch.setattr(
+        "v3_engine.notebooklm.sdk_provider.NotebookLMClient.from_storage",
+        lambda **kwargs: BrokenClientContext(),
+    )
+    provider = SdkSessionProvider(storage_state_path=state_file)
+
+    with pytest.raises(AuthenticationRequiredError) as exc_info:
+        async with provider.open():
+            pytest.fail("Session must not be yielded when CSRF bootstrap fails")
+
+    assert exc_info.value.code == "authentication_required"
+
+
+@pytest.mark.parametrize("origin", ["https://notebook.google.com", "https://notebooklm.google.com"])
+@pytest.mark.asyncio
+async def test_sdk_session_uses_the_requested_origin_on_the_real_http_boundary(tmp_path, monkeypatch, origin):
+    from v3_engine.notebooklm.sdk_provider import SdkSessionProvider
+    state_file = tmp_path / "storage_state.json"
+    _create_synthetic_storage_state(state_file)
+    requested_origins = []
+    async def send(_client, request, **kwargs):
+        if request.method == "GET":
+            requested_origins.append(f"{request.url.scheme}://{request.url.host}")
+            html = '<script>window.WIZ_global_data={"SNlM0e":"test-csrf","FdrFJe":"test-session"};</script>'
+            return httpx.Response(200, text=html, request=request)
+        return httpx.Response(200, text="ok", request=request)
+    monkeypatch.setattr(httpx.AsyncClient, "send", send)
+    async with SdkSessionProvider(base_url=origin, storage_state_path=state_file).open():
+        pass
+    assert requested_origins and set(requested_origins) == {origin}

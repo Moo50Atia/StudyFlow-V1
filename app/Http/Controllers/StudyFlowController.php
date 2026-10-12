@@ -47,6 +47,10 @@ class StudyFlowController extends Controller
      */
     public function storeBulkSections(BulkSectionRequest $request, Lecture $lecture)
     {
+        if (! app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessLecture(auth()->user(), $lecture)) {
+            abort(403, 'Unauthorized access to pipeline-linked lecture.');
+        }
+
         $count = 0;
         foreach ($request->sections as $sectionData) {
             $lecture->sections()->create([
@@ -70,6 +74,10 @@ class StudyFlowController extends Controller
      */
     public function storeBulkContent(BulkContentRequest $request, Section $section)
     {
+        if (! app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessSection(auth()->user(), $section)) {
+            abort(403, 'Unauthorized access to pipeline-linked section.');
+        }
+
         $messages = [];
 
         // Update section links if provided

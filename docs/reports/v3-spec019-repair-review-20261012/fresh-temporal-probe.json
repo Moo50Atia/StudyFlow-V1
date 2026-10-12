@@ -1,0 +1,15 @@
+{
+  "http_status": 202,
+  "body": {
+    "outcome": "accepted",
+    "submission_id": "df95e99c-6302-4c02-a518-9f84ec0f14c9",
+    "run_id": "88f9a9c1-3b4c-4385-8b51-5840e0f36a21",
+    "state": "queued"
+  },
+  "actual_temporal_workflows": [],
+  "temporal_runtime": "real managed local server, empty v3-terminal namespace",
+  "production_worker_startup": {
+    "error_type": "ValueError",
+    "message": "Activity verify_archive_activity is not async so an activity_executor must be present"
+  }
+}

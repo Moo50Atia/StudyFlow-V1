@@ -89,7 +89,7 @@
                         @forelse($questions as $index => $question)
                         <div class="border dark:border-gray-700 rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 animate-fade-in-up" style="animation-delay: {{ $index * 0.05 }}s;">
                             @if($question->question_image)
-                            <img src="{{ Storage::url($question->question_image) }}" alt="Question" class="w-full h-40 object-cover">
+                            <img src="{{ route('owner-assets.show', ['kind' => 'question', 'id' => $question->id, 'field' => 'question_image']) }}" alt="Question" class="w-full h-40 object-cover">
                             @else
                             <div class="w-full h-40 bg-gradient-to-r from-blue-400 to-indigo-500 flex items-center justify-center">
                                 <span class="text-white text-4xl">❓</span>

@@ -16,6 +16,10 @@ class ExamQuestionController extends Controller
     {
         $query = ExamQuestion::with('lecture.subject');
 
+        $query->whereHas('lecture', function ($q) {
+            app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->scopeVisibleLectures($q, auth()->user());
+        });
+
         // Filter by subject (via lecture)
         if ($request->filled('subject_id')) {
             $query->whereHas('lecture', function ($q) use ($request) {
@@ -36,7 +40,8 @@ class ExamQuestionController extends Controller
 
         // If subject is selected, get its lectures
         if ($request->filled('subject_id')) {
-            $lectures = Lecture::where('subject_id', $request->subject_id)->orderBy('title')->get();
+            $lecQuery = Lecture::where('subject_id', $request->subject_id)->orderBy('title');
+            $lectures = app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->scopeVisibleLectures($lecQuery, auth()->user())->get();
         }
 
         return view('exam_questions.index', compact('examQuestions', 'subjects', 'lectures'));
@@ -44,7 +49,8 @@ class ExamQuestionController extends Controller
 
     public function create(): \Illuminate\Contracts\View\View
     {
-        $lectures = Lecture::with('subject')->orderBy('title')->get();
+        $lecQuery = Lecture::with('subject')->orderBy('title');
+        $lectures = app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->scopeVisibleLectures($lecQuery, auth()->user())->get();
         return view('exam_questions.create', compact('lectures'));
     }
 
@@ -52,12 +58,17 @@ class ExamQuestionController extends Controller
     {
         $data = $request->validated();
 
+        $lecture = Lecture::findOrFail($data['lecture_id']);
+        if (! app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessLecture(auth()->user(), $lecture)) {
+            abort(403);
+        }
+
         // Handle image uploads
         if ($request->hasFile('question_image')) {
-            $data['question_image'] = $request->file('question_image')->store('exam_questions/images', 'public');
+            $data['question_image'] = $request->file('question_image')->store('exam_questions/images', 'local');
         }
         if ($request->hasFile('solution_image')) {
-            $data['solution_image'] = $request->file('solution_image')->store('exam_questions/solutions', 'public');
+            $data['solution_image'] = $request->file('solution_image')->store('exam_questions/solutions', 'local');
         }
 
         ExamQuestion::create($data);
@@ -66,32 +77,52 @@ class ExamQuestionController extends Controller
 
     public function show(ExamQuestion $examQuestion): \Illuminate\Contracts\View\View
     {
+        if ($examQuestion->lecture && ! app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessLecture(auth()->user(), $examQuestion->lecture)) {
+            abort(403);
+        }
+
         $examQuestion->load('lecture.subject');
         return view('exam_questions.show', compact('examQuestion'));
     }
 
     public function edit(ExamQuestion $examQuestion): \Illuminate\Contracts\View\View
     {
-        $lectures = Lecture::with('subject')->orderBy('title')->get();
+        if ($examQuestion->lecture && ! app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessLecture(auth()->user(), $examQuestion->lecture)) {
+            abort(403);
+        }
+
+        $lecQuery = Lecture::with('subject')->orderBy('title');
+        $lectures = app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->scopeVisibleLectures($lecQuery, auth()->user())->get();
         return view('exam_questions.edit', compact('examQuestion', 'lectures'));
     }
 
     public function update(ExamQuestionRequest $request, ExamQuestion $examQuestion): \Illuminate\Http\RedirectResponse
     {
+        if ($examQuestion->lecture && ! app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessLecture(auth()->user(), $examQuestion->lecture)) {
+            abort(403);
+        }
+
         $data = $request->validated();
+
+        if (isset($data['lecture_id']) && $data['lecture_id'] != $examQuestion->lecture_id) {
+            $newLecture = Lecture::findOrFail($data['lecture_id']);
+            if (! app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessLecture(auth()->user(), $newLecture)) {
+                abort(403);
+            }
+        }
 
         // Handle image uploads
         if ($request->hasFile('question_image')) {
             if ($examQuestion->question_image) {
-                Storage::disk('public')->delete($examQuestion->question_image);
+                Storage::disk('local')->delete($examQuestion->question_image);
             }
-            $data['question_image'] = $request->file('question_image')->store('exam_questions/images', 'public');
+            $data['question_image'] = $request->file('question_image')->store('exam_questions/images', 'local');
         }
         if ($request->hasFile('solution_image')) {
             if ($examQuestion->solution_image) {
-                Storage::disk('public')->delete($examQuestion->solution_image);
+                Storage::disk('local')->delete($examQuestion->solution_image);
             }
-            $data['solution_image'] = $request->file('solution_image')->store('exam_questions/solutions', 'public');
+            $data['solution_image'] = $request->file('solution_image')->store('exam_questions/solutions', 'local');
         }
 
         $examQuestion->update($data);
@@ -100,12 +131,16 @@ class ExamQuestionController extends Controller
 
     public function destroy(ExamQuestion $examQuestion): \Illuminate\Http\RedirectResponse
     {
+        if ($examQuestion->lecture && ! app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessLecture(auth()->user(), $examQuestion->lecture)) {
+            abort(403);
+        }
+
         // Delete images if exist
         if ($examQuestion->question_image) {
-            Storage::disk('public')->delete($examQuestion->question_image);
+            Storage::disk('local')->delete($examQuestion->question_image);
         }
         if ($examQuestion->solution_image) {
-            Storage::disk('public')->delete($examQuestion->solution_image);
+            Storage::disk('local')->delete($examQuestion->solution_image);
         }
 
         $examQuestion->delete();

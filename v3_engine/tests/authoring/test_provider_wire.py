@@ -6,6 +6,7 @@ from v3_engine.authoring.providers import (
     call_gemini_authoring,
     call_glm_authoring,
     call_deepseek_authoring,
+    call_qwen_authoring,
     format_user_payload,
 )
 
@@ -51,6 +52,7 @@ async def test_gemini_official_shape_fixture():
         assert request.headers["x-goog-api-key"] == "test-gemini-key"
         body = json.loads(request.content.decode("utf-8"))
         assert body["systemInstruction"]["parts"][0]["text"] == "Scene Template Text"
+        assert body["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 12000
         user_msg = json.loads(body["contents"][0]["parts"][0]["text"])
         assert user_msg["output_contract"] == OUTPUT_CONTRACT
         return httpx.Response(200, json=fixture_response)
@@ -63,6 +65,7 @@ async def test_gemini_official_shape_fixture():
             template_text="Scene Template Text",
             prompt="Wave simulation prompt",
             client=client,
+            thinking_budget=12000,
         )
 
     assert model == "gemini-2.5-pro"
@@ -179,6 +182,59 @@ async def test_deepseek_official_shape_fixture():
 
 
 @pytest.mark.asyncio
+async def test_qwen_official_shape_fixture():
+    package_obj = {
+        "schema_version": 1,
+        "files": [
+            {"path": "index.html", "content": "<!DOCTYPE html><html><body>Qwen scene</body></html>"}
+        ]
+    }
+    fixture_response = {
+        "id": "qwen-resp-1",
+        "model": "qwen-plus",
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "message": {
+                    "role": "assistant",
+                    "content": json.dumps(package_obj)
+                }
+            }
+        ],
+        "usage": {
+            "prompt_tokens": 130,
+            "completion_tokens": 380
+        }
+    }
+
+    async def mock_handler(request: httpx.Request):
+        assert request.url.path == "/compatible-mode/v1/chat/completions"
+        assert request.headers["authorization"] == "Bearer test-qwen-key"
+        body = json.loads(request.content.decode("utf-8"))
+        assert body["messages"][0]["role"] == "system"
+        assert body["messages"][0]["content"] == "Scene Template Text"
+        user_msg = json.loads(body["messages"][1]["content"])
+        assert user_msg["output_contract"] == OUTPUT_CONTRACT
+        return httpx.Response(200, json=fixture_response)
+
+    transport = httpx.MockTransport(mock_handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        text, model, resp_id, raw_json, usage = await call_qwen_authoring(
+            model="qwen-plus",
+            api_key="test-qwen-key",
+            template_text="Scene Template Text",
+            prompt="Wave simulation prompt",
+            client=client,
+        )
+
+    assert model == "qwen-plus"
+    assert resp_id == "qwen-resp-1"
+    assert json.loads(text) == package_obj
+    assert usage["input_tokens"] == 130
+    assert usage["output_tokens"] == 380
+
+
+@pytest.mark.asyncio
 async def test_provider_rejects_truncated_or_filtered_output():
     # Gemini filtered response
     filtered_gemini = {
@@ -215,6 +271,28 @@ async def test_provider_rejects_truncated_or_filtered_output():
         with pytest.raises(ValueError, match="finish_reason"):
             await call_deepseek_authoring(
                 model="deepseek-coder",
+                api_key="key",
+                template_text="tmpl",
+                prompt="prompt",
+                client=client,
+            )
+
+    # Qwen truncated response (finish_reason = length)
+    truncated_qwen = {
+        "id": "qwen-1",
+        "model": "qwen-plus",
+        "choices": [
+            {
+                "finish_reason": "length",
+                "message": {"role": "assistant", "content": "incomplete"}
+            }
+        ]
+    }
+    transport3 = httpx.MockTransport(lambda req: httpx.Response(200, json=truncated_qwen))
+    async with httpx.AsyncClient(transport=transport3) as client:
+        with pytest.raises(ValueError, match="finish_reason"):
+            await call_qwen_authoring(
+                model="qwen-plus",
                 api_key="key",
                 template_text="tmpl",
                 prompt="prompt",

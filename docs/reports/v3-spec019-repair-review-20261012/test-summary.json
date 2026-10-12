@@ -1,0 +1,28 @@
+{
+  "php-focused.xml": {
+    "cases": 144,
+    "passed": 143,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "python-focused.xml": {
+    "cases": 103,
+    "passed": 102,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "python-controls-replay.xml": {
+    "cases": 9,
+    "passed": 9,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "python_unique": {
+    "passed": 105,
+    "skipped": 1,
+    "overlap_between_runs": 6
+  }
+}

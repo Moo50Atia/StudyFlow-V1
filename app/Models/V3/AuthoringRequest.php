@@ -21,6 +21,7 @@ class AuthoringRequest extends Model implements V3OwnedResource
     {
         return [
             'settings_version_id' => 'integer',
+            'provider_override_json' => 'array',
             'state_version' => 'integer',
             'attempt_limit' => 'integer',
             'last_alerted_at' => 'datetime',
@@ -47,6 +48,11 @@ class AuthoringRequest extends Model implements V3OwnedResource
     public function qualification(): BelongsTo
     {
         return $this->belongsTo(PromptQualification::class, 'qualification_id', 'id');
+    }
+
+    public function promptGate(): BelongsTo
+    {
+        return $this->belongsTo(QualificationGate::class, 'prompt_gate_id', 'id');
     }
 
     public function settingsVersion(): BelongsTo

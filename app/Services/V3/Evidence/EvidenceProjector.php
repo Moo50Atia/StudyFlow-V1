@@ -228,19 +228,32 @@ class EvidenceProjector
             ];
         }
 
-        // 4. SceneQualification
+        // Resolve candidate early for qualification, checks, and provenance branching
+        $candidate = SceneCandidate::where('id', $approvedScene->candidate_id)->first();
+
+        // 4. SceneQualification or QualificationGate
         $qualificationId = $approvedScene->qualification_id;
-        $sceneQual = SceneQualification::where('id', $qualificationId)->first();
-        if (! $sceneQual) {
-            $gaps[] = ['code' => 'missing_row', 'parent_ref' => (string) ($reviewItem?->id ?? $approvedScene->id)];
-        } elseif ($sceneQual->case_id !== $case->id || ($reviewItem && $reviewItem->qualification_id !== $sceneQual->id)) {
-            $gaps[] = ['code' => 'parent_mismatch', 'parent_ref' => (string) ($reviewItem?->id ?? $approvedScene->id)];
-        } else {
+        $sceneQual = $qualificationId ? SceneQualification::where('id', $qualificationId)->first() : null;
+
+        $qualificationGateId = $approvedScene->qualification_gate_id ?? $reviewItem?->qualification_gate_id;
+        $sceneGate = null;
+        if ($qualificationGateId) {
+            $sceneGate = \Illuminate\Support\Facades\DB::table('v3_qualification_gates')->where('id', $qualificationGateId)->first();
+        }
+        if (! $sceneGate && $candidate) {
+            $sceneGate = \Illuminate\Support\Facades\DB::table('v3_qualification_gates')
+                ->where('case_id', $case->id)
+                ->where('candidate_id', $candidate->id)
+                ->where('gate_stage', 'scene')
+                ->first();
+        }
+
+        if ($sceneGate) {
             $nodes[] = [
-                'kind' => 'scene_qualification',
-                'ref' => (string) $sceneQual->id,
-                'state' => (string) $sceneQual->verdict,
-                'recorded_at' => Carbon::parse($sceneQual->created_at)->toIso8601String(),
+                'kind' => 'qualification_gate',
+                'ref' => (string) $sceneGate->id,
+                'state' => (string) $sceneGate->basis,
+                'recorded_at' => Carbon::parse($sceneGate->created_at)->toIso8601String(),
                 'content_state' => 'not_applicable',
                 'content_ref' => null,
             ];
@@ -248,21 +261,65 @@ class EvidenceProjector
                 $links[] = [
                     'from_kind' => 'teacher_review_item',
                     'from_ref' => (string) $reviewItem->id,
-                    'to_kind' => 'scene_qualification',
-                    'to_ref' => (string) $sceneQual->id,
-                    'relation' => 'qualification_id',
+                    'to_kind' => 'qualification_gate',
+                    'to_ref' => (string) $sceneGate->id,
+                    'relation' => 'qualification_gate_id',
+                ];
+            } else {
+                $links[] = [
+                    'from_kind' => 'approved_scene',
+                    'from_ref' => (string) $approvedScene->id,
+                    'to_kind' => 'qualification_gate',
+                    'to_ref' => (string) $sceneGate->id,
+                    'relation' => 'qualification_gate_id',
                 ];
             }
+        } elseif ($sceneQual) {
+            if ($sceneQual->case_id !== $case->id || ($reviewItem && $reviewItem->qualification_id !== $sceneQual->id)) {
+                $gaps[] = ['code' => 'parent_mismatch', 'parent_ref' => (string) ($reviewItem?->id ?? $approvedScene->id)];
+            } else {
+                $nodes[] = [
+                    'kind' => 'scene_qualification',
+                    'ref' => (string) $sceneQual->id,
+                    'state' => (string) $sceneQual->verdict,
+                    'recorded_at' => Carbon::parse($sceneQual->created_at)->toIso8601String(),
+                    'content_state' => 'not_applicable',
+                    'content_ref' => null,
+                ];
+                if ($reviewItem) {
+                    $links[] = [
+                        'from_kind' => 'teacher_review_item',
+                        'from_ref' => (string) $reviewItem->id,
+                        'to_kind' => 'scene_qualification',
+                        'to_ref' => (string) $sceneQual->id,
+                        'relation' => 'qualification_id',
+                    ];
+                }
+            }
+        } else {
+            $gaps[] = ['code' => 'missing_row', 'parent_ref' => (string) ($reviewItem?->id ?? $approvedScene->id)];
         }
 
         // 5. SceneCheckRun
         $checkRun = $sceneQual ? SceneCheckRun::where('id', $sceneQual->check_run_id)->first() : null;
+        if (! $checkRun && $candidate) {
+            $candState = \App\Models\V3\SceneCandidateState::where('candidate_id', $candidate->id)->first();
+            if ($candState?->check_run_id) {
+                $checkRun = SceneCheckRun::where('id', $candState->check_run_id)->first();
+            }
+            if (! $checkRun) {
+                $checkRun = SceneCheckRun::where('candidate_id', $candidate->id)->latest('created_at')->first();
+            }
+        }
+
         if (! $checkRun) {
             if ($sceneQual) {
                 $gaps[] = ['code' => 'missing_row', 'parent_ref' => (string) $sceneQual->id];
+            } elseif ($sceneGate) {
+                $gaps[] = ['code' => 'missing_row', 'parent_ref' => (string) $sceneGate->id];
             }
         } elseif ($checkRun->case_id !== $case->id || $checkRun->candidate_id !== $approvedScene->candidate_id) {
-            $gaps[] = ['code' => 'parent_mismatch', 'parent_ref' => (string) $sceneQual->id];
+            $gaps[] = ['code' => 'parent_mismatch', 'parent_ref' => (string) ($sceneQual?->id ?? $sceneGate?->id ?? $approvedScene->id)];
         } else {
             $nodes[] = [
                 'kind' => 'scene_check_run',
@@ -272,17 +329,26 @@ class EvidenceProjector
                 'content_state' => 'not_applicable',
                 'content_ref' => null,
             ];
-            $links[] = [
-                'from_kind' => 'scene_qualification',
-                'from_ref' => (string) $sceneQual->id,
-                'to_kind' => 'scene_check_run',
-                'to_ref' => (string) $checkRun->id,
-                'relation' => 'check_run_id',
-            ];
+            if ($sceneQual) {
+                $links[] = [
+                    'from_kind' => 'scene_qualification',
+                    'from_ref' => (string) $sceneQual->id,
+                    'to_kind' => 'scene_check_run',
+                    'to_ref' => (string) $checkRun->id,
+                    'relation' => 'check_run_id',
+                ];
+            } elseif ($sceneGate) {
+                $links[] = [
+                    'from_kind' => 'qualification_gate',
+                    'from_ref' => (string) $sceneGate->id,
+                    'to_kind' => 'scene_check_run',
+                    'to_ref' => (string) $checkRun->id,
+                    'relation' => 'check_run_id',
+                ];
+            }
         }
 
         // 6. SceneCandidate
-        $candidate = SceneCandidate::where('id', $approvedScene->candidate_id)->first();
         if (! $candidate) {
             $gaps[] = ['code' => 'missing_row', 'parent_ref' => (string) ($reviewItem?->id ?? $approvedScene->id)];
         } elseif ($candidate->case_id !== $case->id || ($reviewItem && $candidate->id !== $reviewItem->candidate_id)) {
@@ -317,56 +383,89 @@ class EvidenceProjector
             }
         }
 
-        // 7. AuthoringRequest
-        $authoringRequest = $candidate ? AuthoringRequest::where('id', $candidate->request_id)->first() : null;
-        if (! $authoringRequest) {
-            if ($candidate) {
-                $gaps[] = ['code' => 'missing_row', 'parent_ref' => (string) $candidate->id];
-            }
-        } elseif ($authoringRequest->case_id !== $case->id || $authoringRequest->section_id !== $candidate->section_id) {
-            $gaps[] = ['code' => 'parent_mismatch', 'parent_ref' => (string) $candidate->id];
-        } else {
-            $nodes[] = [
-                'kind' => 'authoring_request',
-                'ref' => (string) $authoringRequest->id,
-                'state' => 'completed',
-                'recorded_at' => Carbon::parse($authoringRequest->created_at)->toIso8601String(),
-                'content_state' => 'not_applicable',
-                'content_ref' => null,
-            ];
-            $links[] = [
-                'from_kind' => 'scene_candidate',
-                'from_ref' => (string) $candidate->id,
-                'to_kind' => 'authoring_request',
-                'to_ref' => (string) $authoringRequest->id,
-                'relation' => 'request_id',
-            ];
-        }
+        // Check if candidate is manual import
+        $isManual = $candidate && ($candidate->origin === 'manual_import' || ! empty($candidate->manual_import_id));
+        $manualImport = null;
+        $authoringRequest = null;
+        $codingAttempt = null;
 
-        // 8. CodingAttempt
-        $codingAttempt = $candidate ? CodingAttempt::where('id', $candidate->attempt_id)->first() : null;
-        if (! $codingAttempt) {
-            if ($candidate) {
-                $gaps[] = ['code' => 'missing_row', 'parent_ref' => (string) $candidate->id];
+        if ($isManual) {
+            if ($candidate->manual_import_id) {
+                $manualImport = \Illuminate\Support\Facades\DB::table('v3_manual_scene_imports')->where('id', $candidate->manual_import_id)->first();
             }
-        } elseif ($codingAttempt->case_id !== $case->id || ($authoringRequest && $codingAttempt->request_id !== $authoringRequest->id)) {
-            $gaps[] = ['code' => 'parent_mismatch', 'parent_ref' => (string) $candidate->id];
+            if (! $manualImport) {
+                $manualImport = \Illuminate\Support\Facades\DB::table('v3_manual_scene_imports')->where('candidate_id', $candidate->id)->first();
+            }
+
+            if ($manualImport) {
+                $nodes[] = [
+                    'kind' => 'manual_scene_import',
+                    'ref' => (string) $manualImport->id,
+                    'state' => 'imported',
+                    'recorded_at' => Carbon::parse($manualImport->created_at)->toIso8601String(),
+                    'content_state' => 'not_applicable',
+                    'content_ref' => null,
+                ];
+                $links[] = [
+                    'from_kind' => 'scene_candidate',
+                    'from_ref' => (string) $candidate->id,
+                    'to_kind' => 'manual_scene_import',
+                    'to_ref' => (string) $manualImport->id,
+                    'relation' => 'manual_import_id',
+                ];
+            }
         } else {
-            $nodes[] = [
-                'kind' => 'coding_attempt',
-                'ref' => (string) $codingAttempt->id,
-                'state' => (string) $codingAttempt->state,
-                'recorded_at' => Carbon::parse($codingAttempt->created_at)->toIso8601String(),
-                'content_state' => 'not_applicable',
-                'content_ref' => null,
-            ];
-            $links[] = [
-                'from_kind' => 'scene_candidate',
-                'from_ref' => (string) $candidate->id,
-                'to_kind' => 'coding_attempt',
-                'to_ref' => (string) $codingAttempt->id,
-                'relation' => 'attempt_id',
-            ];
+            // 7. AuthoringRequest
+            $authoringRequest = $candidate ? AuthoringRequest::where('id', $candidate->request_id)->first() : null;
+            if (! $authoringRequest) {
+                if ($candidate) {
+                    $gaps[] = ['code' => 'missing_row', 'parent_ref' => (string) $candidate->id];
+                }
+            } elseif ($authoringRequest->case_id !== $case->id || $authoringRequest->section_id !== $candidate->section_id) {
+                $gaps[] = ['code' => 'parent_mismatch', 'parent_ref' => (string) $candidate->id];
+            } else {
+                $nodes[] = [
+                    'kind' => 'authoring_request',
+                    'ref' => (string) $authoringRequest->id,
+                    'state' => 'completed',
+                    'recorded_at' => Carbon::parse($authoringRequest->created_at)->toIso8601String(),
+                    'content_state' => 'not_applicable',
+                    'content_ref' => null,
+                ];
+                $links[] = [
+                    'from_kind' => 'scene_candidate',
+                    'from_ref' => (string) $candidate->id,
+                    'to_kind' => 'authoring_request',
+                    'to_ref' => (string) $authoringRequest->id,
+                    'relation' => 'request_id',
+                ];
+            }
+
+            // 8. CodingAttempt
+            $codingAttempt = $candidate ? CodingAttempt::where('id', $candidate->attempt_id)->first() : null;
+            if (! $codingAttempt) {
+                if ($candidate) {
+                    $gaps[] = ['code' => 'missing_row', 'parent_ref' => (string) $candidate->id];
+                }
+            } elseif ($codingAttempt->case_id !== $case->id || ($authoringRequest && $codingAttempt->request_id !== $authoringRequest->id)) {
+                $gaps[] = ['code' => 'parent_mismatch', 'parent_ref' => (string) $candidate->id];
+            } else {
+                $nodes[] = [
+                    'kind' => 'coding_attempt',
+                    'ref' => (string) $codingAttempt->id,
+                    'state' => (string) $codingAttempt->state,
+                    'recorded_at' => Carbon::parse($codingAttempt->created_at)->toIso8601String(),
+                    'content_state' => 'not_applicable',
+                    'content_ref' => null,
+                ];
+                $links[] = [
+                    'from_kind' => 'scene_candidate',
+                    'from_ref' => (string) $candidate->id,
+                    'to_kind' => 'coding_attempt',
+                    'to_ref' => (string) $codingAttempt->id,
+                    'relation' => 'attempt_id',
+                ];
+            }
         }
 
         // 9. ScenePromptVersion
@@ -375,6 +474,8 @@ class EvidenceProjector
         if (! $promptVersion) {
             if ($authoringRequest) {
                 $gaps[] = ['code' => 'missing_row', 'parent_ref' => (string) $authoringRequest->id];
+            } elseif ($candidate) {
+                $gaps[] = ['code' => 'missing_row', 'parent_ref' => (string) $candidate->id];
             }
         } elseif ($promptVersion->case_id !== $case->id || ($candidate && $promptVersion->id !== $candidate->prompt_version_id)) {
             $gaps[] = ['code' => 'parent_mismatch', 'parent_ref' => (string) ($authoringRequest?->id ?? $candidate?->id)];
@@ -395,24 +496,44 @@ class EvidenceProjector
                     'to_ref' => (string) $promptVersion->id,
                     'relation' => 'prompt_version_id',
                 ];
+            } elseif ($manualImport) {
+                $links[] = [
+                    'from_kind' => 'manual_scene_import',
+                    'from_ref' => (string) $manualImport->id,
+                    'to_kind' => 'prompt_version',
+                    'to_ref' => (string) $promptVersion->id,
+                    'relation' => 'prompt_version_id',
+                ];
+            } elseif ($candidate) {
+                $links[] = [
+                    'from_kind' => 'scene_candidate',
+                    'from_ref' => (string) $candidate->id,
+                    'to_kind' => 'prompt_version',
+                    'to_ref' => (string) $promptVersion->id,
+                    'relation' => 'prompt_version_id',
+                ];
             }
         }
 
-        // 10. PromptQualification
+        // 10. PromptQualification or Prompt QualificationGate
+        $promptQual = null;
         $promptQualId = $authoringRequest?->qualification_id ?? $candidate?->qualification_id;
-        $promptQual = $promptQualId ? PromptQualification::where('id', $promptQualId)->first() : null;
-        if (! $promptQual) {
-            if ($authoringRequest) {
-                $gaps[] = ['code' => 'missing_row', 'parent_ref' => (string) $authoringRequest->id];
-            }
-        } elseif ($promptQual->case_id !== $case->id || ($promptVersion && $promptQual->prompt_version_id !== $promptVersion->id)) {
-            $gaps[] = ['code' => 'parent_mismatch', 'parent_ref' => (string) ($authoringRequest?->id ?? $candidate?->id)];
-        } else {
+        if ($promptQualId) {
+            $promptQual = PromptQualification::where('id', $promptQualId)->first();
+        }
+
+        $promptGateId = $authoringRequest?->prompt_gate_id ?? $candidate?->prompt_gate_id;
+        $promptGate = null;
+        if ($promptGateId) {
+            $promptGate = \Illuminate\Support\Facades\DB::table('v3_qualification_gates')->where('id', $promptGateId)->first();
+        }
+
+        if ($promptGate) {
             $nodes[] = [
-                'kind' => 'prompt_qualification',
-                'ref' => (string) $promptQual->id,
-                'state' => (string) $promptQual->verdict,
-                'recorded_at' => Carbon::parse($promptQual->created_at)->toIso8601String(),
+                'kind' => 'qualification_gate',
+                'ref' => (string) $promptGate->id,
+                'state' => (string) $promptGate->basis,
+                'recorded_at' => Carbon::parse($promptGate->created_at)->toIso8601String(),
                 'content_state' => 'not_applicable',
                 'content_ref' => null,
             ];
@@ -420,11 +541,35 @@ class EvidenceProjector
                 $links[] = [
                     'from_kind' => 'authoring_request',
                     'from_ref' => (string) $authoringRequest->id,
-                    'to_kind' => 'prompt_qualification',
-                    'to_ref' => (string) $promptQual->id,
-                    'relation' => 'qualification_id',
+                    'to_kind' => 'qualification_gate',
+                    'to_ref' => (string) $promptGate->id,
+                    'relation' => 'prompt_gate_id',
                 ];
             }
+        } elseif ($promptQual) {
+            if ($promptQual->case_id !== $case->id || ($promptVersion && $promptQual->prompt_version_id !== $promptVersion->id)) {
+                $gaps[] = ['code' => 'parent_mismatch', 'parent_ref' => (string) ($authoringRequest?->id ?? $candidate?->id)];
+            } else {
+                $nodes[] = [
+                    'kind' => 'prompt_qualification',
+                    'ref' => (string) $promptQual->id,
+                    'state' => (string) $promptQual->verdict,
+                    'recorded_at' => Carbon::parse($promptQual->created_at)->toIso8601String(),
+                    'content_state' => 'not_applicable',
+                    'content_ref' => null,
+                ];
+                if ($authoringRequest) {
+                    $links[] = [
+                        'from_kind' => 'authoring_request',
+                        'from_ref' => (string) $authoringRequest->id,
+                        'to_kind' => 'prompt_qualification',
+                        'to_ref' => (string) $promptQual->id,
+                        'relation' => 'qualification_id',
+                    ];
+                }
+            }
+        } elseif ($authoringRequest && ($authoringRequest->eligibility_basis ?? 'real_jev') === 'real_jev') {
+            $gaps[] = ['code' => 'missing_row', 'parent_ref' => (string) $authoringRequest->id];
         }
 
         // 11. TeacherSection
@@ -448,6 +593,14 @@ class EvidenceProjector
                 $links[] = [
                     'from_kind' => 'authoring_request',
                     'from_ref' => (string) $authoringRequest->id,
+                    'to_kind' => 'teacher_section',
+                    'to_ref' => (string) $section->id,
+                    'relation' => 'section_id',
+                ];
+            } elseif ($manualImport) {
+                $links[] = [
+                    'from_kind' => 'manual_scene_import',
+                    'from_ref' => (string) $manualImport->id,
                     'to_kind' => 'teacher_section',
                     'to_ref' => (string) $section->id,
                     'relation' => 'section_id',

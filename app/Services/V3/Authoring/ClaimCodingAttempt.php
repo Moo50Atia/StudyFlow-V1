@@ -7,14 +7,18 @@ use App\Models\V3\CodingAttempt;
 use App\Models\V3\ProcessingCase;
 use App\Services\V3\Prompts\QualifiedPromptResolver;
 use App\Services\V3\Prompts\PromptUnavailableException;
+use App\Services\V3\SceneQualification\EligiblePromptResolver;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class ClaimCodingAttempt
 {
     public function __construct(
-        protected QualifiedPromptResolver $promptResolver
-    ) {}
+        protected QualifiedPromptResolver $promptResolver,
+        protected ?EligiblePromptResolver $eligibleResolver = null
+    ) {
+        $this->eligibleResolver = $eligibleResolver ?? app(EligiblePromptResolver::class);
+    }
 
     /**
      * Reserve an ordinal attempt for an authoring request under lock.
@@ -59,9 +63,13 @@ class ClaimCodingAttempt
                 throw new AuthoringUnavailableException('Authoring request not found.');
             }
 
-            // Recheck 010 prompt qualification current pass
+            // Recheck 010 prompt qualification current pass or demo gate
+            $resolver = ($case->isWebPipelineCase() || $request->eligibility_basis === 'owner_waived_demo')
+                ? $this->eligibleResolver
+                : $this->promptResolver;
+
             try {
-                $this->promptResolver->resolve($caseId, $request->prompt_version_id);
+                $resolver->resolve($caseId, $request->prompt_version_id);
             } catch (PromptUnavailableException $e) {
                 if (! in_array($request->state, ['stale', 'candidate_ready'], true)) {
                     $request->update([
@@ -69,16 +77,12 @@ class ClaimCodingAttempt
                         'state_version' => $request->state_version + 1,
                     ]);
                 }
-                throw new AuthoringUnavailableException('Prompt version is no longer qualified or current pass.');
+                throw new AuthoringUnavailableException('Prompt version is no longer qualified or current pass: ' . $e->getMessage());
             }
 
             // Check request state
             if ($request->state === 'stale') {
                 throw new AuthoringUnavailableException('Authoring request is stale.');
-            }
-
-            if (in_array($request->state, ['candidate_ready', 'blocked', 'uncertain'], true)) {
-                throw new AuthoringConflictException("Cannot reserve attempt for request in {$request->state} state.");
             }
 
             // Check if attempt with this ordinal already exists (idempotent replay)
@@ -97,10 +101,17 @@ class ClaimCodingAttempt
                             'id' => $existingAttempt->provider_id,
                             'model' => $existingAttempt->requested_model,
                             'credential_ref' => $existingAttempt->credential_ref,
+                            'thinking_budget' => $request->provider_override_json['thinking_budget'] ?? null,
                         ],
                         'state' => $existingAttempt->state,
+                        'candidate_ref' => $existingAttempt->reserved_candidate_id,
                     ],
                 ];
+            }
+
+            // Check request state for reserving a NEW attempt
+            if (in_array($request->state, ['candidate_ready', 'blocked', 'uncertain'], true)) {
+                throw new AuthoringConflictException("Cannot reserve attempt for request in {$request->state} state.");
             }
 
             // Budget check: ordinal cannot exceed attempt_limit
@@ -141,24 +152,50 @@ class ClaimCodingAttempt
                 throw new AuthoringUnavailableException('Settings version not found.');
             }
 
-            $settingsPayload = is_string($settingsVersion->payload)
-                ? json_decode($settingsVersion->payload, true)
-                : $settingsVersion->payload;
-
-            $codingOrder = $settingsPayload['providers']['coding_order'] ?? [];
-            $descriptor = $codingOrder[$ordinal - 1] ?? null;
+            $providerOverride = $request->provider_override_json;
+            if (is_array($providerOverride) && $providerOverride !== []) {
+                $providerMeta = \App\Services\V3\WebPipeline\SelectSceneGeneration::mapProvider(
+                    (string) ($providerOverride['id'] ?? '')
+                );
+                if (($providerOverride['credential_ref'] ?? null) !== $providerMeta['credential_alias']
+                    || ! is_string($providerOverride['model'] ?? null)
+                    || ! preg_match('/^[A-Za-z0-9._:\/-]{1,100}$/', $providerOverride['model'])) {
+                    throw new AuthoringUnavailableException('Captured provider selection is invalid.');
+                }
+                $thinkingBudget = $providerMeta['provider_id'] === 'gemini_api'
+                    ? ($providerOverride['thinking_budget'] ?? $providerMeta['gemini_thinking_budget'])
+                    : null;
+                if ($providerMeta['provider_id'] === 'gemini_api'
+                    && (! is_int($thinkingBudget) || $thinkingBudget < 0 || $thinkingBudget > 24576)) {
+                    throw new AuthoringUnavailableException('Captured Gemini thinking budget is invalid.');
+                }
+                $descriptor = [
+                    'id' => $providerMeta['provider_id'],
+                    'model' => $providerOverride['model'],
+                    'credential_ref' => $providerMeta['credential_alias'],
+                    'thinking_budget' => $thinkingBudget,
+                ];
+            } else {
+                $settingsPayload = is_string($settingsVersion->payload)
+                    ? json_decode($settingsVersion->payload, true)
+                    : $settingsVersion->payload;
+                $codingOrder = $settingsPayload['providers']['coding_order'] ?? [];
+                $descriptor = $codingOrder[$ordinal - 1] ?? null;
+            }
 
             if (! $descriptor) {
                 throw new AuthoringUnavailableException("Provider descriptor for ordinal {$ordinal} not found in captured settings.");
             }
 
-            // Verify unique provider_id across attempts for this request
-            $usedProvider = CodingAttempt::where('request_id', $request->id)
-                ->where('provider_id', $descriptor['id'])
-                ->exists();
+            // Verify unique provider_id across attempts for this request (only when fallback coding_order is used)
+            if (empty($providerOverride)) {
+                $usedProvider = CodingAttempt::where('request_id', $request->id)
+                    ->where('provider_id', $descriptor['id'])
+                    ->exists();
 
-            if ($usedProvider) {
-                throw new AuthoringConflictException("Provider {$descriptor['id']} has already been used for this request.");
+                if ($usedProvider) {
+                    throw new AuthoringConflictException("Provider {$descriptor['id']} has already been used for this request.");
+                }
             }
 
             // Create coding attempt
@@ -191,6 +228,7 @@ class ClaimCodingAttempt
                         'id' => $attempt->provider_id,
                         'model' => $attempt->requested_model,
                         'credential_ref' => $attempt->credential_ref,
+                        'thinking_budget' => $descriptor['thinking_budget'] ?? null,
                     ],
                     'state' => 'send_reserved',
                 ],

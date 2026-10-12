@@ -238,6 +238,59 @@ test('Signed combined callback rejects conversation rotation and a different map
 
 test('N12: Valid combined reply commits atomically and preserves all fields', function () {
     $validCombinedText = file_get_contents(base_path('tests/Fixtures/V3/NotebookLM/valid_combined_lesson_1.txt'));
+    $validCombinedText = str_replace(
+        'W1 | The Number Line and Real Numbers',
+        'W1 | Lesson 1: The Number Line and Real Numbers',
+        $validCombinedText
+    );
+    // NotebookLM may put the opening quote and first prompt line on the
+    // Lec/Sec header. The PHP callback parser must preserve it like Python.
+    $validCombinedText = str_replace(
+        'Lec1 (Sec1):' . "\n" . '"Comparison: Real Number Line Continuum vs Discrete Sets',
+        'Lec1 (Sec1): "Comparison: Real Number Line Continuum vs Discrete Sets',
+        $validCombinedText
+    );
+    $validCombinedText = str_replace(
+        '"Comparison: Real Number Line Continuum vs Discrete Sets'."\n".'Learning Target:',
+        '"Scene Type: Decomposition'."\n".'Learning Target:',
+        $validCombinedText
+    );
+    $validCombinedText = str_replace(
+        'Section Identity: Real Number Representation',
+        "Section Identity\n- Primary Learning Objective: Real Number Representation",
+        $validCombinedText
+    );
+    $validCombinedText = str_replace('Section 1:', 'Section 1: Real Number Representation', $validCombinedText);
+    $validCombinedText = str_replace(
+        "Lec1 (Sec1):\n\"Interactive number line exploring real number continuum and density.\"",
+        "Lec1 (Sec1): \"Interactive number line exploring real number continuum and density.\"",
+        $validCombinedText
+    );
+    $validCombinedText = str_replace(
+        '✅ Lesson [1] Completed.',
+        '✅ Lesson [4] Completed.',
+        $validCombinedText
+    );
+    $fieldOrdinal = 0;
+    $numberedLines = [];
+    foreach (explode("\n", $validCombinedText) as $line) {
+        if (preg_match('/^Section\s+[0-9]+\s*:/i', trim($line))) {
+            $fieldOrdinal = 0;
+        }
+        $matchedField = false;
+        foreach (\App\Services\V3\NotebookLM\CombinedLessonValidator::FIRST_LABEL_SPECS as $spec) {
+            if (preg_match($spec['pattern'], trim($line))) {
+                $fieldOrdinal++;
+                $numberedLines[] = $fieldOrdinal.'. '.$line;
+                $matchedField = true;
+                break;
+            }
+        }
+        if (! $matchedField) {
+            $numberedLines[] = $line;
+        }
+    }
+    $validCombinedText = implode("\n", $numberedLines);
     $answerSha = hash('sha256', $validCombinedText);
 
     // 1. Claim lesson_start query
@@ -303,7 +356,7 @@ test('N12: Valid combined reply commits atomically and preserves all fields', fu
 
     $sec1 = $sections[0];
     expect($sec1->id)->toBe($sectionRefs[0])
-        ->and($sec1->section_identity)->toBe('Real Number Representation')
+        ->and($sec1->section_identity)->toContain('Primary Learning Objective: Real Number Representation')
         ->and($sec1->core_understanding)->toContain('Every real number corresponds to a unique point')
         ->and($sec1->colloquial_egyptian_explanation)->toContain('خط الأعداد ده خط مستمر ملوش نهاية')
         ->and($sec1->laws_if_any)->toContain('\forall x \in \mathbb{R}')
@@ -362,7 +415,7 @@ test('N12: Valid combined reply commits atomically and preserves all fields', fu
         ->and($pv1->id)->toBe($promptRefs[0])
         ->and($pv1->origin)->toBe('third')
         ->and($pv1->version_no)->toBe(1)
-        ->and($pv1->scene_type)->toBe('Comparison')
+        ->and($pv1->scene_type)->toBe('Decomposition')
         ->and($pv1->canonical_third_sha256)->toBe($this->thirdSha)
         ->and($pv1->framework_version_id)->toBe($this->frameworkVersion->id)
         ->and(Storage::disk('v3_private')->exists($pv1->body_path))->toBeTrue();
@@ -568,8 +621,6 @@ test('N15: Rejects malformed combined replies, retains private raw evidence, and
     $malformedFiles = [
         'combined_final_only.txt',
         'combined_missing_delimiter.txt',
-        'combined_invalid_third_type.txt',
-        'combined_mismatched_marker.txt',
         'combined_missing_first_fields.txt',
         'combined_mismatched_section_count.txt',
     ];

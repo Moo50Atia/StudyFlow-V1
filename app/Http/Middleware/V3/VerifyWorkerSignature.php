@@ -18,7 +18,7 @@ class VerifyWorkerSignature
         $timestamp = $request->header('X-V3-Timestamp');
         $signature = $request->header('X-V3-Signature');
 
-        $secret = config('services.v3.callback_hmac_key');
+        $secret = config('services.v3.callback_hmac_key') ?: config('services.v3.worker_hmac_key') ?: config('services.v3.web_pipeline_hmac_secret');
 
         if ($contractVersion !== '1' || empty($timestamp) || empty($signature) || empty($secret)) {
             Log::warning('worker_unauthenticated');

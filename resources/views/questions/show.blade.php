@@ -39,7 +39,7 @@
                     @if($question->question_image)
                     <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.3s;">
                         <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Question Image</h3>
-                        <img src="{{ Storage::url($question->question_image) }}" alt="Question" class="max-w-lg rounded-lg shadow-lg">
+                        <img src="{{ route('owner-assets.show', ['kind' => 'question', 'id' => $question->id, 'field' => 'question_image']) }}" alt="Question" class="max-w-lg rounded-lg shadow-lg">
                     </div>
                     @else
                     <div class="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl animate-fade-in-up" style="animation-delay: 0.3s;">
@@ -68,7 +68,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             @foreach($question->solution_images as $index => $image)
                             <div class="relative group">
-                                <img src="{{ Storage::url($image) }}" alt="Solution {{ $index + 1 }}" class="w-full rounded-lg shadow-lg cursor-pointer hover:shadow-xl transition-shadow duration-200" onclick="openImageModal(this.src)">
+                                <img src="{{ route('owner-assets.show', ['kind' => 'question', 'id' => $question->id, 'field' => 'solution_images', 'index' => $index]) }}" alt="Solution {{ $index + 1 }}" class="w-full rounded-lg shadow-lg cursor-pointer hover:shadow-xl transition-shadow duration-200" onclick="openImageModal(this.src)">
                                 <div class="absolute top-2 left-2 bg-indigo-600 text-white text-xs font-bold px-2 py-1 rounded-full">{{ $index + 1 }}</div>
                                 <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg transition-all duration-200 flex items-center justify-center">
                                     <svg class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">

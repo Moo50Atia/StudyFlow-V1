@@ -46,4 +46,9 @@ class Lecture extends Model
         return $this->morphToMany(User::class, 'loveable', 'user_loves')
             ->withTimestamps();
     }
+
+    public function pipelineLink()
+    {
+        return $this->hasOne(\App\Models\V3\LecturePipelineLink::class, 'lecture_id');
+    }
 }

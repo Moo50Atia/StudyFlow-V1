@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import logging
+import os
+import shutil
+import tempfile
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncIterator, Optional, Sequence, Tuple
 
 from notebooklm import ChatGoal, ChatResponseLength, NotebookLMClient
+from notebooklm.options import ClientConfig, RetryOptions, WebBackendConfig, WebRequestOptions
+from notebooklm.types import SharePermission
 from notebooklm.exceptions import (
     AuthError,
     ChatError,
@@ -14,6 +19,7 @@ from notebooklm.exceptions import (
     RateLimitError,
     ServerError,
     SourceError,
+    ValidationError,
 )
 
 from v3_engine.notebooklm.credentials import get_storage_state_path, validate_storage_state
@@ -25,6 +31,7 @@ from v3_engine.notebooklm.ports import (
     NotebookInventory,
     NotebookRef,
     ProviderError,
+    ProviderRateLimitError,
     ProviderSession,
     ProviderUnavailableError,
     SourceReceipt,
@@ -94,10 +101,37 @@ class SdkProviderSession(NotebookFiles, NotebookConversation):
             raise ProviderError("provider_unknown_error", "Unexpected error listing notebooks.", raw_detail=str(e)) from e
 
     async def upload_file(self, notebook_id: str, local_path: Path, mime_type: str, title: str) -> SourceReceipt:
+        upload_path = Path(local_path)
+        temporary_path: Path | None = None
         try:
+            # Web intake deliberately stores source bytes under opaque `.bin`
+            # names. notebooklm-py validates the filename extension before it
+            # starts the upload, even when mime_type is supplied. Give the SDK
+            # a short-lived private copy with the real extension while keeping
+            # the canonical retained artifact opaque and unchanged.
+            suffix_by_mime = {
+                "application/pdf": ".pdf",
+                "text/plain": ".txt",
+                "text/markdown": ".md",
+            }
+            expected_suffix = suffix_by_mime.get(mime_type.split(";", 1)[0].strip().lower())
+            if expected_suffix and upload_path.suffix.lower() != expected_suffix:
+                fd, temporary_name = tempfile.mkstemp(
+                    prefix=".notebooklm-upload-",
+                    suffix=expected_suffix,
+                    dir=str(upload_path.parent),
+                )
+                temporary_path = Path(temporary_name)
+                os.fchmod(fd, 0o600)
+                with os.fdopen(fd, "wb") as target, upload_path.open("rb") as source:
+                    shutil.copyfileobj(source, target)
+                    target.flush()
+                    os.fsync(target.fileno())
+                upload_path = temporary_path
+
             src = await self.client.sources.add_file(
                 notebook_id,
-                str(local_path),
+                str(upload_path),
                 mime_type=mime_type,
                 wait=False,
                 title=title,
@@ -119,8 +153,13 @@ class SdkProviderSession(NotebookFiles, NotebookConversation):
             raise ProviderUnavailableError(raw_detail=str(e)) from e
         except SourceError as e:
             raise ProviderError("source_upload_failed", "Failed to upload source file.", raw_detail=str(e)) from e
+        except ValidationError as e:
+            raise ProviderError("source_upload_invalid", "Source upload was rejected by the provider adapter.", raw_detail=str(e)) from e
         except Exception as e:
             raise ProviderError("provider_unknown_error", "Unexpected error uploading file.", raw_detail=str(e)) from e
+        finally:
+            if temporary_path is not None:
+                temporary_path.unlink(missing_ok=True)
 
     async def get_source(self, notebook_id: str, source_id: str) -> SourceReceipt:
         try:
@@ -144,6 +183,52 @@ class SdkProviderSession(NotebookFiles, NotebookConversation):
             raise ProviderError("source_not_found", "Source not found.", raw_detail=str(e)) from e
         except Exception as e:
             raise ProviderError("provider_unknown_error", "Unexpected error getting source.", raw_detail=str(e)) from e
+
+    async def list_sources(self, notebook_id: str) -> list[SourceReceipt]:
+        try:
+            sources = await self.client.sources.list(notebook_id)
+            receipts: list[SourceReceipt] = []
+            for src in sources:
+                status = "processing"
+                if getattr(src, "is_ready", False):
+                    status = "ready"
+                elif getattr(src, "is_error", False):
+                    status = "error"
+                receipts.append(
+                    SourceReceipt(
+                        source_id=src.id,
+                        title=src.title,
+                        status=status,
+                        mime_type=getattr(src, "content_mime", None),
+                    )
+                )
+            return receipts
+        except AuthError as e:
+            raise AuthenticationRequiredError(raw_detail=str(e)) from e
+        except RateLimitError as e:
+            raise ProviderRateLimitError(retry_after_seconds=getattr(e, "retry_after", None), raw_detail=str(e)) from e
+        except (ServerError, NetworkError) as e:
+            raise ProviderUnavailableError(raw_detail=str(e)) from e
+        except Exception as e:
+            raise ProviderError("source_list_failed", "Failed to list sources.", raw_detail=str(e)) from e
+
+    async def verify_owner(self, proof_notebook_id: str) -> str:
+        try:
+            nb = await self.client.notebooks.get(proof_notebook_id)
+            role = getattr(nb, "role", None)
+            if role is SharePermission.OWNER:
+                return "owner"
+            if role is not None:
+                return "not_owner"
+            return "unknown"
+        except AuthError as e:
+            raise AuthenticationRequiredError(raw_detail=str(e)) from e
+        except RateLimitError as e:
+            raise ProviderRateLimitError(retry_after_seconds=getattr(e, "retry_after", None), raw_detail=str(e)) from e
+        except (ServerError, NetworkError) as e:
+            raise ProviderUnavailableError(raw_detail=str(e)) from e
+        except Exception:
+            return "unknown"
 
     async def configure_format(self, notebook_id: str, format_text: str) -> None:
         try:
@@ -185,8 +270,27 @@ class SdkProviderSession(NotebookFiles, NotebookConversation):
         question: str,
         source_ids: Sequence[str],
         conversation_id: Optional[str] = None,
+        fresh_after_conversation_id: Optional[str] = None,
     ) -> TurnAnswer:
         try:
+            if fresh_after_conversation_id is not None:
+                if conversation_id is not None:
+                    raise ProviderError("chat_reset_conflict", "Fresh chat cannot continue an explicit conversation.")
+                current = await self.client.chat.get_conversation_id(notebook_id)
+                if current is not None:
+                    if current != fresh_after_conversation_id:
+                        raise ProviderError("chat_reset_conflict", "A different conversation is already active.")
+                    history = await self.client.chat.get_history(notebook_id, conversation_id=current, limit=1)
+                    if not isinstance(history, list) or history:
+                        raise ProviderError("chat_reset_conflict", "Archived conversation still has server history.")
+                    # Pinned SDK 0.8.4 documents stale hPTbtc IDs after deletion.
+                    # Its tombstone normally lives only in the deleting client.
+                    # Activities open new clients, so restore that marker only
+                    # after proving the exact archived chat has no turns.
+                    deleted = getattr(self.client.chat, "_deleted_conversations", None)
+                    if deleted is None or not callable(getattr(deleted, "record", None)):
+                        raise ProviderError("sdk_reset_unsupported", "SDK cannot restore the verified reset marker.")
+                    deleted.record(current)
             res = await self.client.chat.ask(
                 notebook_id,
                 question,
@@ -198,6 +302,8 @@ class SdkProviderSession(NotebookFiles, NotebookConversation):
                 conversation_id=res.conversation_id,
                 turn_number=res.turn_number,
             )
+        except ProviderError:
+            raise
         except AuthError as e:
             raise AuthenticationRequiredError(raw_detail=str(e)) from e
         except (RateLimitError, ServerError, NetworkError) as e:
@@ -228,6 +334,28 @@ class SdkProviderSession(NotebookFiles, NotebookConversation):
         except Exception as e:
             raise ProviderError("provider_unknown_error", "Unexpected error getting history.", raw_detail=str(e)) from e
 
+    async def reset_conversation(self, notebook_id: str, conversation_id: str) -> None:
+        try:
+            await self.client.chat.delete_conversation(notebook_id, conversation_id)
+        except AuthError as e:
+            raise AuthenticationRequiredError(raw_detail=str(e)) from e
+        except (RateLimitError, ServerError, NetworkError) as e:
+            raise ProviderUnavailableError(raw_detail=str(e)) from e
+        except Exception as e:
+            raise ProviderError("chat_reset_failed", "Failed to reset archived conversation.", raw_detail=str(e)) from e
+
+    async def current_conversation_id(self, notebook_id: str) -> Optional[str]:
+        try:
+            return await self.client.chat.get_conversation_id(notebook_id)
+        except AuthError as e:
+            raise AuthenticationRequiredError(raw_detail=str(e)) from e
+        except RateLimitError as e:
+            raise ProviderRateLimitError(retry_after_seconds=getattr(e, "retry_after", None), raw_detail=str(e)) from e
+        except (ServerError, NetworkError) as e:
+            raise ProviderUnavailableError(raw_detail=str(e)) from e
+        except Exception as e:
+            raise ProviderError("conversation_discovery_failed", "Failed to discover conversation.", raw_detail=str(e)) from e
+
 
 class SdkSessionProvider:
     def __init__(
@@ -247,14 +375,45 @@ class SdkSessionProvider:
         path = storage_path or self.storage_state_path or get_storage_state_path()
         validate_storage_state(path)
 
-        async with NotebookLMClient.from_storage(
+        client_context = NotebookLMClient.from_storage(
             path=path,
-            rate_limit_max_retries=0,
-            server_error_max_retries=0,
             allow_headless=False,
-        ) as client:
-            session = SdkProviderSession(client=client)
-            try:
-                yield session
-            finally:
-                await session.close()
+            config=ClientConfig(
+                backend=WebBackendConfig(request=WebRequestOptions(
+                    base_url=self.base_url or os.environ.get("NOTEBOOKLM_ORIGIN") or os.environ.get("NOTEBOOKLM_BASE_URL"),
+                )),
+                retry=RetryOptions(rate_limit_max_retries=0, server_error_max_retries=0),
+            ),
+        )
+        try:
+            # Token/CSRF bootstrap happens while entering the SDK context. Keep
+            # this separate from the caller's work so only bootstrap failures
+            # are normalized as authentication failures.
+            client = await client_context.__aenter__()
+        except AuthError as e:
+            raise AuthenticationRequiredError(raw_detail=str(e)) from e
+        except ValueError as e:
+            detail = str(e).casefold()
+            if any(marker in detail for marker in (
+                "csrf token not found",
+                "authentication expired",
+                "cookie mismatch",
+                "authentication required",
+            )):
+                raise AuthenticationRequiredError(raw_detail=str(e)) from e
+            raise ProviderError(
+                "provider_session_failed",
+                "NotebookLM session initialization failed.",
+                raw_detail=str(e),
+            ) from e
+
+        session = SdkProviderSession(client=client)
+        try:
+            yield session
+        except BaseException as exc:
+            await session.close()
+            await client_context.__aexit__(type(exc), exc, exc.__traceback__)
+            raise
+        else:
+            await session.close()
+            await client_context.__aexit__(None, None, None)

@@ -40,6 +40,37 @@ def get_storage_state_path() -> Path:
     return (Path.home() / ".notebooklm" / "storage_state_v3_local.json").resolve()
 
 
+def get_terminal_run_storage_state(run_dir: Path) -> Path:
+    """Find an existing run's isolated session without selecting another run or the master."""
+    run_dir = run_dir.expanduser().resolve()
+    reference = run_dir / "private" / "notebooklm-credentials.json"
+    try:
+        recorded = json.loads(reference.read_text(encoding="utf-8"))
+        path = Path(recorded["storage_state_path"]).expanduser().resolve()
+    except (OSError, ValueError, KeyError, TypeError):
+        raise CredentialsValidationError("authentication_required", "Selected run has no valid session reference.") from None
+    expected = run_dir / "private" / "notebooklm-sessions" / run_dir.name / "storage_state.json"
+    if path != expected.resolve() or not path.is_file():
+        raise CredentialsValidationError("authentication_required", "Selected run's isolated session is missing or mismatched.")
+    return path
+
+
+def sync_storage_state(source: Path, target: Path) -> None:
+    """Replace an explicitly selected run's session atomically after a manual import."""
+    validate_storage_state(source)
+    fd, temporary = tempfile.mkstemp(dir=target.parent, prefix=".session-import-", suffix=".tmp")
+    staging = Path(temporary)
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(source.read_bytes())
+            handle.flush()
+            os.fsync(handle.fileno())
+        staging.chmod(0o600)
+        staging.replace(target)
+    finally:
+        staging.unlink(missing_ok=True)
+
+
 def validate_storage_state(path: Path) -> dict[str, Any]:
     """Validate that the given Playwright storage state file exists, is secure, and has valid Google cookies."""
     if os.path.islink(path) or path.is_symlink():
@@ -129,6 +160,9 @@ def bridge_mcp_to_storage_state(
     origin: str = "https://notebooklm.google.com",
 ) -> Path:
     """Bridge a flat MCP auth.json cache into a domain/path-aware Playwright storage state file."""
+    parsed_origin = urlparse(origin)
+    if origin not in {"https://notebooklm.google.com", "https://notebook.google.com"}:
+        raise CredentialsValidationError("invalid_cookie_origin", "Use the NotebookLM app origin where the Cookie header was copied.")
     mcp_auth_path = mcp_auth_path.resolve()
     if not mcp_auth_path.is_file():
         raise CredentialsValidationError("authentication_required", "MCP auth file does not exist.")
@@ -146,7 +180,8 @@ def bridge_mcp_to_storage_state(
     if missing:
         raise CredentialsValidationError("authentication_required", f"MCP auth missing required cookies: {', '.join(sorted(missing))}")
 
-    # Build domain cookies
+    # A request header omits domain metadata. Preserve the known product binding
+    # on the selected app host; OSID is not an account-wide .google.com cookie.
     cookie_list = []
     for name, value in cookies_dict.items():
         if not isinstance(value, str) or not value:
@@ -154,7 +189,8 @@ def bridge_mcp_to_storage_state(
         cookie_list.append({
             "name": name,
             "value": value,
-            "domain": ".google.com",
+            "domain": (parsed_origin.hostname if name in {"OSID", "__Secure-OSID"}
+                       else "accounts.google.com" if name == "LSID" else ".google.com"),
             "path": "/",
             "expires": -1,
             "httpOnly": True,

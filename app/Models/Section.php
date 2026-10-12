@@ -30,4 +30,9 @@ class Section extends Model
     {
         return $this->hasOne(DynamicViewModel::class);
     }
+
+    public function pipelineLink()
+    {
+        return $this->hasOne(\App\Models\V3\SectionPipelineLink::class, 'section_id');
+    }
 }

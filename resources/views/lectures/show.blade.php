@@ -37,7 +37,20 @@
                             🎬
                         </div>
                         <div class="ml-6">
-                            <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ $lecture->title }}</h3>
+                            <div class="flex items-center space-x-3">
+                                <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ $lecture->title }}</h3>
+                                @if($lecture->pipelineLink)
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
+                                    {{ ($lecture->pipelineLink->item?->run?->origin ?? '') === 'historical_import' ? 'Imported Historical Content' : 'V3 Pipeline Managed' }}
+                                </span>
+                                @endif
+                            </div>
+                            @if($lecture->pipelineLink?->item?->case_id)
+                            <a href="{{ route('v3.teacher.cases.lesson-map', ['case' => $lecture->pipelineLink->item->case_id]) }}"
+                               class="mt-3 inline-flex items-center text-sm font-semibold text-indigo-700 hover:underline">
+                                Open Lesson Map
+                            </a>
+                            @endif
                             <p class="text-gray-500 dark:text-gray-400">{{ $lecture->subject->name ?? 'N/A' }} • {{ $lecture->sections->count() }} Sections</p>
                         </div>
                         @if(Auth::check() && Auth::user()->role === 'admin')
@@ -76,7 +89,7 @@
             </div>
 
             <!-- Mind Map Viewer (Konva.js Canvas) -->
-            @if($lecture->mindmap_path)
+            @if($lecture->mindmap_path && app(\App\Services\LearningAccess::class)->isOwner(auth()->user()))
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-xl rounded-2xl mb-8 animate-fade-in-up" style="animation-delay: 0.1s">
                 <div class="px-6 py-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-gray-700 dark:to-gray-800 border-b dark:border-gray-700">
                     <div class="flex items-center justify-between">
@@ -104,7 +117,7 @@
                                 </svg>
                             </button>
                             <span id="zoom-level" class="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-mono">100%</span>
-                            <a href="{{ Storage::url($lecture->mindmap_path) }}" target="_blank" class="p-2 bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors" title="Open Full Size">
+                            <a href="{{ route('owner-assets.show', ['kind' => 'lecture', 'id' => $lecture->id, 'field' => 'mindmap_path']) }}" target="_blank" class="p-2 bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors" title="Open Full Size">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                 </svg>
@@ -415,7 +428,7 @@
             let currentScale = 1;
 
             // Load image at full resolution
-            const imageUrl = "{{ Storage::url($lecture->mindmap_path ?? '') }}";
+            const imageUrl = "{{ route('owner-assets.show', ['kind' => 'lecture', 'id' => $lecture->id, 'field' => 'mindmap_path']) }}";
             const imageObj = new Image();
             imageObj.crossOrigin = 'anonymous';
 

@@ -19,17 +19,17 @@ CANONICAL_FIELD_LABELS = [
 
 # Mapping from canonical label regex pattern to internal field name
 LABEL_SPECS: List[Tuple[str, re.Pattern, bool]] = [
-    ("section_identity", re.compile(r"^Section\s+Identity\s*:\s*(.*)$", re.IGNORECASE), False),
-    ("core_understanding", re.compile(r"^Core\s+Understanding\s*:\s*(.*)$", re.IGNORECASE), False),
-    ("visual_first_explanation", re.compile(r"^Visual-First\s+Explanation\s*:\s*(.*)$", re.IGNORECASE), False),
-    ("visual_scene_script", re.compile(r"^Visual\s+Scene\s+Script\s*:\s*(.*)$", re.IGNORECASE), False),
-    ("dynamic_view_blueprint", re.compile(r"^Dynamic\s+View\s+Blueprint\s*:\s*(.*)$", re.IGNORECASE), False),
-    ("visual_learning_outcome", re.compile(r"^Visual\s+Learning\s+Outcome\s*:\s*(.*)$", re.IGNORECASE), False),
-    ("concept_check", re.compile(r"^Concept\s+Check\s*:\s*(.*)$", re.IGNORECASE), False),
-    ("conceptual_summary", re.compile(r"^Conceptual\s+Summary\s*:\s*(.*)$", re.IGNORECASE), False),
-    ("colloquial_egyptian_explanation", re.compile(r"^(?:[•\-*]\s*)?شرح\s+للجزء\s+بالعامية\s+المصرية\s*:\s*(.*)$"), False),
-    ("laws_if_any", re.compile(r"^القوانين\s*\((?:إن|ان)\s*(?:وُجدت|وجدت)\)\s*:\s*(.*)$"), True),  # True: can be empty
-    ("real_life_example", re.compile(r"^(?:إسقاط|اسقاط)\s+على\s+مثال\s+أو\s+موقف\s+من\s+الحياة\s+اليومية\s+لتثبيت\s+الفهم\s*:\s*(.*)$"), False),
+    ("section_identity", re.compile(r"^Section\s+Identity\s*:?\s*(.*)$", re.IGNORECASE), False),
+    ("core_understanding", re.compile(r"^Core\s+Understanding\s*:?\s*(.*)$", re.IGNORECASE), False),
+    ("visual_first_explanation", re.compile(r"^Visual-First\s+Explanation\s*:?\s*(.*)$", re.IGNORECASE), False),
+    ("visual_scene_script", re.compile(r"^Visual\s+Scene\s+Script\s*:?\s*(.*)$", re.IGNORECASE), False),
+    ("dynamic_view_blueprint", re.compile(r"^Dynamic\s+View\s+Blueprint\s*:?\s*(.*)$", re.IGNORECASE), False),
+    ("visual_learning_outcome", re.compile(r"^Visual\s+Learning\s+Outcome\s*:?\s*(.*)$", re.IGNORECASE), False),
+    ("concept_check", re.compile(r"^Concept\s+Check\s*:?\s*(.*)$", re.IGNORECASE), False),
+    ("conceptual_summary", re.compile(r"^Conceptual\s+Summary\s*:?\s*(.*)$", re.IGNORECASE), False),
+    ("colloquial_egyptian_explanation", re.compile(r"^(?:[•\-*]\s*)?شرح\s+للجزء\s+بالعامية\s+المصرية\s*:?\s*(.*)$"), False),
+    ("laws_if_any", re.compile(r"^القوانين\s*\((?:إن|ان)\s*(?:وُجدت|وجدت)\)\s*:?\s*(.*)$"), True),  # True: can be empty
+    ("real_life_example", re.compile(r"^(?:إسقاط|اسقاط)\s+على\s+مثال\s+أو\s+موقف\s+من\s+الحياة\s+اليومية\s+لتثبيت\s+الفهم\s*:?\s*(.*)$"), False),
 ]
 
 @dataclass
@@ -50,7 +50,7 @@ class FirstParserError(Exception):
         self.code = code
 
 LECTURE_RE = re.compile(r"^Lecture\s*:\s*W([0-9]+)\s*\|\s*(.+)$", re.IGNORECASE)
-SECTION_RE = re.compile(r"^Section\s+([0-9]+)\s*:\s*$", re.IGNORECASE)
+SECTION_RE = re.compile(r"^Section\s+([0-9]+)\s*:\s*(?:.+)?$", re.IGNORECASE)
 COMPLETION_MARKER_RE = re.compile(r"✅\s*Lesson\s*\[?([0-9]+)\]?\s*Completed", re.IGNORECASE)
 
 def parse_first_response(raw_text: str, expected_work_ordinal: int, expected_path: Optional[str] = None) -> ParsedFirstResponse:
@@ -154,11 +154,22 @@ def parse_first_response(raw_text: str, expected_work_ordinal: int, expected_pat
         if current_section_ordinal is None:
             raise FirstParserError(f"Unexpected content before Section 1: '{line}'", code="validation")
 
+        # Some NotebookLM replies number each canonical field heading (for example,
+        # "1. Section Identity"). Treat that prefix as presentation only when the
+        # remainder is itself a known field label; numbered prose inside a field
+        # remains part of that field's value.
+        label_line = line
+        numbered_heading = re.match(r"^\d+[.)]\s+(.+)$", line)
+        if numbered_heading:
+            candidate = numbered_heading.group(1)
+            if any(pattern.match(candidate) for _, pattern, _ in LABEL_SPECS):
+                label_line = candidate
+
         # Check if line starts the next expected label in canonical order
         next_label_idx = current_label_idx + 1
         if next_label_idx < len(LABEL_SPECS):
             field_name, pattern, _ = LABEL_SPECS[next_label_idx]
-            match = pattern.match(line)
+            match = pattern.match(label_line)
             if match:
                 current_label_idx = next_label_idx
                 initial_val = match.group(1)
@@ -167,7 +178,7 @@ def parse_first_response(raw_text: str, expected_work_ordinal: int, expected_pat
 
         # Check if line matches ANY other label out of order
         for idx, (f_name, pat, _) in enumerate(LABEL_SPECS):
-            if idx != current_label_idx and pat.match(line):
+            if idx != current_label_idx and pat.match(label_line):
                 raise FirstParserError(
                     f"Label '{f_name}' out of canonical order or repeated in Section {current_section_ordinal}",
                     code="validation",

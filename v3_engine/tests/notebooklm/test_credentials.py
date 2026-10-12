@@ -128,6 +128,22 @@ def test_n09_bridge_converts_mcp_auth_to_domain_storage_state(tmp_path):
         assert "google.com" in matching["domain"]
 
 
+@pytest.mark.parametrize("origin", ["https://notebook.google.com", "https://notebooklm.google.com"])
+def test_manual_bridge_preserves_the_app_binding_cookie_scope(tmp_path, origin):
+    mcp = tmp_path / "auth.json"
+    values = {name: f"session-{name}" for name in REQUIRED_COOKIES}
+    values.update({"OSID": "product-binding", "__Secure-OSID": "secure-binding", "LSID": "login-binding"})
+    mcp.write_text(json.dumps({"cookies": values}))
+    target = tmp_path / "state.json"
+    bridge_mcp_to_storage_state(mcp, target, origin=origin)
+    cookies = {c["name"]: c for c in validate_storage_state(target)["cookies"]}
+    from urllib.parse import urlparse
+    assert cookies["OSID"]["domain"] == cookies["__Secure-OSID"]["domain"] == urlparse(origin).hostname
+    assert cookies["LSID"]["domain"] == "accounts.google.com"
+    assert cookies["SID"]["domain"] == ".google.com"
+    assert {name: c["value"] for name, c in cookies.items()} == values
+
+
 def test_n09_no_browser_launched_on_validation_failure(tmp_path, monkeypatch):
     """Verify runtime validation failure never launches browser or external processes."""
     called_commands = []

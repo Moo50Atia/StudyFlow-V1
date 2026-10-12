@@ -31,6 +31,9 @@ class EnsureReviewReady
         // 2. Verify 012 eligibility proof
         try {
             $eligibility = $this->eligibilityService->check($caseId, $candidateRef);
+            if (! ($eligibility['eligible'] ?? false)) {
+                return ['status' => 'unavailable', 'data' => null];
+            }
         } catch (\Throwable $e) {
             return ['status' => 'unavailable', 'data' => null];
         }
@@ -96,6 +99,8 @@ class EnsureReviewReady
                 'status' => 'pending',
                 'state_version' => 1,
                 'ready_at' => now(),
+                'eligibility_basis' => $eligibility['basis'] ?? 'real_jev',
+                'qualification_gate_id' => $eligibility['gate_id'] ?? null,
             ]);
 
             // Update ReviewSectionState: pointer points to new item, clear current approval pointer
@@ -121,7 +126,7 @@ class EnsureReviewReady
 
     public function reconcileAllPassing(): int
     {
-        $qualifiedCandidates = SceneCandidateState::where('status', 'qualified')
+        $qualifiedCandidates = SceneCandidateState::whereIn('status', ['qualified', 'demo_review_ready'])
             ->select('case_id', 'candidate_id')
             ->get();
 

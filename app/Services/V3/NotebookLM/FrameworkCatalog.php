@@ -22,12 +22,13 @@ class FrameworkCatalog
         ."=== SECOND ===\n"
         ."The complete Second output, including Lecture and each LecX (SecY) placeholder and Prepared Perspective Map.\n"
         ."=== THIRD ===\n"
-        ."The complete Third output, including Lecture and one quoted final prompt per LecX (SecY).\n"
+        ."The Third artifact must begin immediately with its Lecture: header, followed only by one LecX (SecY) entry for each section.\n"
+        ."For every entry, put the opening double quote immediately after the LecX (SecY): header, then enclose the ENTIRE multi-line final prompt in that single pair of double quotes. Do not close the quote until the final line of the prompt. Do not put explanatory text before the quote, after the closing quote, or between prompts.\n"
         ."=== END ===\n"
         ."Finish with exactly: ✅ Lesson [X] Completed. Awaiting 'Continue' for the next lesson.\n"
         ."Do not include these delimiter lines inside an artifact. Return no other text outside the three artifacts and final completion marker.";
 
-    public const RESPONSE_FORMAT_SHA256 = 'b7c49fb0ef3b62264c5b81d5673ace865e9d497ee1100f2e22675abbc614e105';
+    public const RESPONSE_FORMAT_SHA256 = 'd1c517a59d71d2e79d511b1ab2f945d6eb65f3dcffc24e802823a617c2d95580';
 
     /**
      * Get the active framework version referenced by the pointer.

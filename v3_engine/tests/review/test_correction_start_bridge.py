@@ -201,9 +201,9 @@ async def test_temporal_failure_cannot_return_accepted(monkeypatch):
 @pytest.mark.asyncio
 async def test_signed_start_endpoint_runs_visual_correction_on_temporal_and_replays(monkeypatch):
     secret = "test-bridge-secret"
-    task_queue = "test-correction-endpoint-queue"
+    task_queue = "v3-terminal-control"
     monkeypatch.setenv("V3_BRIDGE_HMAC_KEY", secret)
-    monkeypatch.setenv("V3_TASK_QUEUE", task_queue)
+    monkeypatch.setenv("V3_TERMINAL_CONTROL_QUEUE", task_queue)
     correction_activity_order.clear()
     correction = str(uuid.uuid4())
     case_id, section_id, route_id = str(uuid.uuid4()), str(uuid.uuid4()), str(uuid.uuid4())
@@ -319,9 +319,9 @@ async def test_signed_start_endpoint_runs_visual_correction_on_temporal_and_repl
 @pytest.mark.asyncio
 async def test_signed_start_endpoint_runs_factual_correction_through_prompt_and_scene_gates(monkeypatch):
     secret = "test-bridge-secret"
-    task_queue = "test-factual-correction-endpoint-queue"
+    task_queue = "v3-terminal-control"
     monkeypatch.setenv("V3_BRIDGE_HMAC_KEY", secret)
-    monkeypatch.setenv("V3_TASK_QUEUE", task_queue)
+    monkeypatch.setenv("V3_TERMINAL_CONTROL_QUEUE", task_queue)
     correction_activity_order.clear()
     correction = str(uuid.uuid4())
     case_id, section_id, route_id = str(uuid.uuid4()), str(uuid.uuid4()), str(uuid.uuid4())

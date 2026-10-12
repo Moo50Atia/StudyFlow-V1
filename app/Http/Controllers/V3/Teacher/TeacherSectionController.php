@@ -71,7 +71,6 @@ class TeacherSectionController extends Controller
                 'visual_scene_script' => $sectionModel->visual_scene_script,
                 'dynamic_view_blueprint' => $sectionModel->dynamic_view_blueprint,
                 'visual_learning_outcome' => $sectionModel->visual_learning_outcome,
-                'concept_check' => $sectionModel->concept_check,
                 'conceptual_summary' => $sectionModel->conceptual_summary,
                 'colloquial_egyptian_explanation' => $sectionModel->colloquial_egyptian_explanation,
                 'laws_if_any' => $sectionModel->laws_if_any,

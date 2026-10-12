@@ -10,6 +10,7 @@ use App\Models\V3\ScenePromptVersion;
 use App\Models\V3\TeacherSection;
 use App\Services\V3\Prompts\PromptUnavailableException;
 use App\Services\V3\Prompts\QualifiedPromptResolver;
+use App\Services\V3\SceneQualification\EligiblePromptResolver;
 use App\Services\V3\Settings\ApprovedTemplateRepository;
 use App\Services\V3\Settings\SettingsUnavailable;
 use Illuminate\Support\Facades\DB;
@@ -19,8 +20,11 @@ class ClaimAuthoringRequest
 {
     public function __construct(
         protected QualifiedPromptResolver $promptResolver,
-        protected ApprovedTemplateRepository $templateRepository
-    ) {}
+        protected ApprovedTemplateRepository $templateRepository,
+        protected ?EligiblePromptResolver $eligibleResolver = null
+    ) {
+        $this->eligibleResolver = $eligibleResolver ?? app(EligiblePromptResolver::class);
+    }
 
     /**
      * List eligible current-pass prompt refs in 009 Section ordinal order.
@@ -105,9 +109,13 @@ class ClaimAuthoringRequest
                 ];
             }
 
-            // Resolve 010 prompt current pass
+            // Resolve 010 prompt current pass or demo gate
+            $resolver = $case->isWebPipelineCase()
+                ? $this->eligibleResolver
+                : $this->promptResolver;
+
             try {
-                $resolved = $this->promptResolver->resolve($caseId, $promptVersionRef);
+                $resolved = $resolver->resolve($caseId, $promptVersionRef);
             } catch (PromptUnavailableException $e) {
                 throw new AuthoringUnavailableException("Prompt unavailable: " . $e->getMessage());
             }
@@ -143,7 +151,9 @@ class ClaimAuthoringRequest
                 'case_id' => $caseId,
                 'section_id' => $resolved['section_ref'],
                 'prompt_version_id' => $promptVersionRef,
-                'qualification_id' => $resolved['qualification_ref'],
+                'eligibility_basis' => $resolved['basis'] ?? 'real_jev',
+                'qualification_id' => $resolved['qualification_ref'] ?? null,
+                'prompt_gate_id' => $resolved['prompt_gate_id'] ?? null,
                 'prompt_body_sha256' => $resolved['body_sha256'],
                 'settings_checksum' => $settingsVersion->checksum,
                 'template_sha256' => $templateChecksum,
@@ -186,9 +196,14 @@ class ClaimAuthoringRequest
             throw new AuthoringUnavailableException("Authoring request is stale.");
         }
 
-        // Recheck 010 prompt current pass
+        $case = ProcessingCase::find($caseId);
+        $resolver = ($case && $case->isWebPipelineCase())
+            ? $this->eligibleResolver
+            : $this->promptResolver;
+
+        // Recheck prompt current pass or demo gate
         try {
-            $resolved = $this->promptResolver->resolve($caseId, $request->prompt_version_id);
+            $resolved = $resolver->resolve($caseId, $request->prompt_version_id);
         } catch (PromptUnavailableException $e) {
             $request->update([
                 'state' => 'stale',
@@ -214,8 +229,19 @@ class ClaimAuthoringRequest
 
         $settingsVersion = $request->settingsVersion;
         $payload = $settingsVersion ? $settingsVersion->payload : [];
-        $codingOrder = $payload['providers']['coding_order'] ?? [];
-        $codingAttempts = (int) ($payload['limits']['coding_attempts'] ?? 3);
+        $providerOverride = $request->provider_override_json;
+        if (is_array($providerOverride) && $providerOverride !== []) {
+            $codingOrder = [[
+                'id' => $providerOverride['id'] ?? null,
+                'model' => $providerOverride['model'] ?? null,
+                'credential_ref' => $providerOverride['credential_ref'] ?? null,
+                'thinking_budget' => $providerOverride['thinking_budget'] ?? null,
+            ]];
+            $codingAttempts = (int) ($request->attempt_limit ?? 1);
+        } else {
+            $codingOrder = $payload['providers']['coding_order'] ?? [];
+            $codingAttempts = (int) ($payload['limits']['coding_attempts'] ?? 3);
+        }
 
         return [
             'request_ref' => $request->id,

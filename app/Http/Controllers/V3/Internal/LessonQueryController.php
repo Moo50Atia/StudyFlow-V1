@@ -33,6 +33,10 @@ class LessonQueryController extends Controller
         if (! $query) {
             return response()->json(['data' => null], 200)->header('Cache-Control', 'private, no-store');
         }
+        $map = \App\Models\V3\LessonMap::where('case_id', $caseId)->first();
+        $cursor = \App\Models\V3\LessonCursor::where('case_id', $caseId)->first();
+        $bundle = \App\Models\V3\NotebookLessonBundle::where('query_id', $query->id)->first();
+        $completion = $bundle ? \App\Models\V3\LessonCompletion::find($bundle->completion_id) : null;
         return response()->json(['data' => [
             'query_ref' => $query->id,
             'binding_ref' => $query->binding_id,
@@ -42,6 +46,13 @@ class LessonQueryController extends Controller
             'history_length_before' => $query->history_length_before,
             'history_anchor_sha256' => $query->history_anchor_sha256,
             'expected_cursor_version' => $query->expected_cursor_version,
+            'map_ref' => $map?->id,
+            'work_count' => $map ? (int) $map->work_count : null,
+            'cursor_version' => $cursor ? (int) $cursor->version : null,
+            'bundle_ref' => $bundle?->id,
+            'completion_ref' => $completion?->completion_ref,
+            'section_refs' => $completion?->section_refs,
+            'original_prompt_refs' => $completion?->third_output_refs,
         ]], 200)->header('Cache-Control', 'private, no-store');
     }
 

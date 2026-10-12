@@ -11,6 +11,40 @@
 
 @section('content')
 <div class="space-y-6">
+    @if(($data['eligibility_basis'] ?? '') === 'owner_waived_demo')
+    <div class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900" data-v3-demo-waiver-notice>
+        <div class="flex items-center space-x-2">
+            <span class="font-semibold text-amber-800">Qualification Basis:</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-200 text-amber-900">
+                owner_waived_demo
+            </span>
+            @if(!empty($data['gate_id']))
+                <span class="text-xs text-amber-700 font-mono">Gate ID: {{ $data['gate_id'] }}</span>
+            @endif
+        </div>
+        <p class="mt-1 text-sm text-amber-800">
+            This candidate passed manual/demo browser checks without automated JEV scoring under an owner waiver.
+            @if(!empty($data['missing_fields']))
+                <span class="font-medium">Missing context fields:</span> {{ implode(', ', (array) $data['missing_fields']) }}
+            @endif
+        </p>
+    </div>
+    @elseif(($data['eligibility_basis'] ?? '') === 'real_jev')
+    <div class="rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-emerald-900" data-v3-jev-notice>
+        <div class="flex items-center space-x-2">
+            <span class="font-semibold text-emerald-800">Qualification Basis:</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-200 text-emerald-900">
+                real_jev
+            </span>
+            @if(!empty($data['qualification_ref']))
+                <span class="text-xs text-emerald-700 font-mono">Qualification Ref: {{ $data['qualification_ref'] }}</span>
+            @endif
+        </div>
+        <p class="mt-1 text-sm text-emerald-800">
+            This candidate has verified automated JEV qualification and passed browser verification.
+        </p>
+    </div>
+    @endif
     @if($data['review_state'] === 'pending' || $data['review_state'] === 'dormant')
     <section class="rounded-lg border border-gray-200 bg-white p-6 space-y-4"
         data-v3-review-page
@@ -112,10 +146,6 @@
             <p class="mt-1 text-sm text-gray-900 leading-relaxed">{{ $data['fields']['visual_learning_outcome'] }}</p>
         </div>
 
-        <div class="border-t border-gray-100 pt-4">
-            <h3 class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">7. Concept Check</h3>
-            <p class="mt-1 text-sm text-gray-900 leading-relaxed">{{ $data['fields']['concept_check'] }}</p>
-        </div>
 
         <div class="border-t border-gray-100 pt-4">
             <h3 class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">8. Conceptual Summary</h3>

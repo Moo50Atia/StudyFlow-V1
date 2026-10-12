@@ -46,7 +46,7 @@
         <div class="border-t border-gray-100 pt-4">
             <h3 class="text-sm font-medium text-gray-700 uppercase tracking-wider mb-3">Mapped Work Nodes</h3>
             <div class="divide-y divide-gray-100">
-                @forelse($map['work_items'] as $item)
+                @forelse($workItems as $item)
                 <div class="py-3 flex items-center justify-between">
                     <div>
                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-700 mr-2">
@@ -61,6 +61,24 @@
                         <span class="font-medium text-gray-900">{{ $item['section_count'] }}</span> sections
                     </div>
                 </div>
+                @if(!empty($item['sections']))
+                    <ul class="pb-4 pl-8 space-y-2" aria-label="Sections in {{ $item['path'] }}">
+                        @foreach($item['sections'] as $section)
+                            <li class="flex flex-wrap items-center gap-3 text-sm">
+                                <a class="text-indigo-700 hover:underline"
+                                   href="{{ route('v3.teacher.cases.sections.show', ['case' => $case->id, 'section' => $section['id']]) }}">
+                                    Section {{ $section['ordinal'] }}: {{ $section['identity'] }}
+                                </a>
+                                @if($section['has_prompt'] && $promptRunId)
+                                    <a class="text-emerald-700 hover:underline"
+                                       href="{{ route('v3.teacher.subject-runs.prompt-export', ['run' => $promptRunId, 'scene_id' => $section['id'], 'format' => 'text']) }}">
+                                        Download saved prompt
+                                    </a>
+                                @endif
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
                 @empty
                 <p class="text-sm text-gray-500 py-4">No mapped work items found.</p>
                 @endforelse

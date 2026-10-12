@@ -42,10 +42,11 @@ class TeacherStudyFlowController extends Controller
         $allowedLectureIds = $permissions->pluck('lecture_id')->unique()->filter();
 
         $subjects = Subject::whereIn('id', $allowedSubjectIds)->get();
-        $lectures = Lecture::whereIn('id', $allowedLectureIds)
-            ->orWhereIn('subject_id', $allowedSubjectIds)
-            ->with('subject')
-            ->get();
+        $lecQuery = Lecture::where(function ($q) use ($allowedLectureIds, $allowedSubjectIds) {
+            $q->whereIn('id', $allowedLectureIds)
+              ->orWhereIn('subject_id', $allowedSubjectIds);
+        })->with('subject');
+        $lectures = app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->scopeVisibleLectures($lecQuery, $user)->get();
 
         return view('teacher-study-flow.lectures', compact('subjects', 'lectures', 'permissions'));
     }
@@ -96,6 +97,10 @@ class TeacherStudyFlowController extends Controller
     {
         $user = Auth::user();
 
+        if (! app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessLecture($user, $lecture)) {
+            abort(403, 'Unauthorized access to pipeline-linked lecture.');
+        }
+
         // Check permission
         $hasPermission = TeacherPermission::where('teacher_id', $user->id)
             ->where(function ($query) use ($lecture) {
@@ -132,6 +137,10 @@ class TeacherStudyFlowController extends Controller
     public function storeBulkContent(BulkContentRequest $request, Section $section)
     {
         $user = Auth::user();
+
+        if (! app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessSection($user, $section)) {
+            abort(403, 'Unauthorized access to pipeline-linked section.');
+        }
 
         // Check permission via lecture
         $hasPermission = TeacherPermission::where('teacher_id', $user->id)

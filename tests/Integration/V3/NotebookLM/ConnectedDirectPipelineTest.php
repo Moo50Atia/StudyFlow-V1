@@ -392,11 +392,11 @@ class ConnectedDirectPipelineTest extends TestCase
             $this->assertNotNull($section->laws_if_any);
         }
 
-        // Scene prompt versions start with permitted scene types
+        // Direct NotebookLM scene type labels are provider-defined metadata.
         $promptVersions = ScenePromptVersion::where('case_id', $case->id)->get();
         $this->assertCount($allSections->count(), $promptVersions);
         foreach ($promptVersions as $pv) {
-            $this->assertContains($pv->scene_type, ['Process', 'Comparison', 'Accumulation', 'Parallel Flow', 'Time Evolution']);
+            $this->assertNotEmpty($pv->scene_type);
         }
 
         // =========================================================================

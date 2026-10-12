@@ -50,6 +50,7 @@ async def authoring_execute_attempts(payload: Dict[str, Any]) -> Dict[str, Any]:
         "gemini_api_key": settings.gemini_api_key,
         "glm_api_key": settings.glm_api_key,
         "deepseek_api_key": settings.deepseek_api_key,
+        "qwen_api_key": settings.qwen_api_key,
     }
 
     runner = AuthoringRunner(client=client, api_keys=api_keys, timeout_seconds=60.0)

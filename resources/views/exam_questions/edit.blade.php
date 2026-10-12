@@ -33,7 +33,7 @@
                         <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.2s">
                             <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Current Question Image</label>
                             @if($examQuestion->question_image)
-                            <img src="{{ Storage::url($examQuestion->question_image) }}" alt="Question" class="w-full max-w-md rounded-xl mb-4 shadow-lg">
+                            <img src="{{ route('owner-assets.show', ['kind' => 'exam-question', 'id' => $examQuestion->id, 'field' => 'question_image']) }}" alt="Question" class="w-full max-w-md rounded-xl mb-4 shadow-lg">
                             @else
                             <p class="text-gray-500 dark:text-gray-400 mb-4">No image uploaded</p>
                             @endif
@@ -51,7 +51,7 @@
                         <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.4s">
                             <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Current Solution Image</label>
                             @if($examQuestion->solution_image)
-                            <img src="{{ Storage::url($examQuestion->solution_image) }}" alt="Solution" class="w-full max-w-md rounded-xl mb-4 shadow-lg">
+                            <img src="{{ route('owner-assets.show', ['kind' => 'exam-question', 'id' => $examQuestion->id, 'field' => 'solution_image']) }}" alt="Solution" class="w-full max-w-md rounded-xl mb-4 shadow-lg">
                             @else
                             <p class="text-gray-500 dark:text-gray-400 mb-4">No solution image uploaded</p>
                             @endif

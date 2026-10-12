@@ -15,6 +15,7 @@ from v3_engine.authoring.providers import (
     call_gemini_authoring,
     call_glm_authoring,
     call_deepseek_authoring,
+    call_qwen_authoring,
 )
 
 
@@ -100,10 +101,19 @@ class AuthoringClient:
 class AuthoringRunner:
     """Executes scene authoring attempts with bounded fallback and uncertainty halting."""
 
-    def __init__(self, client: Any, api_keys: Dict[str, str], timeout_seconds: float = 60.0):
+    _transport_client: Optional[httpx.AsyncClient] = None
+
+    def __init__(
+        self,
+        client: Any,
+        api_keys: Dict[str, str],
+        timeout_seconds: float = 60.0,
+        http_client: Optional[httpx.AsyncClient] = None,
+    ):
         self.client = client
         self.api_keys = api_keys
         self.timeout_seconds = timeout_seconds
+        self.http_client = http_client or self._transport_client
 
     async def run(self, case_id: str, request_ref: str) -> AuthoringOutcome:
         context = await self.client.get_context(case_id, request_ref)
@@ -113,15 +123,25 @@ class AuthoringRunner:
         coding_order = context.get("coding_order", [])
         coding_attempts = context.get("coding_attempts", 3)
 
-        attempt_limit = min(coding_attempts, len(coding_order))
+        attempt_limit = coding_attempts if len(coding_order) == 1 else min(coding_attempts, len(coding_order))
 
         for ordinal in range(1, attempt_limit + 1):
             reservation = await self.client.reserve_attempt(case_id, request_ref, ordinal)
+            res_state = reservation.get("state")
+            if res_state == "candidate_ready":
+                return AuthoringOutcome(
+                    status="candidate_ready",
+                    candidate_ref=reservation.get("candidate_ref"),
+                )
+            if res_state in ("known_failure", "uncertain", "stale"):
+                continue
+
             attempt_ref = reservation["attempt_ref"]
             provider_info = reservation["provider"]
             provider_id = provider_info["id"]
             model = provider_info["model"]
             cred_ref = provider_info["credential_ref"]
+            thinking_budget = provider_info.get("thinking_budget")
 
             # Credential check
             api_key = self.api_keys.get(cred_ref) or self.api_keys.get(cred_ref.lower()) or self.api_keys.get(cred_ref.upper())
@@ -143,13 +163,18 @@ class AuthoringRunner:
 
             # Call provider with timeout
             start_time = time.time()
+            client_kw = {"client": self.http_client} if self.http_client is not None else {}
             try:
                 if provider_id == "gemini_api":
-                    coro = call_gemini_authoring(model, api_key, template_text, prompt)
+                    coro = call_gemini_authoring(
+                        model, api_key, template_text, prompt, thinking_budget=thinking_budget, **client_kw
+                    )
                 elif provider_id == "glm_api":
-                    coro = call_glm_authoring(model, api_key, template_text, prompt)
+                    coro = call_glm_authoring(model, api_key, template_text, prompt, **client_kw)
                 elif provider_id == "deepseek_api":
-                    coro = call_deepseek_authoring(model, api_key, template_text, prompt)
+                    coro = call_deepseek_authoring(model, api_key, template_text, prompt, **client_kw)
+                elif provider_id == "qwen_api":
+                    coro = call_qwen_authoring(model, api_key, template_text, prompt, **client_kw)
                 else:
                     raise ValueError(f"Unknown provider ID: {provider_id}")
 

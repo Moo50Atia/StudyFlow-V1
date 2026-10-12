@@ -7,14 +7,6 @@ class CombinedLessonValidator
     public const MAX_REPLY_BYTES = 1048576; // 1 MiB
     public const MAX_THIRD_PROMPT_BYTES = 65536;
 
-    public const PERMITTED_SCENE_TYPES = [
-        'Process',
-        'Comparison',
-        'Accumulation',
-        'Parallel Flow',
-        'Time Evolution',
-    ];
-
     public const PREPARED_PERSPECTIVE_MAP_FIELDS = [
         'primary_learning_objective' => '/^(?:[•\-*]\s*)?Primary\s+learning\s+objective\s*[:.]\s*(.*)$/i',
         'scene_type' => '/^(?:[•\-*]\s*)?Scene\s+Type\s*[:.]\s*(.*)$/i',
@@ -32,17 +24,17 @@ class CombinedLessonValidator
     ];
 
     public const FIRST_LABEL_SPECS = [
-        ['name' => 'section_identity', 'pattern' => '/^Section\s+Identity\s*:\s*(.*)$/i', 'can_empty' => false],
-        ['name' => 'core_understanding', 'pattern' => '/^Core\s+Understanding\s*:\s*(.*)$/i', 'can_empty' => false],
-        ['name' => 'visual_first_explanation', 'pattern' => '/^Visual-First\s+Explanation\s*:\s*(.*)$/i', 'can_empty' => false],
-        ['name' => 'visual_scene_script', 'pattern' => '/^Visual\s+Scene\s+Script\s*:\s*(.*)$/i', 'can_empty' => false],
-        ['name' => 'dynamic_view_blueprint', 'pattern' => '/^Dynamic\s+View\s+Blueprint\s*:\s*(.*)$/i', 'can_empty' => false],
-        ['name' => 'visual_learning_outcome', 'pattern' => '/^Visual\s+Learning\s+Outcome\s*:\s*(.*)$/i', 'can_empty' => false],
-        ['name' => 'concept_check', 'pattern' => '/^Concept\s+Check\s*:\s*(.*)$/i', 'can_empty' => false],
-        ['name' => 'conceptual_summary', 'pattern' => '/^Conceptual\s+Summary\s*:\s*(.*)$/i', 'can_empty' => false],
-        ['name' => 'colloquial_egyptian_explanation', 'pattern' => '/^(?:[•\-*]\s*)?شرح\s+للجزء\s+بالعامية\s+المصرية\s*:\s*(.*)$/u', 'can_empty' => false],
-        ['name' => 'laws_if_any', 'pattern' => '/^القوانين\s*\((?:إن|ان)\s*(?:وُجدت|وجدت)\)\s*:\s*(.*)$/u', 'can_empty' => true],
-        ['name' => 'real_life_example', 'pattern' => '/^(?:إسقاط|اسقاط)\s+على\s+مثال\s+أو\s+موقف\s+من\s+الحياة\s+اليومية\s+لتثبيت\s+الفهم\s*:\s*(.*)$/u', 'can_empty' => false],
+        ['name' => 'section_identity', 'pattern' => '/^Section\s+Identity\s*:?\s*(.*)$/i', 'can_empty' => false],
+        ['name' => 'core_understanding', 'pattern' => '/^Core\s+Understanding\s*:?\s*(.*)$/i', 'can_empty' => false],
+        ['name' => 'visual_first_explanation', 'pattern' => '/^Visual-First\s+Explanation\s*:?\s*(.*)$/i', 'can_empty' => false],
+        ['name' => 'visual_scene_script', 'pattern' => '/^Visual\s+Scene\s+Script\s*:?\s*(.*)$/i', 'can_empty' => false],
+        ['name' => 'dynamic_view_blueprint', 'pattern' => '/^Dynamic\s+View\s+Blueprint\s*:?\s*(.*)$/i', 'can_empty' => false],
+        ['name' => 'visual_learning_outcome', 'pattern' => '/^Visual\s+Learning\s+Outcome\s*:?\s*(.*)$/i', 'can_empty' => false],
+        ['name' => 'concept_check', 'pattern' => '/^Concept\s+Check\s*:?\s*(.*)$/i', 'can_empty' => false],
+        ['name' => 'conceptual_summary', 'pattern' => '/^Conceptual\s+Summary\s*:?\s*(.*)$/i', 'can_empty' => false],
+        ['name' => 'colloquial_egyptian_explanation', 'pattern' => '/^(?:[•\-*]\s*)?شرح\s+للجزء\s+بالعامية\s+المصرية\s*:?\s*(.*)$/u', 'can_empty' => false],
+        ['name' => 'laws_if_any', 'pattern' => '/^القوانين\s*\((?:إن|ان)\s*(?:وُجدت|وجدت)\)\s*:?\s*(.*)$/u', 'can_empty' => true],
+        ['name' => 'real_life_example', 'pattern' => '/^(?:إسقاط|اسقاط)\s+على\s+مثال\s+أو\s+موقف\s+من\s+الحياة\s+اليومية\s+لتثبيت\s+الفهم\s*:?\s*(.*)$/u', 'can_empty' => false],
     ];
 
     /**
@@ -107,8 +99,8 @@ class CombinedLessonValidator
         }
 
         $terminalOrdinal = (int) $markerMatch[1];
-        if ($terminalOrdinal !== $expectedWorkOrdinal) {
-            throw new \InvalidArgumentException("Terminal completion marker ordinal mismatch: expected {$expectedWorkOrdinal}, got {$terminalOrdinal}.");
+        if ($terminalOrdinal < 1) {
+            throw new \InvalidArgumentException("Terminal completion marker must contain a positive display number.");
         }
 
         // 1. Parse First artifact
@@ -207,7 +199,7 @@ class CombinedLessonValidator
             }
 
             // Check if section header
-            if (preg_match('/^Section\s+([0-9]+)\s*:\s*$/i', $line, $secMatch)) {
+            if (preg_match('/^Section\s+([0-9]+)\s*:\s*.*$/i', $line, $secMatch)) {
                 $finalizeCurrentSection();
                 $secNum = (int) $secMatch[1];
                 $expectedSecNum = count($sections) + 1;
@@ -222,11 +214,25 @@ class CombinedLessonValidator
                 throw new \InvalidArgumentException("Unexpected content before Section 1: '{$line}'.");
             }
 
+            // NotebookLM may number canonical field headings (for example,
+            // "1. Section Identity"). Ignore the prefix only when the remainder
+            // matches a known field label; other numbered lines are field content.
+            $labelLine = $line;
+            if (preg_match('/^\d+[.)]\s+(.+)$/u', $line, $numberedHeading)) {
+                $candidate = $numberedHeading[1];
+                foreach (self::FIRST_LABEL_SPECS as $spec) {
+                    if (preg_match($spec['pattern'], $candidate)) {
+                        $labelLine = $candidate;
+                        break;
+                    }
+                }
+            }
+
             // Check if line starts the next expected label in canonical order
             $nextLabelIdx = $currentLabelIdx + 1;
             if ($nextLabelIdx < count(self::FIRST_LABEL_SPECS)) {
                 $spec = self::FIRST_LABEL_SPECS[$nextLabelIdx];
-                if (preg_match($spec['pattern'], $line, $match)) {
+                if (preg_match($spec['pattern'], $labelLine, $match)) {
                     $currentLabelIdx = $nextLabelIdx;
                     $currentFields[$spec['name']] = $match[1];
                     continue;
@@ -234,9 +240,8 @@ class CombinedLessonValidator
             }
 
             // Check if matches any other label
-            $matchedOther = false;
             foreach (self::FIRST_LABEL_SPECS as $idx => $spec) {
-                if ($idx !== $currentLabelIdx && preg_match($spec['pattern'], $line)) {
+                if ($idx !== $currentLabelIdx && preg_match($spec['pattern'], $labelLine)) {
                     throw new \InvalidArgumentException("Field '{$spec['name']}' out of canonical order or duplicated in Section {$currentSecOrdinal}.");
                 }
             }
@@ -334,7 +339,7 @@ class CombinedLessonValidator
                 continue;
             }
 
-            if (preg_match('/^Lec\s*([0-9]+)\s*\(\s*Sec\s*([0-9]+)\s*\)\s*:\s*$/i', $line, $headerMatch)) {
+            if (preg_match('/^Lec\s*([0-9]+)\s*\(\s*Sec\s*([0-9]+)\s*\)\s*:\s*(.*)$/i', $line, $headerMatch)) {
                 $finalizeSecondSection();
                 $secNum = (int) $headerMatch[2];
                 $expectedSecNum = count($sections) + 1;
@@ -342,6 +347,15 @@ class CombinedLessonValidator
                     throw new \InvalidArgumentException("Second section numbering non-contiguous: expected Sec{$expectedSecNum}, got Sec{$secNum}.");
                 }
                 $currentSecOrdinal = $secNum;
+                $headerPlaceholder = trim($headerMatch[3] ?? '');
+                if ($headerPlaceholder !== '') {
+                    $quoted = (str_starts_with($headerPlaceholder, '"') && str_ends_with($headerPlaceholder, '"'))
+                        || (str_starts_with($headerPlaceholder, "'") && str_ends_with($headerPlaceholder, "'"));
+                    if (! $quoted) {
+                        throw new \InvalidArgumentException("Second section {$secNum} inline placeholder must be quoted.");
+                    }
+                    $currentPlaceholder = trim(substr($headerPlaceholder, 1, -1));
+                }
                 continue;
             }
 
@@ -361,6 +375,10 @@ class CombinedLessonValidator
             if (stripos($line, 'prepared perspective map') === 0) {
                 $inPerspectiveMap = true;
                 continue;
+            }
+
+            if (! $inPerspectiveMap) {
+                throw new \InvalidArgumentException("Unexpected content before Prepared Perspective Map in section {$currentSecOrdinal}.");
             }
 
             if ($inPerspectiveMap) {
@@ -442,20 +460,17 @@ class CombinedLessonValidator
 
                 $firstPromptLine = trim(explode("\n", $promptBody)[0]);
 
-                if (preg_match('/^Scene\s+Type\s*:/i', $firstPromptLine)) {
-                    throw new \InvalidArgumentException("Third section {$currentSecOrdinal} invalid v1 type prefix 'Scene Type:'; must start with permitted type name.");
+                // NotebookLM owns the scene taxonomy. Keep the provider's label
+                // as metadata instead of rejecting values outside a local list.
+                $labelLine = preg_replace('/^[•*\-]\s*/u', '', $firstPromptLine) ?? $firstPromptLine;
+                $labelLine = trim($labelLine);
+                if (preg_match('/^Scene\s+Type\s*[:.]\s*(.+)$/i', $labelLine, $typeMatch)) {
+                    $detectedType = trim($typeMatch[1]);
+                } else {
+                    $detectedType = trim(explode(':', $labelLine, 2)[0]);
                 }
-
-                $detectedType = null;
-                foreach (self::PERMITTED_SCENE_TYPES as $pType) {
-                    if (preg_match('/^' . preg_quote($pType, '/') . '\b/i', $firstPromptLine)) {
-                        $detectedType = $pType;
-                        break;
-                    }
-                }
-
-                if ($detectedType === null) {
-                    throw new \InvalidArgumentException("Third section {$currentSecOrdinal} prompt must begin with permitted type name.");
+                if ($detectedType === '') {
+                    throw new \InvalidArgumentException("Third section {$currentSecOrdinal} prompt must provide a nonempty scene type label.");
                 }
 
                 $sections[] = [
@@ -479,7 +494,7 @@ class CombinedLessonValidator
                 continue;
             }
 
-            if (preg_match('/^Lec\s*([0-9]+)\s*\(\s*Sec\s*([0-9]+)\s*\)\s*:\s*$/i', $stripped, $headerMatch)) {
+            if (preg_match('/^Lec\s*([0-9]+)\s*\(\s*Sec\s*([0-9]+)\s*\)\s*:\s*(.*)$/i', $stripped, $headerMatch)) {
                 $finalizeThirdSection();
                 $secNum = (int) $headerMatch[2];
                 $expectedSecNum = count($sections) + 1;
@@ -488,6 +503,20 @@ class CombinedLessonValidator
                 }
                 $currentSecOrdinal = $secNum;
                 $inPrompt = false;
+                // NotebookLM can put the opening quote and first prompt line
+                // on the same line as the Lec/Sec header. Preserve that text
+                // exactly as the Python bundle parser does.
+                $inlinePrompt = trim($headerMatch[3] ?? '');
+                if ($inlinePrompt !== '') {
+                    if (! str_starts_with($inlinePrompt, '"')) {
+                        throw new \InvalidArgumentException("Third section {$currentSecOrdinal} prompt must begin with quote.");
+                    }
+                    $promptLines[] = $inlinePrompt;
+                    $inPrompt = true;
+                    if (str_ends_with($inlinePrompt, '"') && ! str_ends_with($inlinePrompt, '\\"')) {
+                        $finalizeThirdSection();
+                    }
+                }
                 continue;
             }
 

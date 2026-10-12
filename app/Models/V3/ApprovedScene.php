@@ -45,6 +45,11 @@ class ApprovedScene extends Model implements V3OwnedResource
         return $this->belongsTo(SceneQualification::class, 'qualification_id', 'id');
     }
 
+    public function qualificationGate(): BelongsTo
+    {
+        return $this->belongsTo(QualificationGate::class, 'qualification_gate_id', 'id');
+    }
+
     public function decision(): BelongsTo
     {
         return $this->belongsTo(TeacherReviewDecision::class, 'review_decision_id', 'id');

@@ -1,0 +1,32 @@
+{
+  "acceptance_criteria": "A01, A02, A03, A04",
+  "terminal_root": "/home/moahmmed/college_project/storage/app/private/v3/eight_pdf_runs/8a1a5113dd01/terminal-root",
+  "run_id": "09a59afe-ed26-4567-906b-e42d87d53362",
+  "import_id": "85fb5075-a091-4f96-a514-3d3e1118dc43",
+  "pdf_count": 8,
+  "per_pdf_lesson_counts": [
+    9,
+    3,
+    9,
+    7,
+    5,
+    8,
+    8,
+    14
+  ],
+  "total_lesson_nodes": 63,
+  "total_scene_prompts": 89,
+  "total_teacher_sections": 90,
+  "external_generation_sends": 0,
+  "generated_scene_candidates": 0,
+  "prompt_version_statuses": [
+    "awaiting_manual"
+  ],
+  "dry_run_verified": true,
+  "materialization_verified": true,
+  "idempotent_duplicate_verified": true,
+  "source_immutability_verified": true,
+  "owner_browser_lecture_count": 8,
+  "owner_browser_section_count": 90,
+  "owner_browser_prompt_export_count": 89
+}

@@ -54,10 +54,6 @@
             <p class="mt-1 text-sm text-gray-900 leading-relaxed">{{ e($section['fields']['visual_learning_outcome']) }}</p>
         </div>
 
-        <div class="border-t border-gray-100 pt-4">
-            <h3 class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Concept Check</h3>
-            <p class="mt-1 text-sm text-gray-900 leading-relaxed">{{ e($section['fields']['concept_check']) }}</p>
-        </div>
 
         <div class="border-t border-gray-100 pt-4">
             <h3 class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Conceptual Summary</h3>

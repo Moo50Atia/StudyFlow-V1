@@ -63,6 +63,40 @@ def test_n12_parse_valid_combined_envelope():
     assert sec2_third.prompt_body.startswith("Process:")
 
 
+def test_third_parser_accepts_prompt_inline_with_section_header():
+    """NotebookLM may place the full quoted Third prompt after the Lec/Sec label."""
+    raw_text = (FIXTURES_DIR / "valid_combined_lesson_1.txt").read_text(encoding="utf-8")
+    prefix, first_and_rest = raw_text.split("=== FIRST ===", 1)
+    first, second_and_rest = first_and_rest.split("=== SECOND ===", 1)
+    second, third_and_rest = second_and_rest.split("=== THIRD ===", 1)
+    third, tail = third_and_rest.split("=== END ===", 1)
+    third = third.replace('Lec1 (Sec1):\n"', 'Lec1 (Sec1): "', 1)
+    raw_text = (
+        prefix + "=== FIRST ===" + first + "=== SECOND ===" + second
+        + "=== THIRD ===" + third + "=== END ===" + tail
+    )
+
+    bundle = parse_combined_bundle(raw_text, expected_work_ordinal=1)
+
+    assert len(bundle.third.sections) == 2
+    assert bundle.third.sections[0].scene_type == "Comparison"
+    assert bundle.third.sections[0].prompt_body.startswith("Comparison:")
+
+
+def test_live_style_section_headers_allow_provider_appended_titles():
+    raw_text = (FIXTURES_DIR / "valid_combined_lesson_1.txt").read_text(encoding="utf-8")
+    raw_text = raw_text.replace(
+        'Lec1 (Sec1):\n"Interactive number line exploring real number continuum and density."',
+        'Lec1 (Sec1): "Interactive number line exploring real number continuum and density."',
+        1,
+    )
+
+    bundle = parse_combined_bundle(raw_text, expected_work_ordinal=1)
+
+    assert [section.ordinal for section in bundle.second.sections] == [1, 2]
+    assert [section.ordinal for section in bundle.third.sections] == [1, 2]
+
+
 def test_n15_reject_final_only_reply():
     """N15: Reject final-only reply that lacks FIRST and SECOND delimiters."""
     raw_text = (FIXTURES_DIR / "combined_final_only.txt").read_text(encoding="utf-8")
@@ -81,22 +115,39 @@ def test_n15_reject_missing_delimiter():
     assert exc_info.value.code in {"validation", "bundle_invalid"}
 
 
-def test_n15_reject_invalid_third_type():
-    """N15: Reject Third prompt starting with 'Scene Type: Comparison' (not permitted in v1)."""
+def test_n15_accepts_provider_scene_type_field_prefix():
+    """NotebookLM's scene type label is metadata; the prefix is not a whitelist failure."""
     raw_text = (FIXTURES_DIR / "combined_invalid_third_type.txt").read_text(encoding="utf-8")
 
-    with pytest.raises(BundleParserError) as exc_info:
-        parse_combined_bundle(raw_text, expected_work_ordinal=1)
-    assert exc_info.value.code in {"validation", "bundle_invalid"}
+    bundle = parse_combined_bundle(raw_text, expected_work_ordinal=1)
+    assert bundle.third.sections[0].scene_type == "Comparison"
 
 
-def test_n15_reject_mismatched_marker_ordinal():
-    """N15: Reject reply when completion marker work ordinal does not match expected ordinal."""
+def test_n15_accepts_unlisted_notebooklm_scene_type():
+    raw_text = (FIXTURES_DIR / "valid_combined_lesson_1.txt").read_text(encoding="utf-8")
+    raw_text = raw_text.replace('"Comparison: Real Number Line', '"Decomposition: Real Number Line', 1)
+
+    bundle = parse_combined_bundle(raw_text, expected_work_ordinal=1)
+
+    assert bundle.third.sections[0].scene_type == "Decomposition"
+
+
+def test_n15_completion_marker_number_is_advisory_to_the_claimed_work_ordinal():
+    """The cursor and map identify work; NotebookLM's displayed lesson number is not authority."""
     raw_text = (FIXTURES_DIR / "combined_mismatched_marker.txt").read_text(encoding="utf-8")
 
-    with pytest.raises(BundleParserError) as exc_info:
+    bundle = parse_combined_bundle(raw_text, expected_work_ordinal=1)
+
+    assert bundle.work_ordinal == 1
+    assert bundle.terminal_marker_ordinal == 2
+
+
+def test_n15_completion_marker_still_requires_positive_number():
+    raw_text = (FIXTURES_DIR / "valid_combined_lesson_1.txt").read_text(encoding="utf-8")
+    raw_text = raw_text.replace("Lesson [1] Completed.", "Lesson [0] Completed.")
+
+    with pytest.raises(BundleParserError, match="positive display number"):
         parse_combined_bundle(raw_text, expected_work_ordinal=1)
-    assert exc_info.value.code in {"validation", "bundle_invalid"}
 
 
 def test_n15_reject_missing_first_fields():

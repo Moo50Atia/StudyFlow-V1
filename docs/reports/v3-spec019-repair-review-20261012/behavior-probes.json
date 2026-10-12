@@ -1,0 +1,182 @@
+{
+  "admission_without_temporal": {
+    "status": 202,
+    "body": {
+      "outcome": "accepted",
+      "submission_id": "75f8a2ca-ddde-4800-bbe6-1f3b92256575",
+      "run_id": "9c6897e9-5750-476b-99cc-2e295738177f",
+      "state": "queued"
+    }
+  },
+  "admission_after_supervisor_update_error": {
+    "status": 202,
+    "body": {
+      "outcome": "accepted",
+      "submission_id": "b54c21f1-1886-4dd0-a7bb-b1202e148dd7",
+      "run_id": "27288930-e2b0-4bfe-ad0f-cb62807693e9",
+      "state": "queued"
+    }
+  },
+  "submission_forwards_private_manifest_to_temporal": true,
+  "active_cancel_response": {
+    "status": 202,
+    "body": {
+      "outcome": "accepted",
+      "command_id": "91e6ab63-b374-4ba8-a8e7-d50136e95993",
+      "run_id": "9c6897e9-5750-476b-99cc-2e295738177f",
+      "action": "cancel",
+      "applied": false
+    }
+  },
+  "active_cancel_receipt": {
+    "status": 200,
+    "body": {
+      "command_id": "91e6ab63-b374-4ba8-a8e7-d50136e95993",
+      "consumed": true,
+      "digest": "2374d91794b79f4fb4ec9587d2cf00aecc4f9953fab3ed1dd12ab147a0b721f9",
+      "version": 1
+    }
+  },
+  "cancel_target_workflows": [
+    "v3-terminal-supervisor"
+  ],
+  "generate_command": {
+    "status": 422,
+    "body": {
+      "error": {
+        "code": "contract_invalid",
+        "message": "Unsupported action: generate"
+      }
+    }
+  },
+  "receipt_after_module_recreation": {
+    "status": 404,
+    "body": {
+      "error": {
+        "code": "receipt_not_found",
+        "message": "Command 91e6ab63-b374-4ba8-a8e7-d50136e95993 not found"
+      }
+    }
+  },
+  "production_operation_store_storage_path": "None",
+  "workflow_with_laravel_manifest_shape": {
+    "outcome": "prompts_exported",
+    "safe_code": "ok",
+    "pdfs_completed": 2,
+    "pdfs_failed": 0,
+    "prompts_saved": 4,
+    "lessons_saved": 4
+  },
+  "provider_calls": [
+    {
+      "kind": "ask",
+      "question": "Divide",
+      "notebook_id": "nb_536dbb3e-9560-4e5c-9b51-72c286f9aacf",
+      "source_ids": [
+        "src_1"
+      ]
+    },
+    {
+      "kind": "ask",
+      "question": "Execution",
+      "notebook_id": "nb_536dbb3e-9560-4e5c-9b51-72c286f9aacf",
+      "source_ids": [
+        "src_1",
+        "src_framework"
+      ]
+    },
+    {
+      "kind": "ask",
+      "question": "Continue 2",
+      "notebook_id": "nb_536dbb3e-9560-4e5c-9b51-72c286f9aacf",
+      "source_ids": [
+        "src_1",
+        "src_framework"
+      ]
+    },
+    {
+      "kind": "reset"
+    },
+    {
+      "kind": "ask",
+      "question": "Divide",
+      "notebook_id": "nb_536dbb3e-9560-4e5c-9b51-72c286f9aacf",
+      "source_ids": [
+        "src_2"
+      ]
+    },
+    {
+      "kind": "ask",
+      "question": "Execution",
+      "notebook_id": "nb_536dbb3e-9560-4e5c-9b51-72c286f9aacf",
+      "source_ids": [
+        "src_2",
+        "src_framework"
+      ]
+    },
+    {
+      "kind": "ask",
+      "question": "Continue 2",
+      "notebook_id": "nb_536dbb3e-9560-4e5c-9b51-72c286f9aacf",
+      "source_ids": [
+        "src_2",
+        "src_framework"
+      ]
+    },
+    {
+      "kind": "reset"
+    },
+    {
+      "kind": "ask",
+      "question": "Divide",
+      "notebook_id": "nb_39066203-e1fa-414f-86d9-84073ec68858",
+      "source_ids": [
+        "synthetic-source"
+      ]
+    },
+    {
+      "kind": "ask",
+      "question": "Divide",
+      "notebook_id": "nb_39066203-e1fa-414f-86d9-84073ec68858",
+      "source_ids": [
+        "synthetic-source"
+      ]
+    },
+    {
+      "kind": "reset"
+    }
+  ],
+  "actual_export": {
+    "run_id": "536dbb3e-9560-4e5c-9b51-72c286f9aacf",
+    "exported_at": "now",
+    "prompts": []
+  },
+  "remote_divide_sends_for_identical_completed_operation": 2,
+  "store_recreated_has_old_operations": false,
+  "reset_failure_result": {
+    "outcome": "completed",
+    "safe_code": "ok"
+  },
+  "workflow_failed_reset_and_export": {
+    "outcome": "prompts_exported",
+    "safe_code": "ok",
+    "pdfs_completed": 1,
+    "pdfs_failed": 0,
+    "prompts_saved": 1,
+    "lessons_saved": 1
+  },
+  "verify_nonexistent_archive": {
+    "outcome": "completed",
+    "safe_code": "ok",
+    "receipt_ref": "d2d791cd-751d-5d09-87ca-6d049d3cfd38"
+  },
+  "copy_missing_archive": {
+    "outcome": "completed",
+    "safe_code": "ok",
+    "receipt_ref": "689fe501-f847-5e19-9398-06a8eea2a952"
+  },
+  "copy_created_destination": false,
+  "sanitized_activity_keeps_private_prompt": true,
+  "sanitized_activity_bytes": 40127,
+  "standalone_web_app_route_count": 0
+}

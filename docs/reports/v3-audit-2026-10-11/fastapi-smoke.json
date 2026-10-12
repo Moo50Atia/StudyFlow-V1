@@ -1,0 +1,112 @@
+[
+  {
+    "method": "POST",
+    "path": "/internal/v1/workflows/start",
+    "status": 401
+  },
+  {
+    "method": "GET",
+    "path": "/internal/v1/workflows/{workflow_id}",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/internal/v1/workflows/{workflow_id}/activate-source",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/internal/v1/workflows/{workflow_id}/activate-map",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/internal/v1/workflows/{workflow_id}/lesson-ready",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/internal/v1/workflows/{workflow_id}/notebook-reconciled",
+    "status": 401
+  },
+  {
+    "method": "GET",
+    "path": "/internal/v1/workflows/{workflow_id}/consumed-query",
+    "status": 422
+  },
+  {
+    "method": "POST",
+    "path": "/internal/v1/review-preview/sessions",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/internal/v1/review-preview/sessions/{viewer_ref}/actions",
+    "status": 401
+  },
+  {
+    "method": "GET",
+    "path": "/internal/v1/review-preview/sessions/{viewer_ref}/frames/{frame_no}",
+    "status": 401
+  },
+  {
+    "method": "DELETE",
+    "path": "/internal/v1/review-preview/sessions/{viewer_ref}",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/internal/v1/workflows/{workflow_id}/review-decisions",
+    "status": 401
+  },
+  {
+    "method": "GET",
+    "path": "/internal/v1/workflows/{workflow_id}/review-decisions/{decision_ref}",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/internal/v1/workflows/{workflow_id}/start-correction",
+    "status": 401
+  },
+  {
+    "method": "GET",
+    "path": "/internal/v1/workflows/{workflow_id}/describe-correction",
+    "status": 401
+  },
+  {
+    "method": "GET",
+    "path": "/internal/v1/health",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/internal/v1/workflows/{workflow_id}/admin-controls",
+    "status": 401
+  },
+  {
+    "method": "GET",
+    "path": "/internal/v1/workflows/{workflow_id}/admin-controls/{command_ref}",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/internal/v1/application-pipeline/submissions",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/internal/v1/application-pipeline/commands",
+    "status": 401
+  },
+  {
+    "method": "GET",
+    "path": "/internal/v1/application-pipeline/receipts/{command_id}",
+    "status": 401
+  },
+  {
+    "method": "GET",
+    "path": "/internal/v1/application-pipeline/runs/{run_id}/status",
+    "status": 401
+  }
+]

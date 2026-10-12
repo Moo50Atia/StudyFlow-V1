@@ -25,6 +25,7 @@ class LoveController extends Controller
         if (!$user) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
+        if (in_array($request->type, ['question', 'exam_question'], true) && ! app(\App\Services\LearningAccess::class)->isOwner($user)) abort(403);
 
         // Get the model based on type
         $model = match ($request->type) {

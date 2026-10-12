@@ -39,7 +39,7 @@
                         <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.2s">
                             <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Current Question Image</label>
                             @if($question->question_image)
-                            <img src="{{ Storage::url($question->question_image) }}" alt="Question" class="w-full max-w-md rounded-xl mb-4 shadow-lg">
+                            <img src="{{ route('owner-assets.show', ['kind' => 'question', 'id' => $question->id, 'field' => 'question_image']) }}" alt="Question" class="w-full max-w-md rounded-xl mb-4 shadow-lg">
                             @else
                             <p class="text-gray-500 dark:text-gray-400 mb-4">No image uploaded</p>
                             @endif
@@ -66,7 +66,7 @@
                             <div class="grid grid-cols-4 gap-2 mb-4">
                                 @foreach($question->solution_images as $index => $image)
                                 <div class="relative group">
-                                    <img src="{{ Storage::url($image) }}" alt="Solution {{ $index + 1 }}" class="w-full aspect-square object-cover rounded-lg shadow-sm">
+                                    <img src="{{ route('owner-assets.show', ['kind' => 'question', 'id' => $question->id, 'field' => 'solution_images', 'index' => $index]) }}" alt="Solution {{ $index + 1 }}" class="w-full aspect-square object-cover rounded-lg shadow-sm">
                                     <div class="absolute top-1 left-1 bg-indigo-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{{ $index + 1 }}</div>
                                 </div>
                                 @endforeach

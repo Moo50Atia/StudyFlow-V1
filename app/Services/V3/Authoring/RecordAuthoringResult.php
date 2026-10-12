@@ -4,9 +4,11 @@ namespace App\Services\V3\Authoring;
 
 use App\Models\V3\AuthoringRequest;
 use App\Models\V3\CodingAttempt;
+use App\Models\V3\ProcessingCase;
 use App\Models\V3\SceneCandidate;
 use App\Services\V3\Prompts\QualifiedPromptResolver;
 use App\Services\V3\Prompts\PromptUnavailableException;
+use App\Services\V3\SceneQualification\EligiblePromptResolver;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -14,8 +16,11 @@ class RecordAuthoringResult
 {
     public function __construct(
         protected QualifiedPromptResolver $promptResolver,
-        protected SceneArtifactStore $artifactStore
-    ) {}
+        protected SceneArtifactStore $artifactStore,
+        protected ?EligiblePromptResolver $eligibleResolver = null
+    ) {
+        $this->eligibleResolver = $eligibleResolver ?? app(EligiblePromptResolver::class);
+    }
 
     public function record(string $caseId, string $attemptRef, array $payload, string $rawBytes): array
     {
@@ -63,15 +68,20 @@ class RecordAuthoringResult
                 throw new AuthoringConflictException('Result replay conflict with changed payload.');
             }
 
-            // Recheck 010 prompt current pass
+            // Recheck prompt current pass or demo gate
+            $case = ProcessingCase::find($caseId);
+            $resolver = ($case && ($case->isWebPipelineCase() || $request->eligibility_basis === 'owner_waived_demo'))
+                ? $this->eligibleResolver
+                : $this->promptResolver;
+
             try {
-                $this->promptResolver->resolve($caseId, $request->prompt_version_id);
+                $resolver->resolve($caseId, $request->prompt_version_id);
             } catch (PromptUnavailableException $e) {
                 $request->update([
                     'state' => 'stale',
                     'state_version' => $request->state_version + 1,
                 ]);
-                throw new AuthoringUnavailableException('Prompt version is no longer current pass.');
+                throw new AuthoringUnavailableException('Prompt version is no longer current pass: ' . $e->getMessage());
             }
 
             $durationMs = isset($payload['duration_ms']) ? (int) $payload['duration_ms'] : 0;
@@ -176,6 +186,9 @@ class RecordAuthoringResult
                     'file_count' => $artifactInfo['file_count'],
                     'total_bytes' => $artifactInfo['total_bytes'],
                     'collected_at' => now(),
+                    'origin' => $request->origin ?? 'authoring',
+                    'package_profile' => 'standard',
+                    'prompt_gate_id' => $request->prompt_gate_id,
                 ]);
 
                 // Update attempt

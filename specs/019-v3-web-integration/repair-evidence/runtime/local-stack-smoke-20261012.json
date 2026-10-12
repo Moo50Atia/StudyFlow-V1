@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-10-12T13:07:40Z",
+  "runtime": "loopback-only Laravel, FastAPI bridge, Temporal dev server, and registered worker processes",
+  "database": "disposable SQLite copy at /tmp/v3-web-integration-check.sqlite",
+  "php_upload_limits": {
+    "upload_max_filesize": "100M",
+    "post_max_size": "1100M",
+    "max_file_uploads": 20
+  },
+  "observations": {
+    "laravel_up_http_200": true,
+    "login_form_rendered_in_chromium": true,
+    "teacher_intake_redirects_unauthenticated_visitor_to_login": true,
+    "readiness_ready": true,
+    "web_pipeline_enabled": true,
+    "bridge_health_signed_by_laravel_php_signer_http_200": true,
+    "bridge_reports_temporal_reachable": true,
+    "temporal_namespace": "v3-terminal",
+    "worker_queues_registered": [
+      "v3-terminal-control",
+      "v3-terminal-io",
+      "v3-terminal-build"
+    ],
+    "provider_workflow_submitted": false,
+    "php_signer_matches_bridge_signature_after_rotation": true,
+    "php_signed_bridge_health_http_200": true,
+    "readiness_ready_with_php_ini_overrides": true,
+    "web_pipeline_enabled_from_project_env": true,
+    "php_live_gate_default_is_inert": true,
+    "php_live_gate_opt_in_skips_without_prerequisites": true,
+    "live_gate_submitted_provider_job": false
+  },
+  "scope": "service smoke only; no PDF admission, NotebookLM call, Qwen request, or database write to the project database",
+  "local_hmac_keys_rotated_after_diagnostic_output": true
+}

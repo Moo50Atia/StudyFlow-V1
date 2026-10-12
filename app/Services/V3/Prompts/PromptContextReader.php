@@ -42,6 +42,21 @@ class PromptContextReader
         return hash('sha256', $buffer);
     }
 
+    public static function computeNullAwareFieldsSha256(array $fields): string
+    {
+        $buffer = "019-null-aware-v1\n";
+        foreach (self::ELEVEN_FIELDS as $fieldName) {
+            if (! array_key_exists($fieldName, $fields) || is_null($fields[$fieldName])) {
+                $buffer .= "{$fieldName}\nNULL\n";
+            } else {
+                $val = str_replace(["\r\n", "\r"], "\n", (string) $fields[$fieldName]);
+                $len = strlen($val);
+                $buffer .= "{$fieldName}\n{$len}:{$val}\n";
+            }
+        }
+        return hash('sha256', $buffer);
+    }
+
     public function read(string $caseId, int $workOrdinal): array
     {
         /** @var ProcessingCase|null $case */

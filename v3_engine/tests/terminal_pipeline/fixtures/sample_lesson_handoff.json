@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "lesson_ordinal": 3,
+  "lesson_title": "Energy Conservation",
+  "scenes": [
+    {
+      "scene_ordinal": 1,
+      "prompt": "Pendulum energy exchange visualization",
+      "scene_type": "threejs_scene"
+    }
+  ]
+}

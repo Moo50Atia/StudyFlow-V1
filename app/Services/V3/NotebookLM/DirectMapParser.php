@@ -6,7 +6,7 @@ use InvalidArgumentException;
 
 class DirectMapParser
 {
-    protected const LINE_PATTERN = '/^(\s*)(?:[-*]\s+)?(Chapter|Mini\s+Chapter|Lesson)(?:\s+(?:[0-9]+(?:\.[0-9]+)*|[IVXLCDMivxlcdm]+))?\s*(?::|-|=>)\s*(.+)$/i';
+    protected const LINE_PATTERN = '/^(\s*)((?:[│|]\s*)*[├└]──\s*)?(?:=>\s*)?(?:[-*]\s+)?(Chapter|Mini\s+Chapter|Lesson)(?:\s+(?:[0-9]+(?:\.[0-9]+)*|[IVXLCDMivxlcdm]+))?\s*(?::|-|=>)\s*(.+)$/iu';
 
     /**
      * Parse raw structural Divide response into ordered lesson nodes with single sibling counters across kinds.
@@ -43,7 +43,7 @@ class DirectMapParser
         $hasIndentation = false;
         foreach ($lines as $l) {
             $trimmed = trim($l);
-            if ($trimmed !== '' && strlen($l) - strlen(ltrim($l, ' ')) > 0) {
+            if ($trimmed !== '' && (strlen($l) - strlen(ltrim($l, ' ')) > 0 || preg_match('/[│|├└]/u', $l))) {
                 $hasIndentation = true;
                 break;
             }
@@ -63,9 +63,12 @@ class DirectMapParser
                 throw new InvalidArgumentException("Prose or invalid line format: '{$line}'");
             }
 
-            $indentLen = strlen($matches[1]);
-            $rawKind = $matches[2];
-            $title = trim($matches[3]);
+            $treePrefix = $matches[2] ?? '';
+            preg_match_all('/[│|]/u', $treePrefix, $treeBars);
+            $treeDepth = count($treeBars[0]) + (preg_match('/[├└]──/u', $treePrefix) ? 1 : 0);
+            $indentLen = strlen($matches[1]) + ($treeDepth * 2);
+            $rawKind = $matches[3];
+            $title = trim($matches[4]);
 
             if (str_starts_with($title, '**') && str_ends_with($title, '**')) {
                 $title = trim(substr($title, 2, -2));
@@ -84,6 +87,13 @@ class DirectMapParser
                 $kind = 'lesson';
             } else {
                 throw new InvalidArgumentException("Unrecognized node kind: '{$rawKind}'");
+            }
+
+            // Match the Python protocol adapter: tree bars can repeat for
+            // earlier siblings, but the semantic hierarchy has only three
+            // levels, so a deeply prefixed Lesson is normalized to a leaf.
+            if ($kind === 'lesson' && ! in_array($indentLen, [0, 2, 4], true)) {
+                $indentLen = 4;
             }
 
             if ($hasIndentation) {

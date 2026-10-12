@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "submission_id": "00000000-0000-0000-0000-000000000000",
+  "subjects": [
+    {
+      "subject_key": "local-preparation-sample",
+      "mode": "new",
+      "display_title": "Local PDF Preparation Sample — verified per-PDF submission",
+      "provider": "gemini",
+      "model": "gemini-2.5-flash",
+      "timeout_seconds": 300,
+      "account_check_notebook_id": "85b76e80-ea8a-4f86-9311-185634fcd2ed",
+      "pdf_processing": "per_pdf",
+      "pdf_files": [
+        "path/to/original-source-1.pdf",
+        "path/to/original-source-2.pdf"
+      ],
+      "steps": "steps.txt"
+    }
+  ]
+}

@@ -25,6 +25,43 @@ use Tests\Support\V3\WorkflowFixtures;
 
 uses(RefreshDatabase::class);
 
+test('N10: Direct map parser accepts NotebookLM arrow-prefixed lesson children', function () {
+    $nodes = \App\Services\V3\NotebookLM\DirectMapParser::parse(
+        "Chapter 1: Fractions [1]\n=> Lesson 1: Equivalent Fractions [1]\n"
+    );
+
+    expect($nodes)->toHaveCount(2)
+        ->and($nodes[1]['kind'])->toBe('lesson')
+        ->and($nodes[1]['parent_position_path'])->toBe('001')
+        ->and($nodes[1]['work_ordinal'])->toBe(1);
+});
+
+test('direct map parser accepts NotebookLM Unicode tree hierarchies and repeated guides', function () {
+    $nodes = \App\Services\V3\NotebookLM\DirectMapParser::parse(
+        "Chapter: Unit 3: Geometry\n" .
+        "├── Mini Chapter: Similarity\n" .
+        "│   ├── Lesson 1: Similar Polygons\n" .
+        "│   └── Lesson 2: Scale Factors\n" .
+        "└── Lesson 3: Parallel Lines\n" .
+        "└── Lesson 4: Perpendicular Lines"
+    );
+
+    $workNodes = array_values(array_filter($nodes, fn (array $node) => $node['work_ordinal'] !== null));
+    expect($workNodes)->toHaveCount(4)
+        ->and($workNodes[0]['parent_position_path'])->toBe('001.001')
+        ->and($workNodes[1]['parent_position_path'])->toBe('001.001')
+        ->and($workNodes[2]['parent_position_path'])->toBe('001')
+        ->and($workNodes[3]['work_ordinal'])->toBe(4);
+
+    $repeated = \App\Services\V3\NotebookLM\DirectMapParser::parse(
+        "Chapter: Unit 3\n" .
+        "├── Mini Chapter: Parallel Lines\n" .
+        "│   │   ├── Lesson 6: Relationship Between Slopes [1]"
+    );
+    expect($repeated[2]['parent_position_path'])->toBe('001.001')
+        ->and($repeated[2]['work_ordinal'])->toBe(1);
+});
+
 beforeEach(function () {
     DB::statement('PRAGMA foreign_keys = ON;');
     Storage::fake('v3_private');

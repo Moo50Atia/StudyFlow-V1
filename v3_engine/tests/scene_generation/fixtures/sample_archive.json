@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "kind": "notebooklm_lesson_handoff",
+  "notebook_id": "test-nb-002",
+  "conversation_id": "test-conv-002",
+  "expected_work_count": 2,
+  "lessons": [
+    {
+      "lesson_ordinal": 1,
+      "lesson_title": "Rotational Motion",
+      "scenes": [
+        {
+          "scene_ordinal": 1,
+          "section_title": "Angular Velocity",
+          "scene_type": "Circular Flow",
+          "generated_prompt": "Scene Type: Circular Flow | Rotating disk showing omega vector and tangential speed."
+        },
+        {
+          "scene_ordinal": 2,
+          "section_title": "Centripetal Acceleration",
+          "scene_type": "Vector Field",
+          "generated_prompt": "Scene Type: Vector Field | Radial inward acceleration arrow updating with radius."
+        }
+      ]
+    },
+    {
+      "lesson_ordinal": 2,
+      "lesson_title": "Torque and Equilibrium",
+      "scenes": [
+        {
+          "scene_ordinal": 1,
+          "section_title": "Lever Arm Principle",
+          "scene_type": "Comparison",
+          "generated_prompt": "Scene Type: Comparison | See-saw balance comparing force times distance on two sides."
+        }
+      ]
+    }
+  ]
+}

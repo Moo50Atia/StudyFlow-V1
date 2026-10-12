@@ -78,6 +78,29 @@ def test_local_dotenv_load_does_not_override_existing_process_environment(tmp_pa
 def test_verified_notebooklm_origin_is_persisted(tmp_path):
     env = tmp_path / '.env'
     env.write_text('APP_NAME=Existing\n')
-    write_local_env(env, {'NOTEBOOKLM_ORIGIN': 'https://notebook.google.com'})
+    write_local_env(
+        env,
+        {
+            'NOTEBOOKLM_ORIGIN': 'https://notebook.google.com',
+            'V3_NOTEBOOKLM_STORAGE_STATE': '/private/notebooklm/storage-state.json',
+        },
+    )
     assert 'NOTEBOOKLM_ORIGIN="https://notebook.google.com"' in env.read_text()
+    assert 'V3_NOTEBOOKLM_STORAGE_STATE="/private/notebooklm/storage-state.json"' in env.read_text()
     assert 'APP_NAME=Existing' in env.read_text()
+
+
+def test_existing_brave_profile_selection_can_be_persisted(tmp_path):
+    env = tmp_path / '.env'
+    env.write_text('APP_NAME=Existing\n')
+    write_local_env(
+        env,
+        {
+            'NOTEBOOKLM_BROWSER_PROFILE_DIR': '/home/user/.config/BraveSoftware/Brave-Browser',
+            'NOTEBOOKLM_BROWSER_PROFILE_DIRECTORY': 'Default',
+            'NOTEBOOKLM_USE_EXISTING_PROFILE': '1',
+        },
+    )
+    content = env.read_text()
+    assert 'NOTEBOOKLM_BROWSER_PROFILE_DIRECTORY="Default"' in content
+    assert 'NOTEBOOKLM_USE_EXISTING_PROFILE="1"' in content

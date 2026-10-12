@@ -34,7 +34,7 @@
                     @if($examQuestion->question_image)
                     <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.3s;">
                         <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Question Image</h3>
-                        <img src="{{ Storage::url($examQuestion->question_image) }}" alt="Question" class="max-w-lg rounded-lg shadow-lg">
+                        <img src="{{ route('owner-assets.show', ['kind' => 'exam-question', 'id' => $examQuestion->id, 'field' => 'question_image']) }}" alt="Question" class="max-w-lg rounded-lg shadow-lg">
                     </div>
                     @else
                     <div class="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl animate-fade-in-up" style="animation-delay: 0.3s;">
@@ -55,7 +55,7 @@
                     @if($examQuestion->solution_image)
                     <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.5s;">
                         <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Solution Image</h3>
-                        <img src="{{ Storage::url($examQuestion->solution_image) }}" alt="Solution" class="max-w-lg rounded-lg shadow-lg">
+                        <img src="{{ route('owner-assets.show', ['kind' => 'exam-question', 'id' => $examQuestion->id, 'field' => 'solution_image']) }}" alt="Solution" class="max-w-lg rounded-lg shadow-lg">
                     </div>
                     @else
                     <div class="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl animate-fade-in-up" style="animation-delay: 0.5s;">

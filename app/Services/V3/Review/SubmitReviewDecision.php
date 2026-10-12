@@ -195,9 +195,17 @@ class SubmitReviewDecision
 
         // Recheck 012 qualified proof
         $candState = SceneCandidateState::where('candidate_id', $candidateRef)->first();
-        if (! $candState || $candState->status !== 'qualified') {
+        if (! $candState || ! in_array($candState->status, ['qualified', 'demo_review_ready'], true)) {
             return [
                 'error' => ['code' => 'review_conflict', 'message' => 'Candidate is not qualified.'],
+                'status' => 409,
+            ];
+        }
+
+        $eligibility = app(\App\Services\V3\SceneQualification\SceneReviewEligibility::class)->check($case->id, $candidateRef);
+        if (! ($eligibility['eligible'] ?? false)) {
+            return [
+                'error' => ['code' => 'review_conflict', 'message' => 'Candidate is not eligible for review.'],
                 'status' => 409,
             ];
         }
@@ -243,6 +251,9 @@ class SubmitReviewDecision
                 $noteBytes = strlen($normalizedNotes);
             }
 
+            $basis = $lockedItem->eligibility_basis ?? ($eligibility['basis'] ?? 'real_jev');
+            $gateId = $lockedItem->qualification_gate_id ?? ($eligibility['gate_id'] ?? null);
+
             $decisionRow = TeacherReviewDecision::forceCreate([
                 'id' => $decisionId,
                 'review_item_id' => $lockedItem->id,
@@ -261,6 +272,8 @@ class SubmitReviewDecision
                 'note_sha256' => $noteSha256,
                 'note_bytes' => $noteBytes,
                 'created_at' => now(),
+                'eligibility_basis' => $basis,
+                'qualification_gate_id' => $gateId,
             ]);
 
             $approvalRef = null;
@@ -277,6 +290,8 @@ class SubmitReviewDecision
                     'review_decision_id' => $decisionId,
                     'candidate_version' => $candidateVersion,
                     'approved_at' => now(),
+                    'eligibility_basis' => $basis,
+                    'qualification_gate_id' => $gateId,
                 ]);
                 $approvalRef = $approvalId;
 
@@ -325,9 +340,16 @@ class SubmitReviewDecision
             $routeWorkflowRef = $successorRoute
                 ? ($successorRoute->postapproval_correction_id ?: $successorRoute->id)
                 : null;
+            $isApplicationRun = $case->subject_run_item_id
+                && DB::table('v3_subject_run_items as item')
+                    ->join('v3_subject_runs as run', 'run.id', '=', 'item.run_id')
+                    ->where('item.id', $case->subject_run_item_id)
+                    ->whereIn('run.origin', ['web', 'historical_import'])
+                    ->exists();
             $workflowId = $routeWorkflowRef
                 ? "v3-review-correction-{$routeWorkflowRef}"
-                : ($link ? $link->workflow_id : "v3-case-{$case->id}");
+                : ($link ? $link->workflow_id
+                    : ($isApplicationRun ? "v3-web-review-{$lockedItem->id}" : "v3-case-{$case->id}"));
 
             ReviewOutbox::forceCreate([
                 'id' => (string) Str::uuid(),

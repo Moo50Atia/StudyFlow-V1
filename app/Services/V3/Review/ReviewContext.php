@@ -64,8 +64,12 @@ class ReviewContext
         }
 
         // Recheck 012 qualification proof
+        $eligibility = null;
         try {
-            $this->eligibilityService->check($case->id, $reviewItem->candidate_id);
+            $eligibility = $this->eligibilityService->check($case->id, $reviewItem->candidate_id);
+            if (! ($eligibility['eligible'] ?? false)) {
+                return null;
+            }
         } catch (\Throwable $e) {
             return null;
         }
@@ -110,7 +114,6 @@ class ReviewContext
             'visual_scene_script' => (string) $section->visual_scene_script,
             'dynamic_view_blueprint' => (string) $section->dynamic_view_blueprint,
             'visual_learning_outcome' => (string) $section->visual_learning_outcome,
-            'concept_check' => (string) $section->concept_check,
             'conceptual_summary' => (string) $section->conceptual_summary,
             'colloquial_egyptian_explanation' => (string) $section->colloquial_egyptian_explanation,
             'laws_if_any' => $section->laws_if_any ?? '',
@@ -131,6 +134,9 @@ class ReviewContext
             'preview_state' => $previewSession?->state ?? null,
             'approval_ref' => $currentApproval?->id,
             'section_state_version' => (int) $sectionState->state_version,
+            'eligibility_basis' => $eligibility['basis'] ?? 'unknown',
+            'gate_id' => $eligibility['gate_id'] ?? null,
+            'missing_fields' => $eligibility['missing_fields'] ?? [],
         ];
     }
 }

@@ -87,6 +87,12 @@ class MetricProjector
         $sceneRepairs = 0;
         $teacherChanges = 0;
         $gaps = 0;
+        $realQualifiedCount = 0;
+        $demoReviewedCount = 0;
+        $generatedSceneCount = 0;
+        $importedSceneCount = 0;
+        $realApprovedCount = 0;
+        $demoApprovedCount = 0;
 
         if (! empty($caseIds)) {
             // Technical retries: attempts after ordinal/attempt_no 1
@@ -108,6 +114,17 @@ class MetricProjector
             // Teacher changes: request_changes decisions + post-approval corrections
             $teacherChanges += TeacherReviewDecision::whereIn('case_id', $caseIds)->where('decision', 'request_changes')->count();
             $teacherChanges += PostapprovalCorrection::whereIn('case_id', $caseIds)->count();
+
+            // Spec 019: Separated qualification and provenance metrics
+            $realQualifiedCount = DB::table('v3_scene_qualifications')->whereIn('case_id', $caseIds)->where('decision', 'pass')->count();
+            $demoReviewedCount = DB::table('v3_qualification_gates')->whereIn('case_id', $caseIds)->where('gate_stage', 'scene')->where('basis', 'owner_waived_demo')->count();
+            $generatedSceneCount = DB::table('v3_scene_candidates')->whereIn('case_id', $caseIds)->where('origin', 'provider_generated')->count();
+            $importedCandCount = DB::table('v3_scene_candidates')->whereIn('case_id', $caseIds)->where('origin', 'manual_import')->count();
+            $importedRecordCount = DB::table('v3_manual_scene_imports')->whereIn('case_id', $caseIds)->count();
+            $importedSceneCount = max($importedCandCount, $importedRecordCount);
+
+            $demoApprovedCount = ApprovedScene::whereIn('case_id', $caseIds)->where('eligibility_basis', 'owner_waived_demo')->count();
+            $realApprovedCount = ApprovedScene::whereIn('case_id', $caseIds)->where(fn ($q) => $q->whereNull('eligibility_basis')->orWhere('eligibility_basis', 'real_jev'))->count();
         }
 
         // 4. Durations
@@ -212,6 +229,12 @@ class MetricProjector
             'prompt_revision_count' => $promptRevisions,
             'scene_repair_count' => $sceneRepairs,
             'teacher_change_count' => $teacherChanges,
+            'real_qualified_count' => $realQualifiedCount,
+            'demo_reviewed_count' => $demoReviewedCount,
+            'generated_scene_count' => $generatedSceneCount,
+            'imported_scene_count' => $importedSceneCount,
+            'real_approved_scene_count' => $realApprovedCount,
+            'demo_approved_scene_count' => $demoApprovedCount,
             'case_elapsed_ms' => $caseElapsed,
             'stage_residence_ms' => $stageResidence,
             'operation_observed_ms' => $operationObserved,
@@ -252,6 +275,12 @@ class MetricProjector
             'prompt_revision_count' => $adminMetrics['prompt_revision_count'],
             'scene_repair_count' => $adminMetrics['scene_repair_count'],
             'teacher_change_count' => $adminMetrics['teacher_change_count'],
+            'real_qualified_count' => $adminMetrics['real_qualified_count'] ?? 0,
+            'demo_reviewed_count' => $adminMetrics['demo_reviewed_count'] ?? 0,
+            'generated_scene_count' => $adminMetrics['generated_scene_count'] ?? 0,
+            'imported_scene_count' => $adminMetrics['imported_scene_count'] ?? 0,
+            'real_approved_scene_count' => $adminMetrics['real_approved_scene_count'] ?? 0,
+            'demo_approved_scene_count' => $adminMetrics['demo_approved_scene_count'] ?? 0,
             'case_elapsed_ms' => $adminMetrics['case_elapsed_ms'],
             'stage_residence_ms' => $adminMetrics['stage_residence_ms'],
             'operation_observed_ms' => $adminMetrics['operation_observed_ms'],

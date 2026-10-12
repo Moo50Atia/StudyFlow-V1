@@ -2,109 +2,40 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\LearningAccess;
+use App\Services\V3\WebPipeline\LinkedContentAccess;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\Models\TeacherPermission;
-use Illuminate\Support\Facades\Auth;
 
 class TeacherAccessMiddleware
 {
-    /**
-     * Handle an incoming request.
-     * Checks if teacher has permission to access the resource.
-     */
     public function handle(Request $request, Closure $next): Response
     {
-        $user = Auth::user();
-
-        if (!$user) {
-            return redirect()->route('login');
+        $user = $request->user();
+        if (! $user) abort(401);
+        $access = app(LearningAccess::class);
+        $linked = app(LinkedContentAccess::class);
+        $resource = $request->route()->getName();
+        if (str_starts_with((string) $resource, 'questions.') || str_starts_with((string) $resource, 'exam_questions.')) {
+            abort_unless($access->isOwner($user), 403);
         }
-
-        // Admin has full access
-        if ($user->role === 'admin') {
-            return $next($request);
+        $subject = $request->route('subject');
+        $lecture = $request->route('lecture');
+        $section = $request->route('section');
+        if ($subject) {
+            if ($user->role === 'student') {
+                abort_unless($access->scopeSubjects(\App\Models\Subject::query(), $user)->whereKey($subject->id)->exists(), 403);
+            } else {
+                abort_unless($access->canManage($user, (int) $subject->id), 403);
+            }
         }
-
-        // Students can only view (index, show)
+        if ($lecture) abort_unless($linked->canAccessLecture($user, $lecture), 403);
+        if ($section) abort_unless($linked->canAccessSection($user, $section), 403);
         if ($user->role === 'student') {
-            $method = $request->method();
-            $routeName = $request->route()->getName();
-
-            // Allow only GET requests for index and show
-            if ($method === 'GET' && (str_contains($routeName, '.index') || str_contains($routeName, '.show'))) {
-                return $next($request);
-            }
-
-            abort(403, 'Students can only view content.');
+            abort_unless($request->isMethod('GET') && (str_ends_with((string) $resource, '.index') || str_ends_with((string) $resource, '.show')), 403);
         }
-
-        // Teacher access check
-        if ($user->role === 'teacher') {
-            $routeName = $request->route()->getName();
-            $method = $request->method();
-
-            // Get the resource from route
-            $lecture = $request->route('lecture');
-            $subject = $request->route('subject');
-            $section = $request->route('section');
-            $question = $request->route('question');
-            $examQuestion = $request->route('exam_question');
-
-            // Check permissions based on route
-            if ($lecture) {
-                $hasPermission = TeacherPermission::where('teacher_id', $user->id)
-                    ->where('lecture_id', $lecture->id)
-                    ->exists();
-
-                if (!$hasPermission && !in_array($method, ['GET'])) {
-                    abort(403, 'You do not have permission to modify this lecture.');
-                }
-            }
-
-            if ($subject) {
-                $hasPermission = TeacherPermission::where('teacher_id', $user->id)
-                    ->where('subject_id', $subject->id)
-                    ->exists();
-
-                if (!$hasPermission && !in_array($method, ['GET'])) {
-                    abort(403, 'You do not have permission to modify this subject.');
-                }
-            }
-
-            // For sections, questions, exam_questions - check via lecture
-            if ($section) {
-                $hasPermission = TeacherPermission::where('teacher_id', $user->id)
-                    ->where('lecture_id', $section->lecture_id)
-                    ->exists();
-
-                if (!$hasPermission && !in_array($method, ['GET'])) {
-                    abort(403, 'You do not have permission to modify this section.');
-                }
-            }
-
-            if ($question) {
-                $hasPermission = TeacherPermission::where('teacher_id', $user->id)
-                    ->where('lecture_id', $question->lecture_id)
-                    ->exists();
-
-                if (!$hasPermission && !in_array($method, ['GET'])) {
-                    abort(403, 'You do not have permission to modify this question.');
-                }
-            }
-
-            if ($examQuestion) {
-                $hasPermission = TeacherPermission::where('teacher_id', $user->id)
-                    ->where('lecture_id', $examQuestion->lecture_id)
-                    ->exists();
-
-                if (!$hasPermission && !in_array($method, ['GET'])) {
-                    abort(403, 'You do not have permission to modify this exam question.');
-                }
-            }
-        }
-
+        if ($user->role === 'admin' && ! $access->isOwner($user) && ($subject || $lecture || $section)) abort(403);
         return $next($request);
     }
 }

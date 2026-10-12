@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "timestamp": "2026-10-12T13:10:57Z",
+  "gate_id": "G06",
+  "task_ids": [
+    "T112",
+    "T152"
+  ],
+  "status": "blocked",
+  "reason": "Live Qwen scene-generation acceptance and complete offline evidence-ledger acceptance remain open; all provisioned local service health checks pass.",
+  "missing_live_prerequisites": [
+    "approved proof notebook ID for the live acceptance account",
+    "QWEN_API_KEY and QWEN_MODEL for a live scene-generation request",
+    "explicit V3_LIVE_SPENDING_ACK=I_AUTHORIZE_ONE_QWEN_SCENE_REQUEST",
+    "two approved distinct PDFs configured through V3_WEB_LIVE_PDF1 and V3_WEB_LIVE_PDF2",
+    "complete offline acceptance evidence with execution links (T148/T151)"
+  ],
+  "offline_acceptance": "connected_runtime_verified; live_notebooklm_two_pdf_joined_test_passed_20261012; exact_archive_browser_and_queued_import_passed; complete_acceptance_not_verified",
+  "notes": "Live NotebookLM SDK calls passed for two PDFs through browser/Laravel intake, signed bridge admission, Temporal workers, lesson persistence, exports, manual scene import, qualification, preview and approval. The deterministic browser joined test now also drives owner review approval and correction submission. Exact eight-PDF archive import, owner navigation and queued happy path passed in disposable storage/database with duplicate handling. Live Qwen is not provisioned, the manifest schema check passes but offline acceptance still fails because required gate/view/criterion rows are not_run, and interrupted/lost-ack import recovery remains open. Do not claim complete Spec 019 acceptance or unconditional production readiness. Current host diagnostic: 127.0.0.1:8000 is a Python static directory server rooted at the generated_scenes directory, not the Laravel website or FastAPI bridge. The process was left running pending owner direction; do not treat it as the web application endpoint. A current authorized live NotebookLM browser journey passed on 2026-10-12 in 330.05 seconds; it used the real saved NotebookLM session and scripted Qwen transport. No live Qwen request was made. Local environment V3 web pipeline settings are now enabled in export_manual mode. Loopback Laravel (8080), FastAPI bridge (8765), Temporal dev namespace v3-terminal (7233), and control/io/build workers passed a signed health smoke with a disposable DB copy and temporary Temporal store; no workflow/PDF/provider request was submitted. Local HMAC keys were rotated and the PHP signer passed again. The original 0.0.0.0:8000 Python generated-scene server was left untouched. The PHPUnit LiveApplicationGateTest now delegates to the same Python live runner and is inert by default; its default and missing-prerequisite paths skipped safely without provider calls."
+}

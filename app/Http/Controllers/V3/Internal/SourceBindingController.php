@@ -137,13 +137,17 @@ class SourceBindingController extends Controller
 
         if ($binding->source_mode === 'original_pdf') {
             $files = \App\Models\V3\KnowledgeSourceFile::where('binding_id', $binding->id)->orderBy('role')->get();
+            $notebookId = $binding->notebook_id;
+            if (! $notebookId && $binding->notebook_instance_id) {
+                $notebookId = \App\Models\V3\NotebookInstance::whereKey($binding->notebook_instance_id)->value('provider_notebook_id');
+            }
             return response()->json([
                 'data' => [
                     'binding_ref' => $binding->id,
                     'case_id' => $binding->case_id,
                     'protocol' => 'notebooklm_combined_v1',
                     'source_mode' => 'original_pdf',
-                    'notebook_id' => $binding->notebook_id,
+                    'notebook_id' => $notebookId,
                     'notebook_title' => $binding->notebook_title,
                     'state' => $binding->state,
                     'chat_configuration_state' => $binding->chat_configuration_state,

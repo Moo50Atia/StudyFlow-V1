@@ -16,6 +16,27 @@ class ReviewSignalGateway
         $this->secretKey = $secretKey ?? config('services.v3.bridge_hmac_key');
     }
 
+    public function startWebReview(string $reviewRef, array $identity): array
+    {
+        if (empty($this->secretKey)) {
+            return ['status' => 503, 'accepted' => false];
+        }
+        $path = "/internal/v1/web-reviews/{$reviewRef}/start";
+        $signed = BridgeRequestSigner::prepareBridgeRequest('POST', $path, $identity, $this->secretKey);
+        try {
+            $resp = Http::withHeaders($signed['headers'])->timeout(10)
+                ->withBody($signed['body'], 'application/json')
+                ->post(rtrim($this->baseUrl, '/') . $path);
+            return [
+                'status' => $resp->status(),
+                'accepted' => in_array($resp->status(), [200, 202], true)
+                    && $resp->json('data.review_ref') === $reviewRef,
+            ];
+        } catch (\Throwable) {
+            return ['status' => 503, 'accepted' => false];
+        }
+    }
+
     public function sendDecisionSignal(string $workflowId, array $data): array
     {
         if (empty($this->secretKey)) {

@@ -1,0 +1,50 @@
+{
+  "php-full-final.xml": {
+    "cases": 752,
+    "passed": 740,
+    "error": 3,
+    "failure": 6,
+    "skipped": 3
+  },
+  "python-offline-rest.xml": {
+    "cases": 625,
+    "passed": 624,
+    "skipped": 1
+  },
+  "python-sdk.xml": {
+    "cases": 19,
+    "passed": 19
+  },
+  "python-temporal.xml": {
+    "cases": 58,
+    "passed": 55,
+    "error": 3
+  },
+  "python-extra-lanes.xml": {
+    "cases": 9,
+    "passed": 9
+  },
+  "php-connected-final.xml": {
+    "cases": 1,
+    "failure": 1
+  },
+  "laravel_endpoint_smoke": {
+    "registered_routes": 221,
+    "probed_routes": 221,
+    "statuses": {
+      "401": 194,
+      "200": 7,
+      "422": 4,
+      "404": 15,
+      "403": 1
+    },
+    "protected_v3_routes": 135
+  },
+  "fastapi_endpoint_smoke": {
+    "operations": 22,
+    "statuses": {
+      "401": 21,
+      "422": 1
+    }
+  }
+}

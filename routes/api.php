@@ -86,5 +86,34 @@ Route::prefix('internal/v1')->middleware('v3.worker.signature')->group(function 
 
     // 014 Admin Operation routes
     Route::post('admin-control-results', [\App\Http\Controllers\V3\Internal\AdminControlResultController::class, 'recordResult'])->name('api.v3.internal.admin-control-results.store');
-    Route::get('cases/{case_id}/operation-control', [\App\Http\Controllers\V3\Internal\OperationControlController::class, 'show'])->name('api.v3.internal.cases.operation-control.show');
+});
+
+Route::prefix('v3/internal')->middleware('v3.worker.signature')->group(function () {
+    Route::get('cases/{case_id}/scene-candidates/{candidate_ref}', [\App\Http\Controllers\V3\Internal\SceneCandidateController::class, 'show'])->name('api.v3.internal.cases.scene-candidates.show-v3');
+    Route::post('cases/{case_id}/scene-check-attempts', [\App\Http\Controllers\V3\Internal\SceneCheckController::class, 'claim'])->name('api.v3.internal.cases.scene-check-attempts.claim-v3');
+    Route::get('cases/{case_id}/scene-check-attempts/{attempt_ref}', [\App\Http\Controllers\V3\Internal\SceneCheckController::class, 'show'])->name('api.v3.internal.cases.scene-check-attempts.show-v3');
+    Route::post('cases/{case_id}/scene-check-attempts/{attempt_ref}/result', [\App\Http\Controllers\V3\Internal\SceneCheckController::class, 'result'])->name('api.v3.internal.cases.scene-check-attempts.result-v3');
+    Route::post('cases/{case_id}/scene-check-attempts/{attempt_ref}/technical-failure', [\App\Http\Controllers\V3\Internal\SceneCheckController::class, 'technicalFailure'])->name('api.v3.internal.cases.scene-check-attempts.technical-failure-v3');
+});
+
+// Spec 019: Web Pipeline internal routes
+Route::prefix('v3/internal/web-pipeline')->middleware('v3.worker.signature')->group(function () {
+    Route::post('items/{item}/prepare', [\App\Http\Controllers\V3\Internal\WebPipelineController::class, 'prepareRunItem'])->name('api.v3.internal.web-pipeline.items.prepare');
+    Route::post('runs/{run}/notebook', [\App\Http\Controllers\V3\Internal\WebPipelineController::class, 'recordRunNotebook'])->name('api.v3.internal.web-pipeline.runs.notebook');
+    Route::post('items/{item}/source', [\App\Http\Controllers\V3\Internal\WebPipelineController::class, 'recordRunItemSource'])->name('api.v3.internal.web-pipeline.items.source');
+    Route::post('items/{item}/archive', [\App\Http\Controllers\V3\Internal\WebPipelineController::class, 'recordRunItemArchive'])->name('api.v3.internal.web-pipeline.items.archive');
+    Route::post('items/{item}/reset-verified', [\App\Http\Controllers\V3\Internal\WebPipelineController::class, 'markRunItemResetVerified'])->name('api.v3.internal.web-pipeline.items.reset-verified');
+    Route::post('runs/{run}/export', [\App\Http\Controllers\V3\Internal\WebPipelineController::class, 'exportRunPrompts'])->name('api.v3.internal.web-pipeline.runs.export');
+    Route::get('items/{item}/input', [\App\Http\Controllers\V3\Internal\WebPipelineController::class, 'acceptedInput'])->name('api.v3.internal.web-pipeline.items.input');
+    Route::get('frameworks/{version}/body', [\App\Http\Controllers\V3\Internal\WebPipelineController::class, 'frameworkBody'])->name('api.v3.internal.web-pipeline.frameworks.body');
+    Route::post('claims', [\App\Http\Controllers\V3\Internal\WebPipelineController::class, 'claim'])->name('api.v3.internal.web-pipeline.claims');
+    Route::get('contexts/{ref}', [\App\Http\Controllers\V3\Internal\WebPipelineController::class, 'getContext'])->name('api.v3.internal.web-pipeline.contexts');
+    Route::get('manifests/{ref}', [\App\Http\Controllers\V3\Internal\WebPipelineController::class, 'getManifest'])->name('api.v3.internal.web-pipeline.manifests');
+    Route::post('results', [\App\Http\Controllers\V3\Internal\WebPipelineController::class, 'result'])->name('api.v3.internal.web-pipeline.results');
+    Route::get('commands/{command}/receipt', [\App\Http\Controllers\V3\Internal\WebPipelineController::class, 'commandReceipt'])->name('api.v3.internal.web-pipeline.commands.receipt');
+    Route::post('events', [\App\Http\Controllers\V3\Internal\WebPipelineController::class, 'recordEvent'])->name('api.v3.internal.web-pipeline.events');
+    Route::get('artifacts/{ref}', [\App\Http\Controllers\V3\Internal\WebPipelineController::class, 'getArtifact'])->name('api.v3.internal.web-pipeline.artifacts.get');
+    Route::put('operations/{operation}/artifacts/{ref}', [\App\Http\Controllers\V3\Internal\WebPipelineController::class, 'putArtifact'])->name('api.v3.internal.web-pipeline.artifacts.put');
+    Route::post('imports/verify', [\App\Http\Controllers\V3\Internal\WebPipelineController::class, 'verifyImport'])->name('api.v3.internal.web-pipeline.imports.verify');
+    Route::post('imports/materialize', [\App\Http\Controllers\V3\Internal\WebPipelineController::class, 'materializeImport'])->name('api.v3.internal.web-pipeline.imports.materialize');
 });

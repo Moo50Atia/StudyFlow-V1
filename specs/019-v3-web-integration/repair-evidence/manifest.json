@@ -1,0 +1,785 @@
+{
+  "schema_version": 1,
+  "capture_timestamp": "2026-10-12T08:50:00Z",
+  "git_revision": "89dfa1a46c4ad4d2ce231aa7f6d1f4a404a707ce",
+  "dirty_diff_hash": "b2c6e64516ff9a174f85e43c5ee96538cfa8ea7c541768822eeadbe48a0ecce9",
+  "harness_version": "1.0.0",
+  "environment": {
+    "isolated_db": "storage/testing/test_pipeline.sqlite",
+    "runtime_versions": {
+      "php": "8.5.0",
+      "python": "3.12.3",
+      "pytest": "9.1.1",
+      "temporal": "1.9.1"
+    },
+    "endpoints": {
+      "laravel": "http://127.0.0.1:8080",
+      "bridge": "http://127.0.0.1:8765",
+      "temporal": "127.0.0.1:7233/v3-terminal"
+    }
+  },
+  "gates": {
+    "G01": {
+      "status": "not_run",
+      "lane": "retained_archive",
+      "task_id": "T122",
+      "reason": "Gate definition restored from repair-acceptance-v2.md; runtime artifacts are not linked to this gate.",
+      "requirement_name": "Archive fidelity (T122–T129)",
+      "requirement_detail": "Use a small faithful fixture first, then the exact reference archive. Verify complete file graph, schemas, safe roots, raw answer hashes and prompt associations before materialization. Rehash staged copies before publishing; no session/cookie copies. Test source changes between verification and commit, invalid typed/duplicate ordinals, missing artifacts, symlink ancestors/descendants and unknown schema."
+    },
+    "G02": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T123",
+      "reason": "Gate definition restored from repair-acceptance-v2.md; runtime artifacts are not linked to this gate.",
+      "requirement_name": "Two-PDF website processing (T130–T134)",
+      "requirement_detail": "Fixture maps: two lessons for PDF 1, three for PDF 2, unequal sections/prompts. Assert outputs from returned raw fixture bytes, not hardcoded generic success. External transport journal proves one framework upload, correct selected source IDs for each turn, separate Divide and lesson sequences and archive/reset before the next PDF. Request types/ordering follow actual service semantics; do not require redundant Start requests where canonical service combines them."
+    },
+    "G03": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T124",
+      "reason": "Gate definition restored from repair-acceptance-v2.md; runtime artifacts are not linked to this gate.",
+      "requirement_name": "Manual and selected API scenes (T135–T139)",
+      "requirement_detail": "Manual source format: schema_version 1 with exactly `index.html`, `styles.css`, `script.js` file contents under the contracted files array. The internal ScenePackageV2 manifest is produced by the application; it is not a replacement upload contract. Reject malformed packages before publishing."
+    },
+    "G04": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T125",
+      "reason": "Gate definition restored from repair-acceptance-v2.md; runtime artifacts are not linked to this gate.",
+      "requirement_name": "Owner review and corrections (T140–T143)",
+      "requirement_detail": "The actual isolated viewer generates first-frame evidence for the current candidate. Interact with the scene through the viewer; approval before the first frame fails. Assert decision identity/digest/version is actually handled by registered workflow code before outbox delivery closes. Concurrent decisions produce one winner, and transport acknowledgment loss does not duplicate effects."
+    },
+    "G05": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T126",
+      "reason": "Gate definition restored from repair-acceptance-v2.md; runtime artifacts are not linked to this gate.",
+      "requirement_name": "Durability, runtime controls and privacy (T144–T147)",
+      "requirement_detail": "Stop/restart actual processes after durable admission, after remote response retention before callback, after a committed lesson before reset, and before finalization. Retain the same disposable roots/DB/Temporal namespace. Verify stable operation/candidate/decision identities, no duplicate remote request or database projection, bounded exact receipts, queue slot recovery and actual history replay."
+    },
+    "G06": {
+      "status": "blocked",
+      "lane": "live",
+      "task_id": "T127",
+      "reason": "Live Qwen credential and dedicated live gate runner are absent; current host port 8000 is not Laravel.",
+      "requirement_name": "Live website acceptance (T149,T152)",
+      "requirement_detail": "Implement an opt-in gate with the SAME internal boundaries as offline. Validate effective session/proof/account, approved disposable PDFs, actual server origins, provider/model, explicit generation opt-in/spending scope and browser runner. Google browser sign-in, NotebookLM session availability and generation API credentials are different prerequisites. Default manual export does not require paid generation credentials."
+    }
+  },
+  "views": {
+    "V01": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T148",
+      "reason": "Coverage is documented in website-matrix.md but this ledger has no execution ID and measured observation for this view.",
+      "actual_route_or_boundary": "`/v3/teacher/subjects/{subject}/runs/create` and POST `/runs`",
+      "current_coverage_note": "Chromium login and ordered two PDF form submission; intake authorization and invalid input feature tests. Contract accepts 1–20 PDFs, up to 100 MiB each.",
+      "matrix_status": "Verified offline for two PDF intake"
+    },
+    "V02": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T148",
+      "reason": "Coverage is documented in website-matrix.md but this ledger has no execution ID and measured observation for this view.",
+      "actual_route_or_boundary": "`/v3/teacher/subject-runs/{run}`, `/progress`, `/events`",
+      "current_coverage_note": "Joined Chromium journeys verify live completed, running, paused, queued and cancelled states, PDF rows, live phase, saved counts and pending-control message. Partial, blocked, manual-wait and review-wait states are not all browser-verified.",
+      "matrix_status": "Partial; live workflow projection and core states verified"
+    },
+    "V03": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T148",
+      "reason": "Coverage is documented in website-matrix.md but this ledger has no execution ID and measured observation for this view.",
+      "actual_route_or_boundary": "`/subjects/{subject}`, `/lectures/{lecture}`, `/v3/teacher/cases/{case}/sections/{section}`",
+      "current_coverage_note": "Exact archive test imports 8 PDFs, then owner Chromium traverses all 8 lecture pages, lesson maps and 90 section pages; verifies all 89 prompt links and owner export.",
+      "matrix_status": "Verified offline against exact archive"
+    },
+    "V04": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T148",
+      "reason": "Coverage is documented in website-matrix.md but this ledger has no execution ID and measured observation for this view.",
+      "actual_route_or_boundary": "`/v3/teacher/subject-runs/{run}/prompt-export`",
+      "current_coverage_note": "Joined browser journey downloaded JSON and text exports from the same two-PDF run and checked all nine saved prompt bodies/digests.",
+      "matrix_status": "Verified offline in joined journey"
+    },
+    "V05": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T148",
+      "reason": "Coverage is documented in website-matrix.md but this ledger has no execution ID and measured observation for this view.",
+      "actual_route_or_boundary": "`/v3/teacher/subject-runs/{run}/scenes` and `/scenes/{scene}/imports`",
+      "current_coverage_note": "Same-run manual scene package import was performed as the teacher and passed Chromium qualification.",
+      "matrix_status": "Verified offline in joined journey"
+    },
+    "V06": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T148",
+      "reason": "Coverage is documented in website-matrix.md but this ledger has no execution ID and measured observation for this view.",
+      "actual_route_or_boundary": "`/v3/teacher/subject-runs/{run}/scenes/{scene}/authoring-request`",
+      "current_coverage_note": "Same-run selected Qwen authoring went through Laravel outbox and Temporal. Provider HTTP used a scripted transport, not a live API.",
+      "matrix_status": "Verified offline; live provider pending"
+    },
+    "V07": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T148",
+      "reason": "Coverage is documented in website-matrix.md but this ledger has no execution ID and measured observation for this view.",
+      "actual_route_or_boundary": "Worker scene check activities and signed `/api/v3/internal/cases/{case}/scene-check-attempts` routes; no teacher `candidate-checks` route",
+      "current_coverage_note": "The same-run manual and selected API candidates completed real Chromium qualification checks.",
+      "matrix_status": "Verified offline in joined journey"
+    },
+    "V08": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T148",
+      "reason": "Coverage is documented in website-matrix.md but this ledger has no execution ID and measured observation for this view.",
+      "actual_route_or_boundary": "`/v3/teacher/cases/{case}/reviews/{review}` and `/viewer-sessions`",
+      "current_coverage_note": "Chromium clicks Start Preview, sees frame-zero image, verifies approval is disabled before frame 0 and enabled after; approval is delivered and consumed by the Temporal review workflow.",
+      "matrix_status": "Verified offline in joined journey"
+    },
+    "V09": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T148",
+      "reason": "Coverage is documented in website-matrix.md but this ledger has no execution ID and measured observation for this view.",
+      "actual_route_or_boundary": "`/v3/teacher/cases/{case}/approved-scenes/{approval}/corrections`",
+      "current_coverage_note": "Chromium submits a post-approval correction; HTTP 201 and persisted accepted correction are asserted. Temporal correction successor workflow and final successor lineage remain open.",
+      "matrix_status": "Partial; initial browser correction verified"
+    },
+    "V10": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T148",
+      "reason": "Coverage is documented in website-matrix.md but this ledger has no execution ID and measured observation for this view.",
+      "actual_route_or_boundary": "POST `/v3/teacher/subject-runs/{run}/commands` and POST `/v3/admin/subject-runs/{run}/commands`",
+      "current_coverage_note": "Chromium owner journey pauses and resumes an active child, cancels while paused, and verifies no lesson turn follows a completed Divide after cancellation. A second Chromium journey cancels the fifth queued run through the supervisor while four child workflows hold capacity. Durable outbox/Temporal receipt tests verify requested versus applied and outage behavior; admin restriction and command race tests pass.",
+      "matrix_status": "Verified for active/paused and queued cancellation paths"
+    },
+    "V11": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T148",
+      "reason": "Coverage is documented in website-matrix.md but this ledger has no execution ID and measured observation for this view.",
+      "actual_route_or_boundary": "`/v3/admin/subject-runs/{run}/summary`, `/v3/admin/subject-runs`",
+      "current_coverage_note": "Joined Chromium journey opens the admin run dashboard, verifies the operational boundary and run identity, and confirms teacher PDF titles are absent; PHP privacy tests verify private-field exclusions. Evidence exports and all admin views remain partial.",
+      "matrix_status": "Partial; admin dashboard privacy verified"
+    },
+    "V12": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T148",
+      "reason": "Coverage is documented in website-matrix.md but this ledger has no execution ID and measured observation for this view.",
+      "actual_route_or_boundary": "CLI `v3:import-terminal-run`, signed `/api/v3/internal/web-pipeline/imports/verify` and `/imports/materialize`",
+      "current_coverage_note": "Exact archive import verifies 8 PDFs, 63 lessons, 90 sections, 89 prompts, source immutability, duplicate idempotency, owner traversal and exact export. Separate `--queue` test crosses signed bridge, Temporal worker and Laravel materializer, then verifies duplicate sync import. Lost-ack/interruption recovery still needs coverage.",
+      "matrix_status": "Verified core sync/queued path; recovery partial"
+    }
+  },
+  "acceptance": {
+    "A01": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-001,FR-025,FR-026 / SC-001",
+      "governing_tests": [
+        "TerminalImportTest.php",
+        "ImportedLectureViewTest.php"
+      ],
+      "task_ids": [
+        "T012",
+        "T014",
+        "T016",
+        "T019–T021",
+        "T064"
+      ],
+      "required_evidence": "8 lectures,63 lessons,89 exact prompts;0 provider calls/scenes for reference"
+    },
+    "A02": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-019,FR-025 / SC-005",
+      "governing_tests": [
+        "TerminalImportTest.php",
+        "test_import_workflow.py"
+      ],
+      "task_ids": [
+        "T010",
+        "T012",
+        "T014",
+        "T016–T019"
+      ],
+      "required_evidence": "same IDs/digests resume per item; changed destination conflict"
+    },
+    "A03": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-025 / SC-005",
+      "governing_tests": [
+        "TerminalImportTest.php",
+        "test_import_workflow.py"
+      ],
+      "task_ids": [
+        "T012",
+        "T014",
+        "T017–T019"
+      ],
+      "required_evidence": "corruption/symlink/escape rejection; dry-run no effects"
+    },
+    "A04": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-007,FR-026",
+      "governing_tests": [
+        "ImportedProjectionTest.php",
+        "ImportedLectureViewTest.php",
+        "test_projection.py"
+      ],
+      "task_ids": [
+        "T005",
+        "T013",
+        "T015",
+        "T016",
+        "T020",
+        "T021"
+      ],
+      "required_evidence": "original raw/missing-aware eleven fields and historical labels"
+    },
+    "A05": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-001,FR-003,FR-004 / SC-002",
+      "governing_tests": [
+        "SubjectRunIntakeTest.php"
+      ],
+      "task_ids": [
+        "T004",
+        "T022",
+        "T024",
+        "T029",
+        "T034"
+      ],
+      "required_evidence": "private exact accepted bytes; one lecture/case per accepted PDF"
+    },
+    "A06": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-005 / SC-002",
+      "governing_tests": [
+        "test_notebook_workflow.py"
+      ],
+      "task_ids": [
+        "T005",
+        "T027–T029"
+      ],
+      "required_evidence": "one framework, separate maps, active sources only"
+    },
+    "A07": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-006 / SC-002,SC-005",
+      "governing_tests": [
+        "test_notebook_workflow.py",
+        "Integration/BundleCommitTest.php"
+      ],
+      "task_ids": [
+        "T027–T031"
+      ],
+      "required_evidence": "durable turns/cursor/archive/reset before next PDF"
+    },
+    "A08": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-007,FR-008 / SC-002",
+      "governing_tests": [
+        "ImportedProjectionTest.php",
+        "test_projection.py",
+        "PromptExportTest.php"
+      ],
+      "task_ids": [
+        "T013",
+        "T015",
+        "T027",
+        "T030–T033"
+      ],
+      "required_evidence": "variable labels/counts and NULL warnings; unknown map blocked"
+    },
+    "A09": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-009",
+      "governing_tests": [
+        "test_notebook_workflow.py"
+      ],
+      "task_ids": [
+        "T027–T029",
+        "T033"
+      ],
+      "required_evidence": "settled local fail continues safely; auth/quota/uncertainty pauses"
+    },
+    "A10": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-010 / SC-003",
+      "governing_tests": [
+        "PromptExportTest.php",
+        "test_exports.py"
+      ],
+      "task_ids": [
+        "T032–T034"
+      ],
+      "required_evidence": "all/scoped exact descriptions, no generation calls"
+    },
+    "A11": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-012 / SC-003,SC-004",
+      "governing_tests": [
+        "ManualSceneImportTest.php"
+      ],
+      "task_ids": [
+        "T035",
+        "T037",
+        "T038",
+        "T044"
+      ],
+      "required_evidence": "exact current prompt/manual lineage, no fictitious attempt"
+    },
+    "A12": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-012,FR-019 / SC-005",
+      "governing_tests": [
+        "ManualSceneImportTest.php"
+      ],
+      "task_ids": [
+        "T035",
+        "T037",
+        "T044"
+      ],
+      "required_evidence": "idempotent same bytes; changed/stale conflicts"
+    },
+    "A13": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-004,FR-011,FR-015 / SC-003",
+      "governing_tests": [
+        "EligibleAuthoringRequestTest.php",
+        "test_scene_execution.py"
+      ],
+      "task_ids": [
+        "T006",
+        "T035",
+        "T036",
+        "T038–T041",
+        "T044",
+        "T062",
+        "T063"
+      ],
+      "required_evidence": "genuine request with real pass or explicit matching demo gate; only selected actual API request; captured thinking/model, no fallback"
+    },
+    "A14": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-013,FR-014 / SC-005",
+      "governing_tests": [
+        "test_scene_execution.py",
+        "test_notebook_workflow.py"
+      ],
+      "task_ids": [
+        "T027",
+        "T029",
+        "T036",
+        "T040",
+        "T041"
+      ],
+      "required_evidence": "verified restore/no automatic duplicate send; explicit consent"
+    },
+    "A15": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-013 / SC-005",
+      "governing_tests": [
+        "test_scene_execution.py"
+      ],
+      "task_ids": [
+        "T036",
+        "T037",
+        "T040",
+        "T041"
+      ],
+      "required_evidence": "retained local recovery, all-build unique evidence, tamper rejected"
+    },
+    "A16": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-015,FR-016 / SC-004",
+      "governing_tests": [
+        "Integration/StaticSceneChecksTest.php",
+        "test_browser_checks.py"
+      ],
+      "task_ids": [
+        "T006",
+        "T035",
+        "T038",
+        "T042",
+        "T043"
+      ],
+      "required_evidence": "actual complete7 checks/capture; waiver distinct from pass"
+    },
+    "A17": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-002,FR-016 / SC-004,SC-006",
+      "governing_tests": [
+        "SceneReviewTest.php"
+      ],
+      "task_ids": [
+        "T045",
+        "T047",
+        "T048",
+        "T063"
+      ],
+      "required_evidence": "owner-only real isolated preview/first-frame/current gate"
+    },
+    "A18": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-017 / SC-005",
+      "governing_tests": [
+        "Integration/ReviewRaceTest.php",
+        "Integration/CorrectionDeliveryTest.php",
+        "test_review_effects.py"
+      ],
+      "task_ids": [
+        "T045–T049"
+      ],
+      "required_evidence": "one winning concurrent decision; exact consumption"
+    },
+    "A19": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-018",
+      "governing_tests": [
+        "Integration/CorrectionDeliveryTest.php",
+        "test_review_effects.py"
+      ],
+      "task_ids": [
+        "T046",
+        "T049"
+      ],
+      "required_evidence": "manual waits replacement; API correction real successor/check/review"
+    },
+    "A20": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-015,FR-024,FR-028 / SC-004",
+      "governing_tests": [
+        "EvidenceLineageTest.php"
+      ],
+      "task_ids": [
+        "T048",
+        "T050",
+        "T051"
+      ],
+      "required_evidence": "source→actual ancestry→approval, retained deletion blockers"
+    },
+    "A21": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-019,FR-020 / SC-005",
+      "governing_tests": [
+        "Integration/AdmissionTest.php",
+        "test_admission.py",
+        "test_controls_capacity.py"
+      ],
+      "task_ids": [
+        "T010",
+        "T023",
+        "T025",
+        "T026",
+        "T049",
+        "T053",
+        "T056"
+      ],
+      "required_evidence": "fresh startup/admission/ack-loss stable IDs"
+    },
+    "A22": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-022",
+      "governing_tests": [
+        "test_controls_capacity.py"
+      ],
+      "task_ids": [
+        "T028",
+        "T053",
+        "T055",
+        "T059"
+      ],
+      "required_evidence": "pause/cancel applied at settled boundary; paused cancel wakes"
+    },
+    "A23": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-021",
+      "governing_tests": [
+        "test_admission.py",
+        "test_controls_capacity.py"
+      ],
+      "task_ids": [
+        "T011",
+        "T023",
+        "T026",
+        "T028",
+        "T041",
+        "T053",
+        "T056"
+      ],
+      "required_evidence": "shared4/4/2 mixed capacity, waits release slots"
+    },
+    "A24": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-019,FR-020,FR-024 / SC-005",
+      "governing_tests": [
+        "Integration/CommandRaceTest.php",
+        "Integration/BundleCommitTest.php",
+        "test_controls_capacity.py"
+      ],
+      "task_ids": [
+        "T008",
+        "T010",
+        "T026",
+        "T030",
+        "T031",
+        "T053",
+        "T055",
+        "T056",
+        "T058"
+      ],
+      "required_evidence": "actual contention/restart/dedup/stable version/effects"
+    },
+    "A25": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-023 / SC-007",
+      "governing_tests": [
+        "ProgressProjectionTest.php"
+      ],
+      "task_ids": [
+        "T033",
+        "T052",
+        "T057",
+        "T059"
+      ],
+      "required_evidence": "real counters/null totals/version/offline age"
+    },
+    "A26": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-002,FR-027 / SC-006",
+      "governing_tests": [
+        "LinkedContentAccessTest.php",
+        "SceneReviewTest.php",
+        "PrivateMetadataTest.php"
+      ],
+      "task_ids": [
+        "T008",
+        "T009",
+        "T020",
+        "T045",
+        "T047",
+        "T054",
+        "T057"
+      ],
+      "required_evidence": "legacy/new listings/download/bulk/CRUD/review deny unauthorized"
+    },
+    "A27": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-024,FR-026,FR-028 / SC-006,SC-007",
+      "governing_tests": [
+        "PrivateMetadataTest.php",
+        "EvidenceLineageTest.php",
+        "test_privacy_history.py"
+      ],
+      "task_ids": [
+        "T011",
+        "T017",
+        "T031",
+        "T050–T052",
+        "T054",
+        "T057",
+        "T058"
+      ],
+      "required_evidence": "actual histories/no secrets or content; safe historical/retention graph"
+    },
+    "A28": {
+      "status": "not_run",
+      "lane": "joined_offline",
+      "task_id": "T154",
+      "reason": "Criterion definition restored from acceptance-matrix.md; current outputs are not linked to measured observations for this exact criterion.",
+      "requirements": "FR-027 / SC-005",
+      "governing_tests": [
+        "Integration/MigrationUpgradeTest.php",
+        "Integration/RolloutTest.php",
+        "test_replay.py"
+      ],
+      "task_ids": [
+        "T001",
+        "T005",
+        "T007",
+        "T009",
+        "T024",
+        "T061",
+        "T062",
+        "T064"
+      ],
+      "required_evidence": "unchanged populated data/defaults and true legacy replay"
+    }
+  },
+  "executions": [
+    {
+      "id": "local-stack-smoke-20261012",
+      "command": "Local PHP readiness + Chromium login/access smoke + PHP-signed bridge health + Temporal client and worker registration checks",
+      "started_at": "2026-10-12T13:07:07Z",
+      "ended_at": "2026-10-12T13:07:40Z",
+      "exit_code": 0,
+      "passed_count": 1,
+      "failed_count": 0,
+      "skipped_count": 0,
+      "deselected_count": 0,
+      "doubles": [],
+      "trace_ids": {
+        "environment": "loopback isolated runtime",
+        "worker_namespace": "v3-terminal"
+      },
+      "test_ids": [
+        "local_stack_smoke_2026_10_12"
+      ],
+      "observations": {
+        "laravel_up_http_200": true,
+        "login_form_rendered_in_chromium": true,
+        "teacher_intake_redirects_unauthenticated_visitor_to_login": true,
+        "readiness_ready": true,
+        "php_signed_bridge_health_http_200": true,
+        "temporal_reachable": true,
+        "worker_queues_registered": [
+          "v3-terminal-control",
+          "v3-terminal-io",
+          "v3-terminal-build"
+        ],
+        "provider_workflow_submitted": false,
+        "php_signer_matches_bridge_signature_after_rotation": true,
+        "bridge_reports_temporal_reachable": true,
+        "readiness_ready_with_php_ini_overrides": true,
+        "web_pipeline_enabled_from_project_env": true,
+        "php_live_gate_default_is_inert": true,
+        "php_live_gate_opt_in_skips_without_prerequisites": true,
+        "live_gate_submitted_provider_job": false
+      },
+      "artifacts": [
+        {
+          "kind": "runtime_trace",
+          "path": "019-v3-web-integration/repair-evidence/runtime/local-stack-smoke-20261012.json",
+          "sha256": "a1c4fcd14cc40f5b22ddf34c06f8594123ed25d66a4ea630b5026cec4206c608"
+        }
+      ]
+    },
+    {
+      "id": "live-gate-preflight-20261012",
+      "command": ".venv/bin/python -m pytest -c v3_engine/pyproject.toml -vv scripts/v3/tests/test_live_web_pipeline_gate.py scripts/v3/tests/test_verify_web_repair_evidence.py",
+      "started_at": "2026-10-12T13:09:00Z",
+      "ended_at": "2026-10-12T13:09:01Z",
+      "exit_code": 0,
+      "passed_count": 4,
+      "failed_count": 0,
+      "skipped_count": 0,
+      "deselected_count": 0,
+      "doubles": [
+        "NotebookLM storage-state validation patched only in the missing-prerequisite unit test; no provider transport or API call"
+      ],
+      "trace_ids": {
+        "gate": "live opt-in prerequisite validation",
+        "evidence": "manifest artifact rejection regressions"
+      },
+      "test_ids": [
+        "v3_engine::test_live_gate_skips_with_named_missing_prerequisites",
+        "v3_engine::test_live_pdf_preflight_rejects_missing_or_non_pdf",
+        "v3_engine::test_rejects_forged_complete_claim_without_artifacts",
+        "v3_engine::test_rejects_narrative_markdown_as_runtime_artifact"
+      ],
+      "observations": {
+        "live_gate_names_missing_prerequisites_before_child_run": true,
+        "live_pdf_preflight_rejects_invalid_pdf": true,
+        "evidence_validator_rejects_forged_complete_claim": true,
+        "evidence_validator_rejects_narrative_markdown_artifact": true,
+        "live_provider_call_made": false
+      },
+      "artifacts": [
+        {
+          "kind": "test_log",
+          "path": "019-v3-web-integration/repair-evidence/runtime/live-gate-preflight-20261012.log",
+          "sha256": "d824d75ffd79e163e4f42708dd20595208e7fcef17fcbccb8a165cad5bcc8181"
+        }
+      ]
+    }
+  ],
+  "source_snapshot_sha256": "b3bc885e003fc815c2d028488edb73a46f4a97af092b3dc56f049e0c60b34c1f"
+}

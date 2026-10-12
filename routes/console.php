@@ -20,6 +20,7 @@ Schedule::command('v3:dispatch-review-effects')->everyMinute();
 Schedule::command('v3:mark-dormant-reviews')->daily();
 Schedule::command('v3:dispatch-admin-commands')->everyMinute();
 Schedule::command('v3:purge-expired-evidence-exports')->hourly();
+Schedule::command('v3:dispatch-web-pipeline')->everyMinute();
 
 Artisan::command('v3:mark-dormant-reviews', function (\App\Services\V3\Review\MarkDormantReviews $service) {
     $count = $service->mark();

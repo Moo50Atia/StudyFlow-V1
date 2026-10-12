@@ -17,6 +17,32 @@ Route::middleware(['v3.private', 'web'])->prefix('v3')->group(function () {
         Route::get('/', [TeacherWorkspaceController::class, 'index'])
             ->name('v3.teacher.workspace');
 
+        // V3 Subject Runs
+        Route::get('/subjects/{subject}/runs', [\App\Http\Controllers\V3\Teacher\SubjectRunController::class, 'index'])
+            ->name('v3.teacher.subject-runs.index');
+        Route::get('/subjects/{subject}/runs/create', [\App\Http\Controllers\V3\Teacher\SubjectRunController::class, 'create'])
+            ->name('v3.teacher.subject-runs.create');
+        Route::post('/subjects/{subject}/runs', [\App\Http\Controllers\V3\Teacher\SubjectRunController::class, 'store'])
+            ->name('v3.teacher.subject-runs.store');
+        Route::get('/subject-runs/{run}', [\App\Http\Controllers\V3\Teacher\SubjectRunController::class, 'show'])
+            ->name('v3.teacher.subject-runs.show');
+        Route::get('/subject-runs/{run}/prompt-export', [\App\Http\Controllers\V3\Teacher\SubjectRunController::class, 'promptExport'])
+            ->name('v3.teacher.subject-runs.prompt-export');
+        Route::post('/subject-runs/{run}/scenes/{scene}/imports', [\App\Http\Controllers\V3\Teacher\SubjectRunController::class, 'importScene'])
+            ->name('v3.teacher.subject-runs.scenes.imports');
+        Route::get('/subject-runs/{run}/scenes', [\App\Http\Controllers\V3\Teacher\SubjectRunController::class, 'scenes'])
+            ->name('v3.teacher.subject-runs.scenes');
+        Route::post('/subject-runs/{run}/generation-mode', [\App\Http\Controllers\V3\Teacher\SubjectRunController::class, 'updateGenerationSelection'])
+            ->name('v3.teacher.subject-runs.generation-mode');
+        Route::post('/subject-runs/{run}/scenes/{scene}/authoring-request', [\App\Http\Controllers\V3\Teacher\SubjectRunController::class, 'requestSceneGeneration'])
+            ->name('v3.teacher.subject-runs.scenes.authoring-request');
+        Route::get('/subject-runs/{run}/progress', [\App\Http\Controllers\V3\Teacher\SubjectRunController::class, 'progress'])
+            ->name('v3.teacher.subject-runs.progress');
+        Route::get('/subject-runs/{run}/events', [\App\Http\Controllers\V3\Teacher\SubjectRunController::class, 'events'])
+            ->name('v3.teacher.subject-runs.events');
+        Route::post('/subject-runs/{run}/commands', [\App\Http\Controllers\V3\Teacher\SubjectRunController::class, 'command'])
+            ->name('v3.teacher.subject-runs.commands');
+
         Route::post('/pdf-uploads', [\App\Http\Controllers\V3\Teacher\PdfUploadController::class, 'store'])
             ->name('v3.teacher.pdf-uploads.store');
 
@@ -107,11 +133,20 @@ Route::middleware(['v3.private', 'web'])->prefix('v3')->group(function () {
         Route::get('/', [AdminWorkspaceController::class, 'index'])
             ->name('v3.admin.workspace');
 
+        Route::post('/notebooklm/health-check', [\App\Http\Controllers\V3\Admin\NotebookHealthController::class, 'check'])
+            ->name('v3.admin.notebooklm.health-check');
+
         Route::get('/cases', [\App\Http\Controllers\V3\Admin\CaseSummaryController::class, 'index'])
             ->name('v3.admin.cases.index');
 
         Route::get('/cases/{case}/summary', [\App\Http\Controllers\V3\Admin\CaseSummaryController::class, 'show'])
             ->name('v3.admin.cases.summary');
+        Route::get('/subject-runs', [\App\Http\Controllers\V3\Admin\SubjectRunSummaryController::class, 'index'])
+            ->name('v3.admin.subject-runs.index');
+        Route::get('/subject-runs/{run}/summary', [\App\Http\Controllers\V3\Admin\SubjectRunSummaryController::class, 'show'])
+            ->name('v3.admin.subject-runs.summary');
+        Route::post('/subject-runs/{run}/commands', [\App\Http\Controllers\V3\Admin\SubjectRunSummaryController::class, 'command'])
+            ->name('v3.admin.subject-runs.commands');
 
         Route::get('/accounts', [AccountController::class, 'index'])
             ->name('v3.admin.accounts.index');

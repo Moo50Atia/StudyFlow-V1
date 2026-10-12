@@ -1,0 +1,2076 @@
+{
+    "readiness_cli_effective_config": {
+        "ready": false,
+        "opt_in": false,
+        "default_mode": "export_manual",
+        "legacy_protocol_default": "legacy_staged_v1",
+        "checks": {
+            "web_pipeline_enabled": {
+                "status": "warn",
+                "message": "Web pipeline integration is currently disabled (opt-in). Set V3_WEB_PIPELINE_ENABLED=true to activate."
+            },
+            "default_mode": {
+                "status": "pass",
+                "message": "Default generation mode is 'export_manual'.",
+                "detail": "export_manual"
+            },
+            "legacy_protocol_default": {
+                "status": "pass",
+                "message": "Legacy notebook protocol default is 'legacy_staged_v1'.",
+                "detail": "legacy_staged_v1"
+            },
+            "upload_max_filesize": {
+                "status": "fail",
+                "message": "Effective upload_max_filesize is 2M (2,097,152 bytes). Required: >= 100 MiB.",
+                "detail": {
+                    "current_raw": "2M",
+                    "current_bytes": 2097152,
+                    "required_bytes": 104857600
+                }
+            },
+            "post_max_size": {
+                "status": "fail",
+                "message": "Effective post_max_size is 8M (8,388,608 bytes). Required: >= 1100 MiB.",
+                "detail": {
+                    "current_raw": "8M",
+                    "current_bytes": 8388608,
+                    "required_bytes": 1153433600
+                }
+            },
+            "max_file_uploads": {
+                "status": "pass",
+                "message": "Effective max_file_uploads is 20. Required: >= 20.",
+                "detail": {
+                    "current": 20,
+                    "required": 20
+                }
+            },
+            "upload_tmp_dir": {
+                "status": "warn",
+                "message": "Upload tmp dir /tmp is writable but world-writable; private directory recommended.",
+                "detail": {
+                    "path": "/tmp",
+                    "writable": true,
+                    "world_writable": true
+                }
+            },
+            "private_storage": {
+                "status": "pass",
+                "message": "Private storage path /home/moahmmed/college_project/storage/app/private/v3 is accessible and writable.",
+                "detail": {
+                    "path": "/home/moahmmed/college_project/storage/app/private/v3",
+                    "writable": true
+                }
+            },
+            "bridge_configuration": {
+                "status": "pass",
+                "message": "Application pipeline bridge and HMAC signing key are configured.",
+                "detail": {
+                    "bridge_url": "http://127.0.0.1:8765",
+                    "hmac_key_present": true
+                }
+            },
+            "provider_credentials": {
+                "status": "pass",
+                "message": "Provider credentials inspected safely with zero API probe calls.",
+                "detail": {
+                    "gemini": false,
+                    "glm": false,
+                    "deepseek": false,
+                    "qwen": false
+                }
+            }
+        }
+    },
+    "unauthenticated_route_probes": [
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/case-events",
+            "name": "api.v3.internal.case-events.store",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\CaseEventController@store",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/source-activations/{activation_id}/pdf",
+            "name": "api.v3.internal.source-activations.pdf",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\SourceInputController@streamPdf",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/source-activations/{activation_id}/steps",
+            "name": "api.v3.internal.source-activations.steps",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\SourceInputController@streamSteps",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/source-activations/{activation_id}/extraction",
+            "name": "api.v3.internal.source-activations.extraction.get",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\SourceExtractionController@getExtraction",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/source-activations/{activation_id}/extraction",
+            "name": "api.v3.internal.source-activations.extraction.store",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\SourceExtractionController@storeExtraction",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/source-activations/{activation_id}/extracted-sources/{extracted_source_ref}/text",
+            "name": "api.v3.internal.source-activations.extraction.text",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\SourceExtractionController@getText",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/source-effects/{case_id}/{operation}/claim",
+            "name": "api.v3.internal.source-effects.claim",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\SourceEffectController@claim",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/source-effects/{effect_id}/result",
+            "name": "api.v3.internal.source-effects.result",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\SourceEffectController@result",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/source-activations/{activation_id}/binding",
+            "name": "api.v3.internal.source-activations.binding",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\SourceBindingController@getByActivation",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/cases/{case_id}/source-bindings/{binding_ref}",
+            "name": "api.v3.internal.cases.source-bindings.get",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\SourceBindingController@getByCaseAndRef",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/map-activations/{activation_id}/context",
+            "name": "api.v3.internal.map-activations.context",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\MapContextController@getContext",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/lesson-queries/{case_id}/{kind}/{ordinal}/claim",
+            "name": "api.v3.internal.lesson-queries.claim",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\LessonQueryController@claim",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/lesson-queries/{kind}/{ordinal}/claim",
+            "name": "api.v3.internal.cases.lesson-queries.claim",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\LessonQueryController@claim",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/cases/{case_id}/lesson-queries/{kind}/{ordinal}",
+            "name": "api.v3.internal.cases.lesson-queries.find-direct",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\LessonQueryController@findDirect",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/lesson-queries/{query_ref}",
+            "name": "api.v3.internal.lesson-queries.show",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\LessonQueryController@show",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/lesson-queries/{query_ref}/result",
+            "name": "api.v3.internal.lesson-queries.result",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\LessonQueryController@result",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/lesson-queries/{query_ref}/uncertain",
+            "name": "api.v3.internal.lesson-queries.uncertain",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\LessonQueryController@uncertain",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/lesson-queries/{query_ref}/combined-result",
+            "name": "api.v3.internal.lesson-queries.combined-result",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\NotebookProtocolController@combinedResult",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/cases/{case_id}/lesson-context/{work_ordinal}",
+            "name": "api.v3.internal.cases.lesson-context",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\MapContextController@lessonContext",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/lesson-completions",
+            "name": "api.v3.internal.cases.lesson-completions",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\LessonCompletionController@store",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/cases/{case_id}/prompt-context/{work_ordinal}",
+            "name": "api.v3.internal.cases.prompt-context",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\PromptContextController@getContext",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/prompt-work-items/{work_ordinal}/claim",
+            "name": "api.v3.internal.cases.prompt-work-items.claim",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\PromptTurnController@claimWorkItem",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/prompt-work-items/{work_item_ref}/complete",
+            "name": "api.v3.internal.cases.prompt-work-items.complete",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\PromptCompletionController",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/cases/{case_id}/prompt-work-items/{work_ordinal}/prompt-versions",
+            "name": "api.v3.internal.cases.prompt-work-items.prompt-versions",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\PromptQualificationController@workPromptVersions",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/prompt-work-items/{work_item_ref}/turns/{step}/claim",
+            "name": "api.v3.internal.cases.prompt-turns.claim",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\PromptTurnController@claimTurn",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/cases/{case_id}/prompt-turns/{turn_ref}",
+            "name": "api.v3.internal.cases.prompt-turns.get",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\PromptTurnController@getTurn",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/prompt-turns/{turn_ref}/result",
+            "name": "api.v3.internal.cases.prompt-turns.result",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\PromptTurnController@result",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/prompt-turns/{turn_ref}/uncertain",
+            "name": "api.v3.internal.cases.prompt-turns.uncertain",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\PromptTurnController@uncertain",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/cases/{case_id}/prompt-versions/{prompt_version_ref}/qualification-context",
+            "name": "api.v3.internal.cases.prompt-versions.qualification-context",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\PromptQualificationController@qualificationContext",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/prompt-versions/{prompt_version_ref}/jev-attempts/claim",
+            "name": "api.v3.internal.cases.prompt-versions.jev-attempts.claim",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\PromptQualificationController@claimAttempt",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/prompt-jev-attempts/{attempt_ref}/result",
+            "name": "api.v3.internal.cases.prompt-jev-attempts.result",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\PromptQualificationController@recordResult",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/prompt-jev-attempts/{attempt_ref}/technical-failure",
+            "name": "api.v3.internal.cases.prompt-jev-attempts.technical-failure",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\PromptQualificationController@recordTechnicalFailure",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/cases/{case_id}/prompt-versions/{prompt_version_ref}/feedback-context",
+            "name": "api.v3.internal.cases.prompt-versions.feedback-context",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\PromptFeedbackController@feedbackContext",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/prompt-versions/{prompt_version_ref}/feedback/claim",
+            "name": "api.v3.internal.cases.prompt-versions.feedback.claim",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\PromptFeedbackController@claimFeedback",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/prompt-feedback-effects/{effect_ref}/result",
+            "name": "api.v3.internal.cases.prompt-feedback-effects.result",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\PromptFeedbackController@result",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/prompt-feedback-effects/{effect_ref}/uncertain",
+            "name": "api.v3.internal.cases.prompt-feedback-effects.uncertain",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\PromptFeedbackController@uncertain",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/cases/{case_id}/qualified-prompts/{prompt_version_ref}",
+            "name": "api.v3.internal.cases.qualified-prompts.show",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\QualifiedPromptController@show",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/cases/{case_id}/scene-authoring/eligible-prompts",
+            "name": "api.v3.internal.cases.scene-authoring.eligible-prompts",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\AuthoringRequestController@eligiblePrompts",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/scene-authoring/requests",
+            "name": "api.v3.internal.cases.scene-authoring.requests.store",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\AuthoringRequestController@store",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/cases/{case_id}/scene-authoring/requests/{request_ref}/context",
+            "name": "api.v3.internal.cases.scene-authoring.requests.context",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\AuthoringRequestController@context",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/scene-authoring/requests/{request_ref}/attempts",
+            "name": "api.v3.internal.cases.scene-authoring.requests.attempts.reserve",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\CodingAttemptController@reserve",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/cases/{case_id}/scene-authoring/attempts/{attempt_ref}",
+            "name": "api.v3.internal.cases.scene-authoring.attempts.show",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\CodingAttemptController@show",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/scene-authoring/attempts/{attempt_ref}/result",
+            "name": "api.v3.internal.cases.scene-authoring.attempts.result",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\CodingAttemptController@recordResult",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/cases/{case_id}/scene-candidates/{candidate_ref}",
+            "name": "api.v3.internal.cases.scene-candidates.show",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\SceneCandidateController@show",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/scene-check-attempts",
+            "name": "api.v3.internal.cases.scene-check-attempts.claim",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\SceneCheckController@claim",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/cases/{case_id}/scene-check-attempts/{attempt_ref}",
+            "name": "api.v3.internal.cases.scene-check-attempts.show",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\SceneCheckController@show",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/scene-check-attempts/{attempt_ref}/result",
+            "name": "api.v3.internal.cases.scene-check-attempts.result",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\SceneCheckController@result",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/scene-check-attempts/{attempt_ref}/technical-failure",
+            "name": "api.v3.internal.cases.scene-check-attempts.technical-failure",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\SceneCheckController@technicalFailure",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/scene-jev-attempts",
+            "name": "api.v3.internal.cases.scene-jev-attempts.claim",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\SceneJevController@claim",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/cases/{case_id}/scene-jev-attempts/{attempt_ref}",
+            "name": "api.v3.internal.cases.scene-jev-attempts.show",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\SceneJevController@show",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/cases/{case_id}/scene-jev-attempts/{attempt_ref}/context",
+            "name": "api.v3.internal.cases.scene-jev-attempts.context",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\SceneJevController@context",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/scene-jev-attempts/{attempt_ref}/result",
+            "name": "api.v3.internal.cases.scene-jev-attempts.result",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\SceneJevController@result",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/scene-jev-attempts/{attempt_ref}/technical-failure",
+            "name": "api.v3.internal.cases.scene-jev-attempts.technical-failure",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\SceneJevController@technicalFailure",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/scene-repairs",
+            "name": "api.v3.internal.cases.scene-repairs.claim",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\SceneRepairController@claim",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/cases/{case_id}/scene-repairs/{repair_ref}/context",
+            "name": "api.v3.internal.cases.scene-repairs.context",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\SceneRepairController@context",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/scene-repairs/{repair_ref}/candidate",
+            "name": "api.v3.internal.cases.scene-repairs.candidate",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\SceneRepairController@linkCandidate",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/cases/{case_id}/scene-qualification/review-eligible/{candidate_ref}",
+            "name": "api.v3.internal.cases.scene-qualification.review-eligible",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\SceneEligibilityController@show",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/reviews/ready",
+            "name": "api.v3.internal.cases.reviews.ready",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\ReviewReadyController@ready",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/cases/{case_id}/reviews/current",
+            "name": "api.v3.internal.cases.reviews.current",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\ReviewReadyController@current",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/teacher-scene-repairs",
+            "name": "api.v3.internal.cases.teacher-scene-repairs.claim",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\TeacherSceneRepairController@claim",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/teacher-prompt-corrections/{route_ref}/claim",
+            "name": "api.v3.internal.cases.teacher-prompt-corrections.claim",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\TeacherPromptCorrectionController@claim",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/cases/{case_id}/teacher-prompt-corrections/{effect_ref}/context",
+            "name": "api.v3.internal.cases.teacher-prompt-corrections.context",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\TeacherPromptCorrectionController@context",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/teacher-prompt-corrections/{effect_ref}/result",
+            "name": "api.v3.internal.cases.teacher-prompt-corrections.result",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\TeacherPromptCorrectionController@result",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/cases/{case_id}/teacher-prompt-corrections/{effect_ref}/uncertain",
+            "name": "api.v3.internal.cases.teacher-prompt-corrections.uncertain",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\TeacherPromptCorrectionController@uncertain",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/internal/v1/admin-control-results",
+            "name": "api.v3.internal.admin-control-results.store",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\AdminControlResultController@recordResult",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/internal/v1/cases/{case_id}/operation-control",
+            "name": "api.v3.internal.cases.operation-control.show",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\OperationControlController@show",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/v3/internal/web-pipeline/claims",
+            "name": "api.v3.internal.web-pipeline.claims",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\WebPipelineController@claim",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/v3/internal/web-pipeline/contexts/{ref}",
+            "name": "api.v3.internal.web-pipeline.contexts",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\WebPipelineController@getContext",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/v3/internal/web-pipeline/results",
+            "name": "api.v3.internal.web-pipeline.results",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\WebPipelineController@result",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/v3/internal/web-pipeline/commands/{command}/receipt",
+            "name": "api.v3.internal.web-pipeline.commands.receipt",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\WebPipelineController@commandReceipt",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "api/v3/internal/web-pipeline/events",
+            "name": "api.v3.internal.web-pipeline.events",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\WebPipelineController@recordEvent",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/v3/internal/web-pipeline/artifacts/{ref}",
+            "name": "api.v3.internal.web-pipeline.artifacts.get",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\WebPipelineController@getArtifact",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "PUT",
+            "uri": "api/v3/internal/web-pipeline/operations/{operation}/artifacts/{ref}",
+            "name": "api.v3.internal.web-pipeline.artifacts.put",
+            "action": "App\\Http\\Controllers\\V3\\Internal\\WebPipelineController@putArtifact",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "up",
+            "name": null,
+            "action": "Closure",
+            "status": 200,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "/",
+            "name": "home",
+            "action": "Closure",
+            "status": 200,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "dashboard",
+            "name": "dashboard",
+            "action": "App\\Http\\Controllers\\DashboardController@index",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "profile",
+            "name": "profile.edit",
+            "action": "App\\Http\\Controllers\\ProfileController@edit",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "PATCH",
+            "uri": "profile",
+            "name": "profile.update",
+            "action": "App\\Http\\Controllers\\ProfileController@update",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "DELETE",
+            "uri": "profile",
+            "name": "profile.destroy",
+            "action": "App\\Http\\Controllers\\ProfileController@destroy",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "love/toggle",
+            "name": "love.toggle",
+            "action": "App\\Http\\Controllers\\LoveController@toggle",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "register",
+            "name": "register",
+            "action": "App\\Http\\Controllers\\Auth\\RegisteredUserController@create",
+            "status": 200,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "register",
+            "name": null,
+            "action": "App\\Http\\Controllers\\Auth\\RegisteredUserController@store",
+            "status": 422,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "login",
+            "name": "login",
+            "action": "App\\Http\\Controllers\\Auth\\AuthenticatedSessionController@create",
+            "status": 200,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "login",
+            "name": null,
+            "action": "App\\Http\\Controllers\\Auth\\AuthenticatedSessionController@store",
+            "status": 422,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "forgot-password",
+            "name": "password.request",
+            "action": "App\\Http\\Controllers\\Auth\\PasswordResetLinkController@create",
+            "status": 200,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "forgot-password",
+            "name": "password.email",
+            "action": "App\\Http\\Controllers\\Auth\\PasswordResetLinkController@store",
+            "status": 422,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "reset-password/{token}",
+            "name": "password.reset",
+            "action": "App\\Http\\Controllers\\Auth\\NewPasswordController@create",
+            "status": 200,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "reset-password",
+            "name": "password.store",
+            "action": "App\\Http\\Controllers\\Auth\\NewPasswordController@store",
+            "status": 422,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "verify-email",
+            "name": "verification.notice",
+            "action": "App\\Http\\Controllers\\Auth\\EmailVerificationPromptController",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "verify-email/{id}/{hash}",
+            "name": "verification.verify",
+            "action": "App\\Http\\Controllers\\Auth\\VerifyEmailController",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "email/verification-notification",
+            "name": "verification.send",
+            "action": "App\\Http\\Controllers\\Auth\\EmailVerificationNotificationController@store",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "confirm-password",
+            "name": "password.confirm",
+            "action": "App\\Http\\Controllers\\Auth\\ConfirmablePasswordController@show",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "confirm-password",
+            "name": null,
+            "action": "App\\Http\\Controllers\\Auth\\ConfirmablePasswordController@store",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "PUT",
+            "uri": "password",
+            "name": "password.update",
+            "action": "App\\Http\\Controllers\\Auth\\PasswordController@update",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "logout",
+            "name": "logout",
+            "action": "App\\Http\\Controllers\\Auth\\AuthenticatedSessionController@destroy",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "users",
+            "name": "users.index",
+            "action": "App\\Http\\Controllers\\UserController@index",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "users/create",
+            "name": "users.create",
+            "action": "App\\Http\\Controllers\\UserController@create",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "users",
+            "name": "users.store",
+            "action": "App\\Http\\Controllers\\UserController@store",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "users/{user}",
+            "name": "users.show",
+            "action": "App\\Http\\Controllers\\UserController@show",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "users/{user}/edit",
+            "name": "users.edit",
+            "action": "App\\Http\\Controllers\\UserController@edit",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "PUT",
+            "uri": "users/{user}",
+            "name": "users.update",
+            "action": "App\\Http\\Controllers\\UserController@update",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "DELETE",
+            "uri": "users/{user}",
+            "name": "users.destroy",
+            "action": "App\\Http\\Controllers\\UserController@destroy",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "teacher_permissions",
+            "name": "teacher_permissions.index",
+            "action": "App\\Http\\Controllers\\TeacherPermissionController@index",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "teacher_permissions/create",
+            "name": "teacher_permissions.create",
+            "action": "App\\Http\\Controllers\\TeacherPermissionController@create",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "teacher_permissions",
+            "name": "teacher_permissions.store",
+            "action": "App\\Http\\Controllers\\TeacherPermissionController@store",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "teacher_permissions/{teacher_permission}",
+            "name": "teacher_permissions.show",
+            "action": "App\\Http\\Controllers\\TeacherPermissionController@show",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "teacher_permissions/{teacher_permission}/edit",
+            "name": "teacher_permissions.edit",
+            "action": "App\\Http\\Controllers\\TeacherPermissionController@edit",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "PUT",
+            "uri": "teacher_permissions/{teacher_permission}",
+            "name": "teacher_permissions.update",
+            "action": "App\\Http\\Controllers\\TeacherPermissionController@update",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "DELETE",
+            "uri": "teacher_permissions/{teacher_permission}",
+            "name": "teacher_permissions.destroy",
+            "action": "App\\Http\\Controllers\\TeacherPermissionController@destroy",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "study-flow/start",
+            "name": "study-flow.start",
+            "action": "App\\Http\\Controllers\\StudyFlowController@start",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "study-flow/subjects/{subject}/lectures",
+            "name": "study-flow.bulk-lectures",
+            "action": "App\\Http\\Controllers\\StudyFlowController@storeBulkLectures",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "study-flow/lectures/{lecture}/sections",
+            "name": "study-flow.bulk-sections",
+            "action": "App\\Http\\Controllers\\StudyFlowController@storeBulkSections",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "study-flow/sections/{section}/content",
+            "name": "study-flow.bulk-content",
+            "action": "App\\Http\\Controllers\\StudyFlowController@storeBulkContent",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "study-flow/exit",
+            "name": "study-flow.exit",
+            "action": "App\\Http\\Controllers\\StudyFlowController@exit",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "teacher-study-flow/start",
+            "name": "teacher-study-flow.start",
+            "action": "App\\Http\\Controllers\\TeacherStudyFlowController@start",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "teacher-study-flow/lectures",
+            "name": "teacher-study-flow.lectures",
+            "action": "App\\Http\\Controllers\\TeacherStudyFlowController@lectures",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "teacher-study-flow/lectures",
+            "name": "teacher-study-flow.store-lecture",
+            "action": "App\\Http\\Controllers\\TeacherStudyFlowController@storeLecture",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "teacher-study-flow/lectures/{lecture}/sections",
+            "name": "teacher-study-flow.bulk-sections",
+            "action": "App\\Http\\Controllers\\TeacherStudyFlowController@storeBulkSections",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "teacher-study-flow/sections/{section}/content",
+            "name": "teacher-study-flow.bulk-content",
+            "action": "App\\Http\\Controllers\\TeacherStudyFlowController@storeBulkContent",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "teacher-study-flow/exit",
+            "name": "teacher-study-flow.exit",
+            "action": "App\\Http\\Controllers\\TeacherStudyFlowController@exit",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "subjects",
+            "name": "subjects.index",
+            "action": "App\\Http\\Controllers\\SubjectController@index",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "subjects/create",
+            "name": "subjects.create",
+            "action": "App\\Http\\Controllers\\SubjectController@create",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "subjects",
+            "name": "subjects.store",
+            "action": "App\\Http\\Controllers\\SubjectController@store",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "subjects/{subject}",
+            "name": "subjects.show",
+            "action": "App\\Http\\Controllers\\SubjectController@show",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "subjects/{subject}/edit",
+            "name": "subjects.edit",
+            "action": "App\\Http\\Controllers\\SubjectController@edit",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "PUT",
+            "uri": "subjects/{subject}",
+            "name": "subjects.update",
+            "action": "App\\Http\\Controllers\\SubjectController@update",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "DELETE",
+            "uri": "subjects/{subject}",
+            "name": "subjects.destroy",
+            "action": "App\\Http\\Controllers\\SubjectController@destroy",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "lectures",
+            "name": "lectures.index",
+            "action": "App\\Http\\Controllers\\LectureController@index",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "lectures/create",
+            "name": "lectures.create",
+            "action": "App\\Http\\Controllers\\LectureController@create",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "lectures",
+            "name": "lectures.store",
+            "action": "App\\Http\\Controllers\\LectureController@store",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "lectures/{lecture}",
+            "name": "lectures.show",
+            "action": "App\\Http\\Controllers\\LectureController@show",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "lectures/{lecture}/edit",
+            "name": "lectures.edit",
+            "action": "App\\Http\\Controllers\\LectureController@edit",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "PUT",
+            "uri": "lectures/{lecture}",
+            "name": "lectures.update",
+            "action": "App\\Http\\Controllers\\LectureController@update",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "DELETE",
+            "uri": "lectures/{lecture}",
+            "name": "lectures.destroy",
+            "action": "App\\Http\\Controllers\\LectureController@destroy",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "sections",
+            "name": "sections.index",
+            "action": "App\\Http\\Controllers\\SectionController@index",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "sections/create",
+            "name": "sections.create",
+            "action": "App\\Http\\Controllers\\SectionController@create",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "sections",
+            "name": "sections.store",
+            "action": "App\\Http\\Controllers\\SectionController@store",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "sections/{section}",
+            "name": "sections.show",
+            "action": "App\\Http\\Controllers\\SectionController@show",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "sections/{section}/edit",
+            "name": "sections.edit",
+            "action": "App\\Http\\Controllers\\SectionController@edit",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "PUT",
+            "uri": "sections/{section}",
+            "name": "sections.update",
+            "action": "App\\Http\\Controllers\\SectionController@update",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "DELETE",
+            "uri": "sections/{section}",
+            "name": "sections.destroy",
+            "action": "App\\Http\\Controllers\\SectionController@destroy",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "questions",
+            "name": "questions.index",
+            "action": "App\\Http\\Controllers\\QuestionController@index",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "questions/create",
+            "name": "questions.create",
+            "action": "App\\Http\\Controllers\\QuestionController@create",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "questions",
+            "name": "questions.store",
+            "action": "App\\Http\\Controllers\\QuestionController@store",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "questions/{question}",
+            "name": "questions.show",
+            "action": "App\\Http\\Controllers\\QuestionController@show",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "questions/{question}/edit",
+            "name": "questions.edit",
+            "action": "App\\Http\\Controllers\\QuestionController@edit",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "PUT",
+            "uri": "questions/{question}",
+            "name": "questions.update",
+            "action": "App\\Http\\Controllers\\QuestionController@update",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "DELETE",
+            "uri": "questions/{question}",
+            "name": "questions.destroy",
+            "action": "App\\Http\\Controllers\\QuestionController@destroy",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "exam_questions",
+            "name": "exam_questions.index",
+            "action": "App\\Http\\Controllers\\ExamQuestionController@index",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "exam_questions/create",
+            "name": "exam_questions.create",
+            "action": "App\\Http\\Controllers\\ExamQuestionController@create",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "exam_questions",
+            "name": "exam_questions.store",
+            "action": "App\\Http\\Controllers\\ExamQuestionController@store",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "exam_questions/{exam_question}",
+            "name": "exam_questions.show",
+            "action": "App\\Http\\Controllers\\ExamQuestionController@show",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "exam_questions/{exam_question}/edit",
+            "name": "exam_questions.edit",
+            "action": "App\\Http\\Controllers\\ExamQuestionController@edit",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "PUT",
+            "uri": "exam_questions/{exam_question}",
+            "name": "exam_questions.update",
+            "action": "App\\Http\\Controllers\\ExamQuestionController@update",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "DELETE",
+            "uri": "exam_questions/{exam_question}",
+            "name": "exam_questions.destroy",
+            "action": "App\\Http\\Controllers\\ExamQuestionController@destroy",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/subjects/{subject}/lectures",
+            "name": null,
+            "action": "App\\Http\\Controllers\\APIfilterController@getLectures",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "api/lectures/{lecture}/sections",
+            "name": null,
+            "action": "App\\Http\\Controllers\\APIfilterController@getSections",
+            "status": 401,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "mohammed-test",
+            "name": "mohammed-test",
+            "action": "App\\Http\\Controllers\\MohammedTestController@index",
+            "status": 200,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3",
+            "name": "v3.entry",
+            "action": "App\\Http\\Controllers\\V3\\EntryController@index",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher",
+            "name": "v3.teacher.workspace",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\WorkspaceController@index",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/subjects/{subject}/runs",
+            "name": "v3.teacher.subject-runs.index",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\SubjectRunController@index",
+            "status": 404,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/subjects/{subject}/runs/create",
+            "name": "v3.teacher.subject-runs.create",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\SubjectRunController@create",
+            "status": 404,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "v3/teacher/subjects/{subject}/runs",
+            "name": "v3.teacher.subject-runs.store",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\SubjectRunController@store",
+            "status": 404,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/subject-runs/{run}",
+            "name": "v3.teacher.subject-runs.show",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\SubjectRunController@show",
+            "status": 404,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/subject-runs/{run}/prompt-export",
+            "name": "v3.teacher.subject-runs.prompt-export",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\SubjectRunController@promptExport",
+            "status": 404,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "v3/teacher/subject-runs/{run}/scenes/{scene}/imports",
+            "name": "v3.teacher.subject-runs.scenes.imports",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\SubjectRunController@importScene",
+            "status": 404,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/subject-runs/{run}/scenes",
+            "name": "v3.teacher.subject-runs.scenes",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\SubjectRunController@scenes",
+            "status": 404,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "v3/teacher/subject-runs/{run}/generation-mode",
+            "name": "v3.teacher.subject-runs.generation-mode",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\SubjectRunController@updateGenerationSelection",
+            "status": 404,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "v3/teacher/subject-runs/{run}/scenes/{scene}/authoring-request",
+            "name": "v3.teacher.subject-runs.scenes.authoring-request",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\SubjectRunController@requestSceneGeneration",
+            "status": 404,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/subject-runs/{run}/progress",
+            "name": "v3.teacher.subject-runs.progress",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\SubjectRunController@progress",
+            "status": 404,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/subject-runs/{run}/events",
+            "name": "v3.teacher.subject-runs.events",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\SubjectRunController@events",
+            "status": 404,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "v3/teacher/subject-runs/{run}/commands",
+            "name": "v3.teacher.subject-runs.commands",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\SubjectRunController@command",
+            "status": 404,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "v3/teacher/pdf-uploads",
+            "name": "v3.teacher.pdf-uploads.store",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\PdfUploadController@store",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/pdf-uploads",
+            "name": "v3.teacher.pdf-uploads.index",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\PdfUploadController@index",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/pdf-uploads/{attempt}",
+            "name": "v3.teacher.pdf-uploads.show",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\PdfUploadController@show",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "v3/teacher/cases",
+            "name": "v3.teacher.cases.store",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\ProcessingCaseController@store",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/cases/{case}",
+            "name": "v3.teacher.cases.show",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\ProcessingCaseController@show",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/documents/{document}/download",
+            "name": "v3.teacher.documents.download",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\DocumentController@download",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/cases/{case}/progress",
+            "name": "v3.teacher.cases.progress",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\CaseProgressController@show",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/cases/{case}/source-status",
+            "name": "v3.teacher.cases.source-status",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\CaseSourceStatusController@show",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/cases/{case}/lesson-map",
+            "name": "v3.teacher.cases.lesson-map",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\LessonMapController@show",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/cases/{case}/sections/{section}",
+            "name": "v3.teacher.cases.sections.show",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\TeacherSectionController@show",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/cases/{case}/prompt-status",
+            "name": "v3.teacher.cases.prompt-status",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\PromptStatusController@show",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/cases/{case}/scene-authoring",
+            "name": "v3.teacher.cases.scene-authoring",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\SceneAuthoringStatusController@show",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/cases/{case}/scene-qualification",
+            "name": "v3.teacher.cases.scene-qualification",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\SceneQualificationStatusController@show",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/cases/{case}/reviews",
+            "name": "v3.teacher.cases.reviews.index",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\SceneReviewController@index",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/cases/{case}/reviews/{review}",
+            "name": "v3.teacher.cases.reviews.show",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\SceneReviewController@show",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/cases/{case}/approved-scenes",
+            "name": "v3.teacher.cases.approvals.index",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\SceneReviewController@approvedScenes",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "v3/teacher/cases/{case}/reviews/{review}/viewer-sessions",
+            "name": "v3.teacher.cases.reviews.viewer.start",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\ReviewPreviewController@start",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/cases/{case}/reviews/{review}/viewer-sessions/{viewer}",
+            "name": "v3.teacher.cases.reviews.viewer.show",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\ReviewPreviewController@show",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/cases/{case}/reviews/{review}/viewer-sessions/{viewer}/frames/{frame_no}",
+            "name": "v3.teacher.cases.reviews.viewer.frame",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\ReviewPreviewController@frame",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "v3/teacher/cases/{case}/reviews/{review}/viewer-sessions/{viewer}/actions",
+            "name": "v3.teacher.cases.reviews.viewer.action",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\ReviewPreviewController@action",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "DELETE",
+            "uri": "v3/teacher/cases/{case}/reviews/{review}/viewer-sessions/{viewer}",
+            "name": "v3.teacher.cases.reviews.viewer.close",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\ReviewPreviewController@close",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "v3/teacher/cases/{case}/reviews/{review}/decisions",
+            "name": "v3.teacher.cases.reviews.decide",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\SceneReviewController@decide",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "v3/teacher/cases/{case}/approved-scenes/{approval}/corrections",
+            "name": "v3.teacher.cases.approvals.correct",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\PostapprovalCorrectionController@correct",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/cases/{case}/evidence",
+            "name": "v3.teacher.evidence.show",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\EvidenceController@show",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/cases/{case}/evidence/approvals/{approval}",
+            "name": "v3.teacher.evidence.approvals.show",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\EvidenceController@approval",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "v3/teacher/cases/{case}/evidence-exports",
+            "name": "v3.teacher.evidence-exports.store",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\EvidenceController@export",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/teacher/cases/{case}/evidence-exports/{export}/download",
+            "name": "v3.teacher.evidence-exports.download",
+            "action": "App\\Http\\Controllers\\V3\\Teacher\\EvidenceController@download",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/admin",
+            "name": "v3.admin.workspace",
+            "action": "App\\Http\\Controllers\\V3\\Admin\\WorkspaceController@index",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/admin/cases",
+            "name": "v3.admin.cases.index",
+            "action": "App\\Http\\Controllers\\V3\\Admin\\CaseSummaryController@index",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/admin/cases/{case}/summary",
+            "name": "v3.admin.cases.summary",
+            "action": "App\\Http\\Controllers\\V3\\Admin\\CaseSummaryController@show",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/admin/subject-runs",
+            "name": "v3.admin.subject-runs.index",
+            "action": "App\\Http\\Controllers\\V3\\Admin\\SubjectRunSummaryController@index",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/admin/subject-runs/{run}/summary",
+            "name": "v3.admin.subject-runs.summary",
+            "action": "App\\Http\\Controllers\\V3\\Admin\\SubjectRunSummaryController@show",
+            "status": 404,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "v3/admin/subject-runs/{run}/commands",
+            "name": "v3.admin.subject-runs.commands",
+            "action": "App\\Http\\Controllers\\V3\\Admin\\SubjectRunSummaryController@command",
+            "status": 404,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/admin/accounts",
+            "name": "v3.admin.accounts.index",
+            "action": "App\\Http\\Controllers\\V3\\Admin\\AccountController@index",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "PATCH",
+            "uri": "v3/admin/accounts/{user}/access",
+            "name": "v3.admin.accounts.access.update",
+            "action": "App\\Http\\Controllers\\V3\\Admin\\AccountController@updateAccess",
+            "status": 404,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/admin/settings",
+            "name": "v3.admin.settings.show",
+            "action": "App\\Http\\Controllers\\V3\\Admin\\SettingsController@show",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/admin/settings/templates",
+            "name": "v3.admin.settings.templates",
+            "action": "App\\Http\\Controllers\\V3\\Admin\\SettingsController@templates",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "v3/admin/settings",
+            "name": "v3.admin.settings.store",
+            "action": "App\\Http\\Controllers\\V3\\Admin\\SettingsController@store",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/admin/settings/history",
+            "name": "v3.admin.settings.history",
+            "action": "App\\Http\\Controllers\\V3\\Admin\\SettingsController@history",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/admin/operations",
+            "name": "v3.admin.operations.index",
+            "action": "App\\Http\\Controllers\\V3\\Admin\\OperationsController@index",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/admin/operations/health",
+            "name": "v3.admin.operations.health",
+            "action": "App\\Http\\Controllers\\V3\\Admin\\OperationsController@health",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/admin/operations/{case}",
+            "name": "v3.admin.operations.show",
+            "action": "App\\Http\\Controllers\\V3\\Admin\\OperationsController@show",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "v3/admin/operations/{case}/commands",
+            "name": "v3.admin.operations.commands.store",
+            "action": "App\\Http\\Controllers\\V3\\Admin\\AdminCommandController@store",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "v3/admin/operations/{case}/reviews/{review}/reminders",
+            "name": "v3.admin.operations.reminders.store",
+            "action": "App\\Http\\Controllers\\V3\\Admin\\ReviewReminderController@store",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "v3/admin/operations/{case}/deletion-assessments",
+            "name": "v3.admin.operations.deletion-assessments.store",
+            "action": "App\\Http\\Controllers\\V3\\Admin\\DeletionAssessmentController@store",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/admin/evidence/metrics",
+            "name": "v3.admin.evidence.metrics",
+            "action": "App\\Http\\Controllers\\V3\\Admin\\EvidenceController@metrics",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "POST",
+            "uri": "v3/admin/evidence-exports",
+            "name": "v3.admin.evidence-exports.store",
+            "action": "App\\Http\\Controllers\\V3\\Admin\\EvidenceController@export",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "v3/admin/evidence-exports/{export}/download",
+            "name": "v3.admin.evidence-exports.download",
+            "action": "App\\Http\\Controllers\\V3\\Admin\\EvidenceController@download",
+            "status": 401,
+            "cache_control": "no-store, private",
+            "action_exists": true
+        },
+        {
+            "method": "GET",
+            "uri": "storage/{path}",
+            "name": "storage.local",
+            "action": "Closure",
+            "status": 403,
+            "cache_control": "no-cache, private",
+            "action_exists": true
+        }
+    ]
+}

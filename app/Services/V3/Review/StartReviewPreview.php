@@ -71,9 +71,17 @@ class StartReviewPreview
 
         // Recheck 012 qualified proof
         $candState = SceneCandidateState::where('candidate_id', $reviewItem->candidate_id)->first();
-        if (! $candState || $candState->status !== 'qualified') {
+        if (! $candState || ! in_array($candState->status, ['qualified', 'demo_review_ready'], true)) {
             return [
                 'error' => ['code' => 'review_conflict', 'message' => 'Candidate is not qualified.'],
+                'status' => 409,
+            ];
+        }
+
+        $eligibility = app(\App\Services\V3\SceneQualification\SceneReviewEligibility::class)->check($case->id, $reviewItem->candidate_id);
+        if (! ($eligibility['eligible'] ?? false)) {
+            return [
+                'error' => ['code' => 'review_conflict', 'message' => 'Candidate is not eligible for review.'],
                 'status' => 409,
             ];
         }

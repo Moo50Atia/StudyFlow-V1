@@ -25,6 +25,8 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/owner-assets/{kind}/{id}/{field}/{index?}', [\App\Http\Controllers\OwnerAssetController::class, 'show'])->name('owner-assets.show');
+    Route::post('/lessons/{node}/publication', [\App\Http\Controllers\V3\LessonPublicationController::class, 'update'])->name('lessons.publication.update');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -58,7 +60,7 @@ Route::middleware(['auth', 'role:teacher'])->prefix('teacher-study-flow')->group
     Route::get('/lectures', [TeacherStudyFlowController::class, 'lectures'])->name('teacher-study-flow.lectures');
     Route::post('/lectures', [TeacherStudyFlowController::class, 'storeLecture'])->name('teacher-study-flow.store-lecture');
     Route::post('/lectures/{lecture}/sections', [TeacherStudyFlowController::class, 'storeBulkSections'])->name('teacher-study-flow.bulk-sections');
-    Route::post('/sections/{section}/content', [TeacherStudyFlowController::class, 'storeBulkContent'])->name('teacher-study-flow.bulk-content');
+    // Question creation is temporarily reserved for the platform owner.
     Route::get('/exit', [TeacherStudyFlowController::class, 'exit'])->name('teacher-study-flow.exit');
 });
 

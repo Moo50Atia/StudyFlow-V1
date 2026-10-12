@@ -215,6 +215,10 @@ test('L08: owner teacher can view lesson map via JSON and HTML', function () {
     // HTML response
     $htmlResp = $this->actingAs($this->ownerTeacher)->get($url);
     $htmlResp->assertStatus(200);
+    $htmlResp->assertSee(
+        route('v3.teacher.cases.sections.show', ['case' => $this->case->id, 'section' => $this->section->id]),
+        false
+    );
     expect($htmlResp->headers->get('Cache-Control'))->toContain('private')->toContain('no-store');
 });
 

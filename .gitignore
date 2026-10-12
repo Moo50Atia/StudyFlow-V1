@@ -18,6 +18,7 @@
 /public/storage
 /storage/*.key
 /storage/pail
+/storage/app/private/v3/notebooklm-handoffs/
 /vendor
 Homestead.json
 Homestead.yaml

@@ -26,6 +26,73 @@ from v3_engine.lessons.canonical_prompts import DIVIDE_PROMPT, EXECUTION_PROMPT
 FIXTURES_DIR = Path(__file__).resolve().parent.parent.parent.parent / "tests" / "Fixtures" / "V3" / "NotebookLM"
 
 
+def test_direct_divide_parser_accepts_notebooklm_arrow_hierarchy():
+    """NotebookLM may express child relationships with an arrow instead of indentation."""
+    result = parse_direct_divide_map(
+        "Chapter 1: Fractions [1]\n"
+        "=> Lesson 1: Equivalent Fractions [1]\n\n"
+        "Chapter 2: Geometry [1]\n"
+        "=> Lesson 2: Area of a Rectangle [1]"
+    )
+
+    work_items = [node for node in result if node.work_ordinal is not None]
+    assert [(node.title, node.parent_position_path, node.work_ordinal) for node in work_items] == [
+        ("Equivalent Fractions [1]", "001", 1),
+        ("Area of a Rectangle [1]", "002", 2),
+    ]
+
+
+def test_direct_divide_parser_accepts_notebooklm_unicode_tree_hierarchy():
+    """NotebookLM may render a valid map with Unicode tree branches and vertical guides."""
+    result = parse_direct_divide_map(
+        "Chapter: Unit 3: Geometry\n"
+        "├── Mini Chapter: Similarity\n"
+        "│   ├── Lesson 1: Similar Polygons\n"
+        "│   └── Lesson 2: Scale Factors\n"
+        "└── Lesson 3: Parallel Lines\n"
+        "└── Lesson 4: Perpendicular Lines"
+    )
+
+    work_items = [node for node in result if node.work_ordinal is not None]
+    assert [(node.title, node.parent_position_path, node.work_ordinal) for node in work_items] == [
+        ("Similar Polygons", "001.001", 1),
+        ("Scale Factors", "001.001", 2),
+        ("Parallel Lines", "001", 3),
+        ("Perpendicular Lines", "001", 4),
+    ]
+
+
+def test_direct_divide_parser_normalizes_repeated_tree_guides_for_lesson_leaf():
+    """Repeated Unicode continuation bars do not add unsupported semantic levels."""
+    result = parse_direct_divide_map(
+        "Chapter: Unit 3\n"
+        "├── Mini Chapter: Parallel Lines\n"
+        "│   │   ├── Lesson 6: Relationship Between Slopes [1]"
+    )
+
+    lesson = next(node for node in result if node.kind == "lesson")
+    assert lesson.parent_position_path == "001.001"
+    assert lesson.work_ordinal == 1
+
+
+def test_direct_divide_parser_accepts_provider_arrow_with_three_space_lesson_indent():
+    """Observed NotebookLM arrow formatting must not block lesson iteration."""
+    result = parse_direct_divide_map(
+        "Chapter 1: Similarity\n"
+        "   => Lesson 1: Similarity of Polygons\n"
+        "   => Lesson 2: Scale Factor\n"
+        "   => Lesson 3: Perimeter Ratios"
+    )
+
+    work_items = [node for node in result if node.work_ordinal is not None]
+    assert [node.title for node in work_items] == [
+        "Similarity of Polygons",
+        "Scale Factor",
+        "Perimeter Ratios",
+    ]
+    assert [node.work_ordinal for node in work_items] == [1, 2, 3]
+
+
 class MockConversation(NotebookConversation):
     def __init__(self):
         self.turns: list[dict] = []

@@ -217,6 +217,37 @@ class BridgeClient
         }
     }
 
+    public function checkNotebookLmHealth(): array
+    {
+        if (empty($this->secretKey)) {
+            return $this->unconfiguredResponse();
+        }
+
+        $path = '/internal/v1/notebooklm/health';
+        $signed = BridgeRequestSigner::prepareBridgeRequest('POST', $path, [], $this->secretKey);
+
+        try {
+            $resp = Http::withHeaders($signed['headers'])
+                ->timeout(20)
+                ->withBody($signed['body'], 'application/json')
+                ->post(rtrim($this->baseUrl, '/') . $path);
+
+            return [
+                'status' => $resp->status(),
+                'data' => $resp->json('data') ?? [],
+                'error' => $resp->json('error') ?? null,
+            ];
+        } catch (\Throwable) {
+            return [
+                'status' => 503,
+                'error' => [
+                    'code' => 'notebooklm_unavailable',
+                    'message' => 'NotebookLM health could not be verified.',
+                ],
+            ];
+        }
+    }
+
     public function notifyNotebookReconciled(string $workflowId, array $data): array
     {
         if (empty($this->secretKey)) {

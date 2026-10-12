@@ -73,6 +73,7 @@
                             @error('pdf_path')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
                         </div>
 
+                        @if(app(\App\Services\LearningAccess::class)->isOwner(auth()->user()))
                         <!-- Mind Map Section -->
                         <div class="mb-6 animate-fade-in-up" style="animation-delay: 0.35s">
                             <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Mind Map Image</label>
@@ -84,7 +85,7 @@
                                     </svg>
                                     <span class="text-gray-700 dark:text-gray-300 font-medium">Mind Map uploaded</span>
                                 </div>
-                                <img src="{{ Storage::url($lecture->mindmap_path) }}" alt="Mind Map Preview" class="w-full max-h-40 object-contain rounded-lg">
+                                <img src="{{ route('owner-assets.show', ['kind' => 'lecture', 'id' => $lecture->id, 'field' => 'mindmap_path']) }}" alt="Mind Map Preview" class="w-full max-h-40 object-contain rounded-lg">
                             </div>
                             @else
                             <div class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl mb-4">
@@ -110,6 +111,7 @@
                             @error('mindmap_path')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
                         </div>
 
+                        @endif
                         <div class="mb-8 animate-fade-in-up" style="animation-delay: 0.4s">
                             <label for="summary" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Summary</label>
                             <textarea name="summary" id="summary" rows="4" class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200">{{ old('summary', $lecture->summary) }}</textarea>

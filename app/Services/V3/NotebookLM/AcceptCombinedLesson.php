@@ -160,7 +160,11 @@ class AcceptCombinedLesson
 
         $mappedTitle = LessonNode::where('map_id', $query->map_id)
             ->where('work_ordinal', $query->target_work_ordinal)->value('title');
-        if ($mappedTitle === null || $parsed['lecture_title'] !== 'W' . $query->target_work_ordinal . ' | ' . $mappedTitle) {
+        if ($mappedTitle === null || ! $this->matchesMappedTitle(
+            $parsed['lecture_title'],
+            (int) $query->target_work_ordinal,
+            $mappedTitle
+        )) {
             $answerPath = "answers/{$case->id}/{$query->id}_{$answerSha}.txt";
             Storage::disk('v3_private')->put($answerPath, $answer);
             $query->update([
@@ -277,7 +281,11 @@ class AcceptCombinedLesson
             if (! $workNode) {
                 throw new \RuntimeException("Work node is unavailable.", 404);
             }
-            if ($parsed['lecture_title'] !== 'W' . $lockedQuery->target_work_ordinal . ' | ' . $workNode->title) {
+            if (! $this->matchesMappedTitle(
+                $parsed['lecture_title'],
+                (int) $lockedQuery->target_work_ordinal,
+                $workNode->title
+            )) {
                 throw new \InvalidArgumentException("Combined lesson does not match the mapped work item.", 422);
             }
 
@@ -313,10 +321,24 @@ class AcceptCombinedLesson
                     'real_life_example' => trim($f['real_life_example']),
                     'first_prompt_sha256' => $framework->first_sha256,
                     'answer_sha256' => $answerSha,
+                    'subject_run_item_id' => $case->subject_run_item_id,
                 ]);
 
                 $sectionRefs[] = $secId;
                 $sectionModels[] = $secModel;
+
+                if ($case->subject_run_item_id) {
+                    $linkedItem = \App\Models\V3\SubjectRunItem::find($case->subject_run_item_id);
+                    if ($linkedItem?->lecture_id) {
+                        app(\App\Services\V3\WebPipeline\LessonProjection::class)->project(
+                            $secModel, (int) $linkedItem->lecture_id, (int) $linkedItem->owner_user_id, $linkedItem->id
+                        );
+                        DB::table('v3_lesson_publications')->updateOrInsert(
+                            ['work_node_id' => $workNode->id],
+                            ['lecture_id' => $linkedItem->lecture_id, 'updated_at' => now(), 'created_at' => now()]
+                        );
+                    }
+                }
             }
 
             // Create PromptWorkItem
@@ -552,5 +574,23 @@ class AcceptCombinedLesson
         }, 50, function (\Throwable $e) {
             return $e instanceof \Illuminate\Database\QueryException;
         });
+    }
+
+    private function matchesMappedTitle(string $actualTitle, int $workOrdinal, string $mappedTitle): bool
+    {
+        return $this->normalizeMappedTitle($actualTitle, $workOrdinal)
+            === $this->normalizeMappedTitle('W' . $workOrdinal . ' | ' . $mappedTitle, $workOrdinal);
+    }
+
+    private function normalizeMappedTitle(string $title, int $workOrdinal): string
+    {
+        $title = trim($title);
+        $title = preg_replace('/^W' . $workOrdinal . '\\s*\\|\\s*/i', '', $title) ?? $title;
+        $title = preg_replace('/^Lesson\\s+' . $workOrdinal . '\\s*:\\s*/i', '', $title) ?? $title;
+        // NotebookLM may append source citation markers to structural titles.
+        $title = preg_replace('/(?:\\s+\\[\\d+\\])+\\s*$/u', '', $title) ?? $title;
+        $title = preg_replace('/\\s+/u', ' ', trim($title)) ?? trim($title);
+
+        return $title;
     }
 }
