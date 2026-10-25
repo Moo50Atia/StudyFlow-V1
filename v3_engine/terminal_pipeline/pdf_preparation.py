@@ -47,10 +47,9 @@ class PreparationPolicy:
     odd_rule: str = "smaller_first"
 
     def __post_init__(self) -> None:
-        if self.version != 1:
-            raise ValueError(f"policy version must be 1, got {self.version}")
-        if self.split_trigger_pages != 100:
-            raise ValueError(f"split_trigger_pages must be 100, got {self.split_trigger_pages}")
+        triggers = {1: 100, 2: 50}
+        if self.version not in triggers or self.split_trigger_pages != triggers[self.version]:
+            raise ValueError("Preparation policy version/trigger mismatch")
         if self.max_part_pages != 50:
             raise ValueError(f"max_part_pages must be 50, got {self.max_part_pages}")
         if self.algorithm != "recursive_halving":
@@ -88,6 +87,7 @@ class OriginalSource:
     page_count: int
     retained_original_ref: ArtifactRef
     split_applied: bool
+    policy_version: int = 1
 
     def __post_init__(self) -> None:
         if self.source_ordinal < 1:
@@ -101,8 +101,8 @@ class OriginalSource:
             raise ValueError("bytes cannot be negative")
         if self.page_count < 1:
             raise ValueError("page_count must be >= 1")
-        if self.split_applied != (self.page_count > 100):
-            raise ValueError("split_applied must be True if page_count > 100 else False")
+        if self.policy_version not in (1, 2) or self.split_applied != (self.page_count > {1: 100, 2: 50}[self.policy_version]):
+            raise ValueError("Original split decision differs from its policy version")
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -114,6 +114,7 @@ class OriginalSource:
             "page_count": self.page_count,
             "retained_original_ref": self.retained_original_ref.to_dict(),
             "split_applied": self.split_applied,
+            **({"policy_version": self.policy_version} if self.policy_version != 1 else {}),
         }
 
     @classmethod
@@ -127,6 +128,7 @@ class OriginalSource:
             page_count=int(data["page_count"]),
             retained_original_ref=ArtifactRef.from_dict(data["retained_original_ref"]),
             split_applied=bool(data["split_applied"]),
+            policy_version=int(data.get("policy_version", 1)),
         )
 
 
@@ -242,7 +244,7 @@ class PreparationInventory:
         )
 
 
-def plan_ranges(page_count: int) -> list[tuple[int, int]]:
+def plan_ranges(page_count: int, policy: PreparationPolicy | None = None) -> list[tuple[int, int]]:
     """Plan page ranges for an original PDF using policy v1.
 
     Rules:
@@ -257,7 +259,8 @@ def plan_ranges(page_count: int) -> list[tuple[int, int]]:
     """
     if page_count < 1:
         raise ValueError(f"page_count must be positive, got {page_count}")
-    if page_count <= 100:
+    policy = policy or PreparationPolicy()
+    if page_count <= policy.split_trigger_pages:
         return [(1, page_count)]
 
     def _split(start: int, end: int) -> list[tuple[int, int]]:
@@ -425,7 +428,8 @@ def verify_preparation(package_or_inventory_path: Path) -> PreparationInventory:
         raise PreparationError("inventory.json digest mismatch", SafeCode.input_changed)
 
     # Check policy
-    if (inventory.policy.version != 1 or inventory.policy.split_trigger_pages != 100
+    if (inventory.policy.version not in (1, 2)
+            or inventory.policy.split_trigger_pages != {1: 100, 2: 50}[inventory.policy.version]
             or inventory.policy.max_part_pages != 50
             or inventory.policy.algorithm != "recursive_halving"
             or inventory.policy.odd_rule != "smaller_first"):
@@ -440,6 +444,8 @@ def verify_preparation(package_or_inventory_path: Path) -> PreparationInventory:
 
     # Verify each original
     for orig in inventory.originals:
+        if orig.policy_version != inventory.policy.version or orig.split_applied != (orig.page_count > inventory.policy.split_trigger_pages):
+            raise PreparationError("Original split decision differs from captured policy", SafeCode.input_invalid)
         rel_path = Path(orig.retained_original_ref.path)
         if rel_path.is_absolute() or ".." in rel_path.parts or not str(rel_path).startswith("originals/"):
             raise PreparationError(f"Invalid retained original ref path: {rel_path}", SafeCode.input_invalid)
@@ -498,6 +504,8 @@ def verify_preparation(package_or_inventory_path: Path) -> PreparationInventory:
         if not parts:
             raise PreparationError(f"No prepared PDFs for original {orig.source_ordinal}", SafeCode.input_invalid)
         parts.sort(key=lambda p: p.part_ordinal)
+        if [(p.start_page, p.end_page) for p in parts] != plan_ranges(orig.page_count, inventory.policy):
+            raise PreparationError("Prepared ranges differ from captured halving policy", SafeCode.input_invalid)
         expected_part_ordinals = list(range(1, len(parts) + 1))
         if [p.part_ordinal for p in parts] != expected_part_ordinals:
             raise PreparationError(f"Part ordinals for original {orig.source_ordinal} are not contiguous 1..{len(parts)}", SafeCode.input_invalid)
@@ -532,6 +540,7 @@ def verify_preparation(package_or_inventory_path: Path) -> PreparationInventory:
 def prepare_pdf_sources(
     original_paths: Sequence[Path],
     preparation_dir: Path,
+    policy: PreparationPolicy | None = None,
 ) -> PreparationInventory:
     """Prepare source PDFs locally: inspect, plan, extract direct leaves, verify, and publish package.
 
@@ -542,6 +551,7 @@ def prepare_pdf_sources(
     Returns:
         Verified PreparationInventory instance.
     """
+    policy = policy or PreparationPolicy()
     if not original_paths:
         raise PreparationError("original_paths sequence cannot be empty", SafeCode.input_invalid)
 
@@ -584,6 +594,8 @@ def prepare_pdf_sources(
         if pkg_dir.is_dir() and (pkg_dir / "inventory.json").is_file():
             try:
                 existing = verify_preparation(pkg_dir)
+                if existing.policy != policy:
+                    raise PreparationError("Existing preparation policy differs", SafeCode.input_changed)
                 # Verify that existing originals match requested originals in order, hashes, and size
                 if len(existing.originals) == len(initial_snapshots):
                     matches = True
@@ -631,8 +643,8 @@ def prepare_pdf_sources(
                     raise PreparationError(f"Source original changed during capture: {src_p.name}", SafeCode.input_changed)
 
                 page_count = inspect_pdf_strict(retained_path)
-                split_applied = (page_count > 100)
-                ranges = plan_ranges(page_count)
+                split_applied = (page_count > policy.split_trigger_pages)
+                ranges = plan_ranges(page_count, policy)
 
                 retained_ref = ArtifactRef(
                     path=f"originals/{retained_name}",
@@ -648,6 +660,7 @@ def prepare_pdf_sources(
                     page_count=page_count,
                     retained_original_ref=retained_ref,
                     split_applied=split_applied,
+                    policy_version=policy.version,
                 )
                 originals_records.append(orig_record)
                 planned_parts_info.append((src_ord, retained_path, src_p.name, ranges))
@@ -701,7 +714,6 @@ def prepare_pdf_sources(
                     upload_ord += 1
 
             # 3. Construct inventory and canonical digest
-            policy = PreparationPolicy()
             verification_summary = {
                 "verified": True,
                 "original_count": len(originals_records),

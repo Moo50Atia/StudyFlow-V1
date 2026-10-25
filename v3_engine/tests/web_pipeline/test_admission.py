@@ -42,6 +42,48 @@ def setup_bridge_secret(monkeypatch):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize('result,expected', [
+    ({'outcome': 'blocked', 'safe_code': 'protocol_validation'}, 202),
+    ({'outcome': 'uncertain', 'safe_code': 'delivery_uncertain'}, 409),
+    ({'outcome': 'completed', 'safe_code': 'ok'}, 409),
+])
+async def test_explicit_retry_of_closed_validation_hold_preserves_input_and_rejects_uncertain_or_successful_runs(tmp_path, monkeypatch, result, expected):
+    from types import SimpleNamespace
+    from v3_engine.web_pipeline import bridge as module
+    run, ref, command = str(uuid.uuid4()), str(uuid.uuid4()), str(uuid.uuid4())
+    store_manifest(tmp_path, ref, {'run_id': run, 'items': []})
+    updates = []
+    class Handle:
+        async def query(self, name, value):
+            return None if name == 'get_submission_receipt_v1' else 'closed'
+        async def describe(self):
+            return SimpleNamespace(status=SimpleNamespace(name='COMPLETED'))
+        async def result(self):
+            return result
+        async def execute_update(self, name, payload, id):
+            updates.append(payload)
+            return {'outcome': 'accepted'}
+    class Client:
+        def get_workflow_handle(self, name):
+            return Handle()
+    async def client():
+        return Client()
+    monkeypatch.setattr(module, '_get_temporal_client', client)
+    monkeypatch.setattr(module, 'get_storage_root', lambda: tmp_path)
+    monkeypatch.setattr(module, '_commands_store', {})
+    payload = {'command_id': command, 'run_id': run, 'action': 'retry', 'expected_version': 1,
+        'command_digest': hashlib.sha256(b'retry').hexdigest(), 'manifest_ref': ref}
+    headers, body = sign('POST', '/internal/v1/application-pipeline/commands', payload)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as http:
+        response = await http.post('/internal/v1/application-pipeline/commands', headers=headers, content=body)
+    assert response.status_code == expected
+    if expected == 202:
+        assert len(updates) == 1 and updates[0]['retry'] is True and updates[0]['manifest_ref'] == ref
+    else:
+        assert updates == []
+
+
+@pytest.mark.asyncio
 async def test_admission_requires_valid_hmac():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         # 1. No auth headers -> 401
@@ -59,6 +101,54 @@ async def test_admission_requires_valid_hmac():
             content=body,
         )
         assert resp2.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_scene_qualification_starts_durable_workflow_idempotently(monkeypatch):
+    from types import SimpleNamespace
+    from v3_engine.web_pipeline import bridge as module
+    command_id, run_id, case_id, candidate_ref = [str(uuid.uuid4()) for _ in range(4)]
+    digest = hashlib.sha256(b"immutable qualification command").hexdigest()
+    started = []
+
+    class Client:
+        async def start_workflow(self, workflow, payload, **kwargs):
+            started.append((workflow, payload, kwargs))
+            return object()
+
+    async def temporal_client():
+        return Client()
+
+    monkeypatch.setattr(module, "_get_temporal_client", temporal_client)
+    monkeypatch.setattr(module, "get_terminal_settings", lambda: SimpleNamespace(control_queue="control-test"))
+    payload = {
+        "command_id": command_id, "run_id": run_id, "case_id": case_id,
+        "candidate_ref": candidate_ref, "command_digest": digest,
+    }
+    headers, body = sign("POST", "/internal/v1/application-pipeline/qualifications", payload)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post("/internal/v1/application-pipeline/qualifications", headers=headers, content=body)
+    assert response.status_code == 202
+    assert response.json() == {"outcome": "accepted", "command_id": command_id}
+    assert len(started) == 1
+    workflow, args, options = started[0]
+    assert workflow.__qualname__ == "SceneQualificationWorkflow.run"
+    assert args == payload
+    assert options["id"] == f"scene-qualification-{command_id}"
+    assert options["task_queue"] == "control-test"
+
+
+@pytest.mark.asyncio
+async def test_scene_qualification_rejects_invalid_payload_before_starting_workflow(monkeypatch):
+    from v3_engine.web_pipeline import bridge as module
+    async def temporal_client():
+        raise AssertionError("invalid payload must not contact Temporal")
+    monkeypatch.setattr(module, "_get_temporal_client", temporal_client)
+    payload = {"command_id": "not-a-uuid"}
+    headers, body = sign("POST", "/internal/v1/application-pipeline/qualifications", payload)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post("/internal/v1/application-pipeline/qualifications", headers=headers, content=body)
+    assert response.status_code == 422
 
 
 @pytest.mark.asyncio
@@ -306,4 +396,3 @@ async def test_command_rejects_unsupported_actions_unknown_fields_and_oversize()
         resp_big = await client.post("/internal/v1/application-pipeline/commands", headers=headers_padded, content=padded)
         assert resp_big.status_code == 422
         assert resp_big.json()["error"]["code"] == "contract_invalid"
-

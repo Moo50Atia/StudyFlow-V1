@@ -11,20 +11,20 @@ use App\Models\Lecture;
 
 class TeacherPermissionController extends Controller
 {
-    public function index(): \Illuminate\Contracts\View\View
+    public function index()
     {
         $teacher_permissions = TeacherPermission::with(['teacher', 'subject', 'lecture'])
             ->latest()
             ->paginate(10);
-        return view('teacher_permissions.index', compact('teacher_permissions'));
+        return \App\Support\InertiaPage::render('teacher_permissions.index', compact('teacher_permissions'));
     }
 
-    public function create(): \Illuminate\Contracts\View\View
+    public function create()
     {
         $teachers = User::where('role', 'teacher')->get();
         $subjects = Subject::all();
         $lectures = Lecture::all();
-        return view('teacher_permissions.create', compact('teachers', 'subjects', 'lectures'));
+        return \App\Support\InertiaPage::render('teacher_permissions.create', compact('teachers', 'subjects', 'lectures'));
     }
 
     public function store(TeacherPermissionRequest $request): \Illuminate\Http\RedirectResponse
@@ -33,18 +33,18 @@ class TeacherPermissionController extends Controller
         return redirect()->route('teacher_permissions.index')->with('success', 'Permission created successfully');
     }
 
-    public function show(TeacherPermission $teacherPermission): \Illuminate\Contracts\View\View
+    public function show(TeacherPermission $teacherPermission)
     {
         $teacherPermission->load(['teacher', 'subject', 'lecture']);
-        return view('teacher_permissions.show', compact('teacherPermission'));
+        return \App\Support\InertiaPage::render('teacher_permissions.show', compact('teacherPermission'));
     }
 
-    public function edit(TeacherPermission $teacherPermission): \Illuminate\Contracts\View\View
+    public function edit(TeacherPermission $teacherPermission)
     {
         $teachers = User::where('role', 'teacher')->get();
         $subjects = Subject::all();
         $lectures = Lecture::all();
-        return view('teacher_permissions.edit', compact('teacherPermission', 'teachers', 'subjects', 'lectures'));
+        return \App\Support\InertiaPage::render('teacher_permissions.edit', compact('teacherPermission', 'teachers', 'subjects', 'lectures'));
     }
 
     public function update(TeacherPermissionRequest $request, TeacherPermission $teacherPermission): \Illuminate\Http\RedirectResponse

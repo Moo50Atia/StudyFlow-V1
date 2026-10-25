@@ -15,7 +15,7 @@ use Illuminate\View\View;
 
 class PromptStatusController extends Controller
 {
-    public function show(Request $request, string $case): JsonResponse|View|Response
+    public function show(Request $request, string $case)
     {
         if (! Str::isUuid($case)) {
             if ($request->expectsJson()) {
@@ -80,7 +80,7 @@ class PromptStatusController extends Controller
             return response()->json(['data' => $payload], 200)->header('Cache-Control', 'private, no-store');
         }
 
-        return response()->view('v3.teacher.prompts.status', [
+        return \App\Support\InertiaPage::render('v3.teacher.prompts.status', [
             'data' => $payload,
             'case' => $caseModel,
         ])->header('Cache-Control', 'private, no-store');

@@ -130,8 +130,8 @@ test('O17: current dormant review item receives fixed in-app reminder visible on
     // Original teacher views HTML index -> sees the fixed reminder alert
     $htmlResp = $this->actingAs($teacher)->get("/v3/teacher/cases/{$case->id}/reviews");
     $htmlResp->assertStatus(200);
-    $htmlResp->assertSee('A scene is ready for your review');
-    $htmlResp->assertSee(route('v3.teacher.cases.reviews.show', [$case->id, $reviewItem->id]));
+    $htmlResp->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+        ->component('Teacher/ReviewIndex')->where('reviews.data.0.review_ref', $reviewItem->id)->has('reminders'));
 
     // JSON review index shape remains unchanged (contract invariant)
     $jsonResp = $this->actingAs($teacher)->getJson("/v3/teacher/cases/{$case->id}/reviews");
@@ -304,7 +304,8 @@ test('O18 & O21: disabled teacher remains owner; sees reminder only after accoun
     // Restored teacher now views reviews and sees the reminder alert
     $allowed = $this->actingAs($teacher)->get("/v3/teacher/cases/{$case->id}/reviews");
     $allowed->assertStatus(200);
-    $allowed->assertSee('A scene is ready for your review');
+    $allowed->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+        ->component('Teacher/ReviewIndex')->has('reminders'));
 });
 
 test('O21: admin credentials cannot access teacher review routes', function () {

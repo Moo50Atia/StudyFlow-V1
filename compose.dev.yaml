@@ -1,0 +1,74 @@
+x-dev-php: &dev-php
+  environment:
+    APP_ENV: local
+    APP_DEBUG: 'true'
+  volumes:
+    - .:/app
+    - php-vendor:/app/vendor
+    - php-cache:/app/bootstrap/cache
+x-dev-python: &dev-python
+  volumes:
+    - .:/app
+    - mcp-dependencies:/app/integrations/notebooklm-mcp/node_modules
+    - mcp-build:/app/integrations/notebooklm-mcp/dist
+services:
+  init:
+    <<: *dev-php
+    command: [sh, -c, 'composer install --no-dev --prefer-dist --no-interaction && php docker/init.php']
+    depends_on:
+      dev-dependencies: {condition: service_completed_successfully}
+  app: *dev-php
+  scheduler: *dev-php
+  queue: *dev-php
+  bridge: *dev-python
+  worker: *dev-python
+  web:
+    volumes: ['./public:/app/public:ro']
+  dev-dependencies:
+    image: eduplatform-vite:local
+    pull_policy: never
+    user: ${PRODUCT_UID}:${PRODUCT_GID}
+    environment:
+      NPM_CONFIG_CACHE: /tmp/npm-cache
+    entrypoint: [/app/docker/dev-dependencies.sh]
+    volumes:
+      - .:/app
+      - vite-dependencies:/app/node_modules
+      - mcp-dependencies:/app/integrations/notebooklm-mcp/node_modules
+      - mcp-build:/app/integrations/notebooklm-mcp/dist
+    restart: 'no'
+  vite:
+    depends_on:
+      dev-dependencies: {condition: service_completed_successfully}
+    restart: unless-stopped
+    init: true
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: vite
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-node:24-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20}
+    image: eduplatform-vite:local
+    user: ${PRODUCT_UID}:${PRODUCT_GID}
+    environment:
+      APP_URL: http://127.0.0.1:8766
+      PRODUCT_VITE: '1'
+      NPM_CONFIG_CACHE: /tmp/npm-cache
+    volumes:
+      - .:/app
+      - vite-dependencies:/app/node_modules
+    ports: ['127.0.0.1:5173:5173']
+    healthcheck:
+      test: [CMD, node, -e, 'fetch("http://127.0.0.1:5173/@vite/client").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}
+volumes:
+  php-vendor:
+  php-cache:
+  mcp-dependencies:
+  mcp-build:
+  vite-dependencies:

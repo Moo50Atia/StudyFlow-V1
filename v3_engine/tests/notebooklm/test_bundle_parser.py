@@ -14,9 +14,11 @@ from v3_engine.notebooklm.bundle_parser import (
 FIXTURES_DIR = Path(__file__).resolve().parent.parent.parent.parent / "tests" / "Fixtures" / "V3" / "NotebookLM"
 
 
-def test_n12_parse_valid_combined_envelope():
+@pytest.mark.parametrize("section_prefix", ["Lec1", "LecW1"])
+def test_n12_parse_valid_combined_envelope(section_prefix):
     """N12: Parse valid combined envelope preserving all eleven First fields, Arabic, LaTeX, 13 Second fields, and Third prompts."""
     raw_text = (FIXTURES_DIR / "valid_combined_lesson_1.txt").read_text(encoding="utf-8")
+    raw_text = raw_text.replace("Lec1 (Sec", section_prefix + " (Sec")
 
     bundle: ParsedCombinedBundle = parse_combined_bundle(raw_text, expected_work_ordinal=1)
 
@@ -148,6 +150,25 @@ def test_n15_completion_marker_still_requires_positive_number():
 
     with pytest.raises(BundleParserError, match="positive display number"):
         parse_combined_bundle(raw_text, expected_work_ordinal=1)
+
+
+def test_unnumbered_completion_requires_identical_claimed_work_headers():
+    raw = (FIXTURES_DIR / "valid_combined_lesson_1.txt").read_text().replace("Lesson [1] Completed.", "Lesson  Completed.")
+    assert parse_combined_bundle(raw, 1).terminal_marker_ordinal == 1
+    wrong = raw.replace("=== SECOND ===\nLecture: W1", "=== SECOND ===\nLecture: W2")
+    with pytest.raises(BundleParserError):
+        parse_combined_bundle(wrong, 1)
+
+
+def test_inner_quoted_questions_do_not_truncate_multiline_scene_prompts():
+    raw = (FIXTURES_DIR / "valid_combined_lesson_1.txt").read_text()
+    raw = raw.replace('Learning Target: Contrast discrete integer points with dense real number continuum.',
+        'Learning Target: Contrast discrete integer points with dense real number continuum.\nLearner question: "Which point moves?"\nPreserve the rest of the scene after this question.')
+    parsed = parse_combined_bundle(raw, 1)
+    assert len(parsed.third.sections) == 2
+    assert 'Learner question: "Which point moves?"' in parsed.third.sections[0].prompt_body
+    assert 'Preserve the rest of the scene after this question.' in parsed.third.sections[0].prompt_body
+    assert 'Acceptance Requirements:' in parsed.third.sections[0].prompt_body
 
 
 def test_n15_reject_missing_first_fields():

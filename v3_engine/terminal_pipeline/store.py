@@ -236,15 +236,31 @@ class TerminalIndexStore:
                 (submission_id, digest, manifest_ref, json.dumps(receipt), now, now),
             )
             next_seq = conn.execute("SELECT COALESCE(MAX(acceptance_seq),0)+1 AS n FROM subjects").fetchone()["n"]
+            retried = False
             for subject in subjects:
                 run_id = validate_canonical_uuid(subject["subject_run_id"], "subject_run_id")
+                existing_subject = conn.execute(
+                    "SELECT manifest_ref, run_ref FROM subjects WHERE subject_run_id=?", (run_id,)
+                ).fetchone()
+                if existing_subject is not None:
+                    if (not payload.get("retry")
+                            or existing_subject["manifest_ref"] != manifest_ref
+                            or existing_subject["run_ref"] != subject["run_ref"]):
+                        raise LifecycleTransitionError("Subject identity is already registered", SafeCode.control_conflict)
+                    conn.execute(
+                        "UPDATE subjects SET submission_id=?, lifecycle='queued', started_run_id=NULL, "
+                        "final_report_ref=NULL, close_confirmation_ref=NULL, updated_at=? WHERE subject_run_id=?",
+                        (submission_id, now, run_id),
+                    )
+                    retried = True
+                    continue
                 conn.execute(
                     "INSERT INTO subjects(subject_run_id,submission_id,acceptance_seq,subject_key,workflow_id,manifest_ref,run_ref,generation_root_ref,lifecycle,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?, 'queued', ?,?)",
                     (run_id, submission_id, next_seq, subject["subject_key"], f"v3-terminal-subject-{run_id}", manifest_ref,
                      subject["run_ref"], subject["run_ref"], now, now),
                 )
                 next_seq += 1
-            receipt["duplicate"] = False
+            receipt["duplicate"] = retried
             return receipt
 
     def admit_recovery(self, payload: dict[str, Any]) -> dict[str, Any]:

@@ -429,8 +429,9 @@ class SceneReviewTest extends TestCase
         $showRes = $this->actingAs($this->teacherA)
             ->get(route('v3.teacher.cases.reviews.show', ['case' => $this->case->id, 'review' => $this->reviewItem->id]));
 
-        $showRes->assertStatus(200);
-        $showRes->assertSee('Review Scene: Keplerian Motion');
+        $showRes->assertStatus(200)->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+            ->component('Teacher/ReviewShow')->where('data.review_ref', $this->reviewItem->id)
+            ->where('data.fields.section_identity', 'Keplerian Motion'));
 
         // 3. Show JSON
         $showJson = $this->actingAs($this->teacherA)

@@ -1,8 +1,0 @@
-<x-app-layout>
-    <x-slot name="header"><h1 class="text-xl font-semibold text-gray-900 dark:text-white">Learning workspace</h1></x-slot>
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8 text-gray-900 dark:text-gray-100">
-        <section class="rounded-xl bg-white dark:bg-gray-800 p-6 shadow"><h2 class="text-lg font-semibold mb-4">Subjects</h2><div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">@forelse($subjects as $subject)<a href="{{ route('subjects.show', $subject) }}" class="block rounded-lg border border-gray-200 dark:border-gray-700 p-4"><strong class="block text-indigo-700 dark:text-indigo-300">{{ $subject->name }}</strong><span class="text-sm">{{ $subject->lectures_count }} lectures</span></a>@empty<p>No lessons have been published yet.</p>@endforelse</div></section>
-        <section class="rounded-xl bg-white dark:bg-gray-800 p-6 shadow"><h2 class="text-lg font-semibold mb-4">Available lectures</h2>@forelse($lectures as $lecture)<a href="{{ route('lectures.show', $lecture) }}" class="block border-t border-gray-200 dark:border-gray-700 py-3 text-indigo-700 dark:text-indigo-300">{{ $lecture->title }} <span class="text-gray-500">· {{ $lecture->subject?->name }}</span></a>@empty<p>No lectures available yet.</p>@endforelse</section>
-        <section class="rounded-xl bg-white dark:bg-gray-800 p-6 shadow"><h2 class="text-lg font-semibold mb-4">Interactive scenes</h2>@forelse($scenes as $scene)<a class="block border-t border-gray-200 dark:border-gray-700 py-3 text-indigo-700 dark:text-indigo-300" href="{{ route('student-scenes.file', [$scene->id, 'index.html']) }}">{{ $scene->section_identity }}</a>@empty<p>Approved scenes will appear here when released with a lesson.</p>@endforelse</section>
-    </main>
-</x-app-layout>

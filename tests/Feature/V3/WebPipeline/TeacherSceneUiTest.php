@@ -260,11 +260,9 @@ class TeacherSceneUiTest extends TestCase
         $response = $this->actingAs($this->teacherA)
             ->get(route('v3.teacher.subject-runs.scenes', $this->run));
 
-        $response->assertStatus(200);
-        $response->assertSee('Scene Management &amp; Authoring', false);
-        $response->assertSee('Orbital Mechanics');
-        $response->assertSee('Interactive 3D simulation of two-body Keplerian orbit');
-        $response->assertSee('Export / Manual (Default)');
+        $response->assertStatus(200)->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+            ->component('Teacher/RunScenes')->where('run.id', $this->run->id)
+            ->where('scenes.0.section.section_identity', 'Orbital Dynamics'));
     }
 
     public function test_teacher_can_view_scenes_json(): void

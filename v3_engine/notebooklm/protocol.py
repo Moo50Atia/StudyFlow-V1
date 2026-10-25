@@ -17,25 +17,11 @@ from v3_engine.notebooklm.ports import (
 from v3_engine.notebooklm.laravel_client import HttpLaravelNotebookClient
 from v3_engine.lessons.canonical_prompts import DIVIDE_PROMPT, EXECUTION_PROMPT
 
-COMBINED_RESPONSE_FORMAT_TEXT = (
-    "RESPONSE FORMAT combined-envelope-v1\n"
-    "The uploaded educational PDF supplies facts. steps.txt supplies the First, Second and Third framework. Preserve that framework unchanged.\n"
-    "For the dividing request, return only its structural map.\n"
-    "For the execution acknowledgement, return only System Ready.\n"
-    "For Start with First lesson and each literal Continue, return all three output artifacts for exactly the current mapped work item, without reading ahead. X is its one-based depth-first work ordinal; a Mini Chapter without Lessons counts as one work item.\n"
-    "Use these exact standalone delimiters in this order:\n"
-    "=== FIRST ===\n"
-    "The complete First output, including Lecture and every Section with its eleven fields.\n"
-    "=== SECOND ===\n"
-    "The complete Second output, including Lecture and each LecX (SecY) placeholder and Prepared Perspective Map.\n"
-    "=== THIRD ===\n"
-    "The Third artifact must begin immediately with its Lecture: header, followed only by one LecX (SecY) entry for each section.\n"
-    "For every entry, put the opening double quote immediately after the LecX (SecY): header, then enclose the ENTIRE multi-line final prompt in that single pair of double quotes. Do not close the quote until the final line of the prompt. Do not put explanatory text before the quote, after the closing quote, or between prompts.\n"
-    "=== END ===\n"
-    "Finish with exactly: ✅ Lesson [X] Completed. Awaiting 'Continue' for the next lesson.\n"
-    "Do not include these delimiter lines inside an artifact. Return no other text outside the three artifacts and final completion marker."
-)
-COMBINED_RESPONSE_FORMAT_SHA256 = "d1c517a59d71d2e79d511b1ab2f945d6eb65f3dcffc24e802823a617c2d95580"
+from v3_engine.notebooklm.protocol_bundle import load_local_worker_protocol
+
+_LOCAL_WORKER_PROTOCOL = load_local_worker_protocol()
+COMBINED_RESPONSE_FORMAT_TEXT = _LOCAL_WORKER_PROTOCOL["combined_response_format"]
+COMBINED_RESPONSE_FORMAT_SHA256 = hashlib.sha256(COMBINED_RESPONSE_FORMAT_TEXT.encode("utf-8")).hexdigest()
 
 
 def compute_source_effect_digest(
@@ -318,11 +304,16 @@ def parse_direct_divide_map(raw_text: str) -> List[ParsedLessonNode]:
         r"(?<=\S)\s*=>\s*(?=(?:Mini\s+Chapter|Lesson)\s+[0-9IVXLCDM]+\s*[:\-])",
         "\n", raw_text.strip(), flags=re.IGNORECASE,
     )
+    raw_text = re.sub(r"\A#{1,6}\s+(?:Structural|Lesson)\s+Map(?:\s*:\s*[^\r\n]+)?\s*\n", "", raw_text.replace("\r\n", "\n"), count=1, flags=re.IGNORECASE)
     lines = raw_text.splitlines()
+    lines = [re.sub(r"^(\s*)#{1,6}\s+(?=(?:Chapter|Mini\s+Chapter|Lesson)\b)", r"\1", line, flags=re.IGNORECASE) for line in lines]
+    lines = [re.sub(r"^(\s*(?:[-*]\s+)?)\*\*((?:Chapter|Mini\s+Chapter|Lesson)(?:\s+(?:\d+(?:\.\d+)*|[IVXLCDM]+))?\s*[:\-])\*\*\s*", r"\1\2 ", line, flags=re.IGNORECASE) for line in lines]
     nodes: List[ParsedLessonNode] = []
 
     current_chapter: Optional[ParsedLessonNode] = None
     current_mini: Optional[ParsedLessonNode] = None
+    current_mini_indent: Optional[int] = None
+    current_lesson_indent: Optional[int] = None
 
     chapter_count = 0
     chapter_sibling_counters: Dict[str, int] = {}
@@ -348,6 +339,15 @@ def parse_direct_divide_map(raw_text: str) -> List[ParsedLessonNode]:
 
         match = LINE_PATTERN.match(raw_line)
         if not match:
+            detail = re.match(r"^(\s*)((?:[│|]\s*)*[├└]──\s*)(.+)$", raw_line)
+            if detail:
+                depth = len(detail[1]) + (len(re.findall(r"[│|]", detail[2])) + 1) * 2
+                if (current_lesson_indent is not None and depth > current_lesson_indent
+                        and not re.match(r"^(Chapter|Mini\s+Chapter|Lesson)\b", detail[3], re.IGNORECASE)
+                        and len(detail[3].strip()) <= 255):
+                    # Retain subtopic text in the raw map, without inventing
+                    # additional work items below an explicitly named Lesson.
+                    continue
             raise ProviderError("protocol_validation", f"Prose or invalid line format: '{line}'")
 
         tree_prefix = match.group("tree") or ""
@@ -375,6 +375,9 @@ def parse_direct_divide_map(raw_text: str) -> List[ParsedLessonNode]:
             kind = "lesson"
         else:
             raise ProviderError("protocol_validation", f"Unrecognized node kind: '{raw_kind}'")
+        current_lesson_indent = indent_len if kind == "lesson" else None
+        if kind == "mini_chapter":
+            current_mini_indent = indent_len
 
         # NotebookLM's Unicode tree output can repeat continuation bars for
         # earlier siblings. Those bars increase the visual prefix depth even
@@ -399,7 +402,7 @@ def parse_direct_divide_map(raw_text: str) -> List[ParsedLessonNode]:
                 raise ProviderError("protocol_validation", f"Ambiguous indentation: {indent_len} spaces for line '{line}'")
             if indent_len == 2:
                 # Sibling under chapter, resets mini
-                if kind == "lesson":
+                if kind == "lesson" and current_mini_indent != 0:
                     current_mini = None
 
         if kind == "chapter":
@@ -539,6 +542,19 @@ class DirectLessonProtocol:
         self.laravel = laravel_client
         self.profile_ref = profile_ref
 
+    @staticmethod
+    def _lesson_question(binding: dict[str, Any], work_ordinal: int) -> str:
+        mode = binding.get("lesson_request_mode", "literal_v1")
+        if mode == "literal_v1":
+            return "Start with First lesson" if work_ordinal == 1 else "Continue"
+        if mode != "mapped_topic_v1":
+            raise ProviderError("protocol_validation", "Unsupported lesson request mode")
+        questions = binding.get("lesson_questions")
+        question = questions.get(str(work_ordinal)) if isinstance(questions, dict) else None
+        if not isinstance(question, str) or not question.strip():
+            raise ProviderError("protocol_validation", "Mapped lesson question is unavailable")
+        return question
+
     async def _claim(
         self, session: Any, case_id: str, binding_ref: str, kind: str,
         work_ordinal: int, question: str, conversation_id: Optional[str],
@@ -571,8 +587,7 @@ class DirectLessonProtocol:
                 "execution": [DIVIDE_PROMPT],
                 "lesson_start": [DIVIDE_PROMPT, EXECUTION_PROMPT],
                 "lesson_continue": [DIVIDE_PROMPT, EXECUTION_PROMPT]
-                    + ["Start with First lesson"]
-                    + ["Continue"] * max(0, work_ordinal - 2),
+                    + [self._lesson_question(binding, ordinal) for ordinal in range(1, work_ordinal)],
             }[kind]
             if len(history) == base_length and [entry[0] for entry in history] == prefix:
                 return {**existing, "disposition": "uncertain"}
@@ -611,7 +626,7 @@ class DirectLessonProtocol:
             expected_previous = (
                 DIVIDE_PROMPT if kind == "execution" else
                 EXECUTION_PROMPT if kind == "lesson_start" else
-                "Start with First lesson" if work_ordinal == 2 else "Continue"
+                self._lesson_question(binding, work_ordinal - 1)
             )
             if len(history) != expected_length or history[-1][0] != expected_previous:
                 raise ProviderError("conversation_conflict", "Notebook conversation history does not match the expected turn")
@@ -753,7 +768,8 @@ class DirectLessonProtocol:
         work_ordinal: int,
         expected_cursor_version: Optional[int] = None,
     ) -> dict[str, Any]:
-        question = "Start with First lesson" if work_ordinal == 1 else "Continue"
+        binding = await self.laravel.get_binding_by_ref(case_id, binding_ref)
+        question = self._lesson_question(binding, work_ordinal)
         async with self.provider.open(self.profile_ref) as session:
             kind = "lesson_start" if work_ordinal == 1 else "lesson_continue"
             claim = await self._claim(session, case_id, binding_ref, kind, work_ordinal, question, conversation_id, expected_cursor_version)

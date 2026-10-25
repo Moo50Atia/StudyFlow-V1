@@ -96,6 +96,17 @@ class NotebookLmMcpClient:
 
     async def call_tool(self, name: str, arguments: dict) -> Any:
         async with self._lock:
+            # The MCP implementation reads its own auth.json cache. Require it
+            # to match the same verified local profile used by the SDK adapter
+            # before allowing a provider operation through this compatibility path.
+            try:
+                from v3_engine.notebooklm.credentials import NotebookCredentialAuthority
+                if not NotebookCredentialAuthority().profile_status()["verified"]:
+                    raise McpToolError("authentication_required")
+            except McpToolError:
+                raise
+            except Exception:
+                raise McpToolError("authentication_required") from None
             await self._ensure_process()
             req_id = self._req_id
             self._req_id += 1

@@ -117,13 +117,8 @@ class RequireV3Access
     protected function buildHtmlResponse(string $message, int $status): Response
     {
         $viewName = "v3.errors.{$status}";
-        if (view()->exists($viewName)) {
-            return response()->view($viewName, ['message' => $message], $status)
-                ->header('Cache-Control', 'private, no-store');
-        }
-
-        return response("<!DOCTYPE html><html><head><title>{$message}</title></head><body><h1>{$message}</h1></body></html>", $status)
-            ->header('Content-Type', 'text/html')
-            ->header('Cache-Control', 'private, no-store');
+        return \App\Support\InertiaPage::render($viewName, ['message' => $message], $status, [
+            'Cache-Control' => 'private, no-store',
+        ]);
     }
 }

@@ -35,10 +35,10 @@ class SubjectRunController extends Controller
     /**
      * Show form to create a new subject run.
      */
-    public function create(Request $request, Subject $subject): \Illuminate\View\View
+    public function create(Request $request, Subject $subject)
     {
         abort_unless(app(\App\Services\LearningAccess::class)->canTeach($request->user(), $subject->id), 403);
-        return view('v3.teacher.subject-runs.create', [
+        return \App\Support\InertiaPage::render('v3.teacher.subject-runs.create', [
             'subject' => $subject,
         ]);
     }
@@ -57,7 +57,7 @@ class SubjectRunController extends Controller
 
         $receipt = $submitter->submit($request->user(), $subject->id, $payload);
 
-        if ($request->wantsJson() || $request->ajax() || $request->expectsJson()) {
+        if (! $request->header('X-Inertia') && ($request->wantsJson() || $request->ajax() || $request->expectsJson())) {
             return response()->json([
                 'data' => $receipt,
             ], 202)->header('Cache-Control', 'private, no-store');
@@ -92,7 +92,7 @@ class SubjectRunController extends Controller
         Request $request,
         SubjectRun $run,
         \App\Services\V3\WebPipeline\RunProgress $progressProjector
-    ): JsonResponse|\Illuminate\View\View
+    )
     {
         $user = $request->user();
 
@@ -106,9 +106,15 @@ class SubjectRunController extends Controller
             ])->header('Cache-Control', 'private, no-store');
         }
 
-        return view('v3.teacher.subject-runs.show', [
+        return \Inertia\Inertia::render('Teacher/RunShow', [
             'run' => $run->load('items'),
-            'progress' => $progressProjector->project($run),
+            'initialProgress' => $progressProjector->project($run),
+            'progressUrl' => route('v3.teacher.subject-runs.progress', $run),
+            'commandUrl' => route('v3.teacher.subject-runs.commands', $run),
+            'scenesUrl' => route('v3.teacher.subject-runs.scenes', $run),
+            'scenePullUrl' => $run->execution_mode === 'local_worker_v1' ? route('v3.teacher.subject-runs.pull-scenes', $run) : null,
+            'subjectUrl' => route('subjects.show', $run->subject_id),
+            'pollInterval' => (int) config('v3.progress_poll_interval', 5000),
         ]);
     }
 
@@ -136,11 +142,15 @@ class SubjectRunController extends Controller
             return response($text, 200, [
                 'Content-Type' => 'text/plain; charset=UTF-8',
                 'Cache-Control' => 'private, no-store',
-                'Content-Disposition' => 'inline; filename="prompts-' . $run->id . '.txt"',
+                'Content-Disposition' => 'attachment; filename="run-' . $run->id . '-prompts.txt"',
+                'X-Content-Type-Options' => 'nosniff',
             ]);
         }
 
-        return response()->json($data)->header('Cache-Control', 'private, no-store');
+        return response()->json($data)
+            ->header('Cache-Control', 'private, no-store')
+            ->header('Content-Disposition', 'attachment; filename="run-' . $run->id . '-prompts.json"')
+            ->header('X-Content-Type-Options', 'nosniff');
     }
 
     /**
@@ -177,7 +187,7 @@ class SubjectRunController extends Controller
     /**
      * Show scenes management and overview for a subject run.
      */
-    public function scenes(Request $request, SubjectRun $run): JsonResponse|\Illuminate\View\View
+    public function scenes(Request $request, SubjectRun $run)
     {
         $user = $request->user();
         if ($run->owner_user_id !== $user->id) {
@@ -187,15 +197,17 @@ class SubjectRunController extends Controller
         $run->load(['items.processingCase']);
 
         $scenesData = [];
-        foreach ($run->items as $item) {
+        foreach ($run->items->sortBy('pdf_ordinal') as $item) {
             $case = $item->processingCase;
             if (! $case) {
                 continue;
             }
 
             $sections = TeacherSection::where('case_id', $case->id)
-                ->orderBy('ordinal_in_work')
-                ->get();
+                ->with('lessonNode')
+                ->get()
+                ->sortBy(fn ($section) => [$section->lessonNode?->work_ordinal ?? PHP_INT_MAX,
+                    $section->ordinal_in_work, $section->id]);
 
             foreach ($sections as $section) {
                 $sectionState = PromptSectionState::where('section_id', $section->id)
@@ -359,11 +371,12 @@ class SubjectRunController extends Controller
             ])->header('Cache-Control', 'private, no-store');
         }
 
-        return view('v3.teacher.subject-runs.scenes', [
+        return \App\Support\InertiaPage::render('v3.teacher.subject-runs.scenes', [
             'run' => $run,
             'currentSelection' => $currentSelection,
             'catalog' => SelectSceneGeneration::APPROVED_CATALOG,
             'scenes' => $scenesData,
+            'paidScenesEnabled' => (bool) config('services.v3_teacher_paid_scenes_enabled', false),
         ]);
     }
 
@@ -724,7 +737,7 @@ class SubjectRunController extends Controller
         Request $request,
         SubjectRun $run,
         \App\Services\V3\WebPipeline\ApplyRunControl $control
-    ): JsonResponse {
+    ): JsonResponse|RedirectResponse {
         $user = $request->user();
         if ($run->owner_user_id !== $user->id) {
             throw new HttpException(404, 'Run not found.');
@@ -733,6 +746,11 @@ class SubjectRunController extends Controller
         try {
             $result = $control->apply($user, $run, $request->all(), false);
             $statusCode = ($result['status'] ?? '') === 'replayed' ? 200 : 202;
+
+            if (! $request->expectsJson()) {
+                return redirect()->route('v3.teacher.subject-runs.show', $run)
+                    ->with('status', ucfirst($result['action'] ?? 'Run control') . ' requested.');
+            }
 
             return response()->json($result, $statusCode)->header('Cache-Control', 'private, no-store');
         } catch (\App\Services\V3\WebPipeline\CommandConflictException $e) {
@@ -752,4 +770,3 @@ class SubjectRunController extends Controller
         }
     }
 }
-

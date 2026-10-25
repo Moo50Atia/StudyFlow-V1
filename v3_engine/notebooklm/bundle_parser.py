@@ -84,9 +84,9 @@ class ParsedCombinedBundle:
     raw_third: str
 
 
-LEC_SEC_HEADER_RE = re.compile(r"^Lec\s*([0-9]+)\s*\(\s*Sec\s*([0-9]+)\s*\)\s*:\s*(.*)$", re.IGNORECASE)
+LEC_SEC_HEADER_RE = re.compile(r"^Lec\s*W?\s*([0-9]+)\s*\(\s*Sec\s*([0-9]+)\s*\)\s*:\s*(.*)$", re.IGNORECASE)
 LECTURE_HEADER_RE = re.compile(r"^Lecture\s*:\s*(.+)$", re.IGNORECASE)
-TERMINAL_MARKER_RE = re.compile(r"✅\s*Lesson\s*\[?([0-9]+)\]?\s*Completed\.\s*Awaiting\s*['\"]Continue['\"]\s*for\s*the\s*next\s*lesson\.\s*$", re.IGNORECASE)
+TERMINAL_MARKER_RE = re.compile(r"✅\s*Lesson\s*(?:\[?([0-9]+)\]?\s*)?Completed\.\s*Awaiting\s*['\"]Continue['\"]\s*for\s*the\s*next\s*lesson\.\s*$", re.IGNORECASE)
 
 
 def parse_combined_bundle(raw_text: str, expected_work_ordinal: int) -> ParsedCombinedBundle:
@@ -139,7 +139,8 @@ def parse_combined_bundle(raw_text: str, expected_work_ordinal: int) -> ParsedCo
     if not marker_match:
         raise BundleParserError(f"Invalid or missing terminal completion marker: '{after_end}'", code="validation")
 
-    terminal_ordinal = int(marker_match.group(1))
+    marker_omitted_number = marker_match.group(1) is None
+    terminal_ordinal = expected_work_ordinal if marker_omitted_number else int(marker_match.group(1))
     if terminal_ordinal < 1:
         raise BundleParserError("Terminal completion marker must contain a positive display number", code="validation")
 
@@ -156,6 +157,12 @@ def parse_combined_bundle(raw_text: str, expected_work_ordinal: int) -> ParsedCo
 
     # 3. Parse Third artifact
     third_parsed = _parse_third_artifact(third_part, expected_work_ordinal, expected_section_count=len(first_parsed.sections))
+    if marker_omitted_number and (
+        not re.match(rf"^W{expected_work_ordinal}\s*\|\s*\S", lecture_title, re.IGNORECASE)
+        or second_parsed.lecture_header != lecture_title
+        or third_parsed.lecture_header != lecture_title
+    ):
+        raise BundleParserError("Unnumbered completion requires three identical headers for the claimed work item", code="validation")
 
     return ParsedCombinedBundle(
         work_ordinal=expected_work_ordinal,
@@ -439,8 +446,6 @@ def _parse_third_artifact(text: str, expected_work_ordinal: int, expected_sectio
                     )
                 prompt_lines.append(inline_prompt)
                 in_prompt = True
-                if inline_prompt.endswith('"') and not inline_prompt.endswith('\\"'):
-                    finalize_third_section()
             continue
 
         if current_sec_ordinal is None:
@@ -450,15 +455,10 @@ def _parse_third_artifact(text: str, expected_work_ordinal: int, expected_sectio
             if stripped.startswith('"'):
                 in_prompt = True
                 prompt_lines.append(stripped)
-                # Check if single line quote
-                if stripped.endswith('"') and len(stripped) > 1:
-                    finalize_third_section()
             else:
                 raise BundleParserError(f"Third section {current_sec_ordinal} prompt must begin with quote, got '{stripped}'", code="validation")
         else:
             prompt_lines.append(line)
-            if stripped.endswith('"') and not stripped.endswith('\\"'):
-                finalize_third_section()
 
     finalize_third_section()
 

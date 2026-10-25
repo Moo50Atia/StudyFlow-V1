@@ -14,6 +14,7 @@ UUID_PATTERN = re.compile(
 )
 
 MAX_METADATA_BYTES = 32768  # 32 KiB
+MAX_PREPARED_MANIFEST_BYTES = 1048576
 MAX_STATIC_PACKAGE_BYTES = 4194304  # 4 MiB
 MAX_RAW_TURN_BYTES = 8388608  # 8 MiB
 MAX_ACCEPTED_PDF_BYTES = 104857600  # 100 MiB
@@ -161,7 +162,7 @@ def store_manifest(
         root=root,
         artifact_ref=manifest_ref,
         data=data,
-        max_bytes=MAX_METADATA_BYTES,
+        max_bytes=MAX_PREPARED_MANIFEST_BYTES if manifest_data.get("protocol") == "notebooklm_per_pdf_web_v3" else MAX_METADATA_BYTES,
         category="manifests",
         ext=".json",
     )
@@ -176,7 +177,7 @@ def load_manifest(
     raw = load_artifact(
         root=root,
         artifact_ref=manifest_ref,
-        max_bytes=MAX_METADATA_BYTES,
+        max_bytes=MAX_PREPARED_MANIFEST_BYTES,
         category="manifests",
         ext=".json",
     )
@@ -184,6 +185,8 @@ def load_manifest(
         data = json.loads(raw.decode("utf-8"))
         if not isinstance(data, dict):
             raise ArtifactError("Manifest payload must be a JSON object")
+        if data.get("protocol") != "notebooklm_per_pdf_web_v3" and len(raw) > MAX_METADATA_BYTES:
+            raise ArtifactSizeError("Legacy manifest exceeds metadata bound")
         return data
     except Exception as e:
         raise ArtifactError(f"Corrupted manifest JSON: {e}") from e

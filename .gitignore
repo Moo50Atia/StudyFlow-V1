@@ -62,3 +62,21 @@ v3_engine/qualification/chrome_dist/
 *.sqlite-journal
 *.sqlite-wal
 
+
+# Local Docker migration state and protected snapshots
+/storage/backups/
+/storage/.product-*
+
+# Local presentations, research, scratch work, and generated output
+/presentation-model-comparison/
+/presentation-preparation/
+/screenshots/
+/Funding/
+/scratch/
+/STEM/
+/outputs/
+/logs/
+/notebooklm_mechanics_8pdf_test/
+
+# Local assistant session notes
+/.codex/

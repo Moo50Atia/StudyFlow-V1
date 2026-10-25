@@ -23,6 +23,20 @@ def test_is_valid_uuid_ref():
     assert not is_valid_uuid_ref("")
 
 
+def test_prepared_manifest_supports_bounded_expansion_without_changing_legacy_limit(tmp_path):
+    data = {"protocol": "notebooklm_per_pdf_web_v3", "items": [
+        {"item_id": str(uuid.uuid4()), "pdf_ordinal": n, "pdf_lineage": {"original_filename": "x" * 200}}
+        for n in range(1, 641)
+    ]}
+    ref = str(uuid.uuid4())
+    store_manifest(tmp_path, ref, data)
+    assert load_manifest(tmp_path, ref) == data
+    with pytest.raises(ArtifactSizeError):
+        store_manifest(tmp_path, str(uuid.uuid4()), {**data, "protocol": "notebooklm_per_pdf_web_v2"})
+    with pytest.raises(ArtifactSizeError):
+        store_manifest(tmp_path, str(uuid.uuid4()), {**data, "extra": "x" * 1048576})
+
+
 def test_store_and_load_manifest(tmp_path: Path):
     manifest_ref = str(uuid.uuid4())
     manifest_data = {

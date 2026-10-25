@@ -33,6 +33,11 @@ class ReconcileLessons
 
         foreach ($uncertainActivations as $act) {
             try {
+                $case = ProcessingCase::find($act->case_id);
+                if ($case && $case->isLocalWorkerCase()) {
+                    continue;
+                }
+
                 $binding = $act->binding;
                 if (! $binding || $binding->state !== 'bound') {
                     continue;

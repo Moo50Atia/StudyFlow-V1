@@ -38,10 +38,9 @@ def test_identical_cookie_header_is_imported_again_without_comparison_gate(tmp_p
     assert second['origin'] == 'https://notebook.google.com'
 
 
-def test_manual_import_updates_the_configured_master_and_selected_run_copy(tmp_path, monkeypatch):
+def test_manual_import_updates_the_shared_profile_and_leaves_run_copies_for_verified_adoption(tmp_path, monkeypatch):
     import sys
     from scripts.v3 import check_notebooklm
-    from v3_engine.notebooklm.credentials import get_terminal_run_storage_state
     from types import SimpleNamespace
 
     master = tmp_path / 'configured-master.json'
@@ -63,32 +62,33 @@ def test_manual_import_updates_the_configured_master_and_selected_run_copy(tmp_p
     monkeypatch.setattr(setup, '_read_gemini_key', lambda: pytest.fail('NotebookLM import must not ask for a Gemini key'))
     monkeypatch.setattr(sys, 'argv', ['setup', '--refresh-notebooklm', '--manual-notebooklm', '--bridge-sdk', '--run-dir', str(run)])
     assert setup.main() == 0
-    assert master.read_bytes() == isolated.read_bytes()
+    assert master.exists()
+    assert isolated.read_text() == '{"cookies":[],"origins":[]}'
     assert default.read_text() == 'preserve unrelated default'
-    assert get_terminal_run_storage_state(run) == isolated
-    assert isolated.stat().st_mode & 0o777 == 0o600
-    cookie = next(c for c in json.loads(isolated.read_text())['cookies'] if c['name'] == 'OSID')
-    assert cookie['domain'] == 'notebook.google.com'
+    assert master.stat().st_mode & 0o777 == 0o600
 
-    # The real checker selects the same isolated file, then delegates only its
-    # network boundary. No NotebookLM mutation is needed for this check.
+    # The checker verifies the shared profile; the compatibility flag does not
+    # select or mutate an individual run.
     selected_paths = []
     class CheckedSession:
         def __init__(self, **kwargs):
             selected_paths.append(kwargs['storage_state_path'])
-        def open(self, _):
+        def open(self, profile_ref=None, storage_path=None):
+            assert storage_path == master
             class Context:
                 async def __aenter__(self):
-                    async def get_notebook(nid):
-                        return SimpleNamespace(id=nid)
-                    return SimpleNamespace(files=SimpleNamespace(get_notebook=get_notebook))
+                    async def verify_owner(nid):
+                        assert nid == 'processing-notebook'
+                        return 'owner'
+                    return SimpleNamespace(files=SimpleNamespace(verify_owner=verify_owner))
                 async def __aexit__(self, *args):
                     pass
             return Context()
     monkeypatch.setattr(check_notebooklm, 'SdkSessionProvider', CheckedSession)
+    monkeypatch.setenv('V3_NOTEBOOKLM_STORAGE_STATE', str(master))
     import asyncio
-    assert asyncio.run(check_notebooklm.check('https://notebook.google.com', 'processing-notebook', 'notebooklm_py', run)) == 0
-    assert selected_paths == [isolated]
+    assert asyncio.run(check_notebooklm.check('https://notebook.google.com', 'processing-notebook', 'notebooklm_py')) == 0
+    assert selected_paths == [master]
 
 def test_default_refresh_cannot_open_browser(tmp_path, monkeypatch):
     monkeypatch.setattr(setup.subprocess, 'run', lambda *a, **kw: pytest.fail('No browser allowed'))
@@ -129,3 +129,38 @@ def test_existing_brave_profile_is_selected_without_using_the_dedicated_profile(
         browser_path='/usr/bin/brave-browser',
         brave_profile_path=str(profile),
     )
+
+
+@pytest.mark.parametrize('include_run', [False, True])
+def test_credentials_only_preserves_env_and_signing_keys(tmp_path, monkeypatch, include_run):
+    import sys
+    master = tmp_path / '.notebooklm/master.json'
+    master.parent.mkdir()
+    env_file = tmp_path / '.env'
+    original = f'V3_NOTEBOOKLM_STORAGE_STATE="{master}"\nAPP_KEY=existing\nV3_BRIDGE_HMAC_KEY=existing\n'
+    env_file.write_text(original)
+    monkeypatch.setattr(setup, 'REPO_ROOT', tmp_path)
+    monkeypatch.setattr(setup.Path, 'home', lambda: tmp_path)
+    monkeypatch.delenv('V3_NOTEBOOKLM_STORAGE_STATE', raising=False)
+    monkeypatch.setattr(setup.sys.stdin, 'isatty', lambda: True)
+    monkeypatch.setattr(setup.getpass, 'getpass', lambda _: COOKIES)
+    monkeypatch.setattr(setup, '_read_gemini_key', lambda: pytest.fail('No Gemini prompt'))
+    monkeypatch.setattr(setup, 'generate_local_hmac_secrets', lambda: pytest.fail('No signing keys'))
+    monkeypatch.setattr(setup, 'write_local_env', lambda *a: pytest.fail('No environment rewrite'))
+    argv = ['setup', '--credentials-only', '--refresh-notebooklm', '--manual-notebooklm']
+    if include_run:
+        run = tmp_path / 'runs/test-run'
+        isolated = run / 'private/notebooklm-sessions/test-run/storage_state.json'
+        isolated.parent.mkdir(parents=True)
+        isolated.write_text('{"cookies":[],"origins":[]}')
+        isolated.chmod(0o600)
+        (run / 'private/notebooklm-credentials.json').write_text(json.dumps({'storage_state_path': str(isolated)}))
+        argv.extend(['--bridge-sdk', '--run-dir', str(run)])
+    monkeypatch.setattr(sys, 'argv', argv)
+    assert setup.main() == 0
+    assert env_file.read_text() == original
+    assert json.loads(master.read_text())['cookies']
+    assert master.stat().st_mode & 0o777 == 0o600
+    if include_run:
+        assert isolated.read_text() == '{"cookies":[],"origins":[]}'
+        assert isolated.stat().st_mode & 0o777 == 0o600

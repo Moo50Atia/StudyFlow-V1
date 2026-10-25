@@ -28,7 +28,8 @@ class StoreSceneArtifacts
         string $provenanceRef,
         string $sourceManifestSha256,
         array $validatedFiles,
-        int $totalBytes
+        int $totalBytes,
+        string $profile = 'static_three_file_v1'
     ): array {
         $disk = Storage::disk('v3_private');
         $baseDir = "scene-artifacts/{$caseId}/{$sectionId}/{$candidateId}";
@@ -48,7 +49,7 @@ class StoreSceneArtifacts
 
         $manifestDoc = [
             'schema_version' => 2,
-            'profile' => 'static_three_file_v1',
+            'profile' => $profile,
             'case_id' => $caseId,
             'section_id' => $sectionId,
             'prompt_version_id' => $promptVersionId,

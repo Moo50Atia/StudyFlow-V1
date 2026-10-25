@@ -26,6 +26,7 @@ class SubjectRunItem extends Model implements V3OwnedResource
         return [
             'pdf_ordinal' => 'integer',
             'input_bytes' => 'integer',
+            'pdf_lineage' => 'array',
             'work_count' => 'integer',
             'saved_lesson_count' => 'integer',
             'prompt_count' => 'integer',
@@ -40,7 +41,7 @@ class SubjectRunItem extends Model implements V3OwnedResource
         parent::boot();
 
         static::updating(function ($item) {
-            foreach (['run_id', 'owner_user_id', 'pdf_ordinal', 'input_sha256'] as $field) {
+            foreach (['run_id', 'owner_user_id', 'pdf_ordinal', 'input_sha256', 'pdf_lineage'] as $field) {
                 if ($item->isDirty($field)) {
                     throw new \InvalidArgumentException("Modifying immutable attribute '{$field}' on SubjectRunItem is prohibited.");
                 }

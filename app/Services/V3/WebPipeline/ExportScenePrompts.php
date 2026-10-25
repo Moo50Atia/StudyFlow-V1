@@ -34,7 +34,7 @@ class ExportScenePrompts
         if ($sceneId) {
             $sectionsQuery->where('id', $sceneId);
         }
-        $sections = $sectionsQuery->get();
+        $sections = $sectionsQuery->with('lessonNode')->get();
 
         $prompts = [];
 
@@ -67,6 +67,8 @@ class ExportScenePrompts
                 'scene_id' => $sec->id,
                 'item_id' => $item?->id,
                 'pdf_ordinal' => $item?->pdf_ordinal ?? 1,
+                'lesson_ordinal' => $sec->lessonNode?->work_ordinal,
+                'scene_ordinal' => $sec->ordinal_in_work,
                 'filename' => $item?->original_filename ?? $item?->display_title,
                 'section_title' => $sec->section_identity ?? "Section {$sec->ordinal_in_work}",
                 'scene_type' => $pv?->scene_type ?? 'Interactive Visualization',
@@ -77,9 +79,10 @@ class ExportScenePrompts
             ];
         }
 
-        // Sort by pdf_ordinal, then scene_id
+        // Keep the captured PDF / lesson / section order; titles are labels.
         usort($prompts, function ($a, $b) {
-            return ($a['pdf_ordinal'] <=> $b['pdf_ordinal']) ?: ($a['section_title'] <=> $b['section_title']);
+            return [$a['pdf_ordinal'], $a['lesson_ordinal'] ?? PHP_INT_MAX, $a['scene_ordinal'], $a['scene_id']]
+                <=> [$b['pdf_ordinal'], $b['lesson_ordinal'] ?? PHP_INT_MAX, $b['scene_ordinal'], $b['scene_id']];
         });
 
         return [

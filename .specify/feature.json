@@ -1,1 +1,3 @@
-{"feature_directory":"specs/020-local-pdf-splitting"}
+{
+  "feature_directory": "specs/021-hosted-local-worker"
+}

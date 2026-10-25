@@ -87,6 +87,9 @@ class AcceptCombinedLesson
         if ($conversationOut !== $query->conversation_in) {
             throw new \RuntimeException("Conversation identity changed.", 409);
         }
+        if ($query->state === 'blocked' && ! $this->canRevalidateBlocked($query, $answerSha, $conversationOut)) {
+            throw new \RuntimeException('Blocked lesson evidence cannot be replaced.', 409);
+        }
         if (! isset($payload['expected_cursor_version'])
             || (int) $payload['expected_cursor_version'] !== (int) $query->expected_cursor_version) {
             throw new \RuntimeException("Stale cursor version.", 409);
@@ -262,7 +265,8 @@ class AcceptCombinedLesson
                     }
                 }
                 $lockedCursor = LessonCursor::where('case_id', $case->id)->lockForUpdate()->first();
-                if (! $lockedCursor || ! in_array($lockedQuery->state, ['sending', 'uncertain'], true)
+                if (! $lockedCursor || (! in_array($lockedQuery->state, ['sending', 'uncertain'], true)
+                        && ! $this->canRevalidateBlocked($lockedQuery, $answerSha, $conversationOut))
                     || $lockedCursor->phase !== 'processing_bundle'
                     || (int) $lockedCursor->current_work_ordinal !== (int) $lockedQuery->target_work_ordinal
                     || (int) $lockedCursor->version !== (int) $lockedQuery->expected_cursor_version
@@ -576,6 +580,12 @@ class AcceptCombinedLesson
         });
     }
 
+    private function canRevalidateBlocked(LessonQuery $query, string $answerSha, string $conversation): bool
+    {
+        return $query->state === 'blocked' && $query->error_code === 'protocol_validation'
+            && $query->answer_sha256 === $answerSha && $query->conversation_out === $conversation;
+    }
+
     private function matchesMappedTitle(string $actualTitle, int $workOrdinal, string $mappedTitle): bool
     {
         $actual = $this->normalizeMappedTitle($actualTitle, $workOrdinal);
@@ -596,8 +606,11 @@ class AcceptCombinedLesson
         // NotebookLM can retain a chapter heading before the lesson title.
         $title = preg_replace('/^.*\\bLesson\\s+' . $workOrdinal . '\\s*:\\s*/iu', '', $title) ?? $title;
         $title = preg_replace('/^Lesson\\s+' . $workOrdinal . '\\s*:\\s*/i', '', $title) ?? $title;
+        // Map-local lesson numbers (for example Lesson 1.1) are labels,
+        // distinct from the depth-first W ordinal checked by the bundle validator.
+        $title = preg_replace('/^Lesson\\s+\\d+(?:\\.\\d+)+\\s*:\\s*/iu', '', $title) ?? $title;
         // NotebookLM may append source citation markers to structural titles.
-        $title = preg_replace('/(?:\\s+\\[\\d+\\])+\\s*$/u', '', $title) ?? $title;
+        $title = preg_replace('/(?:\\s+\\[\\d+(?:\\s*[,\-–]\\s*\\d+)*\\])+\\s*$/u', '', $title) ?? $title;
         $title = preg_replace('/\\s+/u', ' ', trim($title)) ?? trim($title);
 
         return $title;

@@ -1,0 +1,15 @@
+Chapter: Objects
+
+Mini Chapter 1: Foundations
+├── Lesson 1: Objects and Classes
+│   ├── Identity and State
+│   └── Object Terminology
+└── Lesson 2: Class Notation
+    ├── Attributes
+    └── Methods
+
+Mini Chapter 2: Relationships
+└── Lesson 1: Object Relationships
+    └── Class Relationships
+        ├── Association
+        └── Composition

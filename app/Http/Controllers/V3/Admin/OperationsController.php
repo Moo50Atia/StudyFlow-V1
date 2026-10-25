@@ -15,7 +15,7 @@ class OperationsController extends Controller
         protected QueryOperations $queryOperations
     ) {}
 
-    public function index(Request $request): JsonResponse|View|Response
+    public function index(Request $request)
     {
         try {
             $result = $this->queryOperations->listCases($request->query());
@@ -38,14 +38,14 @@ class OperationsController extends Controller
 
         $admin = $request->attributes->get('v3_actor') ?? $request->user();
 
-        return response()->view('v3.admin.operations.index', [
+        return \App\Support\InertiaPage::render('v3.admin.operations.index', [
             'admin' => $admin,
             'cases' => $result['data'],
             'meta' => $result['meta'],
         ])->header('Cache-Control', 'private, no-store');
     }
 
-    public function show(Request $request, string $case): JsonResponse|View|Response
+    public function show(Request $request, string $case)
     {
         $detail = $this->queryOperations->getCaseDetail($case);
 
@@ -69,7 +69,7 @@ class OperationsController extends Controller
 
         $admin = $request->attributes->get('v3_actor') ?? $request->user();
 
-        return response()->view('v3.admin.operations.show', [
+        return \App\Support\InertiaPage::render('v3.admin.operations.show', [
             'admin' => $admin,
             'summary' => $detail['summary'],
             'actionTargets' => $detail['action_targets'],

@@ -33,7 +33,7 @@ class ActivateSource
         foreach ($links as $link) {
             $created = DB::transaction(function () use ($link) {
                 $lockedCase = ProcessingCase::where('id', $link->case_id)->lockForUpdate()->first();
-                if (!$lockedCase || $lockedCase->state !== 'queued') {
+                if (!$lockedCase || $lockedCase->state !== 'queued' || $lockedCase->isLocalWorkerCase()) {
                     return false;
                 }
 

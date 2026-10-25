@@ -34,7 +34,7 @@ class AcceptRunItem
         // the already committed intake rather than creating another lecture,
         // case, or document association.
         $item->refresh();
-        if ($item->state === 'accepted' && $item->document_id && $item->lecture_id && $item->case_id) {
+        if ($item->document_id && $item->lecture_id && $item->case_id) {
             $document = Document::find($item->document_id);
             $store = app(\App\Services\V3\Intake\PrivatePdfStore::class);
             if ($document && $document->state === 'ready'

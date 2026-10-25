@@ -8,15 +8,15 @@ use App\Models\Subject;
 
 class SubjectController extends Controller
 {
-    public function index(): \Illuminate\Contracts\View\View
+    public function index()
     {
         $subjects = app(\App\Services\LearningAccess::class)->scopeSubjects(Subject::query(), auth()->user())->latest()->paginate(10);
-        return view('subjects.index', compact('subjects'));
+        return \App\Support\InertiaPage::render('subjects.index', compact('subjects'));
     }
 
-    public function create(): \Illuminate\Contracts\View\View
+    public function create()
     {
-        return view('subjects.create');
+        return \App\Support\InertiaPage::render('subjects.create');
     }
 
     public function store(SubjectRequest $request): \Illuminate\Http\RedirectResponse
@@ -32,17 +32,17 @@ class SubjectController extends Controller
         return redirect()->route('subjects.index')->with('success', 'Subject created successfully!');
     }
 
-    public function show(Subject $subject): \Illuminate\Contracts\View\View
+    public function show(Subject $subject)
     {
         $subject->load(['lectures' => function ($query) {
             app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->scopeVisibleLectures($query, auth()->user());
         }]);
-        return view('subjects.show', compact('subject'));
+        return \App\Support\InertiaPage::render('subjects.show', compact('subject'));
     }
 
-    public function edit(Subject $subject): \Illuminate\Contracts\View\View
+    public function edit(Subject $subject)
     {
-        return view('subjects.edit', compact('subject'));
+        return \App\Support\InertiaPage::render('subjects.edit', compact('subject'));
     }
 
     public function update(SubjectRequest $request, Subject $subject): \Illuminate\Http\RedirectResponse

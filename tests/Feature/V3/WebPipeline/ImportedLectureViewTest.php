@@ -112,9 +112,9 @@ class ImportedLectureViewTest extends TestCase
         $response = $this->actingAs($this->teacher)
             ->get(route('subjects.show', $this->subject));
 
-        $response->assertOk();
-        $response->assertSee('Kinematics');
-        $response->assertSee('Historical');
+        $response->assertOk()->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+            ->component('LearningSubjectShow')->where('subject.name', 'Kinematics & Dynamics')
+            ->has('subject.lectures'));
     }
 
     public function test_owner_teacher_can_view_imported_lecture_detail_with_historical_badge(): void
@@ -124,9 +124,9 @@ class ImportedLectureViewTest extends TestCase
         $response = $this->actingAs($this->teacher)
             ->get(route('lectures.show', $lecture));
 
-        $response->assertOk();
-        $response->assertSee($lecture->title);
-        $response->assertSee('Imported Historical Content');
+        $response->assertOk()->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+            ->component('LearningContentShow')->where('lecture.title', $lecture->title)
+            ->where('lecture.id', $lecture->id));
     }
 
     public function test_non_owner_teacher_is_forbidden_from_viewing_imported_lecture(): void

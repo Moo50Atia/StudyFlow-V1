@@ -12,10 +12,17 @@ Route::middleware(['v3.private', 'web'])->prefix('v3')->group(function () {
         ->middleware('v3.access')
         ->name('v3.entry');
 
+    // Compatibility for previously emitted run URLs. Keep role-specific views
+    // and teacher ownership checks instead of opening teacher pages to admins.
+    Route::get('/teacher/runs/{run}', [\App\Http\Controllers\V3\RunLocationController::class, 'show'])->middleware('v3.access');
+    Route::get('/teacher/runs/{run}/scenes', [\App\Http\Controllers\V3\RunLocationController::class, 'scenes'])->middleware('v3.access');
+
     // Teacher routes
     Route::prefix('teacher')->middleware('v3.role:teacher')->group(function () {
         Route::get('/', [TeacherWorkspaceController::class, 'index'])
             ->name('v3.teacher.workspace');
+        Route::get('/workspace', [TeacherWorkspaceController::class, 'index']);
+        Route::get('/reviews', [\App\Http\Controllers\V3\Teacher\SceneReviewController::class, 'queue'])->name('v3.teacher.reviews.queue');
 
         // V3 Subject Runs
         Route::get('/subjects/{subject}/runs', [\App\Http\Controllers\V3\Teacher\SubjectRunController::class, 'index'])
@@ -28,6 +35,8 @@ Route::middleware(['v3.private', 'web'])->prefix('v3')->group(function () {
             ->name('v3.teacher.subject-runs.show');
         Route::get('/subject-runs/{run}/prompt-export', [\App\Http\Controllers\V3\Teacher\SubjectRunController::class, 'promptExport'])
             ->name('v3.teacher.subject-runs.prompt-export');
+        Route::post('/subject-runs/{run}/pull-scenes', \App\Http\Controllers\V3\LocalWorker\ScenePullController::class)
+            ->name('v3.teacher.subject-runs.pull-scenes');
         Route::post('/subject-runs/{run}/scenes/{scene}/imports', [\App\Http\Controllers\V3\Teacher\SubjectRunController::class, 'importScene'])
             ->name('v3.teacher.subject-runs.scenes.imports');
         Route::get('/subject-runs/{run}/scenes', [\App\Http\Controllers\V3\Teacher\SubjectRunController::class, 'scenes'])
@@ -132,21 +141,39 @@ Route::middleware(['v3.private', 'web'])->prefix('v3')->group(function () {
     Route::prefix('admin')->middleware('v3.role:admin')->group(function () {
         Route::get('/', [AdminWorkspaceController::class, 'index'])
             ->name('v3.admin.workspace');
+        Route::get('/workspace', [AdminWorkspaceController::class, 'index']);
 
         Route::post('/notebooklm/health-check', [\App\Http\Controllers\V3\Admin\NotebookHealthController::class, 'check'])
             ->name('v3.admin.notebooklm.health-check');
+        Route::get('/notebooklm/health-check/{probe}', [\App\Http\Controllers\V3\Admin\NotebookHealthController::class, 'workerStatus'])
+            ->where('probe', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
+            ->name('v3.admin.notebooklm.health-check.worker-status');
 
         Route::get('/cases', [\App\Http\Controllers\V3\Admin\CaseSummaryController::class, 'index'])
             ->name('v3.admin.cases.index');
 
         Route::get('/cases/{case}/summary', [\App\Http\Controllers\V3\Admin\CaseSummaryController::class, 'show'])
             ->name('v3.admin.cases.summary');
+        Route::get('/cases/{case}', [\App\Http\Controllers\V3\Admin\CaseSummaryController::class, 'show']);
         Route::get('/subject-runs', [\App\Http\Controllers\V3\Admin\SubjectRunSummaryController::class, 'index'])
             ->name('v3.admin.subject-runs.index');
         Route::get('/subject-runs/{run}/summary', [\App\Http\Controllers\V3\Admin\SubjectRunSummaryController::class, 'show'])
             ->name('v3.admin.subject-runs.summary');
+        Route::get('/subject-runs/{run}', [\App\Http\Controllers\V3\Admin\SubjectRunSummaryController::class, 'show'])
+            ->name('v3.admin.subject-runs.show');
+        Route::post('/subject-runs/{run}/pull-scenes', \App\Http\Controllers\V3\LocalWorker\ScenePullController::class)
+            ->name('v3.admin.subject-runs.pull-scenes');
         Route::post('/subject-runs/{run}/commands', [\App\Http\Controllers\V3\Admin\SubjectRunSummaryController::class, 'command'])
             ->name('v3.admin.subject-runs.commands');
+
+        Route::get('/local-worker/tasks/{task}/reconciliation', [\App\Http\Controllers\V3\Admin\LocalWorkerReconciliationController::class, 'show'])
+            ->name('v3.admin.local-worker.reconciliation.show');
+        Route::post('/local-worker/tasks/{task}/reconciliation', [\App\Http\Controllers\V3\Admin\LocalWorkerReconciliationController::class, 'begin'])
+            ->name('v3.admin.local-worker.reconciliation.begin');
+        Route::post('/local-worker/tasks/{task}/reconciliation/resolve-no-effect', [\App\Http\Controllers\V3\Admin\LocalWorkerReconciliationController::class, 'resolveNoEffect'])
+            ->name('v3.admin.local-worker.reconciliation.resolve-no-effect');
+        Route::post('/local-worker/tasks/{task}/reconciliation/resolve-terminal', [\App\Http\Controllers\V3\Admin\LocalWorkerReconciliationController::class, 'resolveTerminal'])
+            ->name('v3.admin.local-worker.reconciliation.resolve-terminal');
 
         Route::get('/accounts', [AccountController::class, 'index'])
             ->name('v3.admin.accounts.index');
@@ -191,7 +218,18 @@ Route::middleware(['v3.private', 'web'])->prefix('v3')->group(function () {
             ->where('case', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
             ->name('v3.admin.operations.deletion-assessments.store');
 
+        // Feature 021: Device management routes
+        Route::get('/devices', [\App\Http\Controllers\V3\Admin\DeviceManagementController::class, 'index'])
+            ->name('v3.admin.devices.index');
+        Route::post('/devices/invitations', [\App\Http\Controllers\V3\Admin\DeviceManagementController::class, 'createInvitation'])
+            ->name('v3.admin.devices.invitations.store');
+        Route::post('/devices/{device}/revoke', [\App\Http\Controllers\V3\Admin\DeviceManagementController::class, 'revoke'])
+            ->name('v3.admin.devices.revoke');
+        Route::post('/devices/{device}/rotate', [\App\Http\Controllers\V3\Admin\DeviceManagementController::class, 'rotate'])
+            ->name('v3.admin.devices.rotate');
+
         // V3 Evidence routes
+        Route::get('/evidence', [\App\Http\Controllers\V3\Admin\EvidenceController::class, 'index'])->name('v3.admin.evidence.index');
         Route::get('/evidence/metrics', [\App\Http\Controllers\V3\Admin\EvidenceController::class, 'metrics'])
             ->name('v3.admin.evidence.metrics');
 
@@ -203,5 +241,3 @@ Route::middleware(['v3.private', 'web'])->prefix('v3')->group(function () {
             ->name('v3.admin.evidence-exports.download');
     });
 });
-
-

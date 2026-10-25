@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Storage;
 
 class QuestionController extends Controller
 {
-    public function index(Request $request): \Illuminate\Contracts\View\View
+    public function index(Request $request)
     {
         $query = Question::with('lecture.subject');
 
@@ -44,14 +44,14 @@ class QuestionController extends Controller
             $lectures = app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->scopeVisibleLectures($lecQuery, auth()->user())->get();
         }
 
-        return view('questions.index', compact('questions', 'subjects', 'lectures'));
+        return \App\Support\InertiaPage::render('questions.index', compact('questions', 'subjects', 'lectures'));
     }
 
-    public function create(): \Illuminate\Contracts\View\View
+    public function create()
     {
         $lecQuery = Lecture::with('subject')->orderBy('title');
         $lectures = app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->scopeVisibleLectures($lecQuery, auth()->user())->get();
-        return view('questions.create', compact('lectures'));
+        return \App\Support\InertiaPage::render('questions.create', compact('lectures'));
     }
 
     public function store(QuestionRequest $request): \Illuminate\Http\RedirectResponse
@@ -81,17 +81,17 @@ class QuestionController extends Controller
         return redirect()->route('questions.index')->with('success', 'Question created successfully!');
     }
 
-    public function show(Question $question): \Illuminate\Contracts\View\View
+    public function show(Question $question)
     {
         if ($question->lecture && ! app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessLecture(auth()->user(), $question->lecture)) {
             abort(403);
         }
 
         $question->load('lecture.subject');
-        return view('questions.show', compact('question'));
+        return \App\Support\InertiaPage::render('questions.show', compact('question'));
     }
 
-    public function edit(Question $question): \Illuminate\Contracts\View\View
+    public function edit(Question $question)
     {
         if ($question->lecture && ! app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessLecture(auth()->user(), $question->lecture)) {
             abort(403);
@@ -99,7 +99,7 @@ class QuestionController extends Controller
 
         $lecQuery = Lecture::with('subject')->orderBy('title');
         $lectures = app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->scopeVisibleLectures($lecQuery, auth()->user())->get();
-        return view('questions.edit', compact('question', 'lectures'));
+        return \App\Support\InertiaPage::render('questions.edit', compact('question', 'lectures'));
     }
 
     public function update(QuestionRequest $request, Question $question): \Illuminate\Http\RedirectResponse

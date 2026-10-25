@@ -72,7 +72,7 @@ def get_subject_status(
                 subject_run_id=run_id,
                 workflow_id=wf_id,
                 lifecycle=prog.get("status", "running"),
-                status=prog.get("status", "running"),
+                status='paused' if prog.get('paused') else prog.get("status", "running"),
                 phase=prog.get("phase"),
                 freshness="realtime",
                 as_of=now,

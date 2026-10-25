@@ -54,7 +54,7 @@ async def test_two_live_pdfs_reach_legacy_lessons(temporal_local_env, monkeypatc
                 await page.goto(f"{harness.laravel_url}/login")
                 await page.locator("#email").fill("teacher_a@example.com")
                 await page.locator("#password").fill("password")
-                await page.get_by_role("button", name="Log in").click()
+                await page.get_by_role("button", name="Sign In").click()
                 await page.goto(f"{harness.laravel_url}/v3/teacher/subjects/{subject_id}/runs/create")
                 for ordinal, body in enumerate(pdf_bytes):
                     if ordinal:

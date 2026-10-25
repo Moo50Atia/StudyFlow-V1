@@ -1,3 +1,91 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --canvas-bg: #f6f8f6;
+  --surface-base: #ffffff;
+  --surface-elevated: #fbfdfb;
+  --surface-subtle: #f0f4f1;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --border-subtle: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --brand-primary: #0f766e;
+  --brand-hover: #115e59;
+  --brand-subtle: #ccfbf1;
+  --status-success: #059669;
+  --status-success-bg: #ecfdf5;
+  --status-warning: #d97706;
+  --status-warning-bg: #fffbeb;
+  --status-error: #e11d48;
+  --status-error-bg: #fff1f2;
+  --status-info: #4f46e5;
+  --status-info-bg: #eef2ff;
+  --focus-ring: #0f766e;
+}
+
+html.dark {
+  color-scheme: dark;
+  --canvas-bg: #0a1210;
+  --surface-base: #121e1a;
+  --surface-elevated: #182823;
+  --surface-subtle: #1d302a;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border-subtle: #263932;
+  --border-strong: #395249;
+  --brand-primary: #2dd4bf;
+  --brand-hover: #14b8a6;
+  --brand-subtle: #134e4a;
+  --status-success: #34d399;
+  --status-success-bg: #064e3b;
+  --status-warning: #fbbf24;
+  --status-warning-bg: #451a03;
+  --status-error: #f43f5e;
+  --status-error-bg: #4c0519;
+  --status-info: #818cf8;
+  --status-info-bg: #1e1b4b;
+  --focus-ring: #5eead4;
+}
+
+body {
+  background-color: var(--canvas-bg);
+  color: var(--text-primary);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  min-height: 100vh;
+}
+
+/* Accessible focus ring across all interactive controls */
+:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Reduced motion protocol */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Custom educational scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-primary);
+}

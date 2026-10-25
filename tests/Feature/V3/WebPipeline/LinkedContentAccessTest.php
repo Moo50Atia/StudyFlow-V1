@@ -334,14 +334,14 @@ class LinkedContentAccessTest extends TestCase
     public function test_role_dashboards_render_without_restricted_features(): void
     {
         $this->actingAs($this->teacherAlpha)->get(route('dashboard'))
-            ->assertOk()->assertSee('Create Subject')->assertSee('Upload PDFs')->assertDontSee('Manage Questions');
+            ->assertOk()->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page->component('Dashboard')->where('role','teacher')->has('subjects'));
         $this->actingAs($this->student)->get(route('dashboard'))
-            ->assertOk()->assertSee('Learning workspace')->assertDontSee('Exam questions');
+            ->assertOk()->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page->component('Dashboard')->where('role','student')->has('lectures'));
         $this->actingAs($this->admin)->get(route('dashboard'))
-            ->assertOk()->assertSee('Operations')->assertDontSee('Educational content');
+            ->assertOk()->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page->component('Dashboard')->where('role','admin')->where('isOwner',false));
         $owner = User::factory()->create(['email' => 'admin@test.com', 'role' => 'admin']);
         $this->actingAs($owner)->get(route('dashboard'))
-            ->assertOk()->assertSee('Educational content')->assertSee('Notebook health check');
+            ->assertOk()->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page->component('Dashboard')->where('role','admin')->where('isOwner',true));
     }
 
     public function test_limited_admin_cannot_claim_or_change_owner_account(): void

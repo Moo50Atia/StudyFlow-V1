@@ -1,0 +1,164 @@
+#!/usr/bin/env python3
+"""Install/manage the laptop's outbound worker and private Temporal services."""
+from __future__ import annotations
+import argparse
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import time
+
+ROOT = Path(__file__).resolve().parents[1]
+PYTHON = ROOT / '.venv/bin/python'
+UNITS = ['eduplatform-local-temporal.service', 'eduplatform-local-terminal.service', 'eduplatform-local-worker.service', 'eduplatform-local-progress.service']
+
+
+def run(*args, **kwargs):
+    return subprocess.run(list(args), check=True, **kwargs)
+
+
+def quoted(value):
+    # systemd ExecStart/WorkingDirectory quoting, not shell quoting.
+    return '"' + str(value).replace('\\', '\\\\').replace('"', '\\"').replace('%', '%%') + '"'
+
+
+def runtime_environment(config, base_env=None):
+    env = dict(os.environ if base_env is None else base_env)
+    # A remote laptop needs no Laravel secrets, database, callback or paid key.
+    for key in list(env):
+        if key.startswith(('APP_', 'DB_', 'V3_', 'GEMINI_', 'DEEPSEEK_', 'GLM_', 'QWEN_')) or key == 'NOTEBOOKLM_COOKIES':
+            env.pop(key)
+    env.update({
+        'PYTHONUNBUFFERED': '1', 'PYTHONPATH': str(ROOT),
+        'V3_TERMINAL_LOAD_PROJECT_ENV': '0',
+        'V3_TERMINAL_ROOT': config['terminal_root'],
+        'V3_TERMINAL_TEMPORAL_ADDRESS': config['temporal_address'],
+        'V3_TERMINAL_TEMPORAL_NAMESPACE': config['temporal_namespace'],
+        'V3_NOTEBOOKLM_STORAGE_STATE': config['session_path'],
+        'LOCAL_WORKER_CONFIG': config['worker_config'],
+        'NOTEBOOKLM_ALLOW_BROWSER_REFRESH': 'false', 'NOTEBOOKLM_NO_BROWSER': '1',
+    })
+    env.pop('NOTEBOOKLM_REFRESH_CMD', None)
+    return env
+
+
+def install(args, runtime_path):
+    if not PYTHON.is_file():
+        raise RuntimeError('Install the local Python environment first (.venv/bin/python).')
+    temporal = shutil.which('temporal')
+    if not temporal:
+        raise RuntimeError('The existing Temporal CLI must be installed on the laptop.')
+    session = Path(args.session).expanduser().resolve()
+    if not session.is_file():
+        raise RuntimeError('The existing local NotebookLM session file is missing.')
+    worker_config = Path(args.config).expanduser().resolve()
+    if not worker_config.is_file():
+        raise RuntimeError('Enroll this laptop with bin/local-worker enroll first.')
+    state = runtime_path.parent
+    state.mkdir(parents=True, exist_ok=True, mode=0o700)
+    state.chmod(0o700)
+    config = {'worker_config': str(worker_config), 'session_path': str(session),
+              'temporal_binary': temporal, 'temporal_address': '127.0.0.1:' + str(args.temporal_port),
+              'temporal_namespace': 'v3-local-worker', 'terminal_root': str(state/'terminal'),
+              'temporal_database': str(state/'temporal/server.sqlite')}
+    if runtime_path.exists() and json.loads(runtime_path.read_text()) != config:
+        raise RuntimeError('Existing runtime differs; stop services and review the runtime file before replacing it.')
+    for path in (state/'terminal', state/'temporal'):
+        path.mkdir(parents=True, exist_ok=True, mode=0o700)
+    runtime_path.write_text(json.dumps(config, indent=2)+'\n');runtime_path.chmod(0o600)
+    unit_dir = Path.home()/'.config/systemd/user'
+    unit_dir.mkdir(parents=True, exist_ok=True)
+    descriptions = ['Private local Temporal service', 'Local terminal workflow worker', 'Outbound hosted-platform worker', 'Outbound terminal progress reporter']
+    for index,(unit,role,description) in enumerate(zip(UNITS,['temporal','terminal','daemon','progress'],descriptions)):
+        dependency = ''
+        if index:
+            dependency = 'Requires='+UNITS[index-1]+'\nAfter='+UNITS[index-1]+'\n'
+        command = ' '.join(quoted(v) for v in [PYTHON, Path(__file__).resolve(), 'serve', role, '--runtime', runtime_path])
+        # ExecStop requests a cooperative drain before systemd sends SIGTERM.
+        stop = ''
+        if role == 'daemon':
+            stop_command = ' '.join(quoted(v) for v in [PYTHON, ROOT/'bin/local-worker-runtime', 'drain', '--runtime', runtime_path])
+            stop = 'ExecStop='+stop_command+'\n'
+        content = ('[Unit]\nDescription=EduPlatform '+description+'\n'+dependency+
+                   '\n[Service]\nType=simple\nWorkingDirectory='+str(ROOT).replace('%', '%%').replace(' ', r'\x20')+'\nExecStart='+command+'\n'+stop+
+                   'Restart=on-failure\nRestartSec=5\nTimeoutStopSec=330\nUMask=0077\nNoNewPrivileges=yes\n'+
+                   '\n[Install]\nWantedBy=default.target\n')
+        target=unit_dir/unit
+        if target.exists() and target.read_text()!=content:
+            raise RuntimeError('An existing service differs: '+str(target))
+        target.write_text(content)
+    run('systemctl','--user','daemon-reload')
+    run('systemctl','--user','enable',*UNITS)
+    print('Installed user services. Start with: ./bin/local-worker-runtime start')
+
+
+def serve(role, config):
+    env = runtime_environment(config)
+    os.chdir(ROOT)
+    if role == 'temporal':
+        host,port = config['temporal_address'].rsplit(':',1)
+        command = [config['temporal_binary'],'server','start-dev','--headless','--ip',host,'--port',port,
+                   '--namespace',config['temporal_namespace'],'--db-filename',config['temporal_database']]
+    else:
+        # Let the prerequisite Temporal service become available after boot.
+        import socket
+        host,port = config['temporal_address'].rsplit(':',1)
+        for _ in range(60):
+            try:
+                with socket.create_connection((host,int(port)),timeout=1):break
+            except OSError:time.sleep(1)
+        else:raise RuntimeError('Local Temporal service is unavailable.')
+        if role=='terminal':
+            command=[str(PYTHON),'-u',str(ROOT/'scripts/v3/run_temporal_pipeline.py'),'worker']
+        elif role=='progress':
+            command=[str(PYTHON),'-u','-m','v3_engine.local_worker.progress','--config',config['worker_config']]
+        else:
+            command=[str(PYTHON),'-u','-m','v3_engine.local_worker.cli','run','--config',config['worker_config']]
+    os.execve(command[0],command,env)
+
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--runtime',default=str(Path.home()/'.local_worker/runtime.json'))
+    sub=parser.add_subparsers(dest='action',required=True)
+    install_parser=sub.add_parser('install')
+    install_parser.add_argument('--session',required=True)
+    install_parser.add_argument('--config',default=str(Path.home()/'.local_worker/config.json'))
+    install_parser.add_argument('--temporal-port',type=int,default=7234)
+    for action in ['start','stop','status','drain']:sub.add_parser(action)
+    serve_parser=sub.add_parser('serve');serve_parser.add_argument('role',choices=['temporal','terminal','daemon','progress'])
+    # Also accept --runtime after the subcommand for generated service units.
+    for command in sub.choices.values():
+        command.add_argument('--runtime',default=argparse.SUPPRESS)
+    args=parser.parse_args();path=Path(args.runtime).expanduser().resolve()
+    if args.action=='install':install(args,path);return
+    config=json.loads(path.read_text())
+    if args.action=='serve':serve(args.role,config)
+    elif args.action=='drain':
+        worker=json.loads(Path(config['worker_config']).read_text())
+        workspace=Path(worker['workspace_dir']);workspace.mkdir(parents=True,exist_ok=True)
+        (workspace/'drain.signal').touch()
+        import fcntl
+        lock_path=workspace/'worker.lock'
+        if lock_path.exists():
+            with lock_path.open('a') as lock:
+                for _ in range(310):
+                    try:
+                        fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+                        fcntl.flock(lock,fcntl.LOCK_UN)
+                        break
+                    except BlockingIOError:time.sleep(1)
+                else:raise RuntimeError('Worker has not reached a drain boundary; its checkpoint is retained.')
+    elif args.action=='start':run('systemctl','--user','start',*UNITS)
+    elif args.action=='stop':run('systemctl','--user','stop',*reversed(UNITS))
+    else:
+        run('systemctl','--user','--no-pager','status',*UNITS)
+        run(str(PYTHON),'-m','v3_engine.local_worker.cli','doctor','--config',config['worker_config'],env=runtime_environment(config))
+
+
+if __name__=='__main__':
+    try:main()
+    except (OSError,ValueError,RuntimeError,subprocess.CalledProcessError) as exc:
+        print(str(exc),file=sys.stderr);sys.exit(1)

@@ -34,7 +34,7 @@ class SettingsController extends Controller
                 ->header('Cache-Control', 'private, no-store');
         }
 
-        return response()->view('v3.admin.settings.show', [
+        return \App\Support\InertiaPage::render('v3.admin.settings.show', [
             'activeVersion' => $version,
             'settings' => $version?->payload ?? [],
         ])->header('Cache-Control', 'private, no-store');
@@ -59,7 +59,7 @@ class SettingsController extends Controller
             ])->header('Cache-Control', 'private, no-store');
         }
 
-        return response()->view('v3.admin.settings.templates', [
+        return \App\Support\InertiaPage::render('v3.admin.settings.templates', [
             'templates' => $data,
         ])->header('Cache-Control', 'private, no-store');
     }
@@ -138,7 +138,7 @@ class SettingsController extends Controller
             ])->header('Cache-Control', 'private, no-store');
         }
 
-        return response()->view('v3.admin.settings.history', [
+        return \App\Support\InertiaPage::render('v3.admin.settings.history', [
             'versions' => $items,
             'page' => $page,
             'perPage' => $perPage,

@@ -14,6 +14,8 @@ dependencies = [
     "uvicorn>=0.30.0",
     "httpx>=0.27.0,<0.29",
     "pydantic>=2.10.0",
+    "numpy==2.5.2",
+    "playwright==1.63.0",
     "pdfplumber==0.11.10",
     "pytesseract==0.3.13",
     "pillow>=10.0.0",
@@ -32,8 +34,10 @@ dev = [
 where = ["."]
 include = ["*"]
 
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+import_mode = "importlib"
 markers = [
     "live: marks tests as requiring real live credentials (run with '-m live')",
     "container: marks tests as requiring real Docker container runtime",

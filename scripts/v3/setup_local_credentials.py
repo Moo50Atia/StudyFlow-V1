@@ -20,8 +20,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from dotenv import dotenv_values  # noqa: E402
 from v3_engine.notebooklm.credentials import (  # noqa: E402
     CredentialsValidationError,
-    get_terminal_run_storage_state,
-    sync_storage_state,
+    get_storage_state_path,
 )
 
 from v3_engine.local_env import (  # noqa: E402
@@ -152,6 +151,7 @@ def main() -> int:
             "Configure V3's MCP-managed NotebookLM session and local Gemini/HMAC environment values."
         )
     )
+    parser.add_argument("--credentials-only", action="store_true", help="import only NotebookLM caches; never modify .env or signing keys")
     parser.add_argument("--refresh-notebooklm", action="store_true", help="replace the stored NotebookLM session")
     parser.add_argument(
         "--manual-notebooklm",
@@ -164,7 +164,7 @@ def main() -> int:
     parser.add_argument("--notebooklm-origin", choices=["https://notebooklm.google.com", "https://notebook.google.com"], default=None)
     parser.add_argument("--refresh-gemini", action="store_true", help="replace the stored Gemini API key")
     parser.add_argument("--bridge-sdk", action="store_true", help="bridge the MCP session cache to Playwright storage-state for notebooklm-py SDK")
-    parser.add_argument("--run-dir", type=Path, help="also replace this existing terminal run's isolated session")
+    parser.add_argument("--run-dir", type=Path, help="deprecated compatibility option; verified profile refreshes propagate to matching runs")
     args = parser.parse_args()
 
     if not sys.stdin.isatty() and not args.bridge_sdk:
@@ -190,9 +190,28 @@ def main() -> int:
     if args.run_dir and not args.refresh_notebooklm:
         parser.error("--run-dir requires --refresh-notebooklm")
     current = dotenv_values(env_path)
+    if args.credentials_only:
+        if not args.refresh_notebooklm or not args.manual_notebooklm or args.refresh_gemini or args.browser_notebooklm:
+            parser.error("--credentials-only requires manual NotebookLM refresh and cannot update Gemini or browser profiles")
+        try:
+            from v3_engine.notebooklm.credentials import bridge_mcp_to_storage_state
+            origin = args.notebooklm_origin or current.get("NOTEBOOKLM_ORIGIN") or "https://notebooklm.google.com"
+            if not _ensure_notebooklm_auth(manual=True, origin=origin):
+                return 2
+            target = get_storage_state_path(configured_path=current.get("V3_NOTEBOOKLM_STORAGE_STATE"))
+            bridge_mcp_to_storage_state(Path.home() / ".notebooklm-mcp" / "auth.json", target, origin=origin)
+        except (ValueError, CredentialsValidationError, OSError):
+            print("Credential import failed; application settings and signing keys were not changed.", file=sys.stderr)
+            return 2
+        except (EOFError, KeyboardInterrupt):
+            return 130
+        print("NotebookLM caches updated; .env and signing keys were preserved. Live access remains unverified.")
+        print("Run sessions adopt this profile after a successful NotebookLM owner check.")
+        if args.run_dir:
+            print("--run-dir is deprecated; no individual run was selected or edited.")
+        return 0
     updates: dict[str, str | None] = {}
     try:
-        run_storage_path = get_terminal_run_storage_state(args.run_dir) if args.run_dir else None
         auth_path = Path.home() / ".notebooklm-mcp" / "auth.json"
         origin = args.notebooklm_origin or current.get("NOTEBOOKLM_ORIGIN") or "https://notebooklm.google.com"
         if args.manual_notebooklm and not args.refresh_notebooklm:
@@ -220,12 +239,10 @@ def main() -> int:
             updates["GEMINI_API_KEY"] = None
 
         if args.bridge_sdk or args.refresh_notebooklm:
-            from v3_engine.notebooklm.credentials import bridge_mcp_to_storage_state, get_storage_state_path
-            sdk_storage_path = Path(os.environ.get("V3_NOTEBOOKLM_STORAGE_STATE") or current.get("V3_NOTEBOOKLM_STORAGE_STATE") or get_storage_state_path()).expanduser()
+            from v3_engine.notebooklm.credentials import bridge_mcp_to_storage_state
+            sdk_storage_path = get_storage_state_path(configured_path=current.get("V3_NOTEBOOKLM_STORAGE_STATE"))
             bridge_mcp_to_storage_state(auth_path, sdk_storage_path, origin=origin)
             updates["V3_NOTEBOOKLM_STORAGE_STATE"] = str(sdk_storage_path)
-            if run_storage_path:
-                sync_storage_state(sdk_storage_path, run_storage_path)
 
         for key, secret in generate_local_hmac_secrets().items():
             if not current.get(key):
@@ -260,8 +277,9 @@ def main() -> int:
 
     os.chmod(env_path, 0o600)
     print("Updated local .env and checked the MCP cache structure; live access is not verified. Credential values were not displayed.")
+    print("Run sessions adopt this profile after a successful NotebookLM owner check.")
     if args.run_dir:
-        print("The selected terminal run's isolated session was also replaced. Run the connection check with the same --run-dir before resuming.")
+        print("--run-dir is deprecated; no individual run was selected or edited.")
     print("Restart Laravel and the Python worker so both reload the new environment.")
     print("JEV was not configured; its qualification remains owner-waived for the demo.")
     return 0

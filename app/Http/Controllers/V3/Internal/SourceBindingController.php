@@ -146,6 +146,8 @@ class SourceBindingController extends Controller
                     'binding_ref' => $binding->id,
                     'case_id' => $binding->case_id,
                     'protocol' => 'notebooklm_combined_v1',
+                    'lesson_request_mode' => \App\Services\V3\NotebookLM\MappedLessonQuestion::enabled($binding->processingCase) ? 'mapped_topic_v1' : 'literal_v1',
+                    'lesson_questions' => \App\Services\V3\NotebookLM\MappedLessonQuestion::forCase($binding->processingCase),
                     'source_mode' => 'original_pdf',
                     'notebook_id' => $notebookId,
                     'notebook_title' => $binding->notebook_title,

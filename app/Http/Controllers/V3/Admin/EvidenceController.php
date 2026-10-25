@@ -26,7 +26,7 @@ class EvidenceController extends Controller
         $this->exporter = $exporter ?? app(EvidenceExporter::class);
     }
 
-    public function metrics(Request $request): JsonResponse|View|Response
+    public function metrics(Request $request)
     {
         $allQuery = $request->query();
         $allowedParams = ['from', 'to'];
@@ -92,11 +92,20 @@ class EvidenceController extends Controller
             ], 200)->header('Cache-Control', 'private, no-store');
         }
 
-        return response()->view('v3.admin.evidence.index', [
+        return \App\Support\InertiaPage::render('v3.admin.evidence.index', [
             'report' => $report,
             'from' => $rawFrom,
             'to' => $rawTo,
         ], 200)->header('Cache-Control', 'private, no-store');
+    }
+
+    public function index(Request $request)
+    {
+        $request->query->add([
+            'from' => $request->query('from', now()->subDays(7)->toIso8601String()),
+            'to' => $request->query('to', now()->toIso8601String()),
+        ]);
+        return $this->metrics($request);
     }
 
     public function export(Request $request): JsonResponse

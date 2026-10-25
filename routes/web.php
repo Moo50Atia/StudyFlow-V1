@@ -16,7 +16,7 @@ use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    return \Inertia\Inertia::render('Home');
 })->name('home');
 
 // Main dashboard route - redirects based on role

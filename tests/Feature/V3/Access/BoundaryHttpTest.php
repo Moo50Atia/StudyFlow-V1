@@ -106,8 +106,13 @@ test('O11: foreign download, malformed ID or nonexistent ID streams zero bytes a
     $responseMalformed = $this->actingAs($this->teacherB)->get('/v3/test-fixtures/resources/not-a-uuid/download');
     $responseMalformed->assertStatus(404);
 
-    // Response bodies match
-    expect($responseForeign->getContent())->toBe($responseAbsent->getContent());
+    // Both paths render the same safe Inertia error projection; the request URL differs by design.
+    $responseForeign->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+        ->component('Errors/Status')->where('screen', 'v3.errors.404')
+        ->where('message', 'The requested V3 resource is unavailable.'));
+    $responseAbsent->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+        ->component('Errors/Status')->where('screen', 'v3.errors.404')
+        ->where('message', 'The requested V3 resource is unavailable.'));
 });
 
 test('A13: V3 GET/error and mutation without CSRF returns no-store on all responses, and mutation returns 419 with no write when real CSRF check enabled', function () {

@@ -41,16 +41,8 @@ class MohammedSeeder extends Seeder
             ]
         );
 
-        // Student Account
-        $student = User::updateOrCreate(
-            ['email' => 'student@test.com'],
-            [
-                'name' => 'Mohammed Student',
-                'email' => 'student@test.com',
-                'password' => Hash::make('Password'),
-                'role' => 'student',
-            ]
-        );
+        // Student test account intentionally disabled while the platform is
+        // limited to teacher and admin workflows.
 
         // Create Subjects
         $mathSubject = Subject::updateOrCreate(
@@ -204,7 +196,6 @@ class MohammedSeeder extends Seeder
         $this->command->info('├───────────────────────────────────────────────────┤');
         $this->command->info('│  Admin    │  admin@test.com     │  Password      │');
         $this->command->info('│  Teacher  │  teacher@test.com   │  Password      │');
-        $this->command->info('│  Student  │  student@test.com   │  Password      │');
         $this->command->info('└───────────────────────────────────────────────────┘');
         $this->command->info('');
         $this->command->info('📚 Data Created:');

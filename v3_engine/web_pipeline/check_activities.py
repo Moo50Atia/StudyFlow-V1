@@ -9,6 +9,8 @@ from pathlib import Path
 import tempfile
 from typing import Any
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
+import httpx
 
 from v3_engine.qualification.browser_checks import run_browser_checks
 from v3_engine.web_pipeline.contracts import sanitize_activity_result
@@ -16,6 +18,11 @@ from v3_engine.web_pipeline.application_client import ApplicationClient, Applica
 from v3_engine.web_pipeline.artifact_refs import is_valid_uuid_ref
 
 logger = logging.getLogger("v3_engine.web_pipeline.check_activities")
+
+
+def _raise_retryable_qualification_error(message: str) -> None:
+    """Keep the Temporal workflow open when infrastructure, not the scene, failed."""
+    raise ApplicationError(message, type="qualification_temporarily_unavailable", non_retryable=False)
 
 
 @activity.defn(name="qualify_authoring_candidate_activity")
@@ -38,11 +45,21 @@ async def qualify_authoring_candidate_activity(args: dict[str, Any]) -> dict[str
         manifest = candidate.get("manifest")
         files = candidate.get("files")
         manifest_sha256 = candidate.get("manifest_sha256")
-        if not isinstance(manifest, dict) or not isinstance(files, list) or len(files) != 3:
+        profile = candidate.get("package_profile", "static_three_file_v1")
+        if not isinstance(manifest, dict) or not isinstance(files, list):
             return sanitize_activity_result({"outcome": "failed", "safe_code": "manifest_invalid", "verdict": "fail"})
 
-        expected = {entry.get("path"): entry for entry in manifest.get("files", []) if isinstance(entry, dict)}
-        if len(expected) != 3 or set(expected) != {"index.html", "styles.css", "script.js"}:
+        manifest_files = manifest.get("files")
+        if not isinstance(manifest_files, list):
+            return sanitize_activity_result({"outcome": "failed", "safe_code": "manifest_invalid", "verdict": "fail"})
+        expected = {entry.get("path"): entry for entry in manifest_files if isinstance(entry, dict)}
+        allowed = {"index.html", "styles.css", "script.js"}
+        if profile == "manual_scene_files_v1":
+            valid_paths = 1 <= len(expected) <= 3 and set(expected).issubset(allowed) and "index.html" in expected
+        else:
+            valid_paths = profile == "static_three_file_v1" and set(expected) == allowed
+        if (not valid_paths or len(expected) != len(manifest_files)
+                or len(files) != len(expected) or len(set(expected)) != len(expected)):
             return sanitize_activity_result({"outcome": "failed", "safe_code": "manifest_invalid", "verdict": "fail"})
 
         with tempfile.TemporaryDirectory(prefix=f"v3-scene-{candidate_ref[:8]}-") as temp_dir:
@@ -71,6 +88,15 @@ async def qualify_authoring_candidate_activity(args: dict[str, Any]) -> dict[str
                     "outcome": "completed", "safe_code": "ok", "verdict": check_claim.get("verdict", "fail"),
                     "result_ref": check_claim.get("check_ref"), "candidate_ref": candidate_ref,
                 })
+
+            # The callback provides exact bytes so signed manifests are never re-encoded.
+            raw_manifest = candidate.get("manifest_raw_base64")
+            if raw_manifest:
+                import base64
+                manifest_bytes = base64.b64decode(raw_manifest, validate=True)
+                if hashlib.sha256(manifest_bytes).hexdigest() != manifest_sha256 or json.loads(manifest_bytes) != manifest:
+                    return sanitize_activity_result({"outcome": "failed", "safe_code": "artifact_corrupt", "verdict": "fail"})
+                (candidate_dir / "manifest.json").write_bytes(manifest_bytes)
 
             raw_result = await run_browser_checks(
                 candidate_dir=str(candidate_dir),
@@ -102,6 +128,10 @@ async def qualify_authoring_candidate_activity(args: dict[str, Any]) -> dict[str
                 "report_sha256": report_sha256,
             })
     except ApplicationPipelineError as exc:
+        if exc.status_code in {408, 425, 429} or exc.status_code >= 500:
+            # Every operation is replay-safe: candidate fetch is read-only, claim uses a
+            # stable attempt number, and result recording has exact-byte idempotency.
+            _raise_retryable_qualification_error("Qualification service is temporarily unavailable.")
         if exc.code == "authoring_unavailable":
             msg = str(exc.message or "")
             if "missing" in msg:
@@ -115,9 +145,14 @@ async def qualify_authoring_candidate_activity(args: dict[str, Any]) -> dict[str
         else:
             safe_code = "storage_unavailable"
         return sanitize_activity_result({"outcome": "failed", "safe_code": safe_code, "verdict": "fail"})
+    except httpx.TransportError:
+        _raise_retryable_qualification_error("Qualification service could not be reached.")
     except Exception:
-        logger.exception("Web authoring candidate qualification failed")
-        return sanitize_activity_result({"outcome": "failed", "safe_code": "browser_check_error", "verdict": "fail"})
+        # Content defects are returned as seven-check reports; unexpected exceptions
+        # here indicate checker or infrastructure failure and must not settle a
+        # candidate as a validation failure.
+        logger.exception("Web authoring candidate qualification infrastructure failed")
+        _raise_retryable_qualification_error("Qualification checker is temporarily unavailable.")
 
 
 @activity.defn(name="execute_browser_checks_activity")

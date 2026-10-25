@@ -25,6 +25,10 @@ class DiscoverCases
                     return false;
                 }
 
+                if ($lockedCase->isLocalWorkerCase()) {
+                    return false;
+                }
+
                 $existingLink = WorkflowLink::where('case_id', $case->id)->lockForUpdate()->first();
                 if ($existingLink) {
                     return false;

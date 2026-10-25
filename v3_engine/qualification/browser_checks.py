@@ -84,6 +84,9 @@ async def run_browser_checks(
     manifest: dict,
     manifest_sha256: Optional[str] = None,
 ) -> dict:
+    if os.environ.get("V3_SCENE_CHECKER_RUNTIME") == "docker":
+        from v3_engine.qualification.container_checks import run_isolated_browser_checks
+        return await run_isolated_browser_checks(candidate_dir, candidate_ref, manifest, manifest_sha256)
     started_at = datetime.now(timezone.utc).isoformat()
     
     # 1. Integrity check

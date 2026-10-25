@@ -1,4 +1,4 @@
-FROM ubuntu:noble
+FROM ubuntu:noble@sha256:a853f94d226358a79c740cfc7bce0c289748f3fe3488d921d038ccd752c61b60
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -29,6 +29,8 @@ COPY v3_engine/qualification/wheels/*.whl /wheels/
 RUN pip3 install --no-cache-dir --break-system-packages /wheels/*.whl && rm -rf /wheels
 
 COPY v3_engine/qualification/chrome_dist /opt/google/chrome
+# Local browser bundles can be owner-only; the sandbox runs as UID 10001.
+RUN chmod -R a+rX /opt/google/chrome && chmod a+x /opt/google/chrome/chrome /opt/google/chrome/chrome_crashpad_handler /opt/google/chrome/chrome-sandbox /opt/google/chrome/google-chrome /opt/google/chrome/chrome-management-service
 
 RUN useradd -m -u 10001 -s /bin/bash pwuser
 

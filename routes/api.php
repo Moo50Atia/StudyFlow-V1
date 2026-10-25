@@ -118,3 +118,44 @@ Route::prefix('v3/internal/web-pipeline')->middleware('v3.worker.signature')->gr
     Route::post('imports/verify', [\App\Http\Controllers\V3\Internal\WebPipelineController::class, 'verifyImport'])->name('api.v3.internal.web-pipeline.imports.verify');
     Route::post('imports/materialize', [\App\Http\Controllers\V3\Internal\WebPipelineController::class, 'materializeImport'])->name('api.v3.internal.web-pipeline.imports.materialize');
 });
+
+// Feature 021: Local Worker v1 external device API
+Route::prefix('v3/local-worker/v1')->group(function () {
+    Route::post('enrollments/redeem', [\App\Http\Controllers\V3\LocalWorker\DeviceEnrollmentController::class, 'redeem'])->name('api.v3.local-worker.v1.enrollments.redeem');
+
+    Route::middleware(\App\Http\Middleware\LocalWorkerDeviceAuth::class)->group(function () {
+        Route::get('device', [\App\Http\Controllers\V3\LocalWorker\DeviceEnrollmentController::class, 'getDevice'])->name('api.v3.local-worker.v1.device');
+        Route::get('device/provider-health/requests', [\App\Http\Controllers\V3\LocalWorker\ProviderHealthProbeController::class, 'pending'])->name('api.v3.local-worker.v1.provider-health.requests');
+        Route::post('device/provider-health/reports', [\App\Http\Controllers\V3\LocalWorker\ProviderHealthProbeController::class, 'report'])->name('api.v3.local-worker.v1.provider-health.reports');
+
+        // Claims
+        Route::post('claims', [\App\Http\Controllers\V3\LocalWorker\TaskClaimController::class, 'claim'])->name('api.v3.local-worker.v1.claims.create');
+        Route::get('claims/{claim_id}', [\App\Http\Controllers\V3\LocalWorker\TaskClaimController::class, 'getClaim'])->name('api.v3.local-worker.v1.claims.get');
+
+        // Task assignments, heartbeats, release, recoveries
+        Route::get('tasks/{task}/assignment', [\App\Http\Controllers\V3\LocalWorker\TaskAssignmentController::class, 'getAssignment'])->name('api.v3.local-worker.v1.tasks.assignment');
+        Route::post('tasks/{task}/progress', [\App\Http\Controllers\V3\LocalWorker\TaskAssignmentController::class, 'progress'])->name('api.v3.local-worker.v1.tasks.progress');
+        Route::post('tasks/{task}/heartbeats', [\App\Http\Controllers\V3\LocalWorker\TaskAssignmentController::class, 'heartbeat'])->name('api.v3.local-worker.v1.tasks.heartbeat');
+        Route::post('tasks/{task}/release', [\App\Http\Controllers\V3\LocalWorker\TaskAssignmentController::class, 'release'])->name('api.v3.local-worker.v1.tasks.release');
+        Route::post('tasks/{task}/recoveries', [\App\Http\Controllers\V3\LocalWorker\TaskAssignmentController::class, 'recoveries'])->name('api.v3.local-worker.v1.tasks.recoveries');
+
+        // Inputs
+        Route::get('tasks/{task}/input-manifest', [\App\Http\Controllers\V3\LocalWorker\TaskInputController::class, 'inputManifest'])->name('api.v3.local-worker.v1.tasks.input-manifest');
+        Route::get('tasks/{task}/inputs/{artifact_id}', [\App\Http\Controllers\V3\LocalWorker\TaskInputController::class, 'streamInput'])->name('api.v3.local-worker.v1.tasks.inputs.stream');
+
+        // Uploads
+        Route::post('tasks/{task}/uploads', [\App\Http\Controllers\V3\LocalWorker\TaskUploadController::class, 'createSlot'])->name('api.v3.local-worker.v1.tasks.uploads.create');
+        Route::put('tasks/{task}/uploads/{upload}', [\App\Http\Controllers\V3\LocalWorker\TaskUploadController::class, 'uploadBytes'])->name('api.v3.local-worker.v1.tasks.uploads.put');
+        Route::get('tasks/{task}/uploads/{upload}', [\App\Http\Controllers\V3\LocalWorker\TaskUploadController::class, 'getUpload'])->name('api.v3.local-worker.v1.tasks.uploads.get');
+
+        // Effects
+        Route::post('tasks/{task}/effects/reserve', [\App\Http\Controllers\V3\LocalWorker\TaskEffectController::class, 'reserve'])->name('api.v3.local-worker.v1.tasks.effects.reserve');
+        Route::post('tasks/{task}/effects/{effect}/dispatch', [\App\Http\Controllers\V3\LocalWorker\TaskEffectController::class, 'dispatchPermit'])->name('api.v3.local-worker.v1.tasks.effects.dispatch');
+        Route::post('tasks/{task}/effects/{effect}/outcome', [\App\Http\Controllers\V3\LocalWorker\TaskEffectController::class, 'outcome'])->name('api.v3.local-worker.v1.tasks.effects.outcome');
+        Route::get('tasks/{task}/effects/{effect}', [\App\Http\Controllers\V3\LocalWorker\TaskEffectController::class, 'getEffect'])->name('api.v3.local-worker.v1.tasks.effects.get');
+
+        // Results
+        Route::post('tasks/{task}/results', [\App\Http\Controllers\V3\LocalWorker\TaskResultController::class, 'submitResult'])->name('api.v3.local-worker.v1.tasks.results.submit');
+        Route::get('results/{result_id}', [\App\Http\Controllers\V3\LocalWorker\TaskResultController::class, 'getResult'])->name('api.v3.local-worker.v1.results.get');
+    });
+});

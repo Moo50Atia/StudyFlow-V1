@@ -19,7 +19,7 @@ use Illuminate\View\View;
 
 class LessonMapController extends Controller
 {
-    public function show(Request $request, string $case): JsonResponse|View|Response
+    public function show(Request $request, string $case)
     {
         if (! Str::isUuid($case)) {
             if ($request->expectsJson()) {
@@ -50,6 +50,12 @@ class LessonMapController extends Controller
 
         $map = LessonMap::where('case_id', $caseModel->id)->first();
         if (! $map) {
+            if (! $request->expectsJson()) {
+                return \App\Support\InertiaPage::render('v3.teacher.lessons.map', [
+                    'case' => ['id' => $caseModel->id], 'map' => null,
+                    'workItems' => [], 'pending' => true,
+                ])->header('Cache-Control', 'private, no-store');
+            }
             if ($request->expectsJson()) {
                 return response()->json([
                     'error' => [
@@ -120,7 +126,7 @@ class LessonMapController extends Controller
             return response()->json(['data' => $payload], 200)->header('Cache-Control', 'private, no-store');
         }
 
-        return response()->view('v3.teacher.lessons.map', [
+        return \App\Support\InertiaPage::render('v3.teacher.lessons.map', [
             'map' => $payload,
             'case' => $caseModel,
             'workItems' => $viewWorkItems,

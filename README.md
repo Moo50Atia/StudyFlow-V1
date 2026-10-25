@@ -147,3 +147,7 @@ A Comprehensive Academic Enterprise Platform utilizing Domain-Driven Layouts, Re
 - **WebSocket Cluster Architecture**
 - **Microservices vs Modular Monolith**
 - **Data Warehousing for Educational Analytics**
+
+## Local Docker runtime
+
+Run the complete application with `./bin/product up`. See [Docker operations](docs/DOCKER-OPERATIONS.md) for development, backups, service commands, and manual NotebookLM session refresh, and [verification results](docs/DOCKER-VERIFICATION.md) for tested behavior and live gates.

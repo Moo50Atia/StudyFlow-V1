@@ -311,19 +311,22 @@ test('W06 & W07: HTML views render successfully for teacher progress and admin c
     $teacherHtml = $this->actingAs($this->teacher)
         ->get("/v3/teacher/cases/{$this->case->id}/progress");
     $teacherHtml->assertStatus(200);
-    $teacherHtml->assertSee('Case Workflow Progress');
+    $teacherHtml->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+        ->component('Teacher/CaseProgress')->where('screen', 'v3.teacher.cases.progress')->has('progress'));
     $teacherHtml->assertHeader('Cache-Control');
     expect($teacherHtml->headers->get('Cache-Control'))->toContain('no-store')->toContain('private');
 
     $adminIndexHtml = $this->actingAs($this->admin)
         ->get('/v3/admin/cases');
     $adminIndexHtml->assertStatus(200);
-    $adminIndexHtml->assertSee('Cases Operational Monitoring');
+    $adminIndexHtml->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+        ->component('Admin/CasesIndex')->where('screen', 'v3.admin.cases.index')->has('cases'));
     expect($adminIndexHtml->headers->get('Cache-Control'))->toContain('no-store')->toContain('private');
 
     $adminSummaryHtml = $this->actingAs($this->admin)
         ->get("/v3/admin/cases/{$this->case->id}/summary");
     $adminSummaryHtml->assertStatus(200);
-    $adminSummaryHtml->assertSee('Case Operational Summary');
+    $adminSummaryHtml->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+        ->component('Admin/CaseSummary')->where('screen', 'v3.admin.cases.summary')->has('case'));
     expect($adminSummaryHtml->headers->get('Cache-Control'))->toContain('no-store')->toContain('private');
 });

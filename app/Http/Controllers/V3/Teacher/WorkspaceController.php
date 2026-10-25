@@ -8,11 +8,11 @@ use Illuminate\View\View;
 
 class WorkspaceController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request)
     {
         $teacher = $request->attributes->get('v3_actor') ?? $request->user();
 
-        return view('v3.teacher.workspace', [
+        return \App\Support\InertiaPage::render('v3.teacher.workspace', [
             'teacher' => $teacher,
         ]);
     }

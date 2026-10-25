@@ -19,7 +19,11 @@ class DashboardController extends Controller
         $access = app(LearningAccess::class);
         if ($user->role === 'teacher') {
             $subjects = $access->scopeSubjects(Subject::query(), $user)->orderBy('name')->get();
-            $runs = SubjectRun::with('items')->where('owner_user_id', $user->id)->latest()->limit(20)->get();
+            $runs = SubjectRun::with('items')->where('owner_user_id', $user->id)->latest()->limit(10)->get();
+            $progress = app(\App\Services\V3\WebPipeline\RunProgress::class);
+            foreach ($runs as $run) {
+                $run->progress_snapshot = $progress->project($run);
+            }
             $lessons = DB::table('v3_lesson_publications as p')
                 ->join('lectures as l', 'l.id', '=', 'p.lecture_id')
                 ->join('v3_lecture_pipeline_links as link', 'link.lecture_id', '=', 'l.id')
@@ -28,7 +32,7 @@ class DashboardController extends Controller
                 ->select('p.*', 'l.title as lecture_title', 'n.title as lesson_title')->orderByDesc('p.created_at')->limit(30)->get();
             $this->decorateLessons($lessons);
             $scenes = $this->scenesForOwner($user->id);
-            return view('dashboards.teacher', compact('subjects', 'runs', 'lessons', 'scenes'));
+            return \Inertia\Inertia::render('Dashboard', compact('subjects', 'runs', 'lessons', 'scenes') + ['role' => 'teacher']);
         }
         if ($user->role === 'student') {
             $subjects = $access->scopeSubjects(Subject::query(), $user)
@@ -42,18 +46,27 @@ class DashboardController extends Controller
                 ->join('v3_lesson_publications as p', 'p.work_node_id', '=', 's.work_node_id')
                 ->whereNotNull('p.published_at')->whereNotIn('a.id', DB::table('v3_postapproval_corrections')->select('approval_id'))
                 ->select('a.id', 's.section_identity')->limit(20)->get();
-            return view('dashboards.student', compact('subjects', 'lectures', 'scenes'));
+            return \Inertia\Inertia::render('Dashboard', compact('subjects', 'lectures', 'scenes') + ['role' => 'student']);
         }
         if ($user->role === 'admin') {
             $isOwner = $access->isOwner($user);
-            $runs = $isOwner ? SubjectRun::with('items')->latest()->limit(20)->get() : collect();
+            $runs = $isOwner ? SubjectRun::with('items')->latest()->limit(10)->get() : collect();
+            if ($isOwner) {
+                $progress = app(\App\Services\V3\WebPipeline\RunProgress::class);
+                foreach ($runs as $run) {
+                    $run->progress_snapshot = $progress->project($run);
+                    $run->recovery_task_id = \App\Models\V3\LocalTask::whereHas('job', fn ($q) => $q->where('run_id', $run->id))
+                        ->where('task_kind', 'author_prompts')
+                        ->whereIn('status', ['reconciliation_required', 'paused_auth', 'paused_quota'])->value('id');
+                }
+            }
             $lessons = $isOwner ? DB::table('v3_lesson_publications as p')
                 ->join('lectures as l', 'l.id', '=', 'p.lecture_id')
                 ->join('v3_lesson_nodes as n', 'n.id', '=', 'p.work_node_id')
                 ->select('p.*', 'l.title as lecture_title', 'n.title as lesson_title')->orderByDesc('p.created_at')->limit(30)->get() : collect();
             if ($isOwner) $this->decorateLessons($lessons);
             $scenes = $isOwner ? $this->scenesForOwner(null) : collect();
-            return view('dashboards.admin', compact('isOwner', 'runs', 'lessons', 'scenes'));
+            return \Inertia\Inertia::render('Dashboard', compact('isOwner', 'runs', 'lessons', 'scenes') + ['role' => 'admin']);
         }
         abort(403);
     }

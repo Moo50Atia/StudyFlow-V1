@@ -109,7 +109,7 @@ async def test_browser_run_controls_pause_resume_and_cancel_active_work(runtime_
             await page.goto(f"{runtime_harness.laravel_url}/login")
             await page.locator("#email").fill("teacher_a@example.com")
             await page.locator("#password").fill("password")
-            await page.get_by_role("button", name="Log in").click()
+            await page.get_by_role("button", name="Sign In").click()
             subject_id = runtime_harness.seeded_data.get("subject_a", {}).get("id") or runtime_harness.seeded_data.get("subject_id", 1)
             await page.goto(f"{runtime_harness.laravel_url}/v3/teacher/subjects/{subject_id}/runs/create")
             for ordinal, title, body in [
@@ -253,7 +253,7 @@ async def test_browser_cancels_run_waiting_in_shared_supervisor_queue(runtime_ha
                 await page.goto(f"{runtime_harness.laravel_url}/login")
                 await page.locator("#email").fill("teacher_a@example.com")
                 await page.locator("#password").fill("password")
-                await page.get_by_role("button", name="Log in").click()
+                await page.get_by_role("button", name="Sign In").click()
                 subject_id = runtime_harness.seeded_data.get("subject_a", {}).get("id") or runtime_harness.seeded_data.get("subject_id", 1)
                 run_ids: list[str] = []
                 for ordinal in range(5):
@@ -856,7 +856,7 @@ async def test_browser_intake_and_sequential_service_execution(runtime_harness, 
             await page.goto(f"{runtime_harness.laravel_url}/login")
             await page.locator("#email").fill("teacher_a@example.com")
             await page.locator("#password").fill("password")
-            await page.get_by_role("button", name="Log in").click()
+            await page.get_by_role("button", name="Sign In").click()
             await page.goto(f"{runtime_harness.laravel_url}/v3/teacher/subjects/{subject_id}/runs/create")
             assert await page.get_by_text("Upload Curriculum PDFs").count() > 0
             await page.locator('input[name="titles[]"]').nth(0).fill("01 Kinematics")
@@ -970,7 +970,7 @@ async def test_browser_intake_and_sequential_service_execution(runtime_harness, 
             await owner_page.goto(f"{runtime_harness.laravel_url}/login")
             await owner_page.locator("#email").fill("teacher_a@example.com")
             await owner_page.locator("#password").fill("password")
-            await owner_page.get_by_role("button", name="Log in").click()
+            await owner_page.get_by_role("button", name="Sign In").click()
             await owner_page.goto(f"{runtime_harness.laravel_url}/v3/teacher/subject-runs/{run_id}")
             assert await owner_page.get_by_text("Subject Run Details").count() == 1
             assert await owner_page.get_by_text("Ordered PDF Items").count() == 1
@@ -983,7 +983,7 @@ async def test_browser_intake_and_sequential_service_execution(runtime_harness, 
             await admin_page.goto(f"{runtime_harness.laravel_url}/login")
             await admin_page.locator("#email").fill("admin_v3@example.com")
             await admin_page.locator("#password").fill("password")
-            await admin_page.get_by_role("button", name="Log in").click()
+            await admin_page.get_by_role("button", name="Sign In").click()
             await admin_page.goto(f"{runtime_harness.laravel_url}/v3/admin/subject-runs")
             admin_text = await admin_page.locator("body").inner_text()
             assert "Admin - Subject Runs Operations" in admin_text
@@ -1069,7 +1069,7 @@ async def test_browser_intake_and_sequential_service_execution(runtime_harness, 
             await page.goto(f"{runtime_harness.laravel_url}/login")
             await page.locator("#email").fill("teacher_a@example.com")
             await page.locator("#password").fill("password")
-            await page.get_by_role("button", name="Log in").click()
+            await page.get_by_role("button", name="Sign In").click()
             await page.goto(f"{runtime_harness.laravel_url}/v3/teacher/cases/{case_id}/reviews/{review_id}")
             assert await page.locator("#v3-review-approve").is_disabled()
             await page.get_by_role("button", name="Start Preview").click()
@@ -1238,7 +1238,7 @@ async def test_browser_intake_and_sequential_service_execution(runtime_harness, 
             await page.goto(f"{runtime_harness.laravel_url}/login")
             await page.locator("#email").fill("teacher_a@example.com")
             await page.locator("#password").fill("password")
-            await page.get_by_role("button", name="Log in").click()
+            await page.get_by_role("button", name="Sign In").click()
             await page.goto(
                 f"{runtime_harness.laravel_url}/v3/teacher/cases/{api_review_case_id}/reviews/{api_review_id}"
             )

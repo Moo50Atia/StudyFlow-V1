@@ -65,7 +65,7 @@ class ProcessingCaseController extends Controller
                 ], 409)->header('Cache-Control', 'private, no-store');
             }
 
-            return response()->view('v3.teacher.cases.conflict', [
+            return \App\Support\InertiaPage::render('v3.teacher.cases.conflict', [
                 'code' => 'document_not_ready',
                 'message' => 'Document is not in ready state.',
             ], 409)->header('Cache-Control', 'private, no-store');
@@ -105,7 +105,7 @@ class ProcessingCaseController extends Controller
             }
 
             if ($result['status'] === 409) {
-                return response()->view('v3.teacher.cases.conflict', [
+                return \App\Support\InertiaPage::render('v3.teacher.cases.conflict', [
                     'code' => $result['code'],
                     'message' => $result['message'],
                 ], 409)->header('Cache-Control', 'private, no-store');
@@ -127,7 +127,7 @@ class ProcessingCaseController extends Controller
         return redirect()->route('v3.teacher.cases.show', $case->id, 303);
     }
 
-    public function show(Request $request, string $case): JsonResponse|View
+    public function show(Request $request, string $case)
     {
         if (! Str::isUuid($case)) {
             if ($request->expectsJson()) {
@@ -163,7 +163,7 @@ class ProcessingCaseController extends Controller
             ], 200)->header('Cache-Control', 'private, no-store');
         }
 
-        return view('v3.teacher.cases.show', [
+        return \App\Support\InertiaPage::render('v3.teacher.cases.show', [
             'case' => $caseModel,
             'receipt' => $receipt,
         ]);

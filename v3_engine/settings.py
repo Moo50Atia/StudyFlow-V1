@@ -5,7 +5,8 @@ from urllib.parse import urlsplit
 
 from v3_engine.local_env import load_local_env
 
-load_local_env(Path(__file__).resolve().parents[1] / ".env")
+if os.environ.get("V3_TERMINAL_LOAD_PROJECT_ENV", "1") != "0":
+    load_local_env(Path(__file__).resolve().parents[1] / ".env")
 
 @dataclass(frozen=True)
 class EngineSettings:

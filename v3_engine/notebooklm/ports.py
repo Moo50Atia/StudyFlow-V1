@@ -21,6 +21,24 @@ class AuthenticationRequiredError(ProviderError):
         super().__init__("authentication_required", message, raw_detail)
 
 
+class AccountMismatchError(AuthenticationRequiredError):
+    def __init__(self):
+        super().__init__("The signed-in account does not own the configured proof notebook.")
+        self.code = "account_mismatch"
+
+
+def require_notebook_owner(role: str) -> None:
+    """Apply the same ownership decision to explicit and automatic checks."""
+    if role == "owner":
+        return
+    if role == "not_owner":
+        raise AccountMismatchError()
+    raise ProviderError(
+        "ownership_unverified",
+        "NotebookLM did not return ownership information for the configured proof notebook.",
+    )
+
+
 class ProviderUnavailableError(ProviderError):
     def __init__(self, message: str = "NotebookLM provider service is unavailable.", raw_detail: Optional[str] = None):
         super().__init__("provider_unavailable", message, raw_detail)

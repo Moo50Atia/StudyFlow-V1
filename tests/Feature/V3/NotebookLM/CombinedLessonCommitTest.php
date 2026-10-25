@@ -227,13 +227,169 @@ test('Signed combined callback rejects conversation rotation and a different map
     expect(LessonQuery::find($queryRef)->state)->toBe('sending');
 
     $body['conversation_out'] = 'convo-global-1';
-    $body['answer'] = str_replace('W1 | The Number Line and Real Numbers', 'W1 | Different Lesson', $answer);
+    $body['answer'] = str_replace('W1 | The Number Line and Real Numbers', 'W1 | Lesson 1.1: Different Lesson', $answer);
     $body['answer_sha256'] = hash('sha256', $body['answer']);
     $this->withHeaders(WorkflowFixtures::signCallbackRequest('POST', $path, $body))
         ->postJson($path, $body)->assertStatus(422)->assertJsonPath('error.code', 'protocol_validation');
     expect(LessonQuery::find($queryRef)->state)->toBe('blocked')
         ->and(NotebookLessonBundle::where('query_id', $queryRef)->count())->toBe(0)
         ->and(TeacherSection::where('query_id', $queryRef)->count())->toBe(0);
+});
+
+test('new web protocol signs the exact mapped question and rejects substituted topics', function () {
+    $subject = \App\Models\Subject::forceCreate(['name' => 'Mapped questions']);
+    $run = \App\Models\V3\SubjectRun::forceCreate([
+        'id' => (string) Str::uuid(), 'owner_user_id' => $this->teacher->id,
+        'subject_id' => $subject->id, 'origin' => 'web', 'protocol' => 'notebooklm_per_pdf_web_v2',
+        'settings_version_id' => $this->settingsVersion->id,
+        'framework_version_id' => $this->frameworkVersion->id,
+        'mode' => 'export_manual', 'qualification_mode' => 'real_jev',
+        'captured_settings_json' => [], 'capture_sha256' => hash('sha256', 'capture'),
+        'submission_key' => (string) Str::uuid(), 'request_sha256' => hash('sha256', 'request'),
+        'state' => 'running', 'state_version' => 1,
+    ]);
+    \App\Models\V3\SubjectRunItem::forceCreate([
+        'id' => (string) Str::uuid(), 'run_id' => $run->id, 'owner_user_id' => $this->teacher->id,
+        'pdf_ordinal' => 1, 'display_title' => 'Mapped PDF', 'case_id' => $this->case->id,
+        'original_filename' => 'mapped.pdf', 'input_sha256' => hash('sha256', 'pdf'), 'input_bytes' => 100,
+        'state' => 'accepted', 'state_version' => 1,
+    ]);
+    $bindingPath = "/api/internal/v1/cases/{$this->case->id}/source-bindings/{$this->binding->id}";
+    $headers = WorkflowFixtures::signCallbackRequest('GET', $bindingPath, []);
+    $bindingResponse = $this->get($bindingPath, array_intersect_key($headers,
+        array_flip(['X-V3-Timestamp', 'X-V3-Signature', 'X-V3-Contract-Version'])))
+        ->assertOk()->assertJsonPath('data.lesson_request_mode', 'mapped_topic_v1');
+    $question = $bindingResponse->json('data.lesson_questions.1');
+    expect($question)->toContain('Process ONLY mapped work item W1 of 2')
+        ->toContain('Mapped topic: "The Number Line and Real Numbers"');
+    $claimPath = "/api/internal/v1/cases/{$this->case->id}/lesson-queries/lesson_start/1/claim";
+    $body = [
+        'schema_version' => 1, 'binding_ref' => $this->binding->id,
+        'expected_cursor_version' => 2, 'conversation_in' => 'convo-global-1',
+        'query_text' => $question,
+        'request_sha256' => \App\Services\V3\NotebookLM\DirectQueryLedger::computeRequestDigest(
+            $this->case->id, $this->binding->id, 'lesson_start', 1, 2, 'convo-global-1',
+            ['educational_pdf', 'framework_steps'], $this->frameworkSha256,
+            $this->binding->response_format_sha256 ?? FrameworkCatalog::RESPONSE_FORMAT_SHA256, hash('sha256', $question)
+        ),
+    ];
+    $bad = $body;
+    $bad['query_text'] = str_replace('The Number Line and Real Numbers', 'Wrong Topic', $question);
+    $this->withHeaders(WorkflowFixtures::signCallbackRequest('POST', $claimPath, $bad))
+        ->postJson($claimPath, $bad)->assertStatus(422);
+    expect(LessonQuery::where('case_id', $this->case->id)->where('kind', 'lesson_start')->count())->toBe(0);
+    $response = $this->withHeaders(WorkflowFixtures::signCallbackRequest('POST', $claimPath, $body))
+        ->postJson($claimPath, $body)->assertOk()->assertJsonPath('data.disposition', 'send_now');
+    $this->withHeaders(WorkflowFixtures::signCallbackRequest('POST', $claimPath, $body))
+        ->postJson($claimPath, $body)->assertOk()->assertJsonPath('data.disposition', 'reconcile_only');
+    expect(LessonQuery::find($response->json('data.query_ref'))->canonical_prompt_sha256)->toBe(hash('sha256', $question));
+    $answer = file_get_contents(base_path('tests/Fixtures/V3/NotebookLM/valid_combined_lesson_1.txt'));
+    $resultPath = "/api/internal/v1/lesson-queries/{$response->json('data.query_ref')}/combined-result";
+    $resultBody = ['schema_version' => 1, 'expected_cursor_version' => 3,
+        'answer' => $answer, 'answer_sha256' => hash('sha256', $answer),
+        'conversation_out' => 'convo-global-1'];
+    $this->withHeaders(WorkflowFixtures::signCallbackRequest('POST', $resultPath, $resultBody))
+        ->postJson($resultPath, $resultBody)->assertSuccessful();
+    expect(LessonQuery::find($response->json('data.query_ref'))->state)->toBe('recorded');
+});
+
+test('hierarchical lesson label and source citation commit the exact mapped topic', function (string $citation) {
+    $node = LessonNode::where('map_id', $this->lessonMap->id)->where('work_ordinal', 1)->firstOrFail();
+    $node->update(['title' => 'The Number Line and Real Numbers '.$citation]);
+    $claim = app(\App\Services\V3\NotebookLM\DirectQueryLedger::class)->claimQuery(
+        caseId: $this->case->id, kind: 'lesson_start', workOrdinal: 1,
+        bindingRef: $this->binding->id, expectedCursorVersion: 2,
+        conversationIn: 'convo-global-1'
+    );
+    $answer = str_replace('W1 | The Number Line and Real Numbers',
+        'W1 | Lesson 1.1: The Number Line and Real Numbers',
+        file_get_contents(base_path('tests/Fixtures/V3/NotebookLM/valid_combined_lesson_1.txt')));
+    $path = "/api/internal/v1/lesson-queries/{$claim['query_ref']}/combined-result";
+    $body = ['schema_version' => 1, 'expected_cursor_version' => 3,
+        'answer' => $answer, 'answer_sha256' => hash('sha256', $answer),
+        'conversation_out' => 'convo-global-1'];
+    $this->withHeaders(WorkflowFixtures::signCallbackRequest('POST', $path, $body))
+        ->postJson($path, $body)->assertSuccessful();
+    expect(LessonQuery::find($claim['query_ref'])->state)->toBe('recorded');
+})->with(['[1]', '[4, 5]', '[1] [2, 3]', '[8-16]', '[8–16]', '[1, 3-5]']);
+
+test('LecW section labels preserve the same numbered sections and prompts', function () {
+    $validator = app(\App\Services\V3\NotebookLM\CombinedLessonValidator::class);
+    $raw = file_get_contents(base_path('tests/Fixtures/V3/NotebookLM/valid_combined_lesson_1.txt'));
+    $canonical = $validator->validateCombinedBundle($raw, 1);
+    $labeled = $validator->validateCombinedBundle(str_replace('Lec1 (Sec', 'LecW1 (Sec', $raw), 1);
+    expect($labeled['first'])->toBe($canonical['first']);
+    expect($labeled['second'])->toBe($canonical['second']);
+    expect($labeled['third'])->toBe($canonical['third']);
+});
+
+test('inner quoted learner questions do not truncate a multiline scene prompt', function () {
+    $raw = file_get_contents(base_path('tests/Fixtures/V3/NotebookLM/valid_combined_lesson_1.txt'));
+    $raw = str_replace('Learning Target: Contrast discrete integer points with dense real number continuum.',
+        "Learning Target: Contrast discrete integer points with dense real number continuum.\nLearner question: \"Which point moves?\"\nPreserve the rest of the scene after this question.", $raw);
+    $parsed = app(\App\Services\V3\NotebookLM\CombinedLessonValidator::class)->validateCombinedBundle($raw, 1);
+    expect($parsed['third']['sections'])->toHaveCount(2)
+        ->and($parsed['third']['sections'][0]['prompt_body'])->toContain('Learner question: "Which point moves?"',
+            'Preserve the rest of the scene after this question.', 'Acceptance Requirements:');
+});
+
+test('unnumbered completion requires identical headers for the claimed work', function () {
+    $validator = app(\App\Services\V3\NotebookLM\CombinedLessonValidator::class);
+    $raw = str_replace('Lesson [1] Completed.', 'Lesson  Completed.',
+        file_get_contents(base_path('tests/Fixtures/V3/NotebookLM/valid_combined_lesson_1.txt')));
+    expect($validator->validateCombinedBundle($raw, 1)['terminal_marker_ordinal'])->toBe(1);
+    $wrong = str_replace("=== SECOND ===\nLecture: W1", "=== SECOND ===\nLecture: W2", $raw);
+    expect(fn () => $validator->validateCombinedBundle($wrong, 1))->toThrow(\InvalidArgumentException::class);
+});
+
+test('blocked lesson revalidation keeps exact evidence and does not resend or duplicate results', function () {
+    $claim = app(\App\Services\V3\NotebookLM\DirectQueryLedger::class)->claimQuery(
+        caseId: $this->case->id, kind: 'lesson_start', workOrdinal: 1,
+        bindingRef: $this->binding->id, expectedCursorVersion: 2, conversationIn: 'convo-global-1'
+    );
+    $raw = str_replace('Lesson [1] Completed.', 'Lesson  Completed.',
+        file_get_contents(base_path('tests/Fixtures/V3/NotebookLM/valid_combined_lesson_1.txt')));
+    $query = LessonQuery::findOrFail($claim['query_ref']);
+    $query->update(['state' => 'blocked', 'error_code' => 'protocol_validation',
+        'answer_sha256' => hash('sha256', $raw), 'conversation_out' => 'convo-global-1']);
+    $payload = ['schema_version' => 1, 'expected_cursor_version' => 3, 'answer' => $raw,
+        'answer_sha256' => hash('sha256', $raw), 'conversation_out' => 'convo-global-1'];
+    $accept = app(\App\Services\V3\NotebookLM\AcceptCombinedLesson::class);
+    expect(fn () => $accept->acceptCombinedLesson($query->id, array_replace($payload,
+        ['answer' => $raw."\n", 'answer_sha256' => hash('sha256', $raw."\n")])))
+        ->toThrow(\RuntimeException::class, 'Blocked lesson evidence cannot be replaced.');
+    $first = $accept->acceptCombinedLesson($query->id, $payload);
+    $replay = $accept->acceptCombinedLesson($query->id, $payload);
+    expect($query->fresh()->state)->toBe('recorded')->and($query->fresh()->send_count)->toBe(1)
+        ->and($replay['data'])->toBe($first['data'])
+        ->and(TeacherSection::where('case_id', $this->case->id)->count())->toBe(2);
+});
+
+test('live progress counts multi-section lessons once and includes an active PDF alongside completed PDFs', function () {
+    $claim = app(\App\Services\V3\NotebookLM\DirectQueryLedger::class)->claimQuery(
+        caseId: $this->case->id, kind: 'lesson_start', workOrdinal: 1,
+        bindingRef: $this->binding->id, expectedCursorVersion: 2, conversationIn: 'convo-global-1'
+    );
+    $raw = file_get_contents(base_path('tests/Fixtures/V3/NotebookLM/valid_combined_lesson_1.txt'));
+    app(\App\Services\V3\NotebookLM\AcceptCombinedLesson::class)->acceptCombinedLesson($claim['query_ref'], [
+        'schema_version' => 1, 'expected_cursor_version' => 3, 'answer' => $raw,
+        'answer_sha256' => hash('sha256', $raw), 'conversation_out' => 'convo-global-1',
+    ]);
+    expect(TeacherSection::where('case_id', $this->case->id)->count())->toBe(2);
+    $run = new \App\Models\V3\SubjectRun(['id' => (string) Str::uuid(), 'state' => 'running', 'total_pdfs' => 2]);
+    $run->setRelation('items', collect([
+        new \App\Models\V3\SubjectRunItem(['pdf_ordinal' => 1, 'saved_lesson_count' => 3, 'prompt_count' => 3]),
+        new \App\Models\V3\SubjectRunItem(['pdf_ordinal' => 2, 'case_id' => $this->case->id, 'saved_lesson_count' => 0, 'prompt_count' => 0]),
+    ]));
+    $bridge = \Mockery::mock(\App\Services\V3\WebPipeline\TerminalBridgeClient::class);
+    $bridge->shouldReceive('getRunStatus')->andReturn([]);
+    $progress = (new \App\Services\V3\WebPipeline\RunProgress($bridge))->project($run);
+    expect($progress['counts']['lessons_saved'])->toBe(4)
+        ->and($progress['counts']['prompts_saved'])->toBe(5);
+    expect(\App\Services\V3\WebPipeline\RunRetryEligibility::allows($run, 'held_persistence'))->toBeTrue();
+    LessonQuery::findOrFail($claim['query_ref'])->update(['state' => 'uncertain']);
+    expect(\App\Services\V3\WebPipeline\RunRetryEligibility::allows($run, 'held_persistence'))->toBeFalse()
+        ->and(\App\Services\V3\WebPipeline\RunRetryEligibility::allows($run, 'held_uncertain'))->toBeFalse();
 });
 
 test('N12: Valid combined reply commits atomically and preserves all fields', function () {
@@ -626,6 +782,8 @@ test('N15: Rejects malformed combined replies, retains private raw evidence, and
     ];
 
     foreach ($malformedFiles as $fileName) {
+        // Each malformed fixture starts a fresh claim and its own retained evidence.
+        LessonQuery::where('case_id', $this->case->id)->where('kind', 'lesson_start')->delete();
         $filePath = base_path("tests/Fixtures/V3/NotebookLM/{$fileName}");
         $content = file_get_contents($filePath);
         $contentSha = hash('sha256', $content);

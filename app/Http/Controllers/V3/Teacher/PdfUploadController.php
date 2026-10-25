@@ -27,7 +27,7 @@ class PdfUploadController extends Controller
         protected SelectCaseSettings $settingsSelector
     ) {}
 
-    public function index(Request $request): JsonResponse|View
+    public function index(Request $request)
     {
         $page = max(1, (int) $request->query('page', 1));
         $perPage = 20;
@@ -48,13 +48,13 @@ class PdfUploadController extends Controller
             ])->header('Cache-Control', 'private, no-store');
         }
 
-        return view('v3.teacher.pdf-uploads.index', [
+        return \App\Support\InertiaPage::render('v3.teacher.pdf-uploads.index', [
             'teacher' => $request->user(),
             'attempts' => $attempts,
         ]);
     }
 
-    public function show(Request $request, string $attempt): JsonResponse|View
+    public function show(Request $request, string $attempt)
     {
         if (! Str::isUuid($attempt)) {
             if ($request->expectsJson()) {
@@ -90,7 +90,7 @@ class PdfUploadController extends Controller
             ])->header('Cache-Control', 'private, no-store');
         }
 
-        return view('v3.teacher.pdf-uploads.show', [
+        return \App\Support\InertiaPage::render('v3.teacher.pdf-uploads.show', [
             'teacher' => $request->user(),
             'attempt' => $uploadAttempt,
             'summary' => $summary,

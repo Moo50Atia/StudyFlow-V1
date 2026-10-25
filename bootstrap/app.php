@@ -12,6 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->web(append: [\App\Http\Middleware\HandleInertiaRequests::class]);
         $middleware->trimStrings(except: [
             'answer',
             'query_text',
@@ -27,6 +28,15 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->render(function (\App\Services\V3\LocalWorker\Protocol\LocalWorkerProtocolException $e, \Illuminate\Http\Request $request) {
+            return response()->json([
+                'error' => [
+                    'code' => $e->getProtocolCode(),
+                    'message' => $e->getMessage(),
+                ],
+            ], $e->getStatusCode())->header('Cache-Control', 'private, no-store');
+        });
+
         $exceptions->render(function (\Illuminate\Database\Eloquent\ModelNotFoundException $e, \Illuminate\Http\Request $request) {
             if ($request->is('v3') || $request->is('v3/*')) {
                 if ($request->expectsJson()) {
@@ -38,9 +48,9 @@ return Application::configure(basePath: dirname(__DIR__))
                     ], 404)->header('Cache-Control', 'private, no-store');
                 }
 
-                return response()->view('v3.errors.404', [
+                return \App\Support\InertiaPage::render('v3.errors.404', [
                     'message' => 'V3 access is unavailable.',
-                ], 404)->header('Cache-Control', 'private, no-store');
+                ], 404, ['Cache-Control' => 'private, no-store']);
             }
         });
 
@@ -55,9 +65,9 @@ return Application::configure(basePath: dirname(__DIR__))
                     ], 403)->header('Cache-Control', 'private, no-store');
                 }
 
-                return response()->view('v3.errors.403', [
+                return \App\Support\InertiaPage::render('v3.errors.403', [
                     'message' => 'V3 access is unavailable.',
-                ], 403)->header('Cache-Control', 'private, no-store');
+                ], 403, ['Cache-Control' => 'private, no-store']);
             }
         });
 
@@ -83,11 +93,9 @@ return Application::configure(basePath: dirname(__DIR__))
                         ], $status)->header('Cache-Control', 'private, no-store');
                     }
 
-                    if (view()->exists("v3.errors.{$status}")) {
-                        return response()->view("v3.errors.{$status}", [
-                            'message' => $e->getMessage() ?: 'V3 access is unavailable.',
-                        ], $status)->header('Cache-Control', 'private, no-store');
-                    }
+                    return \App\Support\InertiaPage::render("v3.errors.{$status}", [
+                        'message' => $e->getMessage() ?: 'V3 access is unavailable.',
+                    ], $status, ['Cache-Control' => 'private, no-store']);
                 }
             }
         });

@@ -48,8 +48,7 @@ class DatabaseSeeder extends Seeder
             'role' => 'teacher',
         ]));
 
-        // Create Students
-        User::factory(10)->student()->create();
+        // Student accounts are disabled until student-facing workflows are enabled.
 
         // Create Subjects
         $subjectsData = [

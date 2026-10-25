@@ -32,6 +32,7 @@ class SubjectRun extends Model implements V3OwnedResource
             'total_scenes' => 'integer',
             'last_event_sequence' => 'integer',
             'captured_settings_json' => 'array',
+            'pdf_preparation' => 'array',
             'counters_json' => 'array',
             'last_updated_at' => 'datetime',
             'finished_at' => 'datetime',
@@ -45,7 +46,7 @@ class SubjectRun extends Model implements V3OwnedResource
         parent::boot();
 
         static::updating(function ($run) {
-            foreach (['owner_user_id', 'subject_id', 'origin', 'protocol', 'submission_key', 'request_sha256', 'capture_sha256', 'settings_version_id', 'framework_version_id'] as $field) {
+            foreach (['owner_user_id', 'subject_id', 'origin', 'protocol', 'submission_key', 'request_sha256', 'capture_sha256', 'settings_version_id', 'framework_version_id', 'pdf_preparation'] as $field) {
                 if ($run->isDirty($field)) {
                     throw new \InvalidArgumentException("Modifying immutable attribute '{$field}' on SubjectRun is prohibited.");
                 }

@@ -21,12 +21,15 @@ SAFE_CODES = (
     "provider_unavailable",
     "source_error",
     "map_unreadable",
+    "pdf_invalid",
+    "policy_violation",
     "context_incomplete",
     "delivery_uncertain",
     "history_conflict",
     "reset_uncertain",
     "storage_unavailable",
     "receipt_invalid",
+    "protocol_validation",
     "artifact_missing",
     "artifact_corrupt",
     "scene_package_invalid",
@@ -161,6 +164,7 @@ def validate_admission_payload(payload: dict[str, Any]) -> None:
         "manifest_ref",
         "workflow_kind",
         "subject_id",
+        "retry",
     }
     unknown_keys = set(payload.keys()) - allowed_keys
     if unknown_keys:
@@ -173,6 +177,9 @@ def validate_admission_payload(payload: dict[str, Any]) -> None:
 
     if "subject_id" in payload and not is_valid_uuid_ref(str(payload.get("subject_id", ""))):
         raise ContractValidationError("Invalid UUID for subject_id")
+
+    if "retry" in payload and not isinstance(payload.get("retry"), bool):
+        raise ContractValidationError("retry must be a boolean")
 
     digest = payload.get("submission_digest")
     if not isinstance(digest, str) or not re.match(r"^[0-9a-f]{64}$", digest.lower()):
@@ -267,7 +274,7 @@ def sanitize_activity_result(result: dict[str, Any]) -> dict[str, Any]:
             sanitized[ref_key] = str(ref_value).lower()
 
     items = result.get("items")
-    if isinstance(items, list) and len(items) <= 20:
+    if isinstance(items, list) and len(items) <= 640:
         safe_items = []
         for item in items:
             if not isinstance(item, dict):

@@ -169,7 +169,7 @@ class WebPipelineController extends Controller
             $subjectItem = SubjectRunItem::where('id', $item)->where('run_id', $payload['run_id'])->lockForUpdate()->first();
             $document = $subjectItem ? Document::find($subjectItem->document_id) : null;
             $binding = $subjectItem ? KnowledgeSourceBinding::where('case_id', $subjectItem->case_id)->first() : null;
-            if (! $subjectItem || $subjectItem->state !== 'accepted' || ! $document || ! $binding
+            if (! $subjectItem || ! in_array($subjectItem->state, ['accepted', 'completed'], true) || ! $document || ! $binding
                 || ! hash_equals($document->sha256, strtolower($payload['input_sha256']))) {
                 return response()->json(['error' => ['code' => 'artifact_missing', 'message' => 'Accepted PDF source target is unavailable']], 409);
             }
@@ -221,7 +221,7 @@ class WebPipelineController extends Controller
                     'counts' => ['lessons_saved' => (int) $subjectItem->saved_lesson_count, 'prompts_saved' => (int) $subjectItem->prompt_count],
                 ], 200)->header('Cache-Control', 'private, no-store');
             }
-            if (! $subjectItem || $subjectItem->state !== 'accepted' || ! $subjectItem->case_id
+            if (! $subjectItem || ! in_array($subjectItem->state, ['accepted', 'completed'], true) || ! $subjectItem->case_id
                 || ! hash_equals((string) $subjectItem->input_sha256, strtolower($payload['source_sha256']))) {
                 return response()->json(['error' => ['code' => 'artifact_missing', 'message' => 'PDF archive target is unavailable']], 409);
             }
@@ -327,7 +327,7 @@ class WebPipelineController extends Controller
     /** Stream only an accepted, hash-verified private PDF to the signed worker. */
     public function acceptedInput(string $item, PrivatePdfStore $store): Response
     {
-        $subjectItem = SubjectRunItem::where('id', $item)->where('state', 'accepted')->first();
+        $subjectItem = SubjectRunItem::where('id', $item)->whereIn('state', ['accepted', 'completed'])->first();
         $document = $subjectItem ? Document::find($subjectItem->document_id) : null;
         if (! $subjectItem || ! $document || $document->state !== 'ready'
             || $subjectItem->accepted_input_ref !== $document->id

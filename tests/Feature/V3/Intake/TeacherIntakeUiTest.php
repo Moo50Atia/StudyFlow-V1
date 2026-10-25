@@ -11,6 +11,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Fixtures\V3\Pdf\PdfFixtures;
 use Tests\Support\V3\AccessFixtures;
 use Tests\Support\V3\SettingsFixtures;
@@ -29,16 +30,16 @@ beforeEach(function () {
     Storage::fake('v3_private');
 });
 
-test('Teacher workspace renders PDF upload form and link to uploads index', function () {
+test('Teacher workspace renders at both the canonical and dashboard-linked URL', function (string $path) {
     $response = $this->actingAs($this->teacher)
-        ->get('/v3/teacher');
+        ->get($path);
 
     $response->assertStatus(200);
     expect($response->headers->get('Cache-Control'))->toContain('no-store')->toContain('private');
-    $response->assertSee(route('v3.teacher.pdf-uploads.store'), false)
-        ->assertSee('multipart/form-data', false)
-        ->assertSee('name="pdf"', false);
-});
+    $response->assertInertia(fn (Assert $page) => $page
+        ->component('Teacher/Workspace')
+        ->has('teacher'));
+})->with(['/v3/teacher', '/v3/teacher/workspace']);
 
 test('Browser upload POST redirects 303 to attempt show page even on application rejection', function () {
     // 1. Success upload
@@ -77,9 +78,9 @@ test('Attempt detail page displays appropriate UI for pending, rejected, and acc
     $pendingResponse = $this->actingAs($this->teacher)
         ->get("/v3/teacher/pdf-uploads/{$pending->id}");
 
-    $pendingResponse->assertStatus(200)
-        ->assertSee('quarantined')
-        ->assertSee('Refresh');
+    $pendingResponse->assertStatus(200)->assertInertia(fn (Assert $page) => $page
+        ->component('Teacher/PdfUploadShow')
+        ->where('summary.state', 'quarantined'));
 
     // 2. Rejected attempt
     $rejected = UploadAttempt::forceCreate([
@@ -95,9 +96,10 @@ test('Attempt detail page displays appropriate UI for pending, rejected, and acc
     $rejectedResponse = $this->actingAs($this->teacher)
         ->get("/v3/teacher/pdf-uploads/{$rejected->id}");
 
-    $rejectedResponse->assertStatus(200)
-        ->assertSee('rejected')
-        ->assertSee('not_pdf');
+    $rejectedResponse->assertStatus(200)->assertInertia(fn (Assert $page) => $page
+        ->component('Teacher/PdfUploadShow')
+        ->where('summary.state', 'rejected')
+        ->where('summary.reason_code', 'not_pdf'));
 
     // 3. Accepted attempt with NO prior case -> offers process form
     $doc = Document::forceCreate([
@@ -125,10 +127,10 @@ test('Attempt detail page displays appropriate UI for pending, rejected, and acc
     $accResponse = $this->actingAs($this->teacher)
         ->get("/v3/teacher/pdf-uploads/{$acceptedNoCase->id}");
 
-    $accResponse->assertStatus(200)
-        ->assertSee('accepted')
-        ->assertSee('value="process"', false)
-        ->assertSee('name="idempotency_key"', false);
+    $accResponse->assertStatus(200)->assertInertia(fn (Assert $page) => $page
+        ->component('Teacher/PdfUploadShow')
+        ->where('summary.state', 'accepted')
+        ->where('summary.document_id', $doc->id));
 
     // 4. Accepted attempt WITH prior case -> offers open-previous link and process_again form
     $case = ProcessingCase::forceCreate([
@@ -145,9 +147,9 @@ test('Attempt detail page displays appropriate UI for pending, rejected, and acc
     $accWithCaseResponse = $this->actingAs($this->teacher)
         ->get("/v3/teacher/pdf-uploads/{$acceptedNoCase->id}");
 
-    $accWithCaseResponse->assertStatus(200)
-        ->assertSee('Open Previous Case')
-        ->assertSee('value="process_again"', false);
+    $accWithCaseResponse->assertStatus(200)->assertInertia(fn (Assert $page) => $page
+        ->component('Teacher/PdfUploadShow')
+        ->where('summary.latest_case_id', $case->id));
 });
 
 test('Browser case POST creates case and redirects 303 to case show, and conflict renders 409 view', function () {
@@ -191,9 +193,8 @@ test('Browser case POST creates case and redirects 303 to case show, and conflic
             'idempotency_key' => (string) Str::uuid(), // new key with action=process when case exists
         ]);
 
-    $conflictResponse->assertStatus(409)
-        ->assertSee('Action Conflict (409)')
-        ->assertSee('duplicate_choice_required')
-        ->assertSee('Reload Page');
+    $conflictResponse->assertStatus(409)->assertInertia(fn (Assert $page) => $page
+        ->component('Teacher/CaseConflict')
+        ->where('code', 'duplicate_choice_required'));
 });
 

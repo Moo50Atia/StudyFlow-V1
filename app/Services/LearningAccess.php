@@ -26,6 +26,11 @@ class LearningAccess
         return $this->isOwner($user) || $this->canTeach($user, $subjectId);
     }
 
+    public function canManageProcessingDevices(?User $user): bool
+    {
+        return $this->isOwner($user);
+    }
+
     public function scopeSubjects(Builder $query, ?User $user): Builder
     {
         if ($this->isOwner($user)) return $query;

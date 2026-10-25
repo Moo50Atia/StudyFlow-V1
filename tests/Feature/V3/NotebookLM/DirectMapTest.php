@@ -25,6 +25,38 @@ use Tests\Support\V3\WorkflowFixtures;
 
 uses(RefreshDatabase::class);
 
+test('leading structural map heading preserves the exact lesson nodes', function () {
+    $raw = file_get_contents(base_path('tests/Fixtures/V3/NotebookLM/map_tree_subtopics.txt'));
+    expect(\App\Services\V3\NotebookLM\DirectMapParser::parse("# Structural Map: Objects and Classes\n".$raw))
+        ->toBe(\App\Services\V3\NotebookLM\DirectMapParser::parse($raw));
+});
+
+test('markdown structural labels preserve the exact lesson hierarchy', function () {
+    $raw = "Chapter: Objects\nMini Chapter 1: Basics\nLesson 1.1: Classes\nLesson 1.2: Objects";
+    $styled = "# Structural Map: Objects\n\n## Chapter: Objects\n### Mini Chapter 1: Basics\n* **Lesson 1.1:** Classes\n* **Lesson 1.2:** Objects";
+    expect(\App\Services\V3\NotebookLM\DirectMapParser::parse($styled))
+        ->toBe(\App\Services\V3\NotebookLM\DirectMapParser::parse($raw));
+});
+
+test('tree subtopics remain inside named lessons with unindented mini chapter headings', function () {
+    $raw = file_get_contents(base_path('tests/Fixtures/V3/NotebookLM/map_tree_subtopics.txt'));
+    $nodes = \App\Services\V3\NotebookLM\DirectMapParser::parse($raw);
+    $work = array_values(array_filter($nodes, fn ($node) => $node['work_ordinal'] !== null));
+    expect($work)->toHaveCount(3)
+        ->and(array_column($work, 'title'))->toBe(['Objects and Classes', 'Class Notation', 'Object Relationships'])
+        ->and(array_column($work, 'parent_position_path'))->toBe(['001.001', '001.001', '001.002']);
+});
+
+test('unlabelled tree nodes cannot replace structural lessons or introduce prose', function (string $raw) {
+    expect(fn () => \App\Services\V3\NotebookLM\DirectMapParser::parse($raw))
+        ->toThrow(\InvalidArgumentException::class);
+})->with([
+    "Chapter: Objects\nMini Chapter: Foundations\n├── Unlabelled Lesson",
+    "Chapter: Objects\n├── Lesson 1: Objects\n├── Unlabelled Sibling",
+    "Chapter: Objects\n├── Lesson 1: Objects\n│   └── Lesson 2",
+    "Chapter: Objects\n├── Lesson 1: Objects\nExtra prose",
+]);
+
 test('N10: Direct map parser accepts NotebookLM arrow-prefixed lesson children', function () {
     $nodes = \App\Services\V3\NotebookLM\DirectMapParser::parse(
         "Chapter 1: Fractions [1]\n=> Lesson 1: Equivalent Fractions [1]\n"
@@ -231,6 +263,28 @@ test('Direct signed claim rejects a forged digest and a legacy kind without chan
         ->postJson($legacyPath, $body)->assertStatus(422);
 
     expect(LessonQuery::where('case_id', $this->case->id)->count())->toBe(0);
+});
+
+test('retained blocked tree map can be revalidated without changing bytes or sending again', function () {
+    $claim = app(\App\Services\V3\NotebookLM\DirectQueryLedger::class)->claimQuery(
+        caseId: $this->case->id, kind: 'divide', workOrdinal: 0, bindingRef: $this->binding->id
+    );
+    $raw = file_get_contents(base_path('tests/Fixtures/V3/NotebookLM/map_tree_subtopics.txt'));
+    $query = LessonQuery::findOrFail($claim['query_ref']);
+    $query->update(['state' => 'blocked', 'error_code' => 'protocol_validation',
+        'answer_sha256' => hash('sha256', $raw), 'conversation_out' => 'retained-conversation']);
+    $path = "/api/internal/v1/lesson-queries/{$query->id}/result";
+    $body = ['schema_version' => 1, 'answer' => str_replace('Objects', 'Different Topic', $raw),
+        'conversation_out' => 'retained-conversation'];
+    $this->withHeaders(WorkflowFixtures::signCallbackRequest('POST', $path, $body))
+        ->postJson($path, $body)->assertStatus(409);
+    $body['answer'] = $raw;
+    $response = $this->withHeaders(WorkflowFixtures::signCallbackRequest('POST', $path, $body))
+        ->postJson($path, $body)->assertCreated();
+    expect($query->fresh()->state)->toBe('recorded')
+        ->and($query->fresh()->send_count)->toBe(1)
+        ->and($query->fresh()->answer_sha256)->toBe(hash('sha256', $raw))
+        ->and(LessonMap::find($response->json('data.map_ref'))->work_count)->toBe(3);
 });
 
 test('N10: Direct Divide result creates ready map with contiguous work ordinals and no Coverage required', function () {

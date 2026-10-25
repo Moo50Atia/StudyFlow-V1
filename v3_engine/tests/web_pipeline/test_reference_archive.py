@@ -369,7 +369,7 @@ def test_reference_archive_dry_run_and_materialization(disposable_harness):
                     await page.locator("#email").fill("teacher_a@example.com")
                     await page.locator("#password").fill("password")
                     async with page.expect_navigation(wait_until="domcontentloaded"):
-                        await page.get_by_role("button", name="Log in").click()
+                        await page.get_by_role("button", name="Sign In").click()
 
                     subject_response = await page.goto(
                         f"{web_origin}/subjects/{subject_id}", wait_until="domcontentloaded"

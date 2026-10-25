@@ -23,6 +23,8 @@ from v3_engine.lessons.canonical_prompts import DIVIDE_PROMPT, EXECUTION_PROMPT
 class NotebookDouble:
     """Only the external SDK client is doubled; all application boundaries run normally."""
     def __init__(self):
+        from notebooklm._conversation_cache import ConversationCache
+        cache = ConversationCache()
         self.files = {}
         self.histories = {}
         self.current = None
@@ -37,6 +39,8 @@ class NotebookDouble:
             chat=SimpleNamespace(ask=self.ask, configure=self.configure, get_history=self.history,
                                  get_conversation_id=self.current_id, delete_conversation=self.delete),
         )
+        self.client.chat._cache = cache
+        self.client.chat.clear_cache = cache.clear
 
     async def create(self, title):
         self.trace.append(("create", title))

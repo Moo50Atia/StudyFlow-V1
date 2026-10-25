@@ -213,6 +213,17 @@ def test_reconcile_upload_unique_vs_ambiguous(tmp_path: Path) -> None:
     assert res_multi["error"] == "multiple_matching_sources"
 
 
+@pytest.mark.parametrize('status', ['processing', 'error'])
+def test_registered_source_is_not_proof_that_upload_completed(status):
+    session = MockProviderSession()
+    session.files.sources['notebook'] = [SourceReceipt('source', 'part.pdf', status)]
+    service = NotebookTerminalService(session_provider=MockSessionProvider(session))
+
+    result = asyncio.run(service.reconcile('upload', notebook_id='notebook', title='part.pdf'))
+
+    assert result == {'outcome': 'uncertain', 'source_id': 'source', 'source_status': status}
+
+
 def test_reconcile_chat_full_prefix_anchoring(tmp_path: Path) -> None:
     session = MockProviderSession()
     service = NotebookTerminalService(session_provider=MockSessionProvider(session))

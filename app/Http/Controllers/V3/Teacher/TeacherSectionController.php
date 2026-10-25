@@ -14,7 +14,7 @@ use Illuminate\View\View;
 
 class TeacherSectionController extends Controller
 {
-    public function show(Request $request, string $case, string $section): JsonResponse|View|Response
+    public function show(Request $request, string $case, string $section)
     {
         if (! Str::isUuid($case) || ! Str::isUuid($section)) {
             if ($request->expectsJson()) {
@@ -82,7 +82,7 @@ class TeacherSectionController extends Controller
             return response()->json(['data' => $payload], 200)->header('Cache-Control', 'private, no-store');
         }
 
-        return response()->view('v3.teacher.lessons.section', [
+        return \App\Support\InertiaPage::render('v3.teacher.lessons.section', [
             'section' => $payload,
             'case' => $caseModel,
         ])->header('Cache-Control', 'private, no-store');

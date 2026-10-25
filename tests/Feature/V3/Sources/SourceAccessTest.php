@@ -88,7 +88,9 @@ test('K08: teacher owner can view source-status as JSON and HTML', function () {
     // HTML view
     $htmlResp = $this->actingAs($this->teacher)->get($path);
     $htmlResp->assertStatus(200);
-    expect($htmlResp->getContent())->toContain('Knowledge Source Status');
+    $htmlResp->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+        ->component('Teacher/SourceStatus')->where('screen', 'v3.teacher.cases.source-status')
+        ->where('sourceStatus.case_id', $this->case->id));
 });
 
 test('K08: foreign teacher receives 404 resource_unavailable', function () {

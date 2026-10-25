@@ -8,12 +8,18 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from v3_engine.sources.mcp_client import NotebookLmMcpClient, McpToolError
-from v3_engine.notebooklm.credentials import get_storage_state_path, get_terminal_run_storage_state, validate_storage_state, CredentialsValidationError
+from v3_engine.notebooklm.credentials import NotebookCredentialAuthority, get_storage_state_path, get_terminal_run_storage_state, validate_storage_state, CredentialsValidationError
 from v3_engine.notebooklm.ports import ProviderError
 from v3_engine.notebooklm.sdk_provider import SdkSessionProvider
+from v3_engine.notebooklm.terminal_service import NotebookTerminalService
 
 async def check(origin: str, notebook_id: str | None, adapter: str = "notebooklm_mcp", run_dir: Path | None = None) -> int:
     if adapter == "notebooklm_py":
+        if notebook_id is None:
+            notebook_id = NotebookCredentialAuthority().proof_notebook_id()
+        if notebook_id is None:
+            print(f"{origin}: profile_unverified. Supply --notebook-id once to bind and verify this local profile; no browser login was attempted.")
+            return 2
         try:
             storage_path = get_terminal_run_storage_state(run_dir) if run_dir else get_storage_state_path()
             validate_storage_state(storage_path)
@@ -21,26 +27,30 @@ async def check(origin: str, notebook_id: str | None, adapter: str = "notebooklm
             print(f"{origin}: {exc.code}. No browser login was attempted.")
             return 2
         except Exception:
-            print(f"{origin}: authentication_required. No browser login was attempted.")
+            print(f"{origin}: credential_storage_unavailable. The saved NotebookLM session could not be read. No browser login was attempted.")
             return 2
 
         provider = SdkSessionProvider(base_url=origin, storage_state_path=storage_path)
         try:
-            async with provider.open("v3-local") as session:
-                if notebook_id:
-                    inventory = await asyncio.wait_for(session.files.get_notebook(notebook_id), 35)
-                    if inventory.id != notebook_id:
-                        print(f"{origin}: invalid_response. Requested notebook read failed.")
-                        return 2
-                    print(f"{origin}: requested notebook read succeeded (adapter: notebooklm_py, version: 0.8.4). Content was not printed.")
-                else:
-                    inventories = await asyncio.wait_for(session.files.list_notebooks(), 35)
-                    print(f"{origin}: library read succeeded ({len(inventories)} entries, adapter: notebooklm_py, version: 0.8.4). Account identity not verified.")
+            # Use exactly the same ownership/authentication operation as
+            # the terminal activity, through its shared service boundary.
+            await asyncio.wait_for(NotebookTerminalService(session_provider=provider).verify_session(
+                notebook_id, storage_path=storage_path), 35)
+            print(f"{origin}: requested notebook ownership verification succeeded (adapter: notebooklm_py). Content was not printed.")
             return 0
-        except ProviderError as exc:
+        except (ProviderError, CredentialsValidationError) as exc:
             print(f"{origin}: {exc.code}. No browser login was attempted.")
-            if exc.code == "authentication_required":
-                print("The SDK could not obtain or use the NotebookLM session/CSRF tokens. Cookie equality does not prove live access.")
+            guidance = {
+                "authentication_required": "NotebookLM rejected the session or could not establish an authenticated session. Refresh the NotebookLM cookie and check again.",
+                "account_mismatch": "The signed-in account does not own the configured proof notebook. Check the account and notebook access.",
+                "notebook_verification_failed": "The configured proof notebook could not be read. Check its link and access.",
+                "ownership_unverified": "NotebookLM did not return ownership information. Ownership verification did not pass.",
+                "ownership_check_failed": "NotebookLM ownership verification failed unexpectedly. Try the read-only check again.",
+                "provider_unavailable": "NotebookLM is unavailable or the connection failed. Try the check again when connectivity recovers.",
+                "provider_rate_limit": "NotebookLM rate limited the check. Wait before checking again.",
+            }.get(exc.code)
+            if guidance:
+                print(guidance)
             return 2
         except (OSError, RuntimeError, TimeoutError):
             print(f"{origin}: transport unavailable or timed out. Check network connectivity.")
@@ -80,7 +90,7 @@ if __name__ == '__main__':
     configured_origin = os.getenv('NOTEBOOKLM_ORIGIN') or os.getenv('NOTEBOOKLM_BASE_URL') or 'https://notebooklm.google.com'
     parser.add_argument('--origin', choices=['https://notebooklm.google.com', 'https://notebook.google.com'], default=configured_origin)
     parser.add_argument('--notebook-id', help='Existing notebook to verify; never creates one')
-    parser.add_argument('--adapter', choices=['notebooklm_mcp', 'notebooklm_py'], default='notebooklm_mcp')
+    parser.add_argument('--adapter', choices=['notebooklm_mcp', 'notebooklm_py'], default='notebooklm_py')
     parser.add_argument('--run-dir', type=Path, help='Check this existing terminal run\'s isolated session rather than the main imported session')
     args = parser.parse_args()
     if args.run_dir and args.adapter != 'notebooklm_py':

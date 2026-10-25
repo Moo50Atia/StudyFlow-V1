@@ -1,0 +1,164 @@
+{
+  "captured_date": "2026-10-17",
+  "source_checkout": "/home/moahmmed/college_project",
+  "head": "cae7313c7b25e968799e54b4f50a501f02686fe7",
+  "scope": "Selected non-secret source files only; not a complete reproducible source snapshot. Existing uncommitted edits are included in each digest.",
+  "files": [
+    {
+      "path": "app/Services/V3/WebPipeline/SubmitSubjectRun.php",
+      "exists": true,
+      "sha256": "e09bd50eb931757bd7682a52b184ef8e927bde4602740d5eea90ba2f3d6bfae4"
+    },
+    {
+      "path": "app/Services/V3/WebPipeline/PrepareWebPdfs.php",
+      "exists": true,
+      "sha256": "f4f02c79431ac0934b209449217edefe6edc55d5d783a78bbc1fd9cc6197cd69"
+    },
+    {
+      "path": "app/Services/V3/WebPipeline/AcceptWebLesson.php",
+      "exists": true,
+      "sha256": "cfd8d5a38c611af8c842b090fee6bc47869560648a5a4f9ad2f321ed78ce1689"
+    },
+    {
+      "path": "app/Services/V3/WebPipeline/ExportScenePrompts.php",
+      "exists": true,
+      "sha256": "c59deeea2874675d16a148d7aff80c0443b78c013104ecc173fc6a2c8b1fbf6b"
+    },
+    {
+      "path": "app/Services/V3/WebPipeline/DispatchRunOutbox.php",
+      "exists": true,
+      "sha256": "387cb938401a93969981dd8741b8e015fe9f0bb3ee4f3773c8dc10708448d04c"
+    },
+    {
+      "path": "app/Services/V3/WebPipeline/CaptureSubjectRunManifest.php",
+      "exists": true,
+      "sha256": "7d9b59d6f90d8eb910baaea53a064b1142c305bc347e8631fa50a638cccc0716"
+    },
+    {
+      "path": "app/Services/V3/Authoring/StaticScenePackage.php",
+      "exists": true,
+      "sha256": "b88e6274447afd68647cd002dbad089cac23e7f20e96ead3640476840cefb870"
+    },
+    {
+      "path": "app/Services/V3/Authoring/ImportManualScene.php",
+      "exists": true,
+      "sha256": "8827b5ca5de907e48a0f7877dfc9389f81820869cb6b34ca68b92ab6d2829be2"
+    },
+    {
+      "path": "app/Services/V3/SceneQualification/RecordSceneCheck.php",
+      "exists": true,
+      "sha256": "9d01372dff500a0e0d1588837f640ea40ae0129cfe2d50ed459b4b23fc67a52a"
+    },
+    {
+      "path": "app/Services/LearningAccess.php",
+      "exists": true,
+      "sha256": "e1479b901d9bee04dd9d31ed4b4825a343fc621ae671026921a316e7a1603fa8"
+    },
+    {
+      "path": "app/Http/Controllers/V3/Internal/WebPipelineController.php",
+      "exists": true,
+      "sha256": "634385aaf32a27eb0c3fdade9ad4f3a5e2e451e9ecab5bf8af23e1bd3770bfe1"
+    },
+    {
+      "path": "routes/v3.php",
+      "exists": true,
+      "sha256": "9c80fc91ecd8ba6fb52219c0ab415816359b44773e3495f137f85c1c8206a9f4"
+    },
+    {
+      "path": "routes/api.php",
+      "exists": true,
+      "sha256": "b3f039d19f005afd5fbfe6407fa087c804b524dbfda9c75982707b617a94dde1"
+    },
+    {
+      "path": "v3_engine/web_pipeline/pdf_preparation.py",
+      "exists": true,
+      "sha256": "8ef1047fc89cb15969ff69845e855608827fc1263b2a705605088143867dbebb"
+    },
+    {
+      "path": "v3_engine/web_pipeline/activities.py",
+      "exists": true,
+      "sha256": "7985e012e504e14ed9da4d2bd3024c9208887c1b17d63d34ea7e3775e8f9dfd6"
+    },
+    {
+      "path": "v3_engine/web_pipeline/application_client.py",
+      "exists": true,
+      "sha256": "95377334d54a7fa3825d36d52d98e3649c8057a00e46b88e3b1e888a5aac5dba"
+    },
+    {
+      "path": "v3_engine/notebooklm/sdk_provider.py",
+      "exists": true,
+      "sha256": "0041c196a8e5599a026787832aa2e1a7b6630daf3683914c54dd2d0d2a488174"
+    },
+    {
+      "path": "v3_engine/notebooklm/terminal_service.py",
+      "exists": true,
+      "sha256": "420a453ba8e4c768084ae40037b7524f8659722f867bb28f42bdcbfafed18a3d"
+    },
+    {
+      "path": "v3_engine/notebooklm/credentials.py",
+      "exists": true,
+      "sha256": "ebada98857afc451ac7a0ff05780a26f06a0c74d4dd0c5d3cecbbd784c75bfa7"
+    },
+    {
+      "path": "v3_engine/terminal_pipeline/activities.py",
+      "exists": true,
+      "sha256": "9702ede3a80a99e66bc35334427b8e94fe116994f02ba927013c673091ecdefb"
+    },
+    {
+      "path": "v3_engine/terminal_pipeline/manifest.py",
+      "exists": true,
+      "sha256": "3920908f45c75d2d2fd88a3f66d776ba3e66c9e877ca3a11e58f7ece102d4d9a"
+    },
+    {
+      "path": "v3_engine/terminal_pipeline/pdf_preparation.py",
+      "exists": true,
+      "sha256": "9fa956ee5b6bf829bb8dd235a386b5c529aa4deb27d5469b18a4e8f4c476b10a"
+    },
+    {
+      "path": "v3_engine/scene_generation/source_package.py",
+      "exists": true,
+      "sha256": "cc3314b6f7bf75d418ddd12e15f07f0239eaabdca0fceb13778a0bd30bd84c6e"
+    },
+    {
+      "path": "compose.yaml",
+      "exists": true,
+      "sha256": "c461b61d9994169285388fdddddedc3a8814226cf33e77b50cc6a3a06642635e"
+    },
+    {
+      "path": "bin/product",
+      "exists": true,
+      "sha256": "4620acb95300644639939c8076174ef58f3e3c5c492cc0105205fd8f8ce6e7f5"
+    },
+    {
+      "path": "resources/js/pages/Teacher/RunCreate.jsx",
+      "exists": true,
+      "sha256": "6e2fca3d854acbe63174fe910cbd2c833a34d5175d84a90fc40f7c03c8c80948"
+    },
+    {
+      "path": "resources/js/pages/Teacher/RunShow.jsx",
+      "exists": true,
+      "sha256": "677146de347dbd50964569906860b60b236ec3cd4d4b8f6e926f25b0a1e85db7"
+    },
+    {
+      "path": "resources/js/pages/Teacher/RunScenes.jsx",
+      "exists": true,
+      "sha256": "b4a30efde37bf5e342141e225d9ec952dad304d46f2e5668b3072dea31e0c028"
+    },
+    {
+      "path": "app/Services/V3/WebPipeline/AcceptRunItem.php",
+      "exists": true,
+      "sha256": "410744ec56b584819ec0d0e3d6cac7bbb5c7f53f40c37781e7436b6119ad062d"
+    },
+    {
+      "path": "app/Services/V3/Intake/IntakeCoordinator.php",
+      "exists": true,
+      "sha256": "b2ff4cb8d541a2375394dc1324df937e065c4dc2c95a3a0374f4622b2e7c87bf"
+    },
+    {
+      "path": "app/Services/V3/NotebookLM/DirectSourceCoordinator.php",
+      "exists": true,
+      "sha256": "fad364abdb34954dc19c57109f5a4261a78794dcfd9962d275aa0a6c6ef97da9"
+    }
+  ],
+  "tracked_diff_sha256": "16264d4a3bc361b131d49621aa50b875560cf1ba56679fddd55baeb4e5cce995"
+}

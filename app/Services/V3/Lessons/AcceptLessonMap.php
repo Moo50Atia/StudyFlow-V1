@@ -51,6 +51,11 @@ class AcceptLessonMap
                 return DB::transaction(function () use ($query, $answerSha, $answerPath, $answer, $conversationOut, $parsedNodes, $case, $isDirect) {
                     $lockedQuery = LessonQuery::where('id', $query->id)->lockForUpdate()->first();
 
+                    if ($lockedQuery->state === 'blocked' &&
+                        ($lockedQuery->answer_sha256 !== $answerSha || $lockedQuery->conversation_out !== $conversationOut)) {
+                        throw new \RuntimeException('Retained Divide answer changed.', 409);
+                    }
+
                     if ($lockedQuery->state === 'recorded') {
                         if ($lockedQuery->answer_sha256 !== $answerSha) {
                             throw new \RuntimeException("Lesson state changed.", 409);

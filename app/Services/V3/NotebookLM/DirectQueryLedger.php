@@ -124,6 +124,9 @@ class DirectQueryLedger
                 'lesson_start' => hash('sha256', 'Start with First lesson'),
                 'lesson_continue' => hash('sha256', 'Continue'),
             };
+            if (in_array($kind, ['lesson_start', 'lesson_continue'], true) && MappedLessonQuestion::enabled($case)) {
+                $questionSha = hash('sha256', MappedLessonQuestion::forOrdinal($case, $workOrdinal));
+            }
             if ($queryText !== null && hash('sha256', $queryText) !== $questionSha) {
                 throw new InvalidArgumentException('Direct protocol question differs from its canonical value');
             }

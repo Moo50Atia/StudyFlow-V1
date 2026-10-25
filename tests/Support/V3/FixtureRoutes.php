@@ -132,12 +132,12 @@ class FixtureRoutes
                 $actor = $request->user();
                 $fixture = OwnedFixture::find($fixtureId);
                 if (! $fixture) {
-                    return response()->view('v3.errors.404', [
+                    return \App\Support\InertiaPage::render('v3.errors.404', [
                         'message' => 'The requested V3 resource is unavailable.',
                     ], 404);
                 }
                 if (Gate::denies('download', $fixture) || $fixture->v3OwnerId() !== $actor?->id) {
-                    return response()->view('v3.errors.404', [
+                    return \App\Support\InertiaPage::render('v3.errors.404', [
                         'message' => 'The requested V3 resource is unavailable.',
                     ], 404);
                 }

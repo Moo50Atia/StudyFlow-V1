@@ -48,7 +48,7 @@ class TeacherStudyFlowController extends Controller
         })->with('subject');
         $lectures = app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->scopeVisibleLectures($lecQuery, $user)->get();
 
-        return view('teacher-study-flow.lectures', compact('subjects', 'lectures', 'permissions'));
+        return \App\Support\InertiaPage::render('teacher-study-flow.lectures', compact('subjects', 'lectures', 'permissions'));
     }
 
     /**

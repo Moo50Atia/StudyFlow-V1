@@ -30,6 +30,7 @@ class ApplicationSubjectWorkflow:
         self.cancelled: bool = False
         self.state_version: int = 1
         self.command_receipts: dict[str, dict[str, Any]] = {}
+        self.failures: list[dict[str, Any]] = []
         self.mode: str = "export_manual"
         self._activity_executor: Callable[[str, dict[str, Any]], Coroutine[Any, Any, dict[str, Any]]] | None = None
 
@@ -52,7 +53,17 @@ class ApplicationSubjectWorkflow:
             "cancelled": self.cancelled,
             "state_version": self.state_version,
             "mode": self.mode,
+            "failures": list(self.failures),
         }
+
+    def _record_failure(self, ordinal: int, safe_code: str) -> None:
+        teacher_codes = {"source_error", "map_unreadable", "artifact_missing", "artifact_corrupt", "pdf_invalid", "policy_violation"}
+        code = safe_code if safe_code in SAFE_CODES or safe_code in {"pdf_invalid", "policy_violation"} else "system_error"
+        self.failures.append({
+            "pdf_ordinal": int(ordinal),
+            "code": code,
+            "visibility": "teacher" if code in teacher_codes else "admin",
+        })
 
     @workflow.query(name="command_v1")
     def command_v1(self, command_id: str) -> dict[str, Any] | None:
@@ -123,6 +134,16 @@ class ApplicationSubjectWorkflow:
     async def _execute_act(self, name: str, args: dict[str, Any]) -> dict[str, Any]:
         if self._activity_executor is not None:
             return await self._activity_executor(name, args)
+        long_notebook_activities = {
+            "ensure_web_notebook_activity",
+            "upload_web_source_activity",
+            "configure_web_notebook_activity",
+            "check_web_sources_activity",
+            "execute_divide_turn",
+            "execute_lesson_turns",
+            "reset_conversation_activity",
+        }
+        long_running = name in long_notebook_activities
         control_activities = {
             "resolve_application_run_activity",
             "prepare_application_item_activity",
@@ -135,8 +156,18 @@ class ApplicationSubjectWorkflow:
             name,
             args,
             task_queue=task_queue,
-            start_to_close_timeout=timedelta(seconds=120),
-            retry_policy=RetryPolicy(maximum_attempts=1),
+            # Temporal requires a schedule or start timeout. NotebookLM work
+            # uses heartbeats with a long safety ceiling, so content size does
+            # not terminate the activity; worker loss still triggers retry.
+            schedule_to_close_timeout=timedelta(days=3650) if long_running else None,
+            start_to_close_timeout=None if long_running else timedelta(seconds=120),
+            heartbeat_timeout=timedelta(minutes=5) if long_running else None,
+            retry_policy=RetryPolicy(
+                maximum_attempts=3 if long_running else 1,
+                initial_interval=timedelta(seconds=10),
+                backoff_coefficient=2.0,
+                maximum_interval=timedelta(minutes=2),
+            ),
         )
 
     @workflow.run
@@ -208,6 +239,7 @@ class ApplicationSubjectWorkflow:
                     "item_id": item_id,
                 })
                 if intake.get("outcome") != "completed":
+                    self._record_failure(ordinal, str(intake.get("safe_code", "source_error")))
                     self.pdfs_failed += 1
                     self.status = "partial"
                     continue
@@ -216,6 +248,7 @@ class ApplicationSubjectWorkflow:
                     "item_id": item_id,
                 })
                 if upload_pdf.get("outcome") != "completed":
+                    self._record_failure(ordinal, str(upload_pdf.get("safe_code", "source_error")))
                     self.pdfs_failed += 1
                     self.status = "partial"
                     continue
@@ -229,6 +262,7 @@ class ApplicationSubjectWorkflow:
                         ready = True
                         break
                     if ready_res.get("outcome") != "pending":
+                        self._record_failure(ordinal, str(ready_res.get("safe_code", "source_error")))
                         self.pdfs_failed += 1
                         self.status = "partial"
                         break
@@ -276,6 +310,7 @@ class ApplicationSubjectWorkflow:
 
             # Check PDF-local failure (map_unreadable, source_error)
             if divide_res.get("outcome") != "completed":
+                self._record_failure(ordinal, str(divide_res.get("safe_code", "map_unreadable")))
                 self.pdfs_failed += 1
                 # A PDF-local failure may advance only after the isolation
                 # barrier has actually been verified.
@@ -292,7 +327,7 @@ class ApplicationSubjectWorkflow:
             self.phase = "lesson_loop"
             if not await self._wait_for_control():
                 return {"outcome": "cancelled", "safe_code": "cancelled"}
-            lesson_res = await self._execute_act("execute_lesson_turns", {
+            lesson_args = {
                 "run_id": manifest.get("run_id"),
                 "item_id": item.get("item_id"),
                 "pdf_ordinal": ordinal,
@@ -301,19 +336,28 @@ class ApplicationSubjectWorkflow:
                     "map": divide_res.get("map"),
                     "conversation_id": divide_res.get("conversation_id"),
                 }),
-            })
+            }
+            for attempt in range(3):
+                lesson_res = await self._execute_act("execute_lesson_turns", lesson_args)
+                if lesson_res.get("safe_code") not in {"provider_unavailable", "provider_rate_limit"} or attempt == 2:
+                    break
+                await workflow.sleep(10 * (attempt + 1))
 
             if lesson_res.get("outcome") != "completed":
                 safe_code = lesson_res.get("safe_code", "ok")
+                self._record_failure(ordinal, str(safe_code))
                 if safe_code in ("authentication_required", "account_mismatch"):
                     self.status = "paused_auth"
-                    return {"outcome": "paused_auth", "safe_code": safe_code}
+                    return {"outcome": "paused_auth", "safe_code": safe_code, "failures": list(self.failures)}
                 if safe_code in ("provider_rate_limit", "provider_unavailable"):
                     self.status = "paused_quota"
-                    return {"outcome": "paused_quota", "safe_code": safe_code}
+                    return {"outcome": "paused_quota", "safe_code": safe_code, "failures": list(self.failures)}
+                if safe_code == "protocol_validation":
+                    self.status = "held_persistence"
+                    return {"outcome": "blocked", "safe_code": safe_code, "failures": list(self.failures)}
                 if safe_code in ("delivery_uncertain", "storage_unavailable") or lesson_res.get("outcome") == "uncertain":
                     self.status = "held_uncertain" if ("uncertain" in safe_code or lesson_res.get("outcome") == "uncertain") else "held_persistence"
-                    return {"outcome": lesson_res.get("outcome", "failed"), "safe_code": safe_code}
+                    return {"outcome": lesson_res.get("outcome", "failed"), "safe_code": safe_code, "failures": list(self.failures)}
 
                 self.pdfs_failed += 1
                 reset = await self._execute_act("reset_conversation_activity", {
@@ -358,6 +402,7 @@ class ApplicationSubjectWorkflow:
                 "pdfs_failed": self.pdfs_failed,
                 "lessons_saved": self.lessons_saved,
                 "prompts_saved": self.prompts_saved,
+                "failures": list(self.failures),
             }
 
         if self.pdfs_completed == 0:
@@ -369,6 +414,7 @@ class ApplicationSubjectWorkflow:
                 "pdfs_failed": self.pdfs_failed,
                 "prompts_saved": 0,
                 "lessons_saved": 0,
+                "failures": list(self.failures),
             }
 
         if self.mode == "export_manual":
@@ -381,6 +427,7 @@ class ApplicationSubjectWorkflow:
                 "pdfs_failed": self.pdfs_failed,
                 "prompts_saved": self.prompts_saved,
                 "lessons_saved": self.lessons_saved,
+                "failures": list(self.failures),
             }
 
         # API generate mode: handle scene generation if selected
@@ -393,4 +440,5 @@ class ApplicationSubjectWorkflow:
             "pdfs_failed": self.pdfs_failed,
             "prompts_saved": self.prompts_saved,
             "lessons_saved": self.lessons_saved,
+            "failures": list(self.failures),
         }

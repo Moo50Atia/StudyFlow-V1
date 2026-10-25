@@ -24,13 +24,8 @@ class SettingsConflict extends Exception
             ], 409)->header('Cache-Control', 'private, no-store');
         }
 
-        if (view()->exists('v3.errors.409')) {
-            return response()->view('v3.errors.409', [
-                'message' => 'Settings changed. Reload and retry.',
-            ], 409)->header('Cache-Control', 'private, no-store');
-        }
-
-        return response('Settings changed. Reload and retry.', 409)
-            ->header('Cache-Control', 'private, no-store');
+        return \App\Support\InertiaPage::render('v3.errors.409', [
+            'message' => 'Settings changed. Reload and retry.',
+        ], 409, ['Cache-Control' => 'private, no-store']);
     }
 }

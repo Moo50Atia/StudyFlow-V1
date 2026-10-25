@@ -58,6 +58,8 @@ def run_cli(args: Sequence[str], client: Client | None = None) -> tuple[int, str
     # submit
     submit_p = subparsers.add_parser("submit")
     submit_p.add_argument("--manifest", required=True, type=Path)
+    submit_p.add_argument("--prepared-input-manifest", type=Path, default=None,
+                          help="Sealed hosted input manifest; snapshot its prepared PDFs without splitting them again.")
     submit_p.add_argument(
         "--export-prompts", action="store_true",
         help="Export NotebookLM prompts without calling a scene-generation provider.",
@@ -140,6 +142,7 @@ def _handle_prepare_pdfs(parsed: argparse.Namespace) -> tuple[int, str]:
     from v3_engine.terminal_pipeline.pdf_preparation import (
         prepare_pdf_sources,
         PreparationError,
+        PreparationPolicy,
     )
 
     try:
@@ -154,7 +157,7 @@ def _handle_prepare_pdfs(parsed: argparse.Namespace) -> tuple[int, str]:
             project_root=Path.cwd(),
             check_hashes=True,
         )
-        inventory = prepare_pdf_sources(resolved_originals, output_dir)
+        inventory = prepare_pdf_sources(resolved_originals, output_dir, policy=PreparationPolicy(version=2, split_trigger_pages=50))
     except Exception as exc:
         safe_code = getattr(exc, "safe_code", SafeCode.input_invalid)
         code_val = safe_code.value if hasattr(safe_code, "value") else str(safe_code)
@@ -211,6 +214,7 @@ def _handle_submit(parsed: argparse.Namespace, client: Client | None) -> tuple[i
             raw_manifest, terminal_root=term_root, project_root=Path.cwd(),
             scene_generation_mode="export_prompts" if parsed.export_prompts else "generate",
             pdf_processing=parsed.pdf_processing.replace("-", "_") if parsed.pdf_processing else None,
+            prepared_input_manifest=parsed.prepared_input_manifest,
         )
     except Exception as exc:
         safe_code = getattr(exc, "safe_code", SafeCode.input_invalid)

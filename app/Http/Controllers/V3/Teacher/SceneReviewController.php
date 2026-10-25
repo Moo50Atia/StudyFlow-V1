@@ -26,7 +26,7 @@ class SceneReviewController extends Controller
         protected SubmitReviewDecision $decisionService
     ) {}
 
-    public function index(Request $request, string $case): JsonResponse|View|Response
+    public function index(Request $request, string $case)
     {
         if (! Str::isUuid($case)) {
             return $this->errorNotFound($request);
@@ -94,14 +94,29 @@ class SceneReviewController extends Controller
             }
         }
 
-        return response()->view('v3.teacher.reviews.index', [
+        return \App\Support\InertiaPage::render('v3.teacher.reviews.index', [
             'reviews' => $payload,
             'case' => $caseModel,
             'reminders' => $reminders,
         ])->header('Cache-Control', 'no-store, private');
     }
 
-    public function show(Request $request, string $case, string $review): JsonResponse|View|Response
+    public function queue(Request $request)
+    {
+        $reviews = ReviewSectionState::query()
+            ->join('v3_teacher_review_items as r', 'v3_review_section_states.current_review_item_id', '=', 'r.id')
+            ->join('v3_processing_cases as c', 'c.id', '=', 'v3_review_section_states.case_id')
+            ->where('c.owner_user_id', $request->user()->id)
+            ->orderByDesc('r.created_at')
+            ->select(['r.id as review_ref', 'r.case_id', 'r.candidate_version', 'r.status'])
+            ->paginate(20);
+        if ($request->expectsJson()) return response()->json($reviews)->header('Cache-Control', 'private, no-store');
+        return \Inertia\Inertia::render('Teacher/ReviewIndex', [
+            'reviews' => $reviews, 'case' => null, 'reminders' => [],
+        ]);
+    }
+
+    public function show(Request $request, string $case, string $review)
     {
         if (! Str::isUuid($case) || ! Str::isUuid($review)) {
             return $this->errorNotFound($request);
@@ -122,13 +137,13 @@ class SceneReviewController extends Controller
             return response()->json(['data' => $context], 200)->header('Cache-Control', 'private, no-store');
         }
 
-        return response()->view('v3.teacher.reviews.show', [
+        return \App\Support\InertiaPage::render('v3.teacher.reviews.show', [
             'data' => $context,
             'case' => $caseModel,
         ])->header('Cache-Control', 'private, no-store');
     }
 
-    public function approvedScenes(Request $request, string $case): JsonResponse|View|Response
+    public function approvedScenes(Request $request, string $case)
     {
         if (! Str::isUuid($case)) {
             return $this->errorNotFound($request);
@@ -173,7 +188,7 @@ class SceneReviewController extends Controller
             return response()->json($payload, 200)->header('Cache-Control', 'private, no-store');
         }
 
-        return response()->view('v3.teacher.reviews.approvals', [
+        return \App\Support\InertiaPage::render('v3.teacher.reviews.approvals', [
             'approvals' => $payload,
             'case' => $caseModel,
         ])->header('Cache-Control', 'private, no-store');

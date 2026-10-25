@@ -4,6 +4,7 @@ use App\Models\User;
 use App\Models\Subject;
 use App\Models\Lecture;
 use App\Models\Section;
+use Inertia\Testing\AssertableInertia as Assert;
 
 test('it displays next section and next lecture links correctly', function () {
     // Enable authentication for student
@@ -25,19 +26,18 @@ test('it displays next section and next lecture links correctly', function () {
         ->get(route('sections.show', $section1));
 
     $response->assertStatus(200);
-    // It should have the Next Section button pointing to section 2
-    $response->assertSee(route('sections.show', $section2));
-    // It should have the Next Lecture button pointing to lecture 2
-    $response->assertSee(route('lectures.show', $lecture2));
+    $response->assertInertia(fn (Assert $page) => $page
+        ->component('LearningContentShow')
+        ->where('nextSection.id', $section2->id)
+        ->where('nextLecture.id', $lecture2->id));
 
     // Fetch the third (last) section
     $responseLast = $this->actingAs($user)
         ->get(route('sections.show', $section3));
 
     $responseLast->assertStatus(200);
-    // It should not see a next section link inside the same lecture
-    // Since section3 is the last section, there is no section4
-    // But it should see Start Next Lecture pointing to lecture 2
-    $responseLast->assertSee('Start Next Lecture');
-    $responseLast->assertSee(route('lectures.show', $lecture2));
+    $responseLast->assertInertia(fn (Assert $page) => $page
+        ->component('LearningContentShow')
+        ->where('nextSection', null)
+        ->where('nextLecture.id', $lecture2->id));
 });

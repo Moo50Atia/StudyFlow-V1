@@ -27,6 +27,22 @@ def read_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _captured_protocol(config: dict[str, Any]) -> dict[str, str]:
+    raw = config.get("captured_notebooklm_protocol_json")
+    digest = config.get("captured_notebooklm_protocol_sha256")
+    if raw is None:
+        return {"divide_prompt": DIVIDE_PROMPT, "execution_prompt": EXECUTION_PROMPT,
+                "lesson_start_prompt": "Start with First lesson", "lesson_continue_prompt": "Continue"}
+    if (not isinstance(raw, str) or not isinstance(digest, str)
+            or hashlib.sha256(raw.encode("utf-8")).hexdigest() != digest):
+        raise ValueError("captured_protocol_corrupt")
+    bundle = json.loads(raw)
+    fields = ("divide_prompt", "execution_prompt", "lesson_start_prompt", "lesson_continue_prompt")
+    if not isinstance(bundle, dict) or any(not isinstance(bundle.get(field), str) or not bundle[field].strip() for field in fields):
+        raise ValueError("captured_protocol_invalid")
+    return bundle
+
+
 def retain_json(path: Path, document: Any) -> None:
     """A replay may reuse an identical capture; it cannot replace evidence."""
     if path.exists():
@@ -44,6 +60,9 @@ def artifact_ref(run_dir: Path, path: Path) -> dict[str, Any]:
 
 def verify_pdf_archive(run_dir: Path, ordinal: int) -> dict[str, Any]:
     archive = read_json(pdf_run_dir(run_dir, ordinal) / "private" / "archive.json")
+    config_path = run_dir / "subject-config.json"
+    config = read_json(config_path) if config_path.exists() else {}
+    protocol = _captured_protocol(config)
     if archive.get("state") != "archived" or archive.get("pdf_ordinal") != ordinal or not archive.get("files"):
         raise ValueError("pdf_archive_invalid")
     for row in archive["files"]:
@@ -56,12 +75,17 @@ def verify_pdf_archive(run_dir: Path, ordinal: int) -> dict[str, Any]:
     if archive.get("pdf_preparation_ref"):
         if not ArtifactRef.from_dict(archive["pdf_preparation_ref"]).verify_on_disk(run_dir.parent.parent):
             raise ValueError("pdf_preparation_ref_corrupt")
-        config_path = run_dir / "subject-config.json"
         if config_path.exists():
-            cfg = read_json(config_path)
-            src = next((row for row in cfg.get("inputs", []) if row.get("kind") == "pdf" and row.get("ordinal") == ordinal), None)
+            src = next((row for row in config.get("inputs", []) if row.get("kind") == "pdf" and row.get("ordinal") == ordinal), None)
             if src and src.get("pdf_lineage") and archive.get("pdf_lineage") != src.get("pdf_lineage"):
                 raise ValueError("pdf_archive_lineage_mismatch")
+    if archive.get('hosted_input_manifest_ref'):
+        ref = ArtifactRef.from_dict(archive['hosted_input_manifest_ref'])
+        if not ref.verify_on_disk(run_dir.parent.parent):
+            raise ValueError('hosted_manifest_corrupt')
+        source = next(row for row in config['inputs'] if row['kind'] == 'pdf' and row['ordinal'] == ordinal)
+        if archive.get('pdf_lineage') != source.get('pdf_lineage') or config.get('hosted_input_manifest_ref') != archive['hosted_input_manifest_ref']:
+            raise ValueError('pdf_archive_lineage_mismatch')
     return archive
 
 
@@ -85,6 +109,7 @@ def archive_pdf(run_dir: Path, ordinal: int) -> tuple[Path, dict[str, Any]]:
     if len(source_ids) != 1 or not notebook or not conversation:
         raise ValueError("pdf_lineage_invalid")
     config = read_json(run_dir / "subject-config.json")
+    protocol = _captured_protocol(config)
     source = next(row for row in config["inputs"] if row["kind"] == "pdf" and row["ordinal"] == ordinal)
     terminal_root = run_dir.parent.parent
     accepted_ref = ArtifactRef.from_dict(source["snapshot_ref"])
@@ -109,8 +134,8 @@ def archive_pdf(run_dir: Path, ordinal: int) -> tuple[Path, dict[str, Any]]:
                 or hashlib.sha256(receipt["raw_answer"].encode("utf-8")).hexdigest() != capture["raw_answer_sha256"]):
             raise ValueError("pdf_receipt_invalid")
         selected_sources = source_ids if name == "divide" else source_ids + [execution["framework_source_id"]]
-        expected_question = (DIVIDE_PROMPT if name == "divide" else EXECUTION_PROMPT if name == "execution"
-                             else "Start with First lesson" if name == "lesson-001" else "Continue")
+        expected_question = (protocol["divide_prompt"] if name == "divide" else protocol["execution_prompt"] if name == "execution"
+                             else protocol["lesson_start_prompt"] if name == "lesson-001" else protocol["lesson_continue_prompt"])
         request = {"notebook_id": notebook, "question": expected_question,
                    "source_ids": selected_sources, "conversation_id": None if name == "divide" else conversation}
         if name == "divide" and ordinal > 1:
@@ -177,6 +202,8 @@ def archive_pdf(run_dir: Path, ordinal: int) -> tuple[Path, dict[str, Any]]:
                     document["original_source_sha256"] = orig.get("sha256")
                     document["original_source_page_count"] = orig.get("page_count")
                     document["split_applied"] = orig.get("split_applied")
+    if config.get('hosted_input_manifest_ref'):
+        document['hosted_input_manifest_ref'] = config['hosted_input_manifest_ref']
     retain_json(archive_path, document)
     return archive_path, verify_pdf_archive(run_dir, ordinal)
 

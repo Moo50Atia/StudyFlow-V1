@@ -1,0 +1,168 @@
+#!/usr/bin/env python3
+"""Local Docker operations. No environment or credential values are printed."""
+import argparse
+import datetime
+import fcntl
+import os
+from pathlib import Path
+import signal
+import subprocess
+import sys
+import tarfile
+import time
+
+ROOT = Path(__file__).resolve().parents[1]
+os.chdir(ROOT)
+
+def run(args, **kwargs):
+    subprocess.run(args, check=True, **kwargs)
+
+def stop_legacy():
+    processes = {}
+    for item in Path('/proc').iterdir():
+        if not item.name.isdigit():
+            continue
+        try:
+            cwd = (item / 'cwd').resolve()
+            args = (item / 'cmdline').read_bytes().replace(b'\0', b' ').decode()
+            parent = int((item / 'stat').read_text().rsplit(')', 1)[1].split()[1])
+        except (OSError, ValueError):
+            continue
+        processes[int(item.name)] = (parent, cwd, args)
+    selected = {pid for pid, (_, cwd, args) in processes.items() if cwd == ROOT and
+                any(token in args for token in ['artisan serve', 'artisan schedule:work', 'artisan queue:work',
+                    'uvicorn v3_engine.bridge:app', 'run_temporal_pipeline.py worker', 'npm run dev',
+                    'node_modules/.bin/../vite/bin/vite.js'])}
+    # Temporal may have been launched from a different shell directory.
+    selected |= {pid for pid, (_, _, args) in processes.items() if
+                 'temporal server start-dev' in args and str(ROOT / 'storage/app/private/v3/temporal/server.sqlite') in args}
+    while True:
+        children = {pid for pid, (parent, _, _) in processes.items() if parent in selected} - selected
+        if not children:
+            break
+        selected |= children
+    for pid in selected:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+    deadline = time.monotonic() + 320
+    while selected and time.monotonic() < deadline:
+        selected = {pid for pid in selected if Path(f'/proc/{pid}').exists() and
+                    Path(f'/proc/{pid}/stat').read_text().rsplit(')', 1)[1].split()[0] != 'Z'}
+        if selected:
+            time.sleep(0.5)
+    if selected:
+        raise RuntimeError('Project processes did not stop gracefully; backup was not taken.')
+
+def wait_healthy(compose, services, env):
+    import json
+    deadline = time.monotonic() + 900
+    while True:
+        identifiers = subprocess.check_output(compose + ['ps', '-q'] + services, env=env, text=True).split()
+        states = json.loads(subprocess.check_output(['docker', 'inspect'] + identifiers)) if identifiers else []
+        if len(states) == len(services) and all(s['State'].get('Health', {}).get('Status') == 'healthy' for s in states):
+            return
+        if time.monotonic() >= deadline:
+            raise RuntimeError('Services did not become healthy; inspect bin/product logs.')
+        time.sleep(2)
+
+def backup():
+    target = ROOT / 'storage/backups' / datetime.datetime.now().strftime('pre-docker-%Y%m%d-%H%M%S')
+    target.mkdir(parents=True, mode=0o700)
+    os.chmod(target, 0o700)
+    with tarfile.open(target / 'data.tar.gz', 'w:gz') as archive:
+        for name in ['database', 'storage/app', 'storage/framework', 'storage/logs', '.env']:
+            archive.add(ROOT / name, arcname=name)
+    os.chmod(target / 'data.tar.gz', 0o600)
+    print(f'Protected data backup: {target}', flush=True)
+    return target
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('command', choices=['up', 'dev', 'restart', 'stop', 'logs', 'refresh-auth', 'check-auth'])
+args = parser.parse_args()
+try:
+    if not (ROOT / '.env').is_file() or not (ROOT / 'database/database.sqlite').is_file():
+        raise RuntimeError('Existing .env and database/database.sqlite are required. No secrets or databases will be generated.')
+    run(['docker', 'info'], stdout=subprocess.DEVNULL)
+    run(['docker', 'compose', 'version'], stdout=subprocess.DEVNULL)
+    socket = Path('/var/run/docker.sock')
+    if not socket.exists():
+        raise RuntimeError('The host Docker socket /var/run/docker.sock is required.')
+    env = dict(os.environ, PRODUCT_UID=str(os.getuid()), PRODUCT_GID=str(os.getgid()),
+               PRODUCT_DOCKER_GID=str(socket.stat().st_gid), PRODUCT_PROJECT_PATH=str(ROOT),
+               PRODUCT_HOME=str(Path.home()), PRODUCT_MCP_DIR=str(Path.home()/'.notebooklm-mcp'))
+    # Ask Compose to parse the existing dotenv file, without exposing its values.
+    probe = ['docker', 'compose', '-f', 'compose.yaml']
+    import json
+    config = json.loads(subprocess.check_output(probe + ['config', '--format', 'json'], env=dict(env, PRODUCT_SDK_DIR=str(Path.home()/'.notebooklm'))))
+    storage = config['services']['worker']['environment'].get('V3_NOTEBOOKLM_STORAGE_STATE')
+    sdk_dir = Path(storage).expanduser().parent if storage else Path.home()/'.notebooklm'
+    if not sdk_dir.is_absolute():
+        sdk_dir = (ROOT/sdk_dir).resolve()
+    if sdk_dir in [ROOT, Path.home(), Path('/')]:
+        raise RuntimeError('Credential cache must be in a dedicated directory.')
+    env['PRODUCT_SDK_DIR'] = str(sdk_dir)
+    # Dedicated cache directories permit atomic credential replacement.
+    for directory in [Path(env['PRODUCT_MCP_DIR']), sdk_dir]:
+        directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+    image_pins = ROOT/'docker/images.env'
+    if image_pins.exists():
+        for line in image_pins.read_text().splitlines():
+            if line and not line.startswith('#'):
+                key, value = line.split('=', 1)
+                env[key] = value
+    compose = ['docker', 'compose', '-f', 'compose.yaml']
+    state = ROOT/'storage/.product-mode'
+    mode = 'dev' if args.command == 'dev' else ('product' if args.command == 'up' else (state.read_text().strip() if state.exists() else 'product'))
+    if mode == 'dev':
+        compose += ['-f', 'compose.dev.yaml']
+    if args.command == 'logs':
+        run(compose + ['logs', '-f', '--tail=100'], env=env)
+        sys.exit(0)
+    lock_path = ROOT/'storage/.product-operation.lock'
+    with lock_path.open('w') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if args.command in ['up', 'dev']:
+            marker = ROOT/'storage/.product-migrated'
+            if not marker.exists():
+                stop_legacy()
+                run(compose + ['down', '--remove-orphans'], env=env)
+                pending_backup = ROOT/'storage/.product-backup'
+                if not pending_backup.exists():
+                    pending_backup.write_text(str(backup()))
+            # Hide stale host Vite hot-file in product mode by using an image-local public directory.
+            run(compose + ['up', '-d', '--build', '--wait', '--wait-timeout', '900', '--remove-orphans'], env=env)
+            marker.touch()
+            state.write_text(mode)
+            print('Application: http://127.0.0.1:8766 | Temporal: http://127.0.0.1:8233 | Bridge: http://127.0.0.1:8765')
+        elif args.command == 'restart':
+            # Keep Temporal and callbacks available while existing work drains.
+            run(compose + ['stop', 'scheduler', 'queue'], env=env)
+            run(compose + ['stop', 'worker'], env=env)
+            run(compose + ['stop', 'bridge'], env=env)
+            infrastructure = ['app', 'web', 'temporal', 'clamav']
+            if mode == 'dev':
+                infrastructure.append('vite')
+            run(compose + ['restart'] + infrastructure, env=env)
+            wait_healthy(compose, infrastructure, env)
+            run(compose + ['start', 'bridge', 'worker'], env=env)
+            wait_healthy(compose, ['bridge', 'worker'], env)
+            run(compose + ['start', 'scheduler', 'queue'], env=env)
+            wait_healthy(compose, infrastructure + ['bridge', 'worker', 'scheduler', 'queue'], env)
+        elif args.command == 'stop':
+            run(compose + ['down', '--remove-orphans'], env=env)
+        elif args.command == 'logs':
+            run(compose + ['logs', '-f', '--tail=100'], env=env)
+        elif args.command == 'refresh-auth':
+            run(compose + ['run', '--rm', '--no-deps', 'worker', 'python', 'scripts/v3/setup_local_credentials.py',
+                '--credentials-only', '--refresh-notebooklm', '--manual-notebooklm'], env=env)
+            run(compose + ['restart', 'bridge', 'worker'], env=env)
+            print('Bridge and worker restarted. Retry a blocked run explicitly when ready.')
+        elif args.command == 'check-auth':
+            run(compose + ['run', '--rm', '--no-deps', '-T', 'worker', 'python', 'scripts/v3/check_notebooklm.py', '--adapter', 'notebooklm_py'], env=env)
+except subprocess.CalledProcessError as exc:
+    sys.exit(exc.returncode)
+except (OSError, RuntimeError) as exc:
+    print(str(exc), file=sys.stderr)
+    sys.exit(1)

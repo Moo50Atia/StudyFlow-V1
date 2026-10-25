@@ -1,0 +1,187 @@
+flowchart TB
+  subgraph actors["People and application entry points"]
+    teacher["Teacher: subjects, PDFs, runs, prompts, scenes, reviews"]
+    admin["Owner / admin: accounts, devices, settings, operations, recovery"]
+    student["Student: published lessons, approved scenes, questions, exams"]
+    auth["Laravel authentication: login, password reset, verification, profile"]
+    access["Role, ownership, teacher permission and private-resource checks"]
+    ui["React / Inertia pages and progress polling"]
+    curriculum["Subjects, lectures, sections, questions, exams, study flow, favorites"]
+  end
+  teacher --> auth
+  admin --> auth
+  student --> auth
+  auth --> access --> ui
+  ui --> curriculum
+  subgraph platform["Laravel platform: durable application records and HTTP APIs"]
+    upload["PDF upload and validation requests"]
+    intake["Intake: input limits, PDF inspection, qpdf, malware scan"]
+    private["Private PDFs and immutable artifact storage"]
+    run["Subject-run submission: settings snapshot, ordered manifest, generation selection"]
+    outbox["Run outbox and idempotent operation / command ledgers"]
+    assignment["Local-worker admission and task assignment"]
+    devices["Device invitations, enrollment, tokens, grants, rotation, revocation"]
+    fencing["Assignment epochs, leases, heartbeat, capability and identity fencing"]
+    result["Result acceptance facade: dispatch by task kind"]
+    authorresult["Authoring result acceptance: verify retained evidence, project lesson and prompts"]
+    sceneresult["Scene result acceptance: verify complete inventory, store candidates and queue checks"]
+    imported["Persist lessons, sections, prompt versions and scene slots"]
+    progress["Progress projection: persisted counts plus fenced worker telemetry"]
+    providerprobe["Owner-scoped local-worker NotebookLM probe requests and safe reports"]
+    controls["Pause, cancel, retry and reconciliation controls"]
+    management["Accounts / access audit, immutable settings versions and approved templates"]
+    evidence["Evidence references, metrics, exports, retention and deletion assessments"]
+    db["Application SQLite database: domain state, queue, ledgers and projections"]
+  end
+  ui --> upload --> intake --> private
+  intake --> run
+  ui --> run --> outbox --> assignment
+  admin --> devices --> fencing
+  assignment --> fencing
+  admin --> management
+  admin --> controls
+  ui --> progress
+  admin -->|"Request worker-target health check"| providerprobe
+  result --> authorresult --> imported --> db
+  result --> sceneresult --> scenestore
+  sceneresult --> outbox
+  run --> db
+  fencing --> db
+  controls --> db
+  management --> db
+  imported --> evidence
+  subgraph local["Local device: independent outbound worker; credentials stay local"]
+    daemon["Local-worker daemon: poll, claim, ordered task execution"]
+    taskrunner["TaskRunner: task dispatch, effect fence, replay and reconciliation"]
+    stagecontext["StageContext: validate sealed manifests and fetch verified inputs"]
+    authoringstage["AuthoringStageExecutor: ordered NotebookLM and terminal authoring stage"]
+    scenestage["SceneReturnStageExecutor: freeze, upload and submit complete scene batch"]
+    heartbeat["Independent heartbeat and lease checks"]
+    localjournal["Local journal, locks, receipts and replay protection"]
+    terminaladapter["Terminal adapter: submit once, observe existing run, reconnect read-only status"]
+    localtemporal["Local Temporal service: durable workflow history and timers"]
+    terminalworker["Local terminal worker: activities and subject workflow"]
+    telemetry["Progress companion: read-only observation and outbound count snapshots"]
+    healthreporter["Progress companion: poll health probes and report safe status"]
+    credentialsetup["Manual NotebookLM credential setup / refresh"]
+    authauthority["NotebookCredentialAuthority: one profile resolver, verification record and generation"]
+    profile["Canonical local profile; SDK state is derived from MCP auth"]
+    sessionfactory["Run-session factory: isolated 0600 copies, generation adoption at safe boundaries"]
+    session["NotebookLM service: ownership checks and provider operations"]
+    sdkadapter["Shared SDK adapter: profile gate and operation-scoped snapshots"]
+    mcpadapter["MCP compatibility adapter: required-cookie parity with verified profile"]
+    split["PDF preparation: retain originals, split page ranges, hashes, ordered inventory"]
+    notebook["Notebook lifecycle: source upload / readiness, map, lesson requests"]
+    sequential["Process each PDF and lesson in order with checkpoints"]
+    archive["Archive raw responses and FIRST / SECOND / THIRD artifacts"]
+    export["Validate final complete envelope; export ordered nonempty prompts"]
+    localretry["Bounded local export retry; observation reconnect while lease is valid"]
+    uncertain["True uncertain provider effect or persistent invalid data: safe hold"]
+    handoff["Local manual scene-generation handoff and manifest"]
+  end
+  assignment <-->|"Outbound authenticated HTTP polling / claim"| daemon
+  daemon --> taskrunner
+  taskrunner --> heartbeat --> fencing
+  taskrunner --> localjournal
+  taskrunner --> authoringstage
+  taskrunner --> scenestage
+  authoringstage --> stagecontext
+  scenestage --> stagecontext
+  authoringstage --> heartbeat
+  scenestage --> heartbeat
+  authoringstage --> session
+  authoringstage --> terminaladapter
+  scenestage -->|"Result package via authenticated outbound HTTP"| result
+  daemon --> terminaladapter --> localtemporal
+  localtemporal --> terminalworker --> split
+  private -->|"Authorized input download"| daemon
+  credentialsetup --> profile --> authauthority
+  authauthority --> sessionfactory
+  authauthority --> sdkadapter
+  authauthority --> mcpadapter
+  terminalworker --> session
+  session --> authauthority
+  session --> sdkadapter --> notebook
+  session --> mcpadapter --> notebook
+  sessionfactory --> session
+  split --> sequential --> notebook --> archive --> export
+  export --> handoff
+  export -->|"Proof and artifacts via HTTP"| result
+  terminaladapter --> localretry --> terminaladapter
+  export -->|"Local validation / storage failure"| localretry
+  notebook -->|"Ambiguous external effect"| uncertain
+  uncertain --> controls
+  controls -->|"Fenced evidence collection and authorized resolution"| daemon
+  telemetry -->|"Read existing terminal status"| localtemporal
+  telemetry -->|"Outbound progress API; no lease renewal or resume"| progress
+  healthreporter -->|"Read queued health probe; post allowlisted result"| providerprobe
+  healthreporter --> authauthority
+  subgraph external["External services / tools"]
+    google["Google NotebookLM through shared SDK; MCP compatibility integration also present"]
+    models["Configured coding / prompt model providers: Gemini, GLM, DeepSeek, others by adapter"]
+    toolchain["Node / Vite build and source validation"]
+  end
+  notebook --> google
+  subgraph serverpaths["Additional server-side processing paths present in the repository"]
+    bridge["Signed Python bridge: workflow start, query, signal and health"]
+    servertemporal["Product Temporal service and server terminal worker"]
+    webflow["Web subject, import, scene, authoring, qualification and review workflows"]
+    caseflow["Case workflow: extract source, ingest, map, prepare lessons"]
+    direct["Notebook direct protocol: source bindings and query / effect ledgers"]
+    prompts["Prompt generation, revision, qualification / JEV and feedback"]
+    authoring["Scene authoring: request / attempt claims and candidate artifact storage"]
+    qualification["Scene checks, browser runtime, JEV, repair and review eligibility"]
+    correction["Teacher prompt correction and scene repair workflows"]
+  end
+  outbox --> bridge --> servertemporal
+  servertemporal --> webflow
+  bridge -.->|"Additional registered code path"| caseflow
+  caseflow --> direct --> google
+  direct --> prompts --> authoring --> qualification
+  webflow --> authoring
+  authoring --> models
+  prompts --> models
+  handoff -->|"Manual generation or configured builder"| models
+  models --> toolchain
+  toolchain -->|"Scene package"| authoring
+  subgraph delivery["Scene delivery, teacher review and student publication"]
+    pull["Scene pull / upload, manual import and package validation"]
+    scenestore["Private scene source, build artifacts and candidate versions"]
+    preview["Isolated review preview sessions, frames and interaction actions"]
+    review["Teacher decision: approve, reject, request correction"]
+    publish["Lesson / approved scene publication and access-controlled delivery"]
+    notification["Lesson completion notifications and review reminders"]
+  end
+  ui --> pull --> scenestore --> qualification
+  daemon -->|"Scene-upload task results when configured"| pull
+  qualification --> preview --> review
+  teacher --> review
+  review -->|"Correction requested"| correction --> authoring
+  review -->|"Approved"| publish --> student
+  imported --> notification
+  review --> evidence
+  scenestore --> private
+  subgraph infrastructure["Runtime and background infrastructure"]
+    nginx["web container: Nginx and built UI assets"]
+    php["app container: PHP-FPM / Laravel"]
+    queue["queue container: background jobs"]
+    scheduler["scheduler container: scheduled dispatch, reconciliation, lease expiry and cleanup"]
+    clamav["clamav container: antivirus definitions and PDF scanning"]
+    checker["Isolated scene-checker image / browser runtime"]
+    init["One-shot init and checker-image validation"]
+    health["Runtime health checks, logs, test suites and route / browser audits"]
+  end
+  ui --> nginx --> php
+  php --> db
+  queue --> intake
+  clamav --> intake
+  scheduler --> outbox
+  scheduler --> controls
+  scheduler --> evidence
+  scheduler --> fencing
+  qualification --> checker
+  preview --> checker
+  init --> php
+  health -.-> php
+  health -.-> servertemporal
+  health -.-> localtemporal

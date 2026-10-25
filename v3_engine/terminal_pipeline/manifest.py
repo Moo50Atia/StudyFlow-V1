@@ -124,7 +124,7 @@ def resolve_original_pdfs(
     return resolved
 
 
-def _reuse_existing_capture(raw_dict: dict[str, Any], manifest_file: Path, terminal_root: Path, project_root: Path, scene_generation_mode: str, gemini_thinking_budget: int, gemini_max_output_tokens: int, pdf_processing: str | None = None) -> SubmissionManifest:
+def _reuse_existing_capture(raw_dict: dict[str, Any], manifest_file: Path, terminal_root: Path, project_root: Path, scene_generation_mode: str, gemini_thinking_budget: int, gemini_max_output_tokens: int, pdf_processing: str | None = None, prepared_input_manifest: Path | None = None) -> SubmissionManifest:
     try:
         existing = SubmissionManifest.from_dict(json.loads(manifest_file.read_text(encoding="utf-8")))
     except Exception as exc:
@@ -141,6 +141,14 @@ def _reuse_existing_capture(raw_dict: dict[str, Any], manifest_file: Path, termi
         key = str(raw.get("subject_key", "")).strip()
         old = old_by_key.get(key)
         mode = str(raw.get("mode", "new")).strip()
+        if prepared_input_manifest is not None:
+            if old is None or old.hosted_input_manifest_ref is None or not old.hosted_input_manifest_ref.verify_on_disk(terminal_root):
+                raise ManifestCaptureError("Hosted input capture is unavailable", SafeCode.input_changed)
+            digest, size = compute_file_sha256(prepared_input_manifest)
+            if digest != old.hosted_input_manifest_ref.sha256 or size != old.hosted_input_manifest_ref.bytes:
+                raise ManifestCaptureError("Hosted manifest changed on replay", SafeCode.input_changed)
+        elif old is not None and old.hosted_input_manifest_ref is not None:
+            raise ManifestCaptureError("Hosted replay requires its prepared input manifest", SafeCode.input_changed)
         if (old is None or old.mode != mode or old.provider != str(raw.get("provider", "")).strip().lower()
                 or old.model != str(raw.get("model", "")).strip()
                 or old.scene_generation_mode != scene_generation_mode
@@ -269,6 +277,11 @@ class SubjectConfig:
     gemini_max_output_tokens: int = 65536
     pdf_processing: str = "joint"
     pdf_preparation_ref: ArtifactRef | None = None
+    hosted_input_manifest_ref: ArtifactRef | None = None
+    captured_notebooklm_protocol_json: str | None = None
+    captured_notebooklm_protocol_sha256: str | None = None
+    captured_scene_system_prompt: str | None = None
+    captured_scene_system_prompt_sha256: str | None = None
 
     def __post_init__(self) -> None:
         if not self.subject_key:
@@ -297,6 +310,16 @@ class SubjectConfig:
         elif self.mode == "saved":
             if self.account_check_notebook_id is not None:
                 raise ValueError("account_check_notebook_id is forbidden in saved mode")
+        for text_field, digest_field in (
+            ("captured_notebooklm_protocol_json", "captured_notebooklm_protocol_sha256"),
+            ("captured_scene_system_prompt", "captured_scene_system_prompt_sha256"),
+        ):
+            text = getattr(self, text_field)
+            digest = getattr(self, digest_field)
+            if (text is None) != (digest is None):
+                raise ValueError(f"{text_field} and {digest_field} must be captured together")
+            if text is not None and hashlib.sha256(text.encode("utf-8")).hexdigest() != digest:
+                raise ValueError(f"{text_field} digest does not match its captured bytes")
 
     def to_dict(self) -> dict[str, Any]:
         d: dict[str, Any] = {
@@ -318,6 +341,14 @@ class SubjectConfig:
             d["pdf_processing"] = self.pdf_processing
         if self.pdf_preparation_ref is not None:
             d["pdf_preparation_ref"] = self.pdf_preparation_ref.to_dict()
+        if self.hosted_input_manifest_ref is not None:
+            d["hosted_input_manifest_ref"] = self.hosted_input_manifest_ref.to_dict()
+        if self.captured_notebooklm_protocol_json is not None:
+            d["captured_notebooklm_protocol_json"] = self.captured_notebooklm_protocol_json
+            d["captured_notebooklm_protocol_sha256"] = self.captured_notebooklm_protocol_sha256
+        if self.captured_scene_system_prompt is not None:
+            d["captured_scene_system_prompt"] = self.captured_scene_system_prompt
+            d["captured_scene_system_prompt_sha256"] = self.captured_scene_system_prompt_sha256
         if self.endpoint:
             d["endpoint"] = self.endpoint
         if self.mode == "new":
@@ -355,6 +386,11 @@ class SubjectConfig:
             gemini_max_output_tokens=int(data.get("gemini_max_output_tokens", 65536)),
             pdf_processing=str(data.get("pdf_processing", "joint")),
             pdf_preparation_ref=prep_ref,
+            hosted_input_manifest_ref=ArtifactRef.from_dict(data["hosted_input_manifest_ref"]) if data.get("hosted_input_manifest_ref") else None,
+            captured_notebooklm_protocol_json=data.get("captured_notebooklm_protocol_json"),
+            captured_notebooklm_protocol_sha256=data.get("captured_notebooklm_protocol_sha256"),
+            captured_scene_system_prompt=data.get("captured_scene_system_prompt"),
+            captured_scene_system_prompt_sha256=data.get("captured_scene_system_prompt_sha256"),
         )
 
 
@@ -417,6 +453,7 @@ def capture_manifest(
     project_root: Path | None = None,
     scene_generation_mode: str = "generate",
     pdf_processing: str | None = None,
+    prepared_input_manifest: Path | None = None,
 ) -> tuple[SubmissionManifest, Path]:
     """Validate raw manifest dict, snapshot inputs into terminal_root, compute canonical digest, and save manifest.json."""
     proj_root = project_root or Path.cwd()
@@ -441,6 +478,21 @@ def capture_manifest(
         if selected not in VALID_PDF_PROCESSING_MODES or (isinstance(subject, dict) and subject.get("mode", "new") == "saved" and selected != "joint"):
             raise ManifestCaptureError("pdf_processing must be 'joint' or 'per_pdf'; per_pdf requires new mode")
 
+    hosted = None
+    if prepared_input_manifest is not None:
+        from v3_engine.local_worker.protocol import strict_json_decode, validate_input_manifest
+        if len(raw_subjects) != 1 or (pdf_processing or raw_subjects[0].get('pdf_processing')) != 'per_pdf' or raw_subjects[0].get('mode', 'new') != 'new':
+            raise ManifestCaptureError("Prepared hosted inputs require one new per-PDF subject")
+        prepared_input_manifest = prepared_input_manifest.resolve()
+        hosted_bytes = prepared_input_manifest.read_bytes()
+        hosted = strict_json_decode(hosted_bytes, max_size=2097152)
+        validate_input_manifest(hosted)
+        seal = prepared_input_manifest.with_suffix('.sha256').read_text(encoding='ascii').strip()
+        if hashlib.sha256(hosted_bytes).hexdigest() != seal or hosted['task_kind'] != 'author_prompts':
+            raise ManifestCaptureError("Prepared input manifest seal/role mismatch", SafeCode.input_changed)
+        if raw_subjects[0].get('subject_run_id') != str(uuid.uuid5(uuid.UUID(hosted['job_id']), 'terminal-subject-v1')):
+            raise ManifestCaptureError("Hosted job and terminal run identities differ", SafeCode.input_changed)
+
     submission_dir = terminal_root / "submissions" / sub_id
     manifest_file = submission_dir / "manifest.json"
     if scene_generation_mode not in VALID_SCENE_GENERATION_MODES:
@@ -452,7 +504,7 @@ def capture_manifest(
     if manifest_file.exists():
         return _reuse_existing_capture(raw_dict, manifest_file, terminal_root, proj_root,
                                        scene_generation_mode, gemini_thinking_budget,
-                                       gemini_max_output_tokens, pdf_processing), manifest_file
+                                       gemini_max_output_tokens, pdf_processing, prepared_input_manifest), manifest_file
     inputs_dir = submission_dir / "inputs"
     inputs_dir.mkdir(parents=True, exist_ok=True)
 
@@ -515,12 +567,40 @@ def capture_manifest(
                 raise ManifestCaptureError(f"Steps framework file does not exist: {steps_rel}", SafeCode.input_invalid)
 
             effective_pdf_proc = pdf_processing or raw_s.get("pdf_processing", "joint")
-            if effective_pdf_proc == "per_pdf":
-                from v3_engine.terminal_pipeline.pdf_preparation import prepare_pdf_sources, PreparationError
+            hosted_ref = None
+            if hosted is not None:
+                from v3_engine.terminal_pipeline.pdf_preparation import inspect_pdf_strict
+                if len(resolved_pdfs) != len(hosted['items']):
+                    raise ManifestCaptureError("Prepared PDF count differs from hosted inventory")
+                for idx, (pdf_p, item) in enumerate(zip(resolved_pdfs, hosted['items']), 1):
+                    sha, size = compute_file_sha256(pdf_p)
+                    if (item['upload_ordinal'] != idx or sha != item['prepared_sha256']
+                            or size != item['prepared_byte_count'] or inspect_pdf_strict(pdf_p) != item['prepared_page_count']):
+                        raise ManifestCaptureError("Prepared PDF bytes/order differ from hosted inventory", SafeCode.input_changed)
+                    dest = inputs_dir / f'hosted-pdf-{idx:04d}.pdf'
+                    shutil.copy2(pdf_p, dest)
+                    if compute_file_sha256(dest) != (sha, size):
+                        raise ManifestCaptureError("Prepared PDF snapshot corruption", SafeCode.storage_unavailable)
+                    snapshots.append(InputSnapshot(kind='pdf', ordinal=idx, original_path=str(pdf_p),
+                        snapshot_ref=ArtifactRef(str(dest.relative_to(terminal_root)), sha, size), sha256=sha, bytes=size,
+                        pdf_lineage={'source_ordinal': item['source_ordinal'], 'part_ordinal': item['part_ordinal'],
+                            'start_page': item['original_page_start'], 'end_page': item['original_page_end'],
+                            'inventory_sha256': hosted['preparation']['inventory_sha256'],
+                            'hosted_run_id': hosted['run_id'], 'hosted_item_id': item['item_id'],
+                            'original_sha256': item['original_sha256'], 'original_page_count': item['original_page_count']}))
+                hosted_dest = inputs_dir / 'hosted-input-manifest.json'
+                shutil.copy2(prepared_input_manifest, hosted_dest)
+                digest, size = compute_file_sha256(hosted_dest)
+                if digest != seal:
+                    raise ManifestCaptureError("Hosted manifest changed while capturing", SafeCode.input_changed)
+                hosted_ref = ArtifactRef(str(hosted_dest.relative_to(terminal_root)), digest, size)
+                pdf_prep_ref = None
+            elif effective_pdf_proc == "per_pdf":
+                from v3_engine.terminal_pipeline.pdf_preparation import prepare_pdf_sources, PreparationError, PreparationPolicy
                 subject_token = f"{re.sub(r'[^a-zA-Z0-9_-]', '_', key)}-{hashlib.sha256(key.encode('utf-8')).hexdigest()[:8]}"
                 prep_dir = submission_dir / "preparation" / subject_token
                 try:
-                    prep_inv = prepare_pdf_sources(resolved_pdfs, prep_dir)
+                    prep_inv = prepare_pdf_sources(resolved_pdfs, prep_dir, policy=PreparationPolicy(version=2, split_trigger_pages=50))
                 except PreparationError as pe:
                     raise ManifestCaptureError(str(pe), pe.safe_code) from pe
                 except Exception as exc:
@@ -625,6 +705,7 @@ def capture_manifest(
                     account_check_notebook_id=str(proof_nb),
                     pdf_processing=effective_pdf_proc,
                     pdf_preparation_ref=pdf_prep_ref,
+                    hosted_input_manifest_ref=hosted_ref,
                     scene_generation_mode=scene_generation_mode,
                     gemini_thinking_budget=gemini_thinking_budget,
                     gemini_max_output_tokens=gemini_max_output_tokens,

@@ -11,16 +11,16 @@ use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
-    public function index(): \Illuminate\Contracts\View\View
+    public function index()
     {
         $users = User::latest()->paginate(10);
 
-        return view('users.index', compact('users'));
+        return \App\Support\InertiaPage::render('users.index', compact('users'));
     }
 
-    public function create(): \Illuminate\Contracts\View\View
+    public function create()
     {
-        return view('users.create');
+        return \App\Support\InertiaPage::render('users.create');
     }
 
     public function store(UserRequest $request, ChangeAccountAccess $service): \Illuminate\Http\RedirectResponse
@@ -30,16 +30,16 @@ class UserController extends Controller
         return redirect()->route('users.index')->with('success', 'User created successfully!');
     }
 
-    public function show(User $user): \Illuminate\Contracts\View\View
+    public function show(User $user)
     {
         $user->load('teacherPermissions.subject', 'teacherPermissions.lecture');
 
-        return view('users.show', compact('user'));
+        return \App\Support\InertiaPage::render('users.show', compact('user'));
     }
 
-    public function edit(User $user): \Illuminate\Contracts\View\View
+    public function edit(User $user)
     {
-        return view('users.edit', compact('user'));
+        return \App\Support\InertiaPage::render('users.edit', compact('user'));
     }
 
     public function update(UserRequest $request, User $user, ChangeAccountAccess $service): \Illuminate\Http\RedirectResponse

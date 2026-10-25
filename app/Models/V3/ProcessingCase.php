@@ -123,4 +123,15 @@ class ProcessingCase extends Model implements V3OwnedResource
         return ($this->pipeline_version ?? '') === 'notebooklm_per_pdf_web_v1'
             || SubjectRunItem::where('case_id', $this->id)->exists();
     }
+
+    public function isLocalWorkerCase(): bool
+    {
+        $item = SubjectRunItem::where('case_id', $this->id)->first();
+        if (! $item) {
+            return false;
+        }
+        $run = SubjectRun::find($item->run_id);
+        return $run?->execution_mode === 'local_worker_v1'
+            || \App\Models\V3\LocalJob::where('run_id', $item->run_id)->exists();
+    }
 }

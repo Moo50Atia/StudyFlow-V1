@@ -94,11 +94,12 @@ class CombinedLessonValidator
         }
 
         // Validate terminal completion marker
-        if (! preg_match('/✅\s*Lesson\s*\[?([0-9]+)\]?\s*Completed\.\s*Awaiting\s*[\'"]Continue[\'"]\s*for\s*the\s*next\s*lesson\.\s*$/u', $afterEnd, $markerMatch)) {
+        if (! preg_match('/✅\s*Lesson\s*(?:\[?([0-9]+)\]?\s*)?Completed\.\s*Awaiting\s*[\'"]Continue[\'"]\s*for\s*the\s*next\s*lesson\.\s*$/u', $afterEnd, $markerMatch)) {
             throw new \InvalidArgumentException("Invalid or missing terminal completion marker: '{$afterEnd}'.");
         }
 
-        $terminalOrdinal = (int) $markerMatch[1];
+        $markerOmittedNumber = ! isset($markerMatch[1]) || $markerMatch[1] === '';
+        $terminalOrdinal = $markerOmittedNumber ? $expectedWorkOrdinal : (int) $markerMatch[1];
         if ($terminalOrdinal < 1) {
             throw new \InvalidArgumentException("Terminal completion marker must contain a positive display number.");
         }
@@ -111,6 +112,13 @@ class CombinedLessonValidator
 
         // 3. Parse Third artifact
         $thirdParsed = $this->parseThirdArtifact($thirdPart, $expectedWorkOrdinal, count($firstParsed['sections']));
+        if ($markerOmittedNumber && (
+            ! preg_match('/^W'.$expectedWorkOrdinal.'\s*\|\s*\S/i', $firstParsed['lecture_header'])
+            || $secondParsed['lecture_header'] !== $firstParsed['lecture_header']
+            || $thirdParsed['lecture_header'] !== $firstParsed['lecture_header']
+        )) {
+            throw new \InvalidArgumentException('Unnumbered completion requires three identical headers for the claimed work item.');
+        }
 
         $lectureTitle = $firstParsed['lecture_header'];
         if (stripos($lectureTitle, 'lecture:') === 0) {
@@ -339,7 +347,7 @@ class CombinedLessonValidator
                 continue;
             }
 
-            if (preg_match('/^Lec\s*([0-9]+)\s*\(\s*Sec\s*([0-9]+)\s*\)\s*:\s*(.*)$/i', $line, $headerMatch)) {
+            if (preg_match('/^Lec\s*W?\s*([0-9]+)\s*\(\s*Sec\s*([0-9]+)\s*\)\s*:\s*(.*)$/i', $line, $headerMatch)) {
                 $finalizeSecondSection();
                 $secNum = (int) $headerMatch[2];
                 $expectedSecNum = count($sections) + 1;
@@ -494,7 +502,7 @@ class CombinedLessonValidator
                 continue;
             }
 
-            if (preg_match('/^Lec\s*([0-9]+)\s*\(\s*Sec\s*([0-9]+)\s*\)\s*:\s*(.*)$/i', $stripped, $headerMatch)) {
+            if (preg_match('/^Lec\s*W?\s*([0-9]+)\s*\(\s*Sec\s*([0-9]+)\s*\)\s*:\s*(.*)$/i', $stripped, $headerMatch)) {
                 $finalizeThirdSection();
                 $secNum = (int) $headerMatch[2];
                 $expectedSecNum = count($sections) + 1;
@@ -513,9 +521,6 @@ class CombinedLessonValidator
                     }
                     $promptLines[] = $inlinePrompt;
                     $inPrompt = true;
-                    if (str_ends_with($inlinePrompt, '"') && ! str_ends_with($inlinePrompt, '\\"')) {
-                        $finalizeThirdSection();
-                    }
                 }
                 continue;
             }
@@ -528,17 +533,11 @@ class CombinedLessonValidator
                 if (str_starts_with($stripped, '"')) {
                     $inPrompt = true;
                     $promptLines[] = $stripped;
-                    if (str_ends_with($stripped, '"') && strlen($stripped) > 1) {
-                        $finalizeThirdSection();
-                    }
                 } else {
                     throw new \InvalidArgumentException("Third section {$currentSecOrdinal} prompt must begin with quote, got '{$stripped}'.");
                 }
             } else {
                 $promptLines[] = $rawLine;
-                if (str_ends_with($stripped, '"') && ! str_ends_with($stripped, '\\"')) {
-                    $finalizeThirdSection();
-                }
             }
         }
 

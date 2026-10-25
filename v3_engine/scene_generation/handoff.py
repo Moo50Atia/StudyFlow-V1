@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any, Optional
 
@@ -204,6 +205,18 @@ def load_handoff_inventory(input_path: Path) -> HandoffInventory:
             if not isinstance(scenes_list, list):
                 raise InputError(f"scenes must be a list in lesson {l_ord} in {fpath}")
 
+            recovered_from_raw = False
+            if not scenes_list and kind == 'notebooklm_multi_pdf_lesson_raw_handoff':
+                raw_answer = l_dict.get('raw_answer')
+                digest = l_dict.get('raw_answer_sha256')
+                if isinstance(raw_answer, str) and hashlib.sha256(raw_answer.encode('utf-8')).hexdigest() == digest:
+                    from v3_engine.notebooklm.terminal_service import raw_artifacts, loose_scene_prompts
+                    third = raw_artifacts(raw_answer)['third']
+                    ordinals = re.findall(r'^Lec\s*W?\s*(\d+)\s*\(\s*Sec\s*\d+\s*\)\s*:', third or '', re.I | re.M)
+                    if ordinals and all(int(value) == l_ord for value in ordinals):
+                        scenes_list = loose_scene_prompts(third)
+                        recovered_from_raw = bool(scenes_list)
+
             if not scenes_list:
                 input_issues.append(
                     InputIssue(lesson_ordinal=l_ord, scene_ordinal=None, code="input_lesson_empty")
@@ -243,6 +256,9 @@ def load_handoff_inventory(input_path: Path) -> HandoffInventory:
                     if is_archive
                     else f"/scenes/{s_idx}"
                 )
+
+                if recovered_from_raw:
+                    pointer = '/raw_answer'  # Derived from the unchanged, hash-verified source answer.
 
                 scene_inputs.append(
                     SceneInput(

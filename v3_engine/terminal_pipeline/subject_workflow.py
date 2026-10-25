@@ -45,6 +45,11 @@ class TerminalSubjectWorkflow:
         self.current_pdf_ordinal: int | None = None
         self.pdfs_completed: int = 0
         self.total_pdfs: int = 0
+        self.divide_prompt: str = DIVIDE_PROMPT
+        self.execution_prompt: str = EXECUTION_PROMPT
+        self.lesson_start_prompt: str = "Start with First lesson"
+        self.lesson_continue_prompt: str = "Continue"
+        self.combined_response_format: str = COMBINED_RESPONSE_FORMAT_TEXT
 
     @workflow.query(name="progress_v1")
     def progress_v1(self) -> dict[str, Any]:
@@ -145,6 +150,48 @@ class TerminalSubjectWorkflow:
             result = await workflow.execute_activity(
                 name, payload, task_queue=queue, start_to_close_timeout=actual_timeout,
             )
+        if (name == 'export_terminal_scene_prompts' and isinstance(result, dict)
+                and result.get('outcome') != 'complete'
+                and result.get('safe_code') in {'input_invalid', 'storage_unavailable'}):
+            # Export reads retained data and writes local artifacts only. It
+            # cannot issue NotebookLM turns or scene-generation requests.
+            # A patch marker preserves histories that already entered a hold.
+            automatic_retry = workflow.patched('local-export-retry-v1')
+            if automatic_retry:
+                for delay in (5, 15, 30):
+                    await workflow.sleep(delay)
+                    await workflow.wait_condition(lambda: not self.paused or self.cancelled)
+                    if self.cancelled:
+                        raise _ControlCancelled()
+                    result = await workflow.execute_activity(name, payload, task_queue=queue,
+                        start_to_close_timeout=actual_timeout, retry_policy=RetryPolicy(maximum_attempts=1))
+                    if result.get('outcome') == 'complete':
+                        break
+        if name == 'send_terminal_turn' and isinstance(result, dict) and result.get('outcome') == 'uncertain' and not allow_uncertain:
+            # The Activity retains its dispatch intent. Repeating this SAME
+            # operation only inspects anchored history; it cannot send again.
+            for _ in range(3):
+                await workflow.sleep(2)
+                result = await workflow.execute_activity(name, payload, task_queue=queue,
+                    start_to_close_timeout=actual_timeout, retry_policy=RetryPolicy(maximum_attempts=1))
+                if result.get('outcome') == 'complete':
+                    return result
+        if (name in {'verify_notebook_session', 'create_terminal_notebook', 'upload_terminal_source',
+                     'configure_terminal_chat', 'send_terminal_turn', 'reset_terminal_conversation', 'export_terminal_scene_prompts'} and isinstance(result, dict)
+                and result.get('outcome') not in ('complete', 'pending') and not allow_uncertain):
+            # A known provider hold must remain queryable. Raising RuntimeError
+            # here makes Temporal replay a failing workflow task forever.
+            previous_phase = self.phase
+            self.phase = 'held_uncertain'
+            self.status = 'paused'
+            self.paused = True
+            self.state_version += 1
+            await workflow.wait_condition(lambda: not self.paused or self.cancelled)
+            if self.cancelled:
+                raise _ControlCancelled()
+            self.phase = previous_phase
+            return await self._run_activity(name, payload, timeout, task_queue=queue,
+                start_to_close_timeout=start_to_close_timeout, allow_pending=allow_pending, allow_uncertain=allow_uncertain)
         if not isinstance(result, dict) or (
             result.get("outcome") != ActivityOutcome.complete.value
             and not (allow_pending and result.get("outcome") == ActivityOutcome.pending.value)
@@ -199,7 +246,7 @@ class TerminalSubjectWorkflow:
         self.phase = "configuring_chat"
         await self._run_activity("configure_terminal_chat", {
             "schema_version": 1, "subject_run_id": subject_id, "notebook_id": notebook_id,
-            "format_text": COMBINED_RESPONSE_FORMAT_TEXT,
+            "format_text": self.combined_response_format,
         }, io_timeout)
 
         previous_conversation_id = None
@@ -208,27 +255,33 @@ class TerminalSubjectWorkflow:
             self.current_pdf_ordinal = ordinal
             pdf_id = await upload(source)
             self.phase = "polling_sources"
-            for poll in range(1, 61):
+            poll = 0
+            while True:
+                poll += 1
                 ready = await self._run_activity("poll_terminal_sources", {
                     "schema_version": 1, "subject_run_id": subject_id, "notebook_id": notebook_id,
                     "pdf_ordinal": ordinal, "poll_ordinal": poll, "source_ids": [pdf_id, framework_id],
                 }, io_timeout, allow_pending=True)
                 if ready["outcome"] == "complete":
                     break
-                if poll == 60:
-                    raise RuntimeError("source_timeout")
-                await workflow.sleep(5)
+                # NotebookLM source ingestion time varies with file size and
+                # provider load. Keep the durable workflow in its observable
+                # polling phase instead of failing the entire Temporal task on
+                # an arbitrary five-minute deadline. Polls are read-only and
+                # the activity wait remains cancelable through workflow control.
+                delay = min(5 * (2 ** min(poll - 1, 3)), 30)
+                await workflow.sleep(delay)
 
             common = {"schema_version": 1, "subject_run_id": subject_id, "notebook_id": notebook_id,
                       "pdf_ordinal": ordinal, "pdf_source_ids": [pdf_id], "framework_source_id": framework_id}
             self.phase = "dividing"
             for inspection in range(3):
                 divide = await self._run_activity("send_terminal_turn", {
-                    **common, "question": DIVIDE_PROMPT, "source_ids": [pdf_id],
+                    **common, "question": self.divide_prompt, "source_ids": [pdf_id],
                     "operation_id": f"pdf-{ordinal:04d}:divide",
                     **({"fresh_after_conversation_id": previous_conversation_id}
                        if previous_conversation_id is not None else {}),
-                }, io_timeout, allow_uncertain=True)
+                }, io_timeout)
                 if divide["outcome"] == "complete":
                     break
                 if inspection == 2:
@@ -245,7 +298,7 @@ class TerminalSubjectWorkflow:
 
             self.phase = "executing"
             execution = await self._run_activity("send_terminal_turn", {
-                **common, "question": EXECUTION_PROMPT, "source_ids": [pdf_id, framework_id],
+                **common, "question": self.execution_prompt, "source_ids": [pdf_id, framework_id],
                 "operation_id": f"pdf-{ordinal:04d}:execution", "conversation_id": divide["result_ref"],
             }, io_timeout)
             await self._run_activity("capture_terminal_turn", {
@@ -256,7 +309,7 @@ class TerminalSubjectWorkflow:
             self.phase = "generating_lessons"
             for lesson in range(1, count + 1):
                 answer = await self._run_activity("send_terminal_turn", {
-                    **common, "question": "Start with First lesson" if lesson == 1 else "Continue",
+                    **common, "question": self.lesson_start_prompt if lesson == 1 else self.lesson_continue_prompt,
                     "source_ids": [pdf_id, framework_id], "conversation_id": conversation_id,
                     "operation_id": f"pdf-{ordinal:04d}:lesson-{lesson:03d}",
                 }, io_timeout)
@@ -283,7 +336,7 @@ class TerminalSubjectWorkflow:
                     reset = await self._run_activity("reset_terminal_conversation", {
                         "schema_version": 1, "subject_run_id": subject_id, "pdf_ordinal": ordinal,
                         "notebook_id": notebook_id, "conversation_id": conversation_id,
-                    }, io_timeout, allow_uncertain=True)
+                    }, io_timeout)
                     if reset["outcome"] == "complete":
                         break
                     if inspection == 2:
@@ -309,7 +362,9 @@ class TerminalSubjectWorkflow:
         )
         counts = exported.get("counts") or {}
         exported_count = int(counts.get("scene_count", -1))
-        if issue_count or exported_count != len(scene_keys) or exported_count < 1:
+        # The exporter revalidates every retained lesson and prompt. A parser
+        # correction can recover scenes absent from the older frozen index.
+        if exported_count < 1 or int(counts.get('lesson_count', -1)) != self.lessons_saved:
             raise RuntimeError("scene_prompt_export_incomplete")
 
         self.scene_prompts_exported = exported_count
@@ -347,6 +402,26 @@ class TerminalSubjectWorkflow:
         subject_run_id = inp["subject_run_id"]
         self.is_recovery = bool(inp.get("is_recovery"))
         subject_config = inp.get("subject_config") if isinstance(inp.get("subject_config"), dict) else {}
+        protocol_text = subject_config.get("captured_notebooklm_protocol_json")
+        protocol_sha = subject_config.get("captured_notebooklm_protocol_sha256")
+        if protocol_text is not None:
+            import hashlib
+            if (not isinstance(protocol_text, str) or not isinstance(protocol_sha, str)
+                    or hashlib.sha256(protocol_text.encode("utf-8")).hexdigest() != protocol_sha):
+                raise RuntimeError("captured_notebooklm_protocol_invalid")
+            try:
+                protocol_bundle = json.loads(protocol_text)
+            except ValueError:
+                raise RuntimeError("captured_notebooklm_protocol_invalid") from None
+            fields = {"divide_prompt", "execution_prompt", "lesson_start_prompt",
+                      "lesson_continue_prompt", "combined_response_format"}
+            if not isinstance(protocol_bundle, dict) or not fields.issubset(protocol_bundle):
+                raise RuntimeError("captured_notebooklm_protocol_invalid")
+            self.divide_prompt = protocol_bundle["divide_prompt"]
+            self.execution_prompt = protocol_bundle["execution_prompt"]
+            self.lesson_start_prompt = protocol_bundle["lesson_start_prompt"]
+            self.lesson_continue_prompt = protocol_bundle["lesson_continue_prompt"]
+            self.combined_response_format = protocol_bundle["combined_response_format"]
         self.scene_generation_mode = str(subject_config.get("scene_generation_mode", "generate"))
         self.pdf_processing = str(subject_config.get("pdf_processing", "joint"))
         run_ref = inp.get("run_ref", f"runs/{subject_run_id}")
@@ -616,7 +691,7 @@ class TerminalSubjectWorkflow:
                     "schema_version": 1,
                     "subject_run_id": subject_run_id,
                     "notebook_id": notebook_id,
-                    "format_text": COMBINED_RESPONSE_FORMAT_TEXT,
+                    "format_text": self.combined_response_format,
                 },
                 task_queue="v3-terminal-control",
                 start_to_close_timeout=io_timeout,
@@ -637,7 +712,7 @@ class TerminalSubjectWorkflow:
                     "schema_version": 1,
                     "subject_run_id": subject_run_id,
                     "notebook_id": notebook_id,
-                    "question": DIVIDE_PROMPT,
+                    "question": self.divide_prompt,
                     "source_ids": pdf_ids or uploaded_source_ids,
                     "operation_id": "divide",
                 },
@@ -667,7 +742,7 @@ class TerminalSubjectWorkflow:
                     "schema_version": 1,
                     "subject_run_id": subject_run_id,
                     "notebook_id": notebook_id,
-                    "question": EXECUTION_PROMPT,
+                    "question": self.execution_prompt,
                     "source_ids": uploaded_source_ids,
                     "operation_id": "execution",
                     "conversation_id": divide_turn.get("result_ref"),
@@ -698,7 +773,7 @@ class TerminalSubjectWorkflow:
                 if self.cancelled:
                     return await self._cancelled_result(subject_run_id)
 
-                question = "Start with First lesson" if ordinal == 1 else "Continue"
+                question = self.lesson_start_prompt if ordinal == 1 else self.lesson_continue_prompt
                 les_turn = await self._run_activity(
                     "send_terminal_turn",
                     {

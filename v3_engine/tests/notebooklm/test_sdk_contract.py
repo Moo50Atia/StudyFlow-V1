@@ -3,14 +3,17 @@ from pathlib import Path
 from types import SimpleNamespace
 import httpx
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
+from contextlib import asynccontextmanager
 
 from notebooklm import ChatGoal, ChatResponseLength, NotebookLMClient
 from notebooklm.types import Notebook, Source, AskResult, SharePermission
 from notebooklm._types.chat import ChatSettings
+from notebooklm.exceptions import ClientError, NotebookNotFoundError
 
 from v3_engine.notebooklm.ports import (
     AuthenticationRequiredError,
+    ProviderError,
     SessionProvider,
     NotebookFiles,
     NotebookConversation,
@@ -89,10 +92,71 @@ async def test_owner_verification_uses_the_sdk_permission_enum():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize('failure,code', [
+    (ClientError('private response details', rpc_code=5), 'notebook_verification_failed'),
+    (NotebookNotFoundError('proof-notebook'), 'notebook_verification_failed'),
+    (RuntimeError('private response details'), 'ownership_check_failed'),
+])
+async def test_proof_notebook_rpc_failure_does_not_claim_the_cookie_expired(failure, code):
+    client = AsyncMock()
+    client.notebooks.get.side_effect = failure
+
+    with pytest.raises(ProviderError) as error:
+        await SdkProviderSession(client).verify_owner("proof-notebook")
+
+    assert error.value.code == code
+    assert not isinstance(error.value, AuthenticationRequiredError)
+    assert "private response details" not in str(error.value)
+    client.notebooks.get.assert_awaited_once_with("proof-notebook")
+
+
+@pytest.mark.asyncio
+async def test_proof_notebook_auth_failure_still_requires_authentication():
+    from notebooklm.exceptions import AuthError
+    client = AsyncMock()
+    client.notebooks.get.side_effect = AuthError("private session details")
+
+    with pytest.raises(AuthenticationRequiredError) as error:
+        await SdkProviderSession(client).verify_owner("proof-notebook")
+
+    assert error.value.code == "authentication_required"
+    assert "private session details" not in str(error.value)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('role,code', [('not_owner', 'account_mismatch'), ('unknown', 'ownership_unverified')])
+async def test_automatic_profile_check_uses_the_same_ownership_decision(tmp_path, monkeypatch, role, code):
+    from v3_engine.notebooklm.sdk_provider import SdkSessionProvider
+    record = Mock()
+    authority = SimpleNamespace(
+        profile_status=lambda: {'verified': False},
+        proof_notebook_id=lambda: 'proof-notebook',
+        verification_path=lambda path: path,
+        record_verified=record,
+    )
+    session = SimpleNamespace(files=SimpleNamespace(verify_owner=AsyncMock(return_value=role)))
+    @asynccontextmanager
+    async def opened(path):
+        yield session
+    provider = SdkSessionProvider()
+    monkeypatch.setattr(provider, '_open_client', opened)
+
+    with pytest.raises(ProviderError) as error:
+        await provider._verify_profile_if_needed(authority, tmp_path/'session.json')
+
+    assert error.value.code == code
+    record.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_sdk_http_transport_single_send_on_error(monkeypatch):
     """Provider errors do not cause the wrapper to issue another chat request."""
     from notebooklm.exceptions import RateLimitError
     client = AsyncMock()
+    from notebooklm._conversation_cache import ConversationCache
+    client.chat._cache = ConversationCache()
+    client.chat.clear_cache = client.chat._cache.clear
+    client.chat.get_history.return_value = []
     client.chat.ask.side_effect = RateLimitError("rate limited")
     session = SdkProviderSession(client)
     with pytest.raises(Exception):
@@ -133,6 +197,23 @@ async def test_sdk_file_port_uses_real_namespaces_and_exposes_source_inventory(t
         "notebook-1", str(pdf_path), mime_type="application/pdf",
         wait=False, title="accepted.pdf",
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('mime', ['text/plain', 'text/markdown'])
+async def test_framework_is_sent_once_as_native_text_with_exact_captured_content(tmp_path, mime):
+    client = AsyncMock()
+    client.sources.add_text.return_value = SimpleNamespace(id='framework', title='Captured framework',
+                                                          is_ready=True, is_error=False)
+    source = tmp_path/'captured.bin'
+    source.write_bytes('First instruction\r\nتعليمات\n'.encode('utf-8'))
+
+    receipt = await SdkProviderSession(client).upload_file('notebook', source, mime, 'Captured framework')
+
+    assert receipt.source_id == 'framework' and receipt.status == 'ready'
+    client.sources.add_text.assert_awaited_once_with('notebook', 'Captured framework',
+        'First instruction\r\nتعليمات\n', wait=False, idempotent=False)
+    client.sources.add_file.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -195,6 +276,7 @@ class MockTransportRecorder:
         self.upload_fail_mode = upload_fail_mode
         self.chat_mutation_requests = []
         self.upload_mutation_requests = []
+        self.text_mutation_requests = []
         self.upload_counter = 0
 
     async def handle(self, request, *args, **kwargs):
@@ -232,6 +314,11 @@ class MockTransportRecorder:
                     return httpx.Response(401, text="Unauthorized", request=request)
                 self.upload_counter += 1
                 payload = json.dumps([["wrb.fr", "o4cbdc", f'[[["source-id-{self.upload_counter}"]]]', None, None, None]])
+            elif "izAoDd" in url_str:
+                self.text_mutation_requests.append(request)
+                self.upload_counter += 1
+                source = [[f'source-id-{self.upload_counter}'], 'steps.txt', None, None]
+                payload = json.dumps([["wrb.fr", "izAoDd", json.dumps([source]), None, None, None]])
             elif "rLM1Ne" in url_str:
                 src = [[f"source-id-{self.upload_counter}"], f"doc-{self.upload_counter}", None, None]
                 nb_payload = json.dumps([[None, [src]]])
@@ -243,6 +330,73 @@ class MockTransportRecorder:
         if "upload" in url_str:
             return httpx.Response(200, text="ok", headers={"x-goog-upload-url": f"https://notebook.google.com/upload/_/?upload_id=upload{self.upload_counter}", "x-goog-upload-status": "final"}, request=request)
         return httpx.Response(200, text="ok", request=request)
+
+
+@pytest.mark.asyncio
+async def test_follow_up_restores_server_history_into_fresh_sdk_wire_request(tmp_path, monkeypatch):
+    """Fresh worker clients send the retained map/answers, not just Continue."""
+    import json
+    from urllib.parse import parse_qs
+    from notebooklm._web.chat import WebChatAPI
+
+    state_file = tmp_path / "storage_state.json"
+    _create_synthetic_storage_state(state_file)
+    recorder = MockTransportRecorder()
+    monkeypatch.setattr(httpx.AsyncClient, "send", recorder.handle)
+    history = [
+        ("Divide", "Chapter 1: Classes\nLesson 1: Fields\nLesson 2: Methods"),
+        ("Execution", "System Ready"),
+        ("Start with First lesson", "Fields lesson answer"),
+    ]
+    server_history = AsyncMock(side_effect=[history, history + [("Continue", "Methods lesson answer")]])
+    monkeypatch.setattr(WebChatAPI, "get_history", server_history)
+    for expected in (history, history + [("Continue", "Methods lesson answer")]):
+        async with NotebookLMClient.from_storage(
+            path=state_file, rate_limit_max_retries=0,
+            server_error_max_retries=0, allow_headless=False,
+        ) as client:
+            assert client.chat.get_cached_turns("conv-1") == []
+            # A stale cache entry must be replaced, not appended to.
+            client.chat._cache.cache_conversation_turn("conv-1", "stale", "wrong notebook", 1)
+            await SdkProviderSession(client).ask_once("test-nb", "Continue", ["pdf", "steps"], "conv-1")
+            request = recorder.chat_mutation_requests[-1]
+            body = parse_qs(request.content.decode())
+            params = json.loads(json.loads(body['f.req'][0])[1])
+            assert params[1] == "Continue"
+            assert params[4] == "conv-1"
+            assert params[2] == [part for q, a in expected for part in ([a, None, 2], [q, None, 1])]
+            assert params[0] == [[["pdf"]], [["steps"]]]
+    assert len(recorder.chat_mutation_requests) == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure", ["network", "malformed", "too_long"])
+async def test_follow_up_never_sends_without_restorable_history(failure):
+    from notebooklm._conversation_cache import ConversationCache, MAX_TURNS_PER_CONVERSATION
+    from notebooklm.exceptions import NetworkError
+    from v3_engine.notebooklm.ports import ProviderError
+
+    client = AsyncMock()
+    client.chat._cache = ConversationCache()
+    client.chat.clear_cache = client.chat._cache.clear
+    if failure == "network":
+        client.chat.get_history.side_effect = NetworkError("history unavailable")
+    elif failure == "malformed":
+        client.chat.get_history.return_value = [("Continue",)]
+    else:
+        client.chat.get_history.return_value = [("Continue", "answer")] * (MAX_TURNS_PER_CONVERSATION + 1)
+    with pytest.raises(ProviderError):
+        await SdkProviderSession(client).ask_once("notebook", "Continue", ["pdf", "steps"], "conversation")
+    client.chat.ask.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_new_conversation_does_not_restore_another_conversations_history():
+    client = AsyncMock()
+    client.chat.ask.return_value = SimpleNamespace(answer="map", conversation_id="new", turn_number=1)
+    await SdkProviderSession(client).ask_once("notebook", "Divide", ["pdf"])
+    client.chat.get_history.assert_not_awaited()
+    client.chat.ask.assert_awaited_once_with("notebook", "Divide", source_ids=["pdf"], conversation_id=None)
 
 
 @pytest.mark.parametrize("fail_mode", ["timeout", "429", "500", "auth_expiry"])
@@ -325,7 +479,8 @@ async def test_sdk_http_transport_distinct_pdf_and_steps_upload_phases(tmp_path)
 
             assert r1.source_id == "source-id-1"
             assert r2.source_id == "source-id-2"
-            assert len(recorder.upload_mutation_requests) == 2
+            assert len(recorder.upload_mutation_requests) == 1
+            assert len(recorder.text_mutation_requests) == 1
     finally:
         httpx.AsyncClient.send = orig_send
 
@@ -351,7 +506,7 @@ async def test_sdk_session_provider_lifecycle(tmp_path):
     httpx.AsyncClient.send = recorder.handle
     try:
         provider = SdkSessionProvider(storage_state_path=state_file)
-        async with provider.open() as session:
+        async with provider.open_for_verification() as session:
             assert session.files is session
             assert session.conversation is session
             assert callable(session.files.upload_file)
@@ -382,7 +537,7 @@ async def test_sdk_session_provider_normalizes_csrf_bootstrap_failure(tmp_path, 
     provider = SdkSessionProvider(storage_state_path=state_file)
 
     with pytest.raises(AuthenticationRequiredError) as exc_info:
-        async with provider.open():
+        async with provider.open_for_verification():
             pytest.fail("Session must not be yielded when CSRF bootstrap fails")
 
     assert exc_info.value.code == "authentication_required"
@@ -402,6 +557,6 @@ async def test_sdk_session_uses_the_requested_origin_on_the_real_http_boundary(t
             return httpx.Response(200, text=html, request=request)
         return httpx.Response(200, text="ok", request=request)
     monkeypatch.setattr(httpx.AsyncClient, "send", send)
-    async with SdkSessionProvider(base_url=origin, storage_state_path=state_file).open():
+    async with SdkSessionProvider(base_url=origin, storage_state_path=state_file).open_for_verification():
         pass
     assert requested_origins and set(requested_origins) == {origin}

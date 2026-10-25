@@ -201,6 +201,8 @@ class TerminalSupervisorWorkflow:
         if (persisted.get("counts") or {}).get("duplicate"):
             receipt = {"outcome": "accepted", "submission_id": sub_id, "subject_count": len(new_subjects)}
             self.accepted_submissions[sub_id] = receipt
+            if payload.get("retry"):
+                self.queue.extend(new_subjects)
             return receipt
 
         for s in new_subjects:
@@ -364,6 +366,11 @@ class TerminalSupervisorWorkflow:
         if run_id in self.cancelled_queued_runs:
             return "cancelled_before_start"
         return "unknown"
+
+    @workflow.query(name="get_submission_receipt_v1")
+    def get_submission_receipt_v1(self, submission_id: str) -> dict[str, Any] | None:
+        """Return the durable receipt used to reconcile retried admission calls."""
+        return self.accepted_submissions.get(submission_id)
 
     @workflow.update(name="set_draining_v1")
     async def set_draining_v1(self) -> dict[str, Any]:

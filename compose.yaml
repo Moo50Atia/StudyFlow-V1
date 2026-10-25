@@ -1,0 +1,196 @@
+name: eduplatform
+x-runtime: &runtime
+  restart: unless-stopped
+  init: true
+  stop_grace_period: 320s
+  logging:
+    driver: json-file
+    options: {max-size: 10m, max-file: '3'}
+x-build: &build
+  context: .
+  dockerfile: docker/Dockerfile
+  args:
+    PRODUCT_PROJECT_PATH: ${PRODUCT_PROJECT_PATH:?Use bin/product}
+    PRODUCT_HOME: ${PRODUCT_HOME:?Use bin/product}
+    PRODUCT_UID: ${PRODUCT_UID}
+    PRODUCT_GID: ${PRODUCT_GID}
+    DOCKER_CLI_IMAGE: ${DOCKER_CLI_IMAGE:-docker:29.1.3-cli@sha256:4fa0ee1f3a7e4354c4ea34558b6d4ee32859baf4973d4c8ccc8e7fe3dd730c04}
+    NODE_IMAGE: ${NODE_IMAGE:-node:24-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20}
+    PHP_IMAGE: ${PHP_IMAGE:-php:8.4-fpm-bookworm@sha256:6bfef8e416977aa41f48e3e42a40c1e08050d24e4a938c6edb421400bff24601}
+    PYTHON_IMAGE: ${PYTHON_IMAGE:-python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258}
+    NGINX_IMAGE: ${NGINX_IMAGE:-nginx:1.28-bookworm@sha256:552e7481ca93ffccd046aa658dbbed22caefbc09c66fa7cd247cbb90b8a5c609}
+    COMPOSER_IMAGE: ${COMPOSER_IMAGE:-composer:2.8.12@sha256:5248900ab8b5f7f880c2d62180e40960cd87f60149ec9a1abfd62ac72a02577c}
+x-environment: &environment
+  PYTHONUNBUFFERED: '1'
+  APP_ENV: production
+  APP_DEBUG: 'false'
+  APP_URL: http://127.0.0.1:8766
+  DB_CONNECTION: sqlite
+  DB_DATABASE: /app/database/database.sqlite
+  DB_QUEUE_RETRY_AFTER: '360'
+  QUEUE_CONNECTION: database
+  V3_BRIDGE_URL: http://bridge:8765
+  V3_WEB_PIPELINE_BRIDGE_URL: http://bridge:8765
+  V3_TEMPORAL_ADDRESS: temporal:7233
+  V3_TEMPORAL_NAMESPACE: v3-terminal
+  V3_TERMINAL_TEMPORAL_ADDRESS: temporal:7233
+  V3_TERMINAL_TEMPORAL_NAMESPACE: v3-terminal
+  V3_LARAVEL_CALLBACK_URL: http://web/api/internal/v1/case-events
+  V3_PRIVATE_ROOT: /app/storage/app/v3
+  V3_STORAGE_ROOT: /app/storage/app/v3
+  V3_TERMINAL_ROOT: /app/storage/app/private/v3/terminal
+  V3_SCENE_CHECKER_RUNTIME: docker
+  V3_CLAMAV_CONFIG: /etc/clamav/product.conf
+  NOTEBOOKLM_ALLOW_BROWSER_REFRESH: 'false'
+  NOTEBOOKLM_NO_BROWSER: '1'
+  DOCKER_HOST: unix:///var/run/docker.sock
+  XDG_CACHE_HOME: /tmp/cache
+  NPM_CONFIG_CACHE: /tmp/npm-cache
+  COMPOSER_HOME: /tmp/composer
+  COMPOSER_CACHE_DIR: /tmp/composer-cache
+  PRODUCT_PROJECT_PATH: ${PRODUCT_PROJECT_PATH}
+  HOME: ${PRODUCT_HOME}
+x-volumes: &volumes
+  - ./storage:/app/storage
+  - ./database:/app/database
+  - ./.env:/app/.env:ro
+x-php: &php
+  <<: *runtime
+  image: eduplatform-php:local
+  pull_policy: never
+  user: ${PRODUCT_UID}:${PRODUCT_GID}
+  env_file: .env
+  environment: *environment
+  volumes: *volumes
+x-python: &python
+  <<: *runtime
+  image: eduplatform-python:local
+  pull_policy: never
+  user: ${PRODUCT_UID}:${PRODUCT_GID}
+  group_add: ['${PRODUCT_DOCKER_GID}']
+  env_file: .env
+  environment: *environment
+  volumes:
+    - ./storage:/app/storage
+    - ./database:/app/database
+    - ./.env:/app/.env:ro
+    - ${PRODUCT_MCP_DIR}:${PRODUCT_HOME}/.notebooklm-mcp
+    - ${PRODUCT_SDK_DIR}:${PRODUCT_SDK_DIR}
+    - /var/run/docker.sock:/var/run/docker.sock
+services:
+  init:
+    <<: *php
+    restart: 'no'
+    command: [php, docker/init.php]
+  checker-image:
+    network_mode: none
+    image: v3-scene-checker:012-v1
+    build:
+      context: .
+      dockerfile: v3_engine/qualification/Dockerfile
+    restart: 'no'
+    entrypoint: [python3, -c]
+    command: ['import playwright, subprocess; from pathlib import Path; subprocess.run(["/opt/google/chrome/chrome", "--version"], check=True); assert Path("/app/v3_engine/review/preview_entry.py").is_file()']
+  app:
+    <<: *php
+    build: {<<: *build, target: php}
+    depends_on:
+      init: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD-SHELL, 'SCRIPT_NAME=/fpm-ping SCRIPT_FILENAME=/fpm-ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -q pong']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+  web:
+    <<: *runtime
+    image: eduplatform-web:local
+    build: {<<: *build, target: web}
+    ports: ['127.0.0.1:8766:80']
+    volumes: ['./storage/app/public:/app/public/storage:ro']
+    depends_on:
+      app: {condition: service_healthy}
+    healthcheck:
+      test: [CMD-SHELL, 'curl -fsS http://127.0.0.1/up >/dev/null']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+  temporal:
+    <<: *runtime
+    image: ${TEMPORAL_IMAGE:-temporalio/temporal:1.9.1@sha256:ad4c82c97bd12b417d1ea942610dbcd511afb250c4d5ed26c694009533df447e}
+    user: ${PRODUCT_UID}:${PRODUCT_GID}
+    command: [server, start-dev, --ip, 0.0.0.0, --port, '7233', --ui-port, '8233', --db-filename, /data/server.sqlite, --namespace, v3-terminal]
+    volumes: ['./storage/app/private/v3/temporal:/data']
+    ports: ['127.0.0.1:8233:8233']
+    healthcheck:
+      test: [CMD, temporal, operator, cluster, health, --address, '127.0.0.1:7233']
+      interval: 15s
+      timeout: 10s
+      retries: 12
+  clamav:
+    <<: *runtime
+    image: eduplatform-clamav:local
+    build:
+      context: .
+      dockerfile: docker/clamav.Dockerfile
+      args:
+        CLAMAV_IMAGE: ${CLAMAV_IMAGE:-clamav/clamav:1.4.3@sha256:75fb5fd95fcbe1d7e6d240c369c1572b686ee2c95949d1042b5148de8eddebb4}
+    volumes: [clamav-definitions:/var/lib/clamav]
+    healthcheck:
+      test: [CMD-SHELL, 'printf "PING\n" | nc -w 3 127.0.0.1 3310 | grep -q PONG']
+      interval: 20s
+      timeout: 10s
+      start_period: 180s
+      retries: 30
+  bridge:
+    <<: *python
+    ports: ['127.0.0.1:8765:8765']
+    command: [python, docker/bridge.py]
+    depends_on:
+      init: {condition: service_completed_successfully}
+      temporal: {condition: service_healthy}
+      checker-image: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python, docker/health.py, bridge]
+      interval: 20s
+      timeout: 10s
+      retries: 6
+  worker:
+    <<: *python
+    build: {<<: *build, target: python}
+    command: [python, -u, scripts/v3/run_temporal_pipeline.py, worker]
+    depends_on:
+      init: {condition: service_completed_successfully}
+      temporal: {condition: service_healthy}
+      web: {condition: service_healthy}
+      checker-image: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python, docker/health.py, worker]
+      interval: 20s
+      timeout: 15s
+      start_period: 60s
+      retries: 6
+  scheduler:
+    <<: *php
+    command: [php, artisan, 'schedule:work']
+    depends_on: &processing
+      web: {condition: service_healthy}
+      bridge: {condition: service_healthy}
+      worker: {condition: service_healthy}
+      clamav: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, php, -r, 'exit(is_file("/tmp/scheduler-heartbeat") && time()-filemtime("/tmp/scheduler-heartbeat") < 150 ? 0 : 1);']
+      interval: 30s
+      timeout: 5s
+      start_period: 90s
+      retries: 3
+  queue:
+    <<: *php
+    command: [php, artisan, 'queue:work', database, '--queue=v3_intake,default', '--timeout=300', '--sleep=3', '--tries=3']
+    depends_on: *processing
+    healthcheck:
+      test: [CMD-SHELL, 'kill -0 1 && php /app/docker/queue-health.php']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+volumes:
+  clamav-definitions:

@@ -31,7 +31,7 @@ class EvidenceController extends Controller
     /**
      * Display the evidence timeline for an owned case.
      */
-    public function show(Request $request, string $case): JsonResponse|View|Response
+    public function show(Request $request, string $case)
     {
         $caseModel = $this->resolveOwnedCase($request, $case);
         if ($caseModel instanceof JsonResponse) {
@@ -72,7 +72,7 @@ class EvidenceController extends Controller
             ])->header('Cache-Control', 'private, no-store');
         }
 
-        return view('v3.teacher.evidence.show', [
+        return \App\Support\InertiaPage::render('v3.teacher.evidence.show', [
             'case' => $caseModel,
             'evidence' => $timeline,
         ]);
@@ -81,7 +81,7 @@ class EvidenceController extends Controller
     /**
      * Display the approval-specific graph for an owned case.
      */
-    public function approval(Request $request, string $case, string $approval): JsonResponse|View|Response
+    public function approval(Request $request, string $case, string $approval)
     {
         $caseModel = $this->resolveOwnedCase($request, $case);
         if ($caseModel instanceof JsonResponse) {
@@ -103,7 +103,7 @@ class EvidenceController extends Controller
             ])->header('Cache-Control', 'private, no-store');
         }
 
-        return view('v3.teacher.evidence.approval', [
+        return \App\Support\InertiaPage::render('v3.teacher.evidence.approval', [
             'case' => $caseModel,
             'graph' => $graph,
         ]);

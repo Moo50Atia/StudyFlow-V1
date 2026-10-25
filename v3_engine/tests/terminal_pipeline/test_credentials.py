@@ -1,6 +1,7 @@
 """Tests for SDK credentials isolation, owner proof, and browser-free bootstrap (Spec 018 / T006)."""
 
 import os
+import json
 import shutil
 import stat
 import pytest
@@ -8,7 +9,9 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 from v3_engine.notebooklm.ports import (
+    AccountMismatchError,
     AuthenticationRequiredError,
+    ProviderError,
     ProviderRateLimitError,
     SourceReceipt,
 )
@@ -16,6 +19,18 @@ from v3_engine.notebooklm.terminal_service import (
     NotebookTerminalService,
     bootstrap_subject_credentials,
 )
+from v3_engine.notebooklm.credentials import REQUIRED_COOKIES
+
+
+@pytest.fixture
+def master_state(tmp_path):
+    path = tmp_path/'master_storage_state.json'
+    path.write_text(json.dumps({'cookies': [
+        {'name': name, 'value': f'test-{name}', 'domain': '.google.com', 'path': '/', 'expires': -1}
+        for name in sorted(REQUIRED_COOKIES)
+    ], 'origins': []}))
+    path.chmod(0o600)
+    return path
 
 
 class FakeSdkNotebookFiles:
@@ -64,10 +79,9 @@ class FakeSessionProvider:
         return _Context()
 
 
-def test_per_subject_credential_isolation_and_permissions(tmp_path: Path) -> None:
-    master_file = tmp_path / "master_storage_state.json"
-    master_bytes = b'{"cookies": [{"name": "SID", "value": "secret123"}]}'
-    master_file.write_bytes(master_bytes)
+def test_per_subject_credential_isolation_and_permissions(tmp_path: Path, master_state: Path) -> None:
+    master_file = master_state
+    master_bytes = master_file.read_bytes()
 
     session_root = tmp_path / "sessions"
     subject_run_id = "44444444-5555-6666-7777-888888888888"
@@ -93,10 +107,9 @@ def test_per_subject_credential_isolation_and_permissions(tmp_path: Path) -> Non
     assert master_file.read_bytes() == master_bytes
 
 
-def test_refresh_command_disabled_in_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_refresh_command_disabled_in_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, master_state: Path) -> None:
     monkeypatch.setenv("NOTEBOOKLM_REFRESH_CMD", "launch_browser.sh")
-    master_file = tmp_path / "master.json"
-    master_file.write_bytes(b"{}")
+    master_file = master_state
 
     bootstrap_subject_credentials(
         master_storage_path=master_file,
@@ -109,7 +122,9 @@ def test_refresh_command_disabled_in_environment(monkeypatch: pytest.MonkeyPatch
 
 
 @pytest.mark.asyncio
-async def test_owner_verification_passes_for_explicit_owner() -> None:
+async def test_owner_verification_passes_for_explicit_owner(monkeypatch) -> None:
+    record = MagicMock()
+    monkeypatch.setattr('v3_engine.notebooklm.credentials.NotebookCredentialAuthority.record_verified', record)
     fake_session = FakeSdkSession(owner_role="owner")
     provider = FakeSessionProvider(fake_session)
     service = NotebookTerminalService(session_provider=provider)
@@ -117,6 +132,7 @@ async def test_owner_verification_passes_for_explicit_owner() -> None:
     verified = await service.verify_session(proof_notebook_id="proof-nb-123")
     assert verified is True
     assert fake_session.files.verify_owner_calls == 1
+    record.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -125,6 +141,22 @@ async def test_owner_verification_fails_for_shared_or_viewer_role() -> None:
     provider = FakeSessionProvider(fake_session)
     service = NotebookTerminalService(session_provider=provider)
 
-    with pytest.raises(AuthenticationRequiredError, match="Owner verification failed"):
+    with pytest.raises(AccountMismatchError) as error:
         await service.verify_session(proof_notebook_id="proof-nb-123")
+    assert error.value.code == "account_mismatch"
     assert fake_session.files.verify_owner_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_unknown_ownership_does_not_claim_the_session_expired(monkeypatch) -> None:
+    record = MagicMock()
+    monkeypatch.setattr('v3_engine.notebooklm.credentials.NotebookCredentialAuthority.record_verified', record)
+    session = FakeSdkSession(owner_role="unknown")
+    service = NotebookTerminalService(session_provider=FakeSessionProvider(session))
+
+    with pytest.raises(ProviderError) as error:
+        await service.verify_session(proof_notebook_id="proof-nb-123")
+
+    assert error.value.code == "ownership_unverified"
+    assert not isinstance(error.value, AuthenticationRequiredError)
+    record.assert_not_called()

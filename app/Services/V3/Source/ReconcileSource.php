@@ -3,6 +3,7 @@
 namespace App\Services\V3\Source;
 
 use App\Models\V3\SourceActivation;
+use App\Models\V3\ProcessingCase;
 use Illuminate\Support\Facades\Log;
 
 class ReconcileSource
@@ -30,6 +31,11 @@ class ReconcileSource
             ->get();
 
         foreach ($activations as $activation) {
+            $case = ProcessingCase::find($activation->case_id);
+            if ($case && $case->isLocalWorkerCase()) {
+                continue;
+            }
+
             if ($activation->signal_attempted_at && $activation->signal_attempted_at <= now()->subHours(24)) {
                 if ($activation->last_alert_code !== 'source_activation_overdue' || !$activation->last_alerted_at || $activation->last_alerted_at <= now()->subHours(24)) {
                     Log::warning('source_activation_overdue', [

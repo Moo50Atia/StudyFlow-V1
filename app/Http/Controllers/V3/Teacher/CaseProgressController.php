@@ -16,7 +16,7 @@ use Illuminate\View\View;
 
 class CaseProgressController extends Controller
 {
-    public function show(Request $request, string $case): JsonResponse|View|Response
+    public function show(Request $request, string $case)
     {
         if (! Str::isUuid($case)) {
             if ($request->expectsJson()) {
@@ -118,7 +118,7 @@ class CaseProgressController extends Controller
             ], 200)->header('Cache-Control', 'private, no-store');
         }
 
-        return response()->view('v3.teacher.cases.progress', [
+        return \App\Support\InertiaPage::render('v3.teacher.cases.progress', [
             'case' => $caseModel,
             'progress' => $payload,
         ])->header('Cache-Control', 'private, no-store');

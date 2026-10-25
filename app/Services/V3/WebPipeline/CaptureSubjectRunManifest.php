@@ -11,6 +11,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 class CaptureSubjectRunManifest
 {
     public const MAX_MANIFEST_BYTES = 32768; // 32 KiB
+    public const MAX_PREPARED_MANIFEST_BYTES = 1048576; // Bounded 640-part preparation metadata.
 
     /**
      * Capture an immutable manifest for a SubjectRun and persist it privately.
@@ -38,6 +39,7 @@ class CaptureSubjectRunManifest
                 'input_bytes' => (int) $item->input_bytes,
                 'upload_attempt_id' => $item->upload_attempt_id,
                 'accepted_input_ref' => $item->accepted_input_ref,
+                ...($item->pdf_lineage ? ['pdf_lineage' => $item->pdf_lineage] : []),
             ];
         }
 
@@ -59,11 +61,13 @@ class CaptureSubjectRunManifest
             'total_pdfs' => count($itemDescriptors),
             'items' => $itemDescriptors,
             'captured_at' => now()->toIso8601String(),
+            ...($run->pdf_preparation ? ['pdf_preparation' => $run->pdf_preparation] : []),
         ];
 
         $encoded = json_encode($manifestData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        if (strlen($encoded) > self::MAX_MANIFEST_BYTES) {
-            throw new HttpException(422, 'Captured manifest exceeds 32 KiB metadata limit.');
+        $limit = $run->protocol === 'notebooklm_per_pdf_web_v3' ? self::MAX_PREPARED_MANIFEST_BYTES : self::MAX_MANIFEST_BYTES;
+        if (strlen($encoded) > $limit) {
+            throw new HttpException(422, 'Captured manifest exceeds its metadata limit.');
         }
 
         $manifestSha256 = hash('sha256', $encoded);
@@ -110,13 +114,16 @@ class CaptureSubjectRunManifest
         }
 
         $content = Storage::disk('v3_private')->get($path);
-        if (strlen($content) > self::MAX_MANIFEST_BYTES) {
+        if (strlen($content) > self::MAX_PREPARED_MANIFEST_BYTES) {
             throw new HttpException(422, 'Manifest exceeds maximum allowed byte limit.');
         }
 
         $data = json_decode($content, true);
         if (! is_array($data)) {
             throw new HttpException(422, 'Corrupted manifest JSON.');
+        }
+        if (($data['protocol'] ?? '') !== 'notebooklm_per_pdf_web_v3' && strlen($content) > self::MAX_MANIFEST_BYTES) {
+            throw new HttpException(422, 'Legacy manifest exceeds maximum byte limit.');
         }
 
         return $data;

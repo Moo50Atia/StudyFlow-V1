@@ -14,6 +14,7 @@ from notebooklm.types import SharePermission
 from notebooklm.exceptions import (
     AuthError,
     ChatError,
+    ClientError,
     NetworkError,
     NotebookError,
     RateLimitError,
@@ -22,7 +23,13 @@ from notebooklm.exceptions import (
     ValidationError,
 )
 
-from v3_engine.notebooklm.credentials import get_storage_state_path, validate_storage_state
+from v3_engine.notebooklm.credentials import (
+    CredentialsValidationError,
+    NotebookCredentialAuthority,
+    get_storage_state_path,
+    sync_storage_state,
+    validate_storage_state,
+)
 from v3_engine.notebooklm.ports import (
     AuthenticationRequiredError,
     ChatFormatSettings,
@@ -36,6 +43,7 @@ from v3_engine.notebooklm.ports import (
     ProviderUnavailableError,
     SourceReceipt,
     TurnAnswer,
+    require_notebook_owner,
 )
 
 logger = logging.getLogger("v3_engine.notebooklm")
@@ -104,6 +112,15 @@ class SdkProviderSession(NotebookFiles, NotebookConversation):
         upload_path = Path(local_path)
         temporary_path: Path | None = None
         try:
+            if mime_type.split(';', 1)[0].strip().lower() in {'text/plain', 'text/markdown'}:
+                # Captured framework instructions are native text sources. Keep
+                # their exact UTF-8 content on the same authenticated RPC path.
+                src = await self.client.sources.add_text(
+                    notebook_id, title, upload_path.read_bytes().decode('utf-8'),
+                    wait=False, idempotent=False,
+                )
+                status = 'ready' if getattr(src, 'is_ready', False) else 'error' if getattr(src, 'is_error', False) else 'processing'
+                return SourceReceipt(src.id, src.title, status, mime_type)
             # Web intake deliberately stores source bytes under opaque `.bin`
             # names. notebooklm-py validates the filename extension before it
             # starts the upload, even when mime_type is supplied. Give the SDK
@@ -227,8 +244,18 @@ class SdkProviderSession(NotebookFiles, NotebookConversation):
             raise ProviderRateLimitError(retry_after_seconds=getattr(e, "retry_after", None), raw_detail=str(e)) from e
         except (ServerError, NetworkError) as e:
             raise ProviderUnavailableError(raw_detail=str(e)) from e
-        except Exception:
-            return "unknown"
+        except (NotebookError, ClientError) as e:
+            raise ProviderError(
+                "notebook_verification_failed",
+                "NotebookLM could not read the configured proof notebook. Check its link and access.",
+                raw_detail=str(e),
+            ) from e
+        except Exception as e:
+            raise ProviderError(
+                "ownership_check_failed",
+                "NotebookLM ownership verification failed unexpectedly.",
+                raw_detail=str(e),
+            ) from e
 
     async def configure_format(self, notebook_id: str, format_text: str) -> None:
         try:
@@ -273,6 +300,31 @@ class SdkProviderSession(NotebookFiles, NotebookConversation):
         fresh_after_conversation_id: Optional[str] = None,
     ) -> TurnAnswer:
         try:
+            if conversation_id is not None:
+                # SDK 0.8.4 builds follow-up request context from its local
+                # cache, not from the conversation ID or get_history(). Each
+                # activity opens a fresh client, so restore verified server
+                # turns before sending the next literal Continue.
+                from notebooklm._conversation_cache import MAX_TURNS_PER_CONVERSATION
+
+                history = await self.history(
+                    notebook_id, conversation_id,
+                    limit=2 * (MAX_TURNS_PER_CONVERSATION + 1),
+                )
+                if not isinstance(history, list) or any(
+                    not isinstance(turn, (tuple, list)) or len(turn) != 2
+                    or not all(isinstance(text, str) for text in turn)
+                    for turn in history
+                ):
+                    raise ProviderError("chat_history_invalid", "Cannot restore malformed conversation history.")
+                if len(history) > MAX_TURNS_PER_CONVERSATION:
+                    raise ProviderError("chat_history_truncated", "Conversation exceeds the SDK context capacity.")
+                cache = getattr(self.client.chat, "_cache", None)
+                if cache is None or not callable(getattr(cache, "cache_conversation_turn", None)):
+                    raise ProviderError("sdk_history_unsupported", "SDK cannot restore conversation context.")
+                self.client.chat.clear_cache(conversation_id)
+                for index, (query, answer) in enumerate(history, start=1):
+                    cache.cache_conversation_turn(conversation_id, query, answer, index)
             if fresh_after_conversation_id is not None:
                 if conversation_id is not None:
                     raise ProviderError("chat_reset_conflict", "Fresh chat cannot continue an explicit conversation.")
@@ -373,47 +425,102 @@ class SdkSessionProvider:
         storage_path: Optional[Path] = None,
     ) -> AsyncIterator[ProviderSession]:
         path = storage_path or self.storage_state_path or get_storage_state_path()
-        validate_storage_state(path)
-
-        client_context = NotebookLMClient.from_storage(
-            path=path,
-            allow_headless=False,
-            config=ClientConfig(
-                backend=WebBackendConfig(request=WebRequestOptions(
-                    base_url=self.base_url or os.environ.get("NOTEBOOKLM_ORIGIN") or os.environ.get("NOTEBOOKLM_BASE_URL"),
-                )),
-                retry=RetryOptions(rate_limit_max_retries=0, server_error_max_retries=0),
-            ),
-        )
+        authority = NotebookCredentialAuthority()
+        await self._verify_profile_if_needed(authority, Path(path))
+        # Every SDK-backed caller shares the same profile resolver. A run-local
+        # copy may move to a refreshed session only after a successful owner
+        # check has published that profile generation.
         try:
-            # Token/CSRF bootstrap happens while entering the SDK context. Keep
-            # this separate from the caller's work so only bootstrap failures
-            # are normalized as authentication failures.
-            client = await client_context.__aenter__()
-        except AuthError as e:
-            raise AuthenticationRequiredError(raw_detail=str(e)) from e
-        except ValueError as e:
-            detail = str(e).casefold()
-            if any(marker in detail for marker in (
-                "csrf token not found",
-                "authentication expired",
-                "cookie mismatch",
-                "authentication required",
-            )):
-                raise AuthenticationRequiredError(raw_detail=str(e)) from e
-            raise ProviderError(
-                "provider_session_failed",
-                "NotebookLM session initialization failed.",
-                raw_detail=str(e),
-            ) from e
-
-        session = SdkProviderSession(client=client)
-        try:
+            path = authority.resolve_run_copy(Path(path))
+        except CredentialsValidationError as exc:
+            raise ProviderError(exc.code, exc.message) from exc
+        async with self._open_client(path) as session:
             yield session
-        except BaseException as exc:
-            await session.close()
-            await client_context.__aexit__(type(exc), exc, exc.__traceback__)
-            raise
-        else:
-            await session.close()
-            await client_context.__aexit__(None, None, None)
+
+    @asynccontextmanager
+    async def open_for_verification(
+        self,
+        storage_path: Optional[Path] = None,
+    ) -> AsyncIterator[ProviderSession]:
+        """Open a session only for the read-only configured-owner check."""
+        path = storage_path or self.storage_state_path or get_storage_state_path()
+        async with self._open_client(Path(path)) as session:
+            yield session
+
+    async def _verify_profile_if_needed(self, authority: NotebookCredentialAuthority, path: Path) -> None:
+        status = authority.profile_status()
+        if status["verified"]:
+            return
+        proof_notebook_id = authority.proof_notebook_id()
+        if not proof_notebook_id:
+            raise ProviderError(
+                "profile_unverified",
+                "NotebookLM profile needs a configured proof notebook before ownership can be verified.",
+            )
+        verification_path = authority.verification_path(path)
+        async with self._open_client(verification_path) as session:
+            role = await session.files.verify_owner(proof_notebook_id)
+            require_notebook_owner(role)
+        authority.record_verified(proof_notebook_id, verification_path)
+
+    @asynccontextmanager
+    async def _open_client(self, path: Path) -> AsyncIterator[ProviderSession]:
+        path = path.expanduser().resolve()
+        temporary_path: Path | None = None
+        if path == NotebookCredentialAuthority().master_path:
+            # SDK cookie/CSRF refreshes belong to this operation's private
+            # snapshot. A slow client must not overwrite a newer manual refresh.
+            fd, raw_path = tempfile.mkstemp(dir=path.parent, prefix=".notebooklm-operation-")
+            os.close(fd)
+            temporary_path = Path(raw_path)
+            try:
+                sync_storage_state(path, temporary_path)
+            except Exception:
+                temporary_path.unlink(missing_ok=True)
+                raise
+            path = temporary_path
+        try:
+            validate_storage_state(path)
+            client_context = NotebookLMClient.from_storage(
+                path=path,
+                allow_headless=False,
+                config=ClientConfig(
+                    backend=WebBackendConfig(request=WebRequestOptions(
+                        base_url=self.base_url or os.environ.get("NOTEBOOKLM_ORIGIN") or os.environ.get("NOTEBOOKLM_BASE_URL"),
+                    )),
+                    retry=RetryOptions(rate_limit_max_retries=0, server_error_max_retries=0),
+                ),
+            )
+            try:
+                # Token/CSRF bootstrap happens while entering the SDK context.
+                client = await client_context.__aenter__()
+            except AuthError as e:
+                raise AuthenticationRequiredError(raw_detail=str(e)) from e
+            except ValueError as e:
+                detail = str(e).casefold()
+                if any(marker in detail for marker in (
+                    "csrf token not found",
+                    "authentication expired",
+                    "cookie mismatch",
+                    "authentication required",
+                )):
+                    raise AuthenticationRequiredError(raw_detail=str(e)) from e
+                raise ProviderError(
+                    "provider_session_failed",
+                    "NotebookLM session initialization failed.",
+                    raw_detail=str(e),
+                ) from e
+
+            session = SdkProviderSession(client=client)
+            try:
+                yield session
+            except BaseException as exc:
+                await session.close()
+                await client_context.__aexit__(type(exc), exc, exc.__traceback__)
+                raise
+            else:
+                await session.close()
+                await client_context.__aexit__(None, None, None)
+        finally:
+            if temporary_path is not None:
+                temporary_path.unlink(missing_ok=True)

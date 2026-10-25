@@ -25,6 +25,17 @@ class TerminalBridgeClient
         return $this->request('POST', '/internal/v1/application-pipeline/submissions', $payload);
     }
 
+    /** Start the durable browser qualification workflow for an immutable candidate. */
+    public function qualifySceneCandidate(array $payload): array
+    {
+        return $this->request('POST', '/internal/v1/application-pipeline/qualifications', $payload);
+    }
+
+    public function preparePdfs(array $payload): array
+    {
+        return $this->request('POST', '/internal/v1/application-pipeline/pdf-preparations', $payload, 600)['data'] ?? [];
+    }
+
     /**
      * Send an application command to the bridge.
      */
@@ -46,18 +57,18 @@ class TerminalBridgeClient
      */
     public function getRunStatus(string $runId): array
     {
-        return $this->request('GET', "/internal/v1/application-pipeline/runs/{$runId}/status");
+        return $this->request('GET', "/internal/v1/application-pipeline/runs/{$runId}/status", [], 3);
     }
 
     /**
      * Perform signed HTTP request to Python bridge.
      */
-    protected function request(string $method, string $path, array $body = []): array
+    protected function request(string $method, string $path, array $body = [], int $timeoutSeconds = 15): array
     {
         $prepared = BridgeRequestSigner::prepareBridgeRequest($method, $path, $body, $this->secretKey);
         $url = rtrim($this->baseUrl, '/') . '/' . ltrim($path, '/');
 
-        $httpClient = Http::withHeaders($prepared['headers'])->timeout(15);
+        $httpClient = Http::withHeaders($prepared['headers'])->timeout($timeoutSeconds);
 
         if (strtoupper($method) === 'GET') {
             $resp = $httpClient->get($url);

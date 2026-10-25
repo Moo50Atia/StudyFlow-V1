@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import logging
@@ -67,7 +68,28 @@ def _subject_run_dir(subject_run_id: str) -> Path:
     return Path(os.environ.get("V3_TERMINAL_ROOT") or "storage/app/private/v3/terminal") / "runs" / subject_run_id
 
 
+def _resolve_run_template(subject_run_id: str) -> tuple[str, str]:
+    """Use the bytes sealed into this run; legacy runs retain their captured local default."""
+    config_path = _subject_run_dir(subject_run_id) / "subject-config.json"
+    if config_path.is_file():
+        config = read_json(config_path)
+        template = config.get("captured_scene_system_prompt")
+        digest = config.get("captured_scene_system_prompt_sha256")
+        if template is not None or digest is not None:
+            if (not isinstance(template, str) or not isinstance(digest, str)
+                    or hashlib.sha256(template.encode("utf-8")).hexdigest() != digest):
+                raise ValueError("captured_scene_template_corrupt")
+            return template, digest
+    return resolve_template()
+
+
 def _record_event(subject_run_id: str, kind: str, phase: str, outcome: str, safe_code: str = "ok", operation_id: str | None = None, counts: dict[str, int] | None = None, attempt: int = 1) -> None:
+    if operation_id is None and kind == 'scene_prompts_exported':
+        try:
+            info = activity.info()
+            operation_id, attempt = f"export:{info.workflow_run_id}:{info.activity_id}", info.attempt
+        except RuntimeError:
+            operation_id = f"export:{outcome}:{safe_code}"
     journal = OperationalJournal(Path(os.environ.get("V3_TERMINAL_ROOT") or "storage/app/private/v3/terminal"))
     logical_id = operation_id or subject_run_id
     journal.append_event(OperationalEvent(
@@ -116,6 +138,50 @@ def _finish_remote_operation(path: Path, saved: dict[str, Any] | None, *, result
     atomic_json(path, payload)
 
 
+def _retain_remote_failure(path: Path, exc: Exception) -> None:
+    """Keep bounded upload-stage diagnostics without request bodies, URLs or tokens."""
+    allowed_codes = {
+        'authentication_required', 'account_mismatch', 'provider_unavailable',
+        'provider_rate_limit', 'source_upload_failed', 'source_upload_invalid',
+        'provider_unknown_error', 'notebook_create_failed',
+    }
+    code = getattr(exc, 'code', None)
+    details = {'code': code if isinstance(code, str) and code in allowed_codes else 'provider_unavailable'}
+    current, seen = exc, set()
+    for _ in range(8):
+        if current is None or id(current) in seen:
+            break
+        seen.add(id(current))
+        details['exception_type'] = type(current).__name__
+        stage = getattr(current, 'stage', None)
+        if isinstance(stage, str) and stage in {'start_session', 'upload_finalize'}:
+            details['upload_stage'] = stage
+        status = getattr(current, 'status_code', None)
+        response = getattr(current, 'response', None)
+        if status is None and response is not None:
+            status = getattr(response, 'status_code', None)
+        if isinstance(status, int) and 100 <= status <= 599:
+            details['http_status'] = status
+        try:
+            request = getattr(current, 'request', None)
+        except RuntimeError:
+            request = None
+        if request is not None and request.url.host in {'notebook.google.com', 'notebooklm.google.com'}:
+            details['request_host'] = request.url.host
+            cookie_names = {part.partition('=')[0].strip() for part in request.headers.get('cookie', '').split(';')}
+            details['product_cookie_present'] = bool(cookie_names & {'OSID', '__Secure-OSID'})
+            details['account_cookie_present'] = 'SID' in cookie_names
+        current = current.__cause__ or current.__context__
+    try:
+        from v3_engine.notebooklm.terminal_service import atomic_json
+        payload = json.loads(path.read_text(encoding='utf-8'))
+        payload['failure'] = details
+        atomic_json(path, payload)
+    except Exception:
+        logger.error('Could not retain safe NotebookLM mutation diagnostics')
+    logger.warning('NotebookLM mutation failed: %s', json.dumps(details, sort_keys=True))
+
+
 def _sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -151,7 +217,7 @@ def _scene_context(subject_run_id: str, scene_key: str | None = None, scene_root
         captured_env["V3_GEMINI_THINKING_BUDGET"] = str(cfg_doc.get("gemini_thinking_budget", 24576))
         captured_env["V3_GEMINI_MAX_OUTPUT_TOKENS"] = str(cfg_doc.get("gemini_max_output_tokens", 65536))
         cfg = load_provider_config(cfg_doc["provider"], cfg_doc["model"], cfg_doc["timeout_seconds"], env=captured_env)
-    template, template_sha = resolve_template()
+    template, template_sha = _resolve_run_template(subject_run_id)
     store = SceneArtifactStore(run_dir / "scene-generation")
     store.acquire_lock(owner_context=f"v3-terminal-{subject_run_id}")
     if initialize:
@@ -298,28 +364,79 @@ async def verify_notebook_session(inp: dict[str, Any]) -> dict[str, Any]:
     proof_notebook_id = inp.get("proof_notebook_id", "")
     storage_path = Path(inp["credential_path"]) if "credential_path" in inp else _subject_credential_path(inp["subject_run_id"])
     service = NotebookTerminalService()
+    # Resuming a held workflow schedules a new verification activity. Its event
+    # must not collide with the earlier failure, while redelivery of this same
+    # activity attempt must remain idempotent.
+    try:
+        info = activity.info()
+        verification_id = f"session-check:{info.workflow_run_id}:{info.activity_id}"
+        attempt = info.attempt
+    except RuntimeError:
+        verification_id, attempt = None, 1
+    outcome, code = ActivityOutcome.complete.value, SafeCode.ok.value
     try:
         await service.verify_session(proof_notebook_id, storage_path=storage_path)
-        _record_event(inp["subject_run_id"], "notebook_session_verified", "preflight", "complete")
-        return {
-            "schema_version": 1,
-            "outcome": ActivityOutcome.complete.value,
-            "safe_code": SafeCode.ok.value,
-            "receipt_ref": None,
-            "result_ref": None,
-            "counts": None,
-        }
     except Exception as exc:
-        logger.warning("verify_notebook_session failed (details retained only in local private diagnostics)")
-        _record_event(inp["subject_run_id"], "notebook_session_verified", "preflight", "failed", SafeCode.account_mismatch.value)
-        return {
-            "schema_version": 1,
-            "outcome": ActivityOutcome.failed.value,
-            "safe_code": SafeCode.account_mismatch.value,
-            "receipt_ref": None,
-            "result_ref": None,
-            "counts": None,
-        }
+        logger.warning("verify_notebook_session provider check failed (%s)", type(exc).__name__)
+        outcome = ActivityOutcome.failed.value
+        known_code = getattr(exc, 'code', None)
+        code = {
+            'authentication_required': SafeCode.authentication_required.value,
+            'account_mismatch': SafeCode.account_mismatch.value,
+            'provider_rate_limit': SafeCode.provider_rate_limit.value,
+        }.get(known_code, SafeCode.provider_unavailable.value)
+    if verification_id is None:
+        # Direct, non-Temporal diagnostic/test calls still retain distinct
+        # failed and successful observations without rewriting history.
+        verification_id = f"session-check:{outcome}:{code}"
+    try:
+        _record_event(inp["subject_run_id"], "notebook_session_verified", "preflight", outcome, code,
+                      operation_id=verification_id, attempt=attempt)
+    except Exception:
+        logger.error("NotebookLM verification result could not be recorded in the local journal")
+        outcome, code = ActivityOutcome.failed.value, SafeCode.storage_unavailable.value
+    return {
+        "schema_version": 1, "outcome": outcome, "safe_code": code,
+        "receipt_ref": None, "result_ref": None, "counts": None,
+    }
+
+
+async def _recover_remote_operation(inp, operation_type, operation_id, op_path, prior, storage_path, **criteria):
+    """Read-only reconciliation of a retained create/upload/configure intent."""
+    service = NotebookTerminalService()
+    observed = {'outcome': 'uncertain'}
+    for attempt in range(3):
+        try:
+            observed = await service.reconcile(operation_type=operation_type, storage_path=storage_path, **criteria)
+        except AuthenticationRequiredError:
+            break
+        except Exception:
+            observed = {'outcome': 'uncertain'}
+        if observed.get('outcome') != 'uncertain' or attempt == 2:
+            break
+        # Provider inventories can lag a committed upload/create. Repeat only
+        # read-only reconciliation; never resend the original mutation here.
+        await asyncio.sleep(1)
+    if operation_type == 'format' and observed.get('configuration_matches') is False:
+        # A successful read proves the current setting differs. Reapplying
+        # this convergent setter cannot duplicate a notebook/chat request;
+        # require positive readback before settling its receipt.
+        try:
+            await service.configure_chat(criteria['notebook_id'], criteria['format_text'], storage_path=storage_path)
+            observed = await service.reconcile(operation_type=operation_type, storage_path=storage_path, **criteria)
+        except Exception:
+            observed = {'outcome': 'uncertain'}
+    if observed.get('outcome') != 'complete':
+        return _safe_provider_failure(inp['subject_run_id'], operation_type + '_reconcile', operation_type,
+                                      operation_id=operation_id, uncertain=True)
+    result_ref = observed.get('notebook_id') if operation_type == 'create' else observed.get('source_id') if operation_type == 'upload' else None
+    if operation_type in ('create', 'upload') and not result_ref:
+        return _safe_provider_failure(inp['subject_run_id'], operation_type + '_reconcile', operation_type,
+                                      operation_id=operation_id, uncertain=True)
+    _finish_remote_operation(op_path, prior, result_ref=result_ref)
+    _record_event(inp['subject_run_id'], operation_type + '_recovered', operation_type, 'complete', operation_id=operation_id)
+    return {'schema_version': 1, 'outcome': 'complete', 'safe_code': 'ok',
+            'receipt_ref': str(op_path), 'result_ref': result_ref, 'counts': None}
 
 
 @activity.defn(name="create_terminal_notebook")
@@ -334,12 +451,18 @@ async def create_terminal_notebook(inp: dict[str, Any]) -> dict[str, Any]:
         if prior.get("state") == "complete":
             return {"schema_version": 1, "outcome": ActivityOutcome.complete.value, "safe_code": SafeCode.ok.value,
                     "receipt_ref": str(op_path), "result_ref": prior.get("result_ref"), "counts": None}
-        return _safe_provider_failure(inp["subject_run_id"], "notebook_created", "create", uncertain=True)
+        return await _recover_remote_operation(inp, 'create', operation_id, op_path, prior, storage_path, title=title)
     service = NotebookTerminalService()
     try:
         ref = await service.create_notebook(title, storage_path=storage_path)
-    except Exception:
-        return _safe_provider_failure(inp["subject_run_id"], "notebook_created", "create", uncertain=True)
+    except Exception as exc:
+        # The create request may have committed before its acknowledgment was
+        # lost. Read the unique run title now; a positive match settles the
+        # existing operation without issuing another create request.
+        _retain_remote_failure(op_path, exc)
+        return await _recover_remote_operation(
+            inp, 'create', operation_id, op_path, prior, storage_path, title=title,
+        )
     nb_id = ref.id if hasattr(ref, "id") else str(ref)
     _finish_remote_operation(op_path, prior, result_ref=nb_id)
     _record_event(inp["subject_run_id"], "notebook_created", "create", "complete", operation_id=operation_id)
@@ -373,7 +496,8 @@ async def upload_terminal_source(inp: dict[str, Any]) -> dict[str, Any]:
             ref = prior.get("result_ref")
             return {"schema_version": 1, "outcome": ActivityOutcome.complete.value, "safe_code": SafeCode.ok.value,
                     "receipt_ref": ref, "result_ref": ref, "counts": None}
-        return _safe_provider_failure(inp["subject_run_id"], "source_uploaded", "upload", uncertain=True)
+        return await _recover_remote_operation(inp, 'upload', operation_id, op_path, prior, storage_path,
+                                               notebook_id=notebook_id, title=title)
     service = NotebookTerminalService()
     try:
         receipt = await service.upload_source(
@@ -383,8 +507,15 @@ async def upload_terminal_source(inp: dict[str, Any]) -> dict[str, Any]:
             title=title,
             storage_path=storage_path,
         )
-    except Exception:
-        return _safe_provider_failure(inp["subject_run_id"], "source_uploaded", "upload", uncertain=True)
+    except Exception as exc:
+        # A lost upload acknowledgment is resolved by listing this run's
+        # uniquely titled, fully processed source in the new notebook. A
+        # registration row alone does not prove that file bytes arrived.
+        _retain_remote_failure(op_path, exc)
+        return await _recover_remote_operation(
+            inp, 'upload', operation_id, op_path, prior, storage_path,
+            notebook_id=notebook_id, title=title,
+        )
     _finish_remote_operation(op_path, prior, result_ref=receipt.source_id)
     _record_event(inp["subject_run_id"], "source_uploaded", "upload", "complete", operation_id=operation_id)
     return {
@@ -463,12 +594,19 @@ async def configure_terminal_chat(inp: dict[str, Any]) -> dict[str, Any]:
         if prior.get("state") == "complete":
             return {"schema_version": 1, "outcome": ActivityOutcome.complete.value, "safe_code": SafeCode.ok.value,
                     "receipt_ref": str(op_path), "result_ref": None, "counts": None}
-        return _safe_provider_failure(inp["subject_run_id"], "chat_configured", "configure", uncertain=True)
+        return await _recover_remote_operation(inp, 'format', operation_id, op_path, prior, storage_path,
+                                               notebook_id=notebook_id, format_text=format_text)
     service = NotebookTerminalService()
     try:
         await service.configure_chat(notebook_id, format_text, storage_path=storage_path)
     except Exception:
-        return _safe_provider_failure(inp["subject_run_id"], "chat_configured", "configure", uncertain=True)
+        # This is a convergent setter. Reconcile by reading the captured
+        # format first; _recover_remote_operation reapplies it only after a
+        # positive read proves the previous write did not take effect.
+        return await _recover_remote_operation(
+            inp, 'format', operation_id, op_path, prior, storage_path,
+            notebook_id=notebook_id, format_text=format_text,
+        )
     _finish_remote_operation(op_path, prior, result_ref=None)
     _record_event(inp["subject_run_id"], "chat_configured", "configure", "complete", operation_id=operation_id)
     return {
@@ -506,6 +644,51 @@ async def send_terminal_turn(inp: dict[str, Any]) -> dict[str, Any]:
     if fresh_after is not None:
         request["fresh_after_conversation_id"] = fresh_after
     request_digest = hashlib.sha256(json.dumps(request, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+    from v3_engine.notebooklm.terminal_service import atomic_json
+
+    async def reconcile_response(expected_index, prefix, conversation_hint):
+        recovered_conversation = conversation_hint
+        for attempt in range(3):
+            try:
+                if not recovered_conversation or recovered_conversation == fresh_after:
+                    recovered_conversation = await service.get_current_conversation_id(
+                        notebook_id, storage_path=storage_path,
+                    )
+                if not recovered_conversation or recovered_conversation == fresh_after:
+                    recovered = {"outcome": "uncertain"}
+                else:
+                    recovered = await service.reconcile_chat_turn(
+                        notebook_id, recovered_conversation, question, int(expected_index), prefix,
+                        storage_path=storage_path,
+                    )
+            except Exception:
+                recovered = {"outcome": "uncertain"}
+            if recovered.get("outcome") == "complete":
+                answer_text = recovered.get("raw_answer")
+                if isinstance(answer_text, str) and answer_text.strip():
+                    return {"outcome": "complete", "conversation_id": recovered_conversation,
+                            "raw_answer": answer_text, "turn_index": recovered.get("turn_index")}
+                recovered = {"outcome": "uncertain"}
+            if recovered.get("outcome") == "blocked" or attempt == 2:
+                return {"outcome": "uncertain"}
+            await asyncio.sleep(1)
+        return {"outcome": "uncertain"}
+
+    def persist_recovered_response(recovered, expected_index, prefix):
+        recovered_conversation = recovered["conversation_id"]
+        atomic_json(turn_file, {
+            "schema_version": 1, "operation_id": operation_id, "state": "complete",
+            "request_digest": request_digest, "notebook_id": notebook_id,
+            "conversation_id": recovered_conversation, "question": question,
+            "request_conversation_id": conversation_id, "source_ids": source_ids,
+            **({"fresh_after_conversation_id": fresh_after} if fresh_after is not None else {}),
+            "raw_answer": recovered["raw_answer"], "turn_number": recovered.get("turn_index"),
+            "expected_turn_index": expected_index, "history_prefix": prefix,
+        })
+        _record_event(inp["subject_run_id"], "notebook_turn_recovered", "chat", "complete", operation_id=operation_id)
+        return {"schema_version": 1, "outcome": ActivityOutcome.complete.value, "safe_code": SafeCode.ok.value,
+                "receipt_ref": receipt_id, "result_ref": recovered_conversation, "counts": None}
+
     if turn_file.exists():
         prior = json.loads(turn_file.read_text(encoding="utf-8"))
         if prior.get("request_digest") != request_digest:
@@ -519,26 +702,12 @@ async def send_terminal_turn(inp: dict[str, Any]) -> dict[str, Any]:
         # A dispatch intent exists without a committed response. Reconcile by history;
         # never issue a second paid chat mutation automatically.
         if prior.get("expected_turn_index") is not None:
-            try:
-                recovery_conversation = prior.get("conversation_id") or await service.get_current_conversation_id(
-                    notebook_id, storage_path=storage_path)
-                if not recovery_conversation:
-                    return {"schema_version": 1, "outcome": "uncertain", "safe_code": "delivery_uncertain",
-                            "receipt_ref": receipt_id, "result_ref": None, "counts": None}
-                recovered = await service.reconcile_chat_turn(
-                    notebook_id, recovery_conversation, question,
-                    int(prior["expected_turn_index"]), prior.get("history_prefix"),
-                    storage_path=storage_path,
-                )
-            except Exception:
-                return _safe_provider_failure(inp["subject_run_id"], "notebook_turn_reconcile", "chat", uncertain=True)
+            recovered = await reconcile_response(
+                int(prior["expected_turn_index"]), prior.get("history_prefix"),
+                prior.get("conversation_id") or conversation_id,
+            )
             if recovered.get("outcome") == "complete":
-                prior.update({"state": "complete", "raw_answer": recovered["raw_answer"], "conversation_id": recovery_conversation})
-                from v3_engine.notebooklm.terminal_service import atomic_json
-                atomic_json(turn_file, prior)
-                _record_event(inp["subject_run_id"], "notebook_turn_recovered", "chat", "complete", operation_id=operation_id)
-                return {"schema_version": 1, "outcome": ActivityOutcome.complete.value, "safe_code": SafeCode.ok.value,
-                        "receipt_ref": receipt_id, "result_ref": recovery_conversation, "counts": None}
+                return persist_recovered_response(recovered, int(prior["expected_turn_index"]), prior.get("history_prefix"))
         return {"schema_version": 1, "outcome": ActivityOutcome.uncertain.value, "safe_code": SafeCode.delivery_uncertain.value,
                 "receipt_ref": receipt_id, "result_ref": None, "counts": None}
 
@@ -556,7 +725,6 @@ async def send_terminal_turn(inp: dict[str, Any]) -> dict[str, Any]:
             return _safe_provider_failure(inp["subject_run_id"], "notebook_turn_history", "chat")
         history_prefix = [row[0] for row in history]
         expected_turn_index = len(history)
-    from v3_engine.notebooklm.terminal_service import atomic_json
     atomic_json(turn_file, {
         "schema_version": 1, "operation_id": operation_id, "state": "dispatching",
         "request_digest": request_digest, "notebook_id": notebook_id,
@@ -570,8 +738,12 @@ async def send_terminal_turn(inp: dict[str, Any]) -> dict[str, Any]:
         answer = await service.send_turn(notebook_id, question, source_ids, conversation_id, storage_path,
                                         **({"fresh_after_conversation_id": fresh_after} if fresh_after is not None else {}))
     except Exception:
-        # Keep the dispatch intent in place. A later operator reconciliation may inspect
-        # history, but Temporal must not retry or persist provider text in its history.
+        # Check the captured conversation history before holding the workflow.
+        # A matching completed turn settles this exact intent without a second
+        # NotebookLM chat mutation; an unreadable/incomplete history stays held.
+        recovered = await reconcile_response(expected_turn_index, history_prefix, conversation_id)
+        if recovered.get("outcome") == "complete":
+            return persist_recovered_response(recovered, expected_turn_index, history_prefix)
         try:
             _record_event(inp["subject_run_id"], "notebook_turn_uncertain", "chat", "uncertain", SafeCode.delivery_uncertain.value, operation_id=operation_id)
         except Exception:
@@ -867,7 +1039,7 @@ async def export_terminal_scene_prompts(inp: dict[str, Any]) -> dict[str, Any]:
 
     scenes = sorted(inventory.scene_inputs, key=lambda scene: (scene.lesson_ordinal, scene.scene_ordinal))
     from v3_engine.scene_generation.service import OUTPUT_CONTRACT_TEXT
-    system_prompt, system_prompt_sha256 = resolve_template()
+    system_prompt, system_prompt_sha256 = _resolve_run_template(subject_run_id)
     actual_lessons = len({scene.lesson_ordinal for scene in scenes})
     if inventory.expected_work_count is not None and actual_lessons != inventory.expected_work_count:
         _record_event(subject_run_id, "scene_prompts_exported", "export_prompts", "failed",
@@ -930,12 +1102,14 @@ def _export_per_pdf_prompts(subject_run_id: str, run_dir: Path, inventories) -> 
     from v3_engine.scene_generation.service import OUTPUT_CONTRACT_TEXT
     from v3_engine.notebooklm.terminal_service import atomic_json
 
-    if any(inv.input_issues or not inv.scene_inputs for _, _, inv, _ in inventories):
+    if any(inv.input_issues or not inv.scene_inputs
+           or any(scene.input_error or not isinstance(scene.prompt, str) or not scene.prompt.strip()
+                  for scene in inv.scene_inputs) for _, _, inv, _ in inventories):
         return {"schema_version": 1, "outcome": "failed", "safe_code": "input_invalid", "counts": None}
     notebooks = {inv.notebook_id for _, _, inv, _ in inventories}
     if len(notebooks) != 1:
         raise ValueError("pdf_notebook_lineage_conflict")
-    system_prompt, system_prompt_sha = resolve_template()
+    system_prompt, system_prompt_sha = _resolve_run_template(subject_run_id)
     document = {
         "schema_version": 1, "kind": "v3_notebooklm_scene_prompt_export", "pdf_processing": "per_pdf",
         "subject_run_id": subject_run_id, "notebook_id": next(iter(notebooks)), "conversation_id": None,
@@ -959,7 +1133,7 @@ def _export_per_pdf_prompts(subject_run_id: str, run_dir: Path, inventories) -> 
             lesson["scenes"].append({"scene_ordinal": scene.scene_ordinal, "section_title": scene.section_title,
                                      "scene_type": scene.scene_type, "scene_key": terminal_scene_key(ordinal, scene.scene_key),
                                      "prompt": scene.prompt, "prompt_sha256": scene.prompt_sha256})
-        if len(lessons) != archive["work_count"]:
+        if sorted(lessons) != list(range(1, archive["work_count"] + 1)):
             return {"schema_version": 1, "outcome": "failed", "safe_code": "input_invalid", "counts": None}
         document["lessons"].extend(lessons.values())
         document["lesson_count"] += len(lessons)

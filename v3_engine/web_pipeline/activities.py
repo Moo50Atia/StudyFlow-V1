@@ -8,6 +8,7 @@ import logging
 import os
 import stat
 import tempfile
+import asyncio
 from pathlib import Path
 from typing import Any
 from temporalio import activity
@@ -22,7 +23,7 @@ from v3_engine.notebooklm.terminal_service import (
 from v3_engine.notebooklm.ports import AuthenticationRequiredError, ProviderError
 from v3_engine.notebooklm.protocol import COMBINED_RESPONSE_FORMAT_TEXT
 from v3_engine.notebooklm.protocol import DirectLessonProtocol
-from v3_engine.notebooklm.laravel_client import HttpLaravelNotebookClient
+from v3_engine.notebooklm.laravel_client import HttpLaravelNotebookClient, LaravelClientError
 from v3_engine.notebooklm.sdk_provider import SdkSessionProvider
 from v3_engine.web_pipeline.application_client import ApplicationClient, ApplicationPipelineError
 from v3_engine.web_pipeline.artifact_refs import is_valid_uuid_ref
@@ -32,6 +33,23 @@ from v3_engine.web_pipeline.settings import get_settings
 logger = logging.getLogger("v3_engine.web_pipeline.activities")
 _terminal_service: NotebookTerminalService | None = None
 _application_client: ApplicationClient | None = None
+
+
+async def _run_with_activity_heartbeat(processor, args: dict[str, Any]) -> dict[str, Any]:
+    async def heartbeat_while_processing() -> None:
+        while True:
+            await asyncio.sleep(30)
+            activity.heartbeat({"phase": "notebooklm_processing"})
+
+    heartbeat_task = asyncio.create_task(heartbeat_while_processing())
+    try:
+        return await processor(args)
+    finally:
+        heartbeat_task.cancel()
+        try:
+            await heartbeat_task
+        except asyncio.CancelledError:
+            pass
 
 
 def get_terminal_service() -> NotebookTerminalService:
@@ -132,7 +150,7 @@ def _credential_path(run_id: str) -> Path | None:
 
     private = _web_private_dir(run_id)
     sessions = private / "sessions"
-    target = sessions / "storage_state.json"
+    target = sessions / run_id / "storage_state.json"
     if target.is_file() and not target.is_symlink():
         return target
     master = get_storage_state_path()
@@ -198,7 +216,9 @@ def _expected_source(context: dict[str, Any], item_id: str | None) -> tuple[str,
         item = context.get("items", {}).get(item_id)
         source_id = item.get("source_id") if item else None
         path = item.get("input_path") if item else None
-        if item and item.get("case_id") and item.get("input_sha256"):
+        if item and item.get("upload_title"):
+            title = str(item["upload_title"])
+        elif item and item.get("case_id") and item.get("input_sha256"):
             title = f"v3-pdf-{item['case_id']}-{str(item['input_sha256'])[:16]}"
         else:
             title = f"web-item-{item_id}"
@@ -212,6 +232,10 @@ def _expected_source(context: dict[str, Any], item_id: str | None) -> tuple[str,
 
 @activity.defn(name="ensure_web_notebook_activity")
 async def ensure_web_notebook_activity(args: dict[str, Any]) -> dict[str, Any]:
+    return await _run_with_activity_heartbeat(_ensure_web_notebook_activity_impl, args)
+
+
+async def _ensure_web_notebook_activity_impl(args: dict[str, Any]) -> dict[str, Any]:
     """Create one NotebookLM notebook with a persistent send fence and private receipt."""
     run_id = str(args.get("run_id", ""))
     if not is_valid_uuid_ref(run_id):
@@ -259,6 +283,10 @@ async def ensure_web_notebook_activity(args: dict[str, Any]) -> dict[str, Any]:
 
 @activity.defn(name="upload_web_source_activity")
 async def upload_web_source_activity(args: dict[str, Any]) -> dict[str, Any]:
+    return await _run_with_activity_heartbeat(_upload_web_source_activity_impl, args)
+
+
+async def _upload_web_source_activity_impl(args: dict[str, Any]) -> dict[str, Any]:
     """Upload one already verified PDF or the approved framework; provider IDs remain private."""
     run_id = str(args.get("run_id", ""))
     item_id = args.get("item_id")
@@ -332,7 +360,10 @@ async def upload_web_source_activity(args: dict[str, Any]) -> dict[str, Any]:
         return sanitize_activity_result({"outcome": "blocked", "safe_code": "authentication_required"})
     except ProviderError as exc:
         logger.warning("Web NotebookLM operation upload_source failed (%s)", exc.code)
-        safe_code = exc.code if exc.code in {"provider_rate_limit", "provider_unavailable"} else "provider_unavailable"
+        safe_code = {
+            "source_upload_invalid": "pdf_invalid",
+            "source_processing_failed": "source_error",
+        }.get(exc.code, exc.code if exc.code in {"provider_rate_limit", "provider_unavailable"} else "provider_unavailable")
         return sanitize_activity_result({"outcome": "failed", "safe_code": safe_code})
     except Exception:
         logger.exception("Web source upload failed")
@@ -341,6 +372,10 @@ async def upload_web_source_activity(args: dict[str, Any]) -> dict[str, Any]:
 
 @activity.defn(name="configure_web_notebook_activity")
 async def configure_web_notebook_activity(args: dict[str, Any]) -> dict[str, Any]:
+    return await _run_with_activity_heartbeat(_configure_web_notebook_activity_impl, args)
+
+
+async def _configure_web_notebook_activity_impl(args: dict[str, Any]) -> dict[str, Any]:
     """Apply the working pipeline response format exactly once, reconciling lost acknowledgments."""
     run_id = str(args.get("run_id", ""))
     if not is_valid_uuid_ref(run_id):
@@ -392,6 +427,10 @@ async def configure_web_notebook_activity(args: dict[str, Any]) -> dict[str, Any
 
 @activity.defn(name="check_web_sources_activity")
 async def check_web_sources_activity(args: dict[str, Any]) -> dict[str, Any]:
+    return await _run_with_activity_heartbeat(_check_web_sources_activity_impl, args)
+
+
+async def _check_web_sources_activity_impl(args: dict[str, Any]) -> dict[str, Any]:
     """Read provider source status; this activity is safe to repeat."""
     run_id = str(args.get("run_id", ""))
     item_id = args.get("item_id")
@@ -440,8 +479,18 @@ async def resolve_application_run_activity(args: dict[str, Any]) -> dict[str, An
     try:
         manifest = await get_application_client().get_manifest(manifest_ref)
         items = manifest.get("items")
-        if manifest.get("run_id") != run_id or not isinstance(items, list) or not 1 <= len(items) <= 20:
+        prepared = manifest.get("protocol") == "notebooklm_per_pdf_web_v3"
+        limit = 640 if prepared else 20
+        if manifest.get("run_id") != run_id or not isinstance(items, list) or not 1 <= len(items) <= limit:
             return sanitize_activity_result({"outcome": "failed", "safe_code": "contract_invalid"})
+        if prepared:
+            from v3_engine.web_pipeline.pdf_preparation import verify_web_manifest_preparation
+            from v3_engine.web_pipeline.bridge import get_storage_root
+            try:
+                await asyncio.to_thread(verify_web_manifest_preparation, get_storage_root(), manifest)
+            except Exception as exc:
+                logger.warning("Captured PDF preparation verification failed (%s)", type(exc).__name__)
+                return sanitize_activity_result({"outcome": "failed", "safe_code": "artifact_corrupt"})
         item_refs = []
         ordinals = set()
         for item in items:
@@ -473,6 +522,19 @@ async def resolve_application_run_activity(args: dict[str, Any]) -> dict[str, An
             "items": {str(row["item_id"]): {**row, "source_id": None, "input_path": None} for row in item_refs},
             "manifest": manifest,
         }
+        if prepared:
+            for entry in items:
+                context["items"][entry["item_id"]].update({
+                    "upload_title": entry["original_filename"], "pdf_lineage": entry["pdf_lineage"],
+                })
+        if _context_path(run_id).exists():
+            previous = _read_context(run_id)
+            if previous.get("manifest_ref") != manifest_ref or previous.get("manifest") != manifest:
+                return sanitize_activity_result({"outcome": "failed", "safe_code": "artifact_corrupt"})
+            if set(previous.get("items", {})) != set(context["items"]):
+                return sanitize_activity_result({"outcome": "failed", "safe_code": "artifact_corrupt"})
+            # Admission replay must retain committed progress and provider receipts.
+            context = previous
         _save_context(run_id, context)
         return {
             "outcome": "completed",
@@ -578,6 +640,10 @@ async def prepare_application_framework_activity(args: dict[str, Any]) -> dict[s
 
 @activity.defn(name="execute_divide_turn")
 async def execute_divide_turn(args: dict[str, Any]) -> dict[str, Any]:
+    return await _run_with_activity_heartbeat(_execute_divide_turn_impl, args)
+
+
+async def _execute_divide_turn_impl(args: dict[str, Any]) -> dict[str, Any]:
     """Run and commit the canonical PDF-only Divide operation for one web item."""
     run_id = str(args.get("run_id", ""))
     item_id = str(args.get("item_id", ""))
@@ -619,11 +685,13 @@ async def execute_divide_turn(args: dict[str, Any]) -> dict[str, Any]:
         return sanitize_activity_result({"outcome": "blocked", "safe_code": "authentication_required"})
     except ProviderError as e:
         safe_code = getattr(e, "code", "provider_unavailable")
-        if safe_code not in ("provider_rate_limit", "provider_unavailable"):
+        if safe_code == "protocol_validation":
+            safe_code = "map_unreadable"
+        elif safe_code not in ("provider_rate_limit", "provider_unavailable"):
             safe_code = "provider_unavailable"
         return sanitize_activity_result({"outcome": "failed", "safe_code": safe_code})
-    except ApplicationPipelineError as exc:
-        code = exc.code if exc.code in {"artifact_missing", "contract_invalid", "protocol_validation", "lesson_conflict"} else "storage_unavailable"
+    except (ApplicationPipelineError, LaravelClientError) as exc:
+        code = "protocol_validation" if exc.code in {"protocol_validation", "lesson_invalid"} else (exc.code if exc.code in {"artifact_missing", "contract_invalid", "lesson_conflict"} else "storage_unavailable")
         return sanitize_activity_result({"outcome": "failed", "safe_code": code})
     except FileNotFoundError:
         return sanitize_activity_result({"outcome": "failed", "safe_code": "artifact_missing"})
@@ -634,6 +702,11 @@ async def execute_divide_turn(args: dict[str, Any]) -> dict[str, Any]:
 
 @activity.defn(name="execute_lesson_turns")
 async def execute_lesson_turns(args: dict[str, Any]) -> dict[str, Any]:
+    """Keep long NotebookLM work alive and retry safely after worker loss."""
+    return await _run_with_activity_heartbeat(_execute_lesson_turns_impl, args)
+
+
+async def _execute_lesson_turns_impl(args: dict[str, Any]) -> dict[str, Any]:
     """Run Execution, Start and literal Continue turns; Laravel commits each bundle."""
     run_id = str(args.get("run_id", ""))
     item_id = str(args.get("item_id", ""))
@@ -706,7 +779,7 @@ async def execute_lesson_turns(args: dict[str, Any]) -> dict[str, Any]:
         if safe_code not in ("provider_rate_limit", "provider_unavailable"):
             safe_code = "provider_unavailable"
         return sanitize_activity_result({"outcome": "failed", "safe_code": safe_code})
-    except ApplicationPipelineError as exc:
+    except (ApplicationPipelineError, LaravelClientError) as exc:
         code = exc.code if exc.code in {"artifact_missing", "contract_invalid", "protocol_validation", "lesson_conflict"} else "storage_unavailable"
         return sanitize_activity_result({"outcome": "failed", "safe_code": code})
     except FileNotFoundError:
@@ -718,6 +791,10 @@ async def execute_lesson_turns(args: dict[str, Any]) -> dict[str, Any]:
 
 @activity.defn(name="reset_conversation_activity")
 async def reset_conversation_activity(args: dict[str, Any]) -> dict[str, Any]:
+    return await _run_with_activity_heartbeat(_reset_conversation_activity_impl, args)
+
+
+async def _reset_conversation_activity_impl(args: dict[str, Any]) -> dict[str, Any]:
     """Persist a PDF archive receipt, reset NotebookLM, and verify empty history."""
     run_id = str(args.get("run_id", ""))
     ordinal = int(args.get("pdf_ordinal", 1))
@@ -753,9 +830,16 @@ async def reset_conversation_activity(args: dict[str, Any]) -> dict[str, Any]:
             "prompts_saved": int(item.get("saved_prompt_count", 0)),
             "source_sha256": item.get("input_sha256"),
             "conversation_sha256": hashlib.sha256(str(conv_id).encode()).hexdigest(),
+            **({"pdf_lineage": item["pdf_lineage"]} if item.get("pdf_lineage") else {}),
         }
         atomic_json(archive_path, archive)
         archive_digest = hashlib.sha256(archive_path.read_bytes()).hexdigest()
+        if item.get("reset_verified"):
+            if item.get("archive_ref") != archive_digest or not is_valid_uuid_ref(str(item.get("application_archive_ref", ""))):
+                return sanitize_activity_result({"outcome": "failed", "safe_code": "artifact_corrupt"})
+            return sanitize_activity_result({"outcome": "completed", "safe_code": "ok",
+                "result_ref": item.get("divide_map_ref"),
+                "counts": {"lessons_saved": archive["lessons_saved"], "prompts_saved": archive["prompts_saved"]}})
         if len(item.get("completed_work_ordinals", [])) == int(item.get("work_count", 0)) and int(item.get("work_count", 0)) > 0:
             saved = await get_application_client().record_run_item_archive(str(item["item_id"]), {
                 "run_id": run_id,

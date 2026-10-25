@@ -26,6 +26,33 @@ from v3_engine.lessons.canonical_prompts import DIVIDE_PROMPT, EXECUTION_PROMPT
 FIXTURES_DIR = Path(__file__).resolve().parent.parent.parent.parent / "tests" / "Fixtures" / "V3" / "NotebookLM"
 
 
+def test_markdown_structural_labels_preserve_exact_hierarchy():
+    raw = "Chapter: Objects\nMini Chapter 1: Basics\nLesson 1.1: Classes\nLesson 1.2: Objects"
+    styled = "# Structural Map: Objects\n\n## Chapter: Objects\n### Mini Chapter 1: Basics\n* **Lesson 1.1:** Classes\n* **Lesson 1.2:** Objects"
+    assert parse_direct_divide_map(styled) == parse_direct_divide_map(raw)
+
+
+def test_tree_subtopics_stay_with_named_lesson_and_preserve_mini_chapter_parent():
+    nodes = parse_direct_divide_map((FIXTURES_DIR / "map_tree_subtopics.txt").read_text())
+    work = [n for n in nodes if n.work_ordinal is not None]
+    assert [(n.title, n.parent_position_path, n.work_ordinal) for n in work] == [
+        ("Objects and Classes", "001.001", 1),
+        ("Class Notation", "001.001", 2),
+        ("Object Relationships", "001.002", 3),
+    ]
+
+
+@pytest.mark.parametrize("raw", [
+    "Chapter: Objects\nMini Chapter: Foundations\n├── Unlabelled Lesson",
+    "Chapter: Objects\n├── Lesson 1: Objects\n├── Unlabelled Sibling",
+    "Chapter: Objects\n├── Lesson 1: Objects\n│   └── Lesson 2",
+    "Chapter: Objects\n├── Lesson 1: Objects\nExtra prose",
+])
+def test_unlabelled_tree_nodes_cannot_replace_structural_lessons(raw):
+    with pytest.raises(ProviderError):
+        parse_direct_divide_map(raw)
+
+
 def test_direct_divide_parser_accepts_notebooklm_arrow_hierarchy():
     """NotebookLM may express child relationships with an arrow instead of indentation."""
     result = parse_direct_divide_map(
@@ -191,6 +218,76 @@ def mock_laravel():
     client.record_execution_result = AsyncMock(return_value={"status": "recorded"})
     client.record_combined_lesson_result = AsyncMock(return_value={"bundle_ref": "bnd-1", "cursor_version": 2})
     return client
+
+
+@pytest.mark.asyncio
+async def test_mapped_topic_questions_are_sent_and_signed_exactly(mock_conv, mock_provider, mock_laravel):
+    import hashlib
+    q1 = 'Start with First lesson\n\nProcess ONLY mapped work item W1 of 2.\nMapped topic: "Fields"'
+    q2 = 'Continue\n\nProcess ONLY mapped work item W2 of 2.\nMapped topic: "Methods"'
+    mock_laravel.get_binding_by_ref.return_value.update({
+        "lesson_request_mode": "mapped_topic_v1", "lesson_questions": {"1": q1, "2": q2},
+    })
+    mock_conv.history_turns = [(DIVIDE_PROMPT, "map"), (EXECUTION_PROMPT, "System Ready")]
+    mock_conv.queue_answer("Fields answer", conversation_id="conv-1")
+    mock_conv.queue_answer("Methods answer", conversation_id="conv-1")
+    protocol = DirectLessonProtocol(mock_provider, mock_laravel)
+    for ordinal, question in ((1, q1), (2, q2)):
+        result = await protocol.process_lesson(
+            "case-100", "bind-100", "nb-100", "pdf", "steps", "conv-1", ordinal, 2 * ordinal + 1,
+        )
+        assert result["status"] == "completed"
+        assert mock_conv.turns[-1]["question"] == question
+        payload = mock_laravel.claim_lesson_query.call_args.args[-1]
+        assert payload["query_text"] == question
+        from v3_engine.notebooklm.protocol import compute_query_request_digest, COMBINED_RESPONSE_FORMAT_SHA256
+        assert payload["request_sha256"] == compute_query_request_digest(
+            "case-100", "bind-100", "lesson_start" if ordinal == 1 else "lesson_continue", ordinal,
+            2 * ordinal + 1, "conv-1", ["educational_pdf", "framework_steps"],
+            "f" * 64, COMBINED_RESPONSE_FORMAT_SHA256, hashlib.sha256(question.encode()).hexdigest(),
+        )
+    assert len(mock_conv.turns) == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("wrong_prefix", [False, True])
+async def test_mapped_topic_recovery_anchors_full_question_prefix_without_resend(mock_conv, mock_provider, mock_laravel, wrong_prefix):
+    q1, q2 = 'Start with First lesson\nMapped topic: "Fields"', 'Continue\nMapped topic: "Methods"'
+    mock_laravel.get_binding_by_ref.return_value.update({
+        "lesson_request_mode": "mapped_topic_v1", "lesson_questions": {"1": q1, "2": q2},
+    })
+    mock_laravel.find_lesson_query.return_value = {
+        "binding_ref": "bind-100", "conversation_in": "conv-1", "state": "sending",
+        "query_ref": "pending-2", "expected_cursor_version": 5,
+    }
+    mock_conv.history_turns = [
+        (DIVIDE_PROMPT, "map"), (EXECUTION_PROMPT, "System Ready"),
+        ("Start with First lesson" if wrong_prefix else q1, "Fields answer"), (q2, "Methods answer"),
+    ]
+    protocol = DirectLessonProtocol(mock_provider, mock_laravel)
+    if wrong_prefix:
+        with pytest.raises(ProviderError, match="history_conflict"):
+            await protocol.process_lesson("case-100", "bind-100", "nb-100", "pdf", "steps", "conv-1", 2, 4)
+        mock_laravel.record_combined_lesson_result.assert_not_awaited()
+    else:
+        result = await protocol.process_lesson("case-100", "bind-100", "nb-100", "pdf", "steps", "conv-1", 2, 4)
+        assert result["status"] == "completed"
+        assert mock_laravel.record_combined_lesson_result.call_args.args[1]["answer"] == "Methods answer"
+    assert mock_conv.turns == []
+    mock_laravel.claim_lesson_query.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_mapped_topic_mode_cannot_fall_back_to_bare_continue(mock_conv, mock_provider, mock_laravel):
+    mock_laravel.get_binding_by_ref.return_value.update({
+        "lesson_request_mode": "mapped_topic_v1", "lesson_questions": {},
+    })
+    with pytest.raises(ProviderError, match="Mapped lesson question is unavailable"):
+        await DirectLessonProtocol(mock_provider, mock_laravel).process_lesson(
+            "case-100", "bind-100", "nb-100", "pdf", "steps", "conv-1", 2, 4,
+        )
+    assert mock_conv.turns == []
+    mock_laravel.claim_lesson_query.assert_not_awaited()
 
 
 @pytest.mark.asyncio

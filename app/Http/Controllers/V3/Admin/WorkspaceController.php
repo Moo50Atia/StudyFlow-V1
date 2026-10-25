@@ -8,11 +8,11 @@ use Illuminate\View\View;
 
 class WorkspaceController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request)
     {
         $admin = $request->attributes->get('v3_actor') ?? $request->user();
 
-        return view('v3.admin.workspace', [
+        return \App\Support\InertiaPage::render('v3.admin.workspace', [
             'admin' => $admin,
         ]);
     }

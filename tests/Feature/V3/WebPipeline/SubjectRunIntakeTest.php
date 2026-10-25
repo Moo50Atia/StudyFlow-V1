@@ -42,6 +42,7 @@ class SubjectRunIntakeTest extends TestCase
         config()->set('services.v3_teacher_demo_waiver_enabled', true);
 
         Storage::fake('v3_private');
+        \Tests\Support\V3\WebPreparationFixtures::fake();
 
         $this->teacherA = WebPipelineFixtures::createTeacherA();
         $this->teacherB = WebPipelineFixtures::createTeacherB();
@@ -180,6 +181,56 @@ class SubjectRunIntakeTest extends TestCase
         $this->assertSame('duplicate_batch_pdf', $resp->json('error.code'));
     }
 
+    public function test_php_upload_limit_failure_returns_a_field_error_without_staging(): void
+    {
+        $file = new UploadedFile('', 'chapter.pdf', 'application/pdf', UPLOAD_ERR_INI_SIZE, true);
+
+        $response = $this->actingAs($this->teacherA)->postJson("/v3/teacher/subjects/{$this->subjectA->id}/runs", [
+            'submission_key' => (string) Str::uuid(),
+            'files' => [$file],
+            'titles' => ['Chapter'],
+        ]);
+
+        $response->assertUnprocessable()->assertJsonValidationErrors(['files.0']);
+        $this->assertStringContainsString('server upload limit', $response->json('errors')['files.0'][0]);
+        $this->assertDatabaseCount('v3_subject_runs', 0);
+    }
+
+    public function test_inertia_upload_failure_redirects_back_with_field_errors(): void
+    {
+        $file = new UploadedFile('', 'chapter.pdf', 'application/pdf', UPLOAD_ERR_PARTIAL, true);
+        $createUrl = "/v3/teacher/subjects/{$this->subjectA->id}/runs/create";
+
+        $response = $this->actingAs($this->teacherA)->from($createUrl)
+            ->withHeaders(['X-Inertia' => 'true', 'X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/v3/teacher/subjects/{$this->subjectA->id}/runs", [
+                'submission_key' => (string) Str::uuid(),
+                'files' => [$file],
+                'titles' => ['Chapter'],
+            ]);
+
+        $response->assertRedirect($createUrl)->assertSessionHasErrors(['files.0']);
+        $this->assertDatabaseCount('v3_subject_runs', 0);
+    }
+
+    public function test_successful_inertia_upload_redirects_to_the_run_page(): void
+    {
+        $file = UploadedFile::fake()->createWithContent('chapter.pdf', PdfFixtures::minimalValidPdf(1, 'Chapter'));
+        $submissionKey = (string) Str::uuid();
+
+        $response = $this->actingAs($this->teacherA)
+            ->withHeaders(['X-Inertia' => 'true', 'X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/v3/teacher/subjects/{$this->subjectA->id}/runs", [
+                'submission_key' => $submissionKey,
+                'files' => [$file],
+                'titles' => ['Chapter'],
+            ]);
+
+        $run = SubjectRun::where('submission_key', $submissionKey)->sole();
+        $response->assertRedirect(route('v3.teacher.subject-runs.show', $run->id));
+        $this->assertSame('staging', $run->state);
+    }
+
     public function test_missing_approved_framework_rejects_before_staging(): void
     {
         DB::table('v3_notebook_framework_pointer')->where('id', 1)->delete();
@@ -245,7 +296,7 @@ class SubjectRunIntakeTest extends TestCase
         $this->assertSame($this->teacherA->id, $run->owner_user_id);
         $this->assertSame($this->subjectA->id, $run->subject_id);
         $this->assertSame('web', $run->origin);
-        $this->assertSame('notebooklm_per_pdf_web_v1', $run->protocol);
+        $this->assertSame('notebooklm_per_pdf_web_v3', $run->protocol);
         $this->assertSame('export_manual', $run->mode);
         $this->assertSame('owner_waived_demo', $run->qualification_mode);
         $this->assertSame(2, $run->total_pdfs);
@@ -483,9 +534,11 @@ class SubjectRunIntakeTest extends TestCase
         $lectureId = $item->fresh()->lecture_id;
 
         // A lost response followed by the same request must not create another lecture.
+        $item->refresh()->update(['state' => 'completed', 'outcome' => 'completed']);
         $repeated = $this->json('POST', $path, $body, $signedHeaders);
         $repeated->assertOk();
         $this->assertSame($lectureId, $item->fresh()->lecture_id);
+        $this->assertSame('completed', $item->fresh()->state);
         $this->assertSame(1, Lecture::where('subject_id', $this->subjectA->id)
             ->where('title', 'Worker handoff')->count());
 
@@ -622,10 +675,8 @@ class SubjectRunIntakeTest extends TestCase
         $resp = $this->actingAs($this->teacherA)
             ->get("/v3/teacher/subjects/{$this->subjectA->id}/runs/create");
 
-        $resp->assertStatus(200);
-        $resp->assertSee('Upload Curriculum PDFs');
-        $resp->assertSee('manual review');
-        $resp->assertDontSee('Owner-Waived Demo');
+        $resp->assertStatus(200)->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+            ->component('Teacher/RunCreate')->where('subject.id', $this->subjectA->id));
     }
 
     public function test_teacher_can_render_subject_run_show_view_with_export_buttons(): void
@@ -645,11 +696,9 @@ class SubjectRunIntakeTest extends TestCase
         $resp = $this->actingAs($this->teacherA)
             ->get("/v3/teacher/subject-runs/{$runId}");
 
-        $resp->assertStatus(200);
-        $resp->assertSee('Subject Run Details');
-        $resp->assertSee('Export Prompts (JSON)');
-        $resp->assertSee('Export Prompts (Text)');
-        $resp->assertSee('Mechanics Intro');
+        $resp->assertStatus(200)->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+            ->component('Teacher/RunShow')->where('run.id', $runId)
+            ->where('initialProgress.counts.pdfs_total', 1));
     }
 
     public function test_non_owner_cannot_render_subject_run_show_view(): void

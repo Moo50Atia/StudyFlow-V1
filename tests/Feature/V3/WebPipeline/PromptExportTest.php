@@ -375,6 +375,38 @@ class PromptExportTest extends TestCase
         );
     }
 
+    public function test_export_and_scene_dashboard_preserve_lesson_then_section_order(): void
+    {
+        $this->section1->update(['section_identity' => 'Zulu: first lesson, first section']);
+        $nextNode = (string) Str::uuid();
+        DB::table('v3_lesson_nodes')->insert([
+            'id' => $nextNode, 'map_id' => $this->section1->map_id, 'kind' => 'l',
+            'position_path' => '002', 'ordinal_in_parent' => 2, 'title' => 'Lesson 2', 'work_ordinal' => 2,
+        ]);
+        $ids = [];
+        // Insert later lesson first to catch accidental database/insertion order.
+        foreach ([[$nextNode, 1, 'Aardvark: second lesson'],
+                  [$this->section1->work_node_id, 2, 'Alpha: first lesson, second section']] as [$node, $ordinal, $title]) {
+            $section = $this->section1->replicate();
+            $section->id = (string) Str::uuid();
+            $section->work_node_id = $node;
+            $section->ordinal_in_work = $ordinal;
+            $section->section_identity = $title;
+            $section->save();
+            $prompt = $this->prompt1->replicate();
+            $prompt->id = (string) Str::uuid();
+            $prompt->section_id = $section->id;
+            $prompt->save();
+            $ids[] = $section->id;
+        }
+        $expected = [$this->section1->id, $ids[1], $ids[0], $this->section2->id];
+        $export = $this->actingAs($this->teacherA)
+            ->getJson("/v3/teacher/subject-runs/{$this->run->id}/prompt-export")->assertOk();
+        $this->assertSame($expected, array_column($export->json('prompts'), 'scene_id'));
+        $scenes = $this->getJson("/v3/teacher/subject-runs/{$this->run->id}/scenes")->assertOk();
+        $this->assertSame($expected, array_map(fn ($row) => $row['section']['id'], $scenes->json('data.scenes')));
+    }
+
     public function test_owner_teacher_can_export_scoped_item_prompts(): void
     {
         $response = $this->actingAs($this->teacherA)

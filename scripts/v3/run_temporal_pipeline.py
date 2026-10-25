@@ -2,6 +2,7 @@
 """Entrypoint for the Temporal Terminal Pipeline (Spec 018)."""
 
 import sys
+import os
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -13,6 +14,6 @@ from v3_engine.terminal_pipeline.cli import main
 
 if __name__ == "__main__":
     env_file = PROJECT_ROOT / ".env"
-    if env_file.exists():
+    if os.environ.get("V3_TERMINAL_LOAD_PROJECT_ENV", "1") != "0" and env_file.exists():
         load_local_env(env_file)
     sys.exit(main())

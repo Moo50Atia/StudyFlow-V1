@@ -54,19 +54,24 @@ class AdminRunSummary
         return [
             'schema_version' => 1,
             'run_id' => $run->id,
+            'execution_mode' => $run->execution_mode,
+            'recovery_task_id' => $this->recoveryTaskId($run),
             'subject_id' => $run->subject_id,
             'owner_user_id' => $run->owner_user_id,
             'origin' => $run->origin,
             'protocol' => $run->protocol,
             'mode' => $run->mode,
             'qualification_mode' => $run->qualification_mode,
-            'state' => $run->state,
+            'state' => $projection['state'] ?? $run->state,
             'state_version' => (int) $run->state_version,
             'last_updated_at' => $projection['last_updated_at'],
             'projection_source' => $projection['projection_source'],
             'projection_age_seconds' => $projection['projection_age_seconds'],
             'control' => $projection['control'],
+            'failures' => $projection['failures'] ?? [],
+            'retry_available' => $projection['retry_available'] ?? false,
             'counts' => $projection['counts'],
+            'workflow' => $projection['workflow'],
             'items' => $safeItems,
             'created_at' => $run->created_at?->toIso8601ZuluString(),
             'finished_at' => $run->finished_at?->toIso8601ZuluString(),
@@ -80,20 +85,35 @@ class AdminRunSummary
      */
     public function summarizeRow(SubjectRun $run): array
     {
+        $projection = $this->progress->project($run);
         return [
             'run_id' => $run->id,
+            'execution_mode' => $run->execution_mode,
+            'recovery_task_id' => $this->recoveryTaskId($run),
             'subject_id' => $run->subject_id,
             'owner_user_id' => $run->owner_user_id,
             'origin' => $run->origin,
             'protocol' => $run->protocol,
             'mode' => $run->mode,
             'qualification_mode' => $run->qualification_mode,
-            'state' => $run->state,
+            'state' => $projection['state'] ?? $run->state,
+            'failures' => $projection['failures'] ?? [],
+            'retry_available' => $projection['retry_available'] ?? false,
             'state_version' => (int) $run->state_version,
             'total_pdfs' => (int) $run->total_pdfs,
             'created_at' => $run->created_at?->toIso8601ZuluString(),
             'last_updated_at' => $run->last_updated_at?->toIso8601ZuluString() ?? $run->updated_at?->toIso8601ZuluString(),
             'finished_at' => $run->finished_at?->toIso8601ZuluString(),
         ];
+    }
+
+    private function recoveryTaskId(SubjectRun $run): ?string
+    {
+        if ($run->execution_mode !== 'local_worker_v1') return null;
+        return DB::table('v3_local_tasks as t')
+            ->join('v3_local_jobs as j', 'j.id', '=', 't.job_id')
+            ->where('j.run_id', $run->id)
+            ->whereIn('t.status', ['reconciliation_required', 'paused_auth', 'paused_quota'])
+            ->where('t.task_kind', 'author_prompts')->value('t.id');
     }
 }

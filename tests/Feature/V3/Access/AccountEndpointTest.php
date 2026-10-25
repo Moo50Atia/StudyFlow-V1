@@ -4,6 +4,7 @@ namespace Tests\Feature\V3\Access;
 
 use App\Models\V3\V3AccessEvent;
 use App\Models\V3\V3AccountAccess;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Support\V3\AccessFixtures;
 
 beforeEach(function () {
@@ -219,7 +220,9 @@ test('PATCH account access: JSON and Browser success, conflict and missing targe
 
     $browserStale->assertStatus(409);
     expect($browserStale->headers->get('Cache-Control'))->toContain('no-store')->toContain('private');
-    $browserStale->assertSee('Access Conflict');
+    $browserStale->assertInertia(fn (Assert $page) => $page
+        ->component('Errors/Status')
+        ->where('screen', 'v3.errors.409'));
 
     // 4. Missing target returns 404
     $missingRes = $this->actingAs($this->admin)

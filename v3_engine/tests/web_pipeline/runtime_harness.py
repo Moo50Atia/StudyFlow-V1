@@ -356,6 +356,10 @@ class JoinedRuntimeHarness:
         match = re.search(r'name="_token"\s+value="([^"]+)"', resp.text)
         csrf_token = match.group(1) if match else None
         if not csrf_token:
+            # Inertia login pages expose Laravel's session token in page props.
+            inertia_token = re.search(r'"csrf_token"\s*:\s*"([^"]+)"', resp.text)
+            csrf_token = inertia_token.group(1) if inertia_token else None
+        if not csrf_token:
             # Try XSRF-TOKEN cookie
             xsrf = client.cookies.get("XSRF-TOKEN")
             csrf_token = xsrf

@@ -16,7 +16,8 @@ class ClamAvAdapter
     public function isAvailable(): bool
     {
         $binary = $this->binaryPath ?? 'clamdscan';
-        $process = new Process([$binary, '--version']);
+        $config = getenv('V3_CLAMAV_CONFIG');
+        $process = new Process($config ? [$binary, '--config-file='.$config, '--version'] : [$binary, '--version']);
         $process->setTimeout(5);
 
         try {
@@ -44,13 +45,12 @@ class ClamAvAdapter
             ];
         }
 
-        // clamdscan --fdpass --no-summary {filePath}
-        $process = new Process([
-            $binary,
-            '--fdpass',
-            '--no-summary',
-            $filePath,
-        ]);
+        // Remote clamd cannot open container-local paths: stream bytes to it.
+        $config = getenv('V3_CLAMAV_CONFIG');
+        $arguments = $config
+            ? [$binary, '--config-file='.$config, '--stream', '--no-summary', $filePath]
+            : [$binary, '--fdpass', '--no-summary', $filePath];
+        $process = new Process($arguments);
         $process->setTimeout(60);
 
         try {

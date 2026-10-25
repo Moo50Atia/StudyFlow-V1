@@ -30,11 +30,19 @@ class DirectMapParser
         // Some live replies join a parent and its lesson with an arrow on
         // one line. Split only when the arrow introduces a structural label.
         $rawText = preg_replace('/(?<=\S)\s*=>\s*(?=(?:Mini\s+Chapter|Lesson)\s+[0-9IVXLCDM]+\s*[:\-])/iu', "\n", $rawText) ?? $rawText;
+        // A leading map heading labels the document, not another lesson.
+        $rawText = preg_replace('/\A#{1,6}\s+(?:Structural|Lesson)\s+Map(?:\s*:\s*[^\r\n]+)?\s*\R/iu', '', $rawText, 1) ?? $rawText;
         $lines = preg_split("/\r\n|\n|\r/", $rawText);
+        $lines = array_map(function ($line) {
+            $line = preg_replace('/^(\s*)#{1,6}\s+(?=(?:Chapter|Mini\s+Chapter|Lesson)\b)/iu', '$1', $line) ?? $line;
+            return preg_replace('/^(\s*(?:[-*]\s+)?)\*\*((?:Chapter|Mini\s+Chapter|Lesson)(?:\s+(?:\d+(?:\.\d+)*|[IVXLCDM]+))?\s*[:\-])\*\*\s*/iu', '$1$2 ', $line) ?? $line;
+        }, $lines);
         $nodes = [];
 
         $currentChapter = null;
         $currentMini = null;
+        $currentMiniIndent = null;
+        $currentLessonIndent = null;
 
         $chapterCount = 0;
         $chapterCounters = [];
@@ -63,6 +71,17 @@ class DirectMapParser
             }
 
             if (! preg_match(self::LINE_PATTERN, $rawLine, $matches)) {
+                if (preg_match('/^(\s*)((?:[│|]\s*)*[├└]──\s*)(.+)$/u', $rawLine, $detail)) {
+                    preg_match_all('/[│|]/u', $detail[2], $bars);
+                    $depth = strlen($detail[1]) + (count($bars[0]) + 1) * 2;
+                    if ($currentLessonIndent !== null && $depth > $currentLessonIndent
+                        && ! preg_match('/^(Chapter|Mini\s+Chapter|Lesson)\b/iu', $detail[3])
+                        && mb_strlen(trim($detail[3])) <= 255) {
+                        // Subtopics belong to the preceding named Lesson, not
+                        // extra work items. The complete raw map stays retained.
+                        continue;
+                    }
+                }
                 throw new InvalidArgumentException("Prose or invalid line format: '{$line}'");
             }
 
@@ -91,6 +110,10 @@ class DirectMapParser
             } else {
                 throw new InvalidArgumentException("Unrecognized node kind: '{$rawKind}'");
             }
+            $currentLessonIndent = $kind === 'lesson' ? $indentLen : null;
+            if ($kind === 'mini_chapter') {
+                $currentMiniIndent = $indentLen;
+            }
 
             // Match the Python protocol adapter: tree bars can repeat for
             // earlier siblings, but the semantic hierarchy has only three
@@ -105,7 +128,7 @@ class DirectMapParser
                 } elseif (in_array($kind, ['mini_chapter', 'lesson'], true) && ! in_array($indentLen, [0, 2, 4], true)) {
                     throw new InvalidArgumentException("Ambiguous indentation: {$indentLen} spaces for line '{$line}'");
                 }
-                if ($indentLen === 2 && $kind === 'lesson') {
+                if ($indentLen === 2 && $kind === 'lesson' && $currentMiniIndent !== 0) {
                     $currentMini = null;
                 }
             }

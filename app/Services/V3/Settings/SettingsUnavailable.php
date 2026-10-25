@@ -24,13 +24,8 @@ class SettingsUnavailable extends Exception
             ], 503)->header('Cache-Control', 'private, no-store');
         }
 
-        if (view()->exists('v3.errors.503')) {
-            return response()->view('v3.errors.503', [
-                'message' => 'V3 settings are unavailable.',
-            ], 503)->header('Cache-Control', 'private, no-store');
-        }
-
-        return response('V3 settings are unavailable.', 503)
-            ->header('Cache-Control', 'private, no-store');
+        return \App\Support\InertiaPage::render('v3.errors.503', [
+            'message' => 'V3 settings are unavailable.',
+        ], 503, ['Cache-Control' => 'private, no-store']);
     }
 }

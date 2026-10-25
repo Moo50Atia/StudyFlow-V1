@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from datetime import timedelta
 import fcntl
 import logging
 import os
@@ -81,7 +82,7 @@ async def run_workers(
 ) -> None:
     """Run the 3 worker instances (control, IO, build) with concurrency bounds and process lock."""
     if lock_path is None:
-        lock_path = Path("/home/moahmmed/college_project/storage/app/private/v3/temporal/.worker.lock")
+        lock_path = Path(os.environ.get('V3_TERMINAL_ROOT') or 'storage/app/private/v3/terminal') / '.worker.lock'
 
     lock = TerminalWorkerProcessLock(lock_path)
     lock.acquire()
@@ -137,6 +138,12 @@ async def run_workers(
             control_activities.append(execute_terminal_import_activity)
         except ImportError as e:
             raise RuntimeError(f"Failed to register ApplicationImportWorkflow: {e}") from e
+
+        try:
+            from v3_engine.web_pipeline.qualification_workflow import SceneQualificationWorkflow
+            control_workflows.append(SceneQualificationWorkflow)
+        except ImportError as e:
+            raise RuntimeError(f"Failed to register SceneQualificationWorkflow: {e}") from e
 
         try:
             from v3_engine.web_pipeline.subject_workflow import ApplicationSubjectWorkflow
@@ -255,6 +262,7 @@ async def run_workers(
         control_worker = Worker(
             client,
             task_queue="v3-terminal-control",
+            graceful_shutdown_timeout=timedelta(seconds=300),
             workflows=control_workflows,
             activities=control_activities,
             activity_executor=activity_executor,
@@ -264,6 +272,7 @@ async def run_workers(
         io_worker = Worker(
             client,
             task_queue="v3-terminal-io",
+            graceful_shutdown_timeout=timedelta(seconds=300),
             max_concurrent_activities=4,
             activities=io_activities,
         )
@@ -272,6 +281,7 @@ async def run_workers(
         build_worker = Worker(
             client,
             task_queue="v3-terminal-build",
+            graceful_shutdown_timeout=timedelta(seconds=300),
             max_concurrent_activities=2,
             activities=build_activities,
         )
@@ -279,7 +289,13 @@ async def run_workers(
         workers = [control_worker, io_worker, build_worker]
 
         async def _run_all() -> None:
-            await asyncio.gather(*(w.run() for w in workers))
+            tasks = [asyncio.create_task(w.run()) for w in workers]
+            try:
+                await asyncio.gather(*tasks)
+            finally:
+                for task in tasks:
+                    task.cancel()
+                await asyncio.gather(*tasks, return_exceptions=True)
 
         worker_task = asyncio.create_task(_run_all())
 
@@ -292,7 +308,14 @@ async def run_workers(
                 except NotImplementedError:
                     pass
 
-        await stop_event.wait()
+        stop_task = asyncio.create_task(stop_event.wait())
+        try:
+            done, _ = await asyncio.wait([worker_task, stop_task], return_when=asyncio.FIRST_COMPLETED)
+            if worker_task in done:
+                # A failed poller must terminate the process so Docker can restart it.
+                await worker_task
+        finally:
+            stop_task.cancel()
         logger.info("Stopping terminal workers cooperatively...")
         worker_task.cancel()
         try:

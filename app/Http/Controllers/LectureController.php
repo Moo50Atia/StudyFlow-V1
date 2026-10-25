@@ -10,18 +10,18 @@ use Illuminate\Support\Facades\Storage;
 
 class LectureController extends Controller
 {
-    public function index(): \Illuminate\Contracts\View\View
+    public function index()
     {
         $query = Lecture::with('subject')->latest();
         $query = app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->scopeVisibleLectures($query, auth()->user());
         $lectures = $query->paginate(10);
-        return view('lectures.index', compact('lectures'));
+        return \App\Support\InertiaPage::render('lectures.index', compact('lectures'));
     }
 
-    public function create(): \Illuminate\Contracts\View\View
+    public function create()
     {
         $subjects = app(\App\Services\LearningAccess::class)->scopeSubjects(Subject::query(), auth()->user())->orderBy('name')->get();
-        return view('lectures.create', compact('subjects'));
+        return \App\Support\InertiaPage::render('lectures.create', compact('subjects'));
     }
 
     public function store(LectureRequest $request): \Illuminate\Http\RedirectResponse
@@ -45,7 +45,7 @@ class LectureController extends Controller
         return redirect()->route('lectures.index')->with('success', 'Lecture created successfully!');
     }
 
-    public function show(Lecture $lecture): \Illuminate\Contracts\View\View
+    public function show(Lecture $lecture)
     {
         if (! app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessLecture(auth()->user(), $lecture)) {
             abort(403);
@@ -58,17 +58,17 @@ class LectureController extends Controller
             ->orderBy('id', 'asc');
         $nextLecture = app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->scopeVisibleLectures($nextQuery, auth()->user())->first();
 
-        return view('lectures.show', compact('lecture', 'nextLecture'));
+        return \App\Support\InertiaPage::render('lectures.show', compact('lecture', 'nextLecture'));
     }
 
-    public function edit(Lecture $lecture): \Illuminate\Contracts\View\View
+    public function edit(Lecture $lecture)
     {
         if (! app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessLecture(auth()->user(), $lecture)) {
             abort(403);
         }
 
         $subjects = app(\App\Services\LearningAccess::class)->scopeSubjects(Subject::query(), auth()->user())->orderBy('name')->get();
-        return view('lectures.edit', compact('lecture', 'subjects'));
+        return \App\Support\InertiaPage::render('lectures.edit', compact('lecture', 'subjects'));
     }
 
     public function update(LectureRequest $request, Lecture $lecture): \Illuminate\Http\RedirectResponse

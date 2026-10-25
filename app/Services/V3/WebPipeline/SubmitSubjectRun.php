@@ -17,6 +17,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class SubmitSubjectRun
@@ -69,6 +70,10 @@ class SubmitSubjectRun
         if (! is_array($titles) || count($titles) !== count($files)) {
             throw new HttpException(422, 'Titles array length must match files array length.');
         }
+        if (array_keys($files) !== range(0, count($files) - 1) || array_keys($titles) !== range(0, count($titles) - 1)
+            || count(array_filter($titles, 'is_string')) !== count($titles)) {
+            throw new HttpException(422, 'Files and titles must use the same contiguous reading order.');
+        }
 
         $mode = $payload['mode'] ?? 'export_manual';
         if (! in_array($mode, ['export_manual', 'api_generate'], true)) {
@@ -76,6 +81,16 @@ class SubmitSubjectRun
         }
         if ($mode !== 'export_manual' && ! (bool) config('services.v3_teacher_paid_scenes_enabled', false)) {
             throw new HttpException(403, 'Paid scene generation is unavailable for teachers.');
+        }
+
+        $executionMode = $payload['execution_mode'] ?? null;
+        if ($executionMode !== null && ! in_array($executionMode, ['same_host', 'local_worker_v1'], true)) {
+            throw new HttpException(422, 'Invalid execution_mode.');
+        }
+
+        $outputScope = $payload['output_scope'] ?? ($executionMode === 'local_worker_v1' ? 'prompts_and_scenes' : 'prompts_only');
+        if (! in_array($outputScope, ['prompts_only', 'prompts_and_scenes'], true)) {
+            throw new HttpException(422, 'Invalid output_scope.');
         }
 
         $qualificationMode = $payload['qualification_mode'] ?? 'real_jev';
@@ -93,13 +108,19 @@ class SubmitSubjectRun
 
         // Check duplicate files in batch
         $fileShas = [];
-        $fileContents = [];
         foreach ($files as $idx => $f) {
             if (! ($f instanceof UploadedFile) || ! $f->isValid()) {
-                throw new HttpException(422, "Invalid upload for file at index {$idx}.");
+                $message = $f instanceof UploadedFile
+                    ? match ($f->getError()) {
+                        UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'The PDF exceeds the server upload limit ('.ini_get('upload_max_filesize').'). Choose a smaller PDF or ask the administrator to increase the limit.',
+                        UPLOAD_ERR_PARTIAL => 'The PDF upload was interrupted. Please select the file and try again.',
+                        default => 'The PDF could not be uploaded. Please select the file and try again.',
+                    }
+                    : 'Please select a PDF file to upload.';
+
+                throw ValidationException::withMessages(["files.{$idx}" => $message]);
             }
-            $content = file_get_contents($f->getRealPath());
-            $sha = hash('sha256', $content);
+            $sha = hash_file('sha256', $f->getRealPath());
             if (in_array($sha, $fileShas, true)) {
                 // Batch duplicate detected!
                 throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
@@ -110,7 +131,6 @@ class SubmitSubjectRun
                 ], 422)->header('Cache-Control', 'private, no-store'));
             }
             $fileShas[] = $sha;
-            $fileContents[] = $content;
         }
 
         // 3. Compute canonical request digest
@@ -122,6 +142,10 @@ class SubmitSubjectRun
             'file_shas' => $fileShas,
             'titles' => array_values($titles),
         ];
+        if ($executionMode !== null) {
+            $canonicalData['execution_mode'] = $executionMode;
+            $canonicalData['output_scope'] = $outputScope;
+        }
         $requestSha256 = hash('sha256', json_encode($canonicalData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 
         // 4. Idempotency & Conflict Check
@@ -131,11 +155,16 @@ class SubmitSubjectRun
 
         if ($existing) {
             if ($existing->request_sha256 === $requestSha256) {
-                return [
+                $resp = [
                     'run_id' => $existing->id,
                     'state' => $existing->state,
                     'state_version' => $existing->state_version,
                 ];
+                $localJob = \App\Models\V3\LocalJob::where('run_id', $existing->id)->first();
+                if ($localJob) {
+                    $resp['job_id'] = $localJob->id;
+                }
+                return $resp;
             }
 
             abort(response()->json([
@@ -146,6 +175,13 @@ class SubmitSubjectRun
             ], 409));
         }
 
+        // Verify and flatten all originals before immutable capture/admission.
+        // Preparation is local and runs outside the SQLite write transaction.
+        $preparation = app(PrepareWebPdfs::class)->prepare($actor, $submissionKey, $files, $titles);
+        $files = $preparation['files'];
+        $titles = $preparation['titles'];
+        $fileShas = array_map(fn ($file) => hash_file('sha256', $file->getRealPath()), $files);
+
         // 5. Transaction: Capture settings, insert run, items, notebook, command, and outbox
         return DB::transaction(function () use (
             $actor,
@@ -153,19 +189,38 @@ class SubmitSubjectRun
             $submissionKey,
             $requestSha256,
             $mode,
+            $executionMode,
+            $outputScope,
             $qualificationMode,
             $files,
             $titles,
             $fileShas,
-            $fileContents
+            $preparation
         ) {
+            $fresh = DB::table('users')->where('id', $actor->id)->first();
+            $active = DB::table('v3_account_access')->where('user_id', $actor->id)->value('is_active');
+            if (! $fresh || $fresh->role !== 'teacher' || ! $active
+                || ! DB::table('teacher_permissions')->where('teacher_id', $actor->id)->where('subject_id', $subjectId)->exists()) {
+                throw new HttpException(403, 'Teacher access changed during PDF preparation.');
+            }
             try {
                 $settings = $this->settingsSelector->selectForNewCase();
                 $versionId = $settings->id;
                 $payloadJson = is_array($settings->payload) ? json_encode($settings->payload) : $settings->payload;
                 $checksum = $settings->checksum;
+                if ($settings->id !== $preparation['settings_version_id']) {
+                    throw new HttpException(409, 'Published settings changed during PDF preparation. Please submit again.');
+                }
             } catch (SettingsUnavailable|\LogicException) {
                 throw new HttpException(422, 'Published pipeline settings are unavailable.');
+            }
+
+            $prior = SubjectRun::where('owner_user_id', $actor->id)->where('submission_key', $submissionKey)->first();
+            if ($prior) {
+                if ($prior->request_sha256 !== $requestSha256) {
+                    throw new HttpException(409, 'Submission key already has a different payload.');
+                }
+                return ['run_id' => $prior->id, 'state' => $prior->state, 'state_version' => $prior->state_version];
             }
 
             $frameworkId = DB::table('v3_notebook_framework_pointer')->where('id', 1)->value('version_id');
@@ -188,12 +243,14 @@ class SubmitSubjectRun
                 'owner_user_id' => $actor->id,
                 'subject_id' => $subjectId,
                 'origin' => 'web',
-                'protocol' => 'notebooklm_per_pdf_web_v1',
+                'protocol' => \App\Services\V3\NotebookLM\MappedLessonQuestion::RUN_PROTOCOL,
                 'settings_version_id' => $versionId,
                 'framework_version_id' => $frameworkId,
                 'mode' => $mode,
+                'execution_mode' => $executionMode ?? 'same_host',
                 'qualification_mode' => $qualificationMode,
                 'captured_settings_json' => $payloadJson,
+                'pdf_preparation' => $preparation['capture'],
                 'capture_sha256' => $checksum,
                 'submission_key' => $submissionKey,
                 'request_sha256' => $requestSha256,
@@ -208,7 +265,10 @@ class SubmitSubjectRun
             foreach ($files as $idx => $file) {
                 $ordinal = $idx + 1;
                 $attemptId = (string) Str::uuid();
-                $content = $fileContents[$idx];
+                $content = file_get_contents($file->getRealPath());
+                if (hash('sha256', $content) !== $fileShas[$idx]) {
+                    throw new HttpException(409, 'Prepared PDF changed before capture.');
+                }
                 $byteSize = $this->store->storeQuarantine($attemptId, $content);
 
                 UploadAttempt::forceCreate([
@@ -231,6 +291,7 @@ class SubmitSubjectRun
                     'original_filename' => $file->getClientOriginalName(),
                     'input_sha256' => $fileShas[$idx],
                     'input_bytes' => $byteSize,
+                    'pdf_lineage' => $preparation['lineages'][$idx],
                     'state' => 'staging',
                     'state_version' => 1,
                 ]);
@@ -263,6 +324,18 @@ class SubmitSubjectRun
                 'state' => 'accepted',
                 'accepted_at' => now(),
             ]);
+
+            // Feature 021: Local Worker admission
+            if ($executionMode === 'local_worker_v1') {
+                $job = app(\App\Services\V3\LocalWorker\LocalWorkerAdmissionCoordinator::class)->admit($run, $outputScope);
+                $run->refresh();
+                return [
+                    'run_id' => $run->id,
+                    'job_id' => $job->id,
+                    'state' => $run->state,
+                    'state_version' => $run->state_version,
+                ];
+            }
 
             // Enqueue in PipelineOutbox for application_bridge
             PipelineOutbox::create([

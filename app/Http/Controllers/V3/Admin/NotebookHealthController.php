@@ -4,12 +4,26 @@ namespace App\Http\Controllers\V3\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\V3\Workflow\BridgeClient;
+use App\Services\LearningAccess;
+use App\Services\V3\LocalWorker\ProviderHealthProbeService;
+use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class NotebookHealthController extends Controller
 {
-    public function check(BridgeClient $bridge): JsonResponse
+    public function check(Request $request, BridgeClient $bridge, ProviderHealthProbeService $probes, LearningAccess $access): JsonResponse
     {
+        if ($request->input('target') === 'local_worker') {
+            abort_unless($access->canManageProcessingDevices($request->user()), 403);
+            $probe = $probes->begin($request->user());
+            if (($probe['state'] ?? null) === 'worker_unavailable') {
+                return response()->json(['data' => ['target' => 'local_worker', ...$probe]], 503)
+                    ->header('Cache-Control', 'private, no-store');
+            }
+            return response()->json(['data' => ['target' => 'local_worker', ...$probe]], 202)
+                ->header('Cache-Control', 'private, no-store');
+        }
+
         $result = $bridge->checkNotebookLmHealth();
         $data = $result['data'] ?? [];
 
@@ -45,5 +59,14 @@ class NotebookHealthController extends Controller
                 'message' => 'The health check could not reach NotebookLM. Check that the bridge and network are available, then try again.',
             ],
         ], 503)->header('Cache-Control', 'private, no-store');
+    }
+
+    public function workerStatus(Request $request, string $probe, ProviderHealthProbeService $probes, LearningAccess $access): JsonResponse
+    {
+        abort_unless($access->canManageProcessingDevices($request->user()), 403);
+        $result = $probes->status($request->user(), $probe);
+        abort_if($result === null, 404);
+        return response()->json(['data' => $result], $result['state'] === 'pending' ? 202 : 200)
+            ->header('Cache-Control', 'private, no-store');
     }
 }

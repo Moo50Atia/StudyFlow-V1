@@ -326,6 +326,38 @@ class ProgressProjectionTest extends TestCase
         $this->assertSame('control_conflict', $respConflict->json('error.code'));
     }
 
+    public function test_auth_blocked_run_can_be_explicitly_retried_with_original_input(): void
+    {
+        Http::fake(['*' => Http::response(['status' => 'paused_auth'], 200)]);
+        $manifestRef = (string) Str::uuid();
+        PipelineCommand::create([
+            'id' => (string) Str::uuid(),
+            'run_id' => $this->run->id,
+            'actor_user_id' => $this->teacher->id,
+            'action' => 'submit',
+            'private_payload_ref' => $manifestRef,
+            'request_sha256' => hash('sha256', 'submit'),
+            'expected_version' => 1,
+            'state' => 'applied',
+            'accepted_at' => now(),
+            'created_at' => now(),
+        ]);
+        $this->actingAs($this->teacher)
+            ->getJson("/v3/teacher/subject-runs/{$this->run->id}/progress")
+            ->assertOk()->assertJsonPath('state', 'paused_auth')->assertJsonPath('retry_available', true);
+        $commandId = (string) Str::uuid();
+        $request = ['action' => 'retry', 'command_id' => $commandId, 'expected_version' => 1];
+        $this->actingAs($this->teacher)
+            ->postJson("/v3/teacher/subject-runs/{$this->run->id}/commands", $request)
+            ->assertAccepted()->assertJsonPath('status', 'requested');
+        $this->assertDatabaseHas('v3_pipeline_commands', [
+            'id' => $commandId, 'action' => 'retry', 'private_payload_ref' => $manifestRef,
+        ]);
+        $this->postJson("/v3/teacher/subject-runs/{$this->run->id}/commands", $request)
+            ->assertOk()->assertJsonPath('status', 'replayed');
+        $this->assertSame(2, $this->run->fresh()->state_version);
+    }
+
     public function test_control_is_applied_to_run_only_after_temporal_confirms_delivery(): void
     {
         $commandId = (string) Str::uuid();

@@ -13,7 +13,7 @@ use Illuminate\View\View;
 
 class CaseSummaryController extends Controller
 {
-    public function index(Request $request): JsonResponse|View|Response
+    public function index(Request $request)
     {
         if ($request->has('page')) {
             $rawPage = (string) $request->query('page');
@@ -56,14 +56,14 @@ class CaseSummaryController extends Controller
 
         $admin = $request->attributes->get('v3_actor') ?? $request->user();
 
-        return response()->view('v3.admin.cases.index', [
+        return \App\Support\InertiaPage::render('v3.admin.cases.index', [
             'admin' => $admin,
             'cases' => $summaries,
             'paginator' => $casesPaginator,
         ])->header('Cache-Control', 'private, no-store');
     }
 
-    public function show(Request $request, string $case): JsonResponse|View|Response
+    public function show(Request $request, string $case)
     {
         if (! Str::isUuid($case)) {
             if ($request->expectsJson()) {
@@ -102,7 +102,7 @@ class CaseSummaryController extends Controller
 
         $admin = $request->attributes->get('v3_actor') ?? $request->user();
 
-        return response()->view('v3.admin.cases.summary', [
+        return \App\Support\InertiaPage::render('v3.admin.cases.summary', [
             'admin' => $admin,
             'case' => $summary,
         ])->header('Cache-Control', 'private, no-store');

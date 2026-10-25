@@ -34,13 +34,13 @@ class ProjectLessonBundle
 
     public const ELEVEN_FIELDS = self::SCHEMA_COLUMNS;
 
-    protected const NEXT_HEADER_LOOKAHEAD = '(?=(?:\n(?:Section\s+Identity|Core\s+Understanding|Visual-First\s+Explanation|Visual\s+Scene\s+Script|Dynamic\s+View\s+Blueprint|Visual\s+Learning\s+Outcome|Concept\s+Check|Conceptual\s+Summary|(?:[•\-*]\s*)?شرح\s+للجزء\s+بالعامية\s+المصرية|القوانين|(?:إسقاط|اسقاط)\s+على\s+مثال|Section\s+[0-9]+)\s*:?|\z))';
+    protected const NEXT_HEADER_LOOKAHEAD = '(?=(?:\n(?:Section\s+Identity|Section\s*:\s*[^\n]+|Core\s+Understanding|Visual-First\s+Explanation|Visual\s+Scene\s+Script|Dynamic\s+View\s+Blueprint|Visual\s+Learning\s+Outcome|Concept\s+Check|Conceptual\s+Summary|(?:[•\-*]\s*)?شرح\s+للجزء\s+بالعامية\s+المصرية|Colloquial\s+Egyptian\s+Explanation|القوانين|Laws(?:\s*\(if\s*any\))?|(?:إسقاط|اسقاط)\s+على\s+مثال|Real[- ]life\s+Example|Section\s+[0-9]+)\s*:?|\z))';
 
     /**
      * Regex patterns for extracting canonical First fields from raw Markdown/text.
      */
     protected const FIELD_PATTERNS = [
-        'section_identity' => '/(?:^|\n)Section\s+Identity\s*:?\s*\n?(.*?)' . self::NEXT_HEADER_LOOKAHEAD . '/us',
+        'section_identity' => '/(?:^|\n)(?:Section\s+Identity|Section)\s*:?\s*\n?(.*?)' . self::NEXT_HEADER_LOOKAHEAD . '/us',
         'core_understanding' => '/(?:^|\n)Core\s+Understanding\s*:?\s*\n?(.*?)' . self::NEXT_HEADER_LOOKAHEAD . '/us',
         'visual_first_explanation' => '/(?:^|\n)Visual-First\s+Explanation\s*:?\s*\n?(.*?)' . self::NEXT_HEADER_LOOKAHEAD . '/us',
         'visual_scene_script' => '/(?:^|\n)Visual\s+Scene\s+Script\s*:?\s*\n?(.*?)' . self::NEXT_HEADER_LOOKAHEAD . '/us',
@@ -48,9 +48,9 @@ class ProjectLessonBundle
         'visual_learning_outcome' => '/(?:^|\n)Visual\s+Learning\s+Outcome\s*:?\s*\n?(.*?)' . self::NEXT_HEADER_LOOKAHEAD . '/us',
         'concept_check' => '/(?:^|\n)Concept\s+Check\s*:?\s*\n?(.*?)' . self::NEXT_HEADER_LOOKAHEAD . '/us',
         'conceptual_summary' => '/(?:^|\n)Conceptual\s+Summary\s*:?\s*\n?(.*?)' . self::NEXT_HEADER_LOOKAHEAD . '/us',
-        'colloquial_egyptian_explanation' => '/(?:^|\n)(?:[•\-*]\s*)?شرح\s+للجزء\s+بالعامية\s+المصرية\s*:?\s*\n?(.*?)' . self::NEXT_HEADER_LOOKAHEAD . '/us',
-        'laws_if_any' => '/(?:^|\n)القوانين\s*(?:\((?:إن|ان)\s*(?:وُجدت|وجدت)\))?\s*:?\s*\n?(.*?)' . self::NEXT_HEADER_LOOKAHEAD . '/us',
-        'real_life_example' => '/(?:^|\n)(?:إسقاط|اسقاط)\s+على\s+مثال\s+أو\s+موقف\s+من\s+الحياة\s+اليومية\s+لتثبيت\s+الفهم\s*:?\s*\n?(.*?)' . self::NEXT_HEADER_LOOKAHEAD . '/us',
+        'colloquial_egyptian_explanation' => '/(?:^|\n)(?:[•\-*]\s*)?(?:شرح\s+للجزء\s+بالعامية\s+المصرية|Colloquial\s+Egyptian\s+Explanation)\s*:?\s*\n?(.*?)' . self::NEXT_HEADER_LOOKAHEAD . '/us',
+        'laws_if_any' => '/(?:^|\n)(?:القوانين\s*(?:\((?:إن|ان)\s*(?:وُجدت|وجدت)\))?|Laws\s*(?:\(if\s*any\))?)\s*:?\s*\n?(.*?)' . self::NEXT_HEADER_LOOKAHEAD . '/us',
+        'real_life_example' => '/(?:^|\n)(?:(?:إسقاط|اسقاط)\s+على\s+مثال\s+أو\s+موقف\s+من\s+الحياة\s+اليومية\s+لتثبيت\s+الفهم|Real[- ]life\s+Example)\s*:?\s*\n?(.*?)' . self::NEXT_HEADER_LOOKAHEAD . '/us',
     ];
 
     /**

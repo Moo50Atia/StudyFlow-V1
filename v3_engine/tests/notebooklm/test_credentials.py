@@ -7,6 +7,7 @@ import pytest
 
 from v3_engine.notebooklm.credentials import (
     CredentialsValidationError,
+    NotebookCredentialAuthority,
     validate_storage_state,
     bridge_mcp_to_storage_state,
     get_storage_state_path,
@@ -126,6 +127,64 @@ def test_n09_bridge_converts_mcp_auth_to_domain_storage_state(tmp_path):
         # Domain must be google.com
         matching = [c for c in validated["cookies"] if c["name"] == req][0]
         assert "google.com" in matching["domain"]
+
+
+def test_run_sessions_adopt_only_a_verified_shared_profile_generation(tmp_path, monkeypatch):
+    home = tmp_path / "home"
+    monkeypatch.setenv("HOME", str(home))
+    master = home / ".local_worker" / "notebooklm.json"
+    mcp = home / ".notebooklm-mcp" / "auth.json"
+    original = {name: f"original-{name}" for name in REQUIRED_COOKIES}
+    mcp.parent.mkdir(parents=True)
+    mcp.write_text(json.dumps({"cookies": original}))
+    mcp.chmod(0o600)
+    bridge_mcp_to_storage_state(mcp, master)
+    monkeypatch.setenv("V3_NOTEBOOKLM_STORAGE_STATE", str(master))
+
+    authority = NotebookCredentialAuthority(master)
+    run_copy = authority.bind_run_copy(master, "run-1", home / "runs")
+    assert not authority.profile_status()["verified"]
+    with pytest.raises(CredentialsValidationError) as unverified:
+        authority.resolve_run_copy(run_copy)
+    assert unverified.value.code == "authentication_required"
+
+    generation_one = authority.record_verified("owner-proof", master)
+    assert authority.profile_status()["verified"]
+    assert authority.resolve_run_copy(run_copy) == run_copy
+    assert generation_one == 1
+
+    refreshed = {name: f"refreshed-{name}" for name in REQUIRED_COOKIES}
+    mcp.write_text(json.dumps({"cookies": refreshed}))
+    mcp.chmod(0o600)
+    bridge_mcp_to_storage_state(mcp, master)
+    assert not authority.profile_status()["verified"]
+    with pytest.raises(CredentialsValidationError) as pending:
+        authority.resolve_run_copy(run_copy)
+    assert pending.value.code == "authentication_required"
+
+    generation_two = authority.record_verified("owner-proof", master)
+    authority.resolve_run_copy(run_copy)
+    assert generation_two == 2
+    saved = validate_storage_state(run_copy)
+    assert {item["value"] for item in saved["cookies"] if item["name"] in REQUIRED_COOKIES} == set(refreshed.values())
+    assert run_copy.stat().st_mode & 0o777 == 0o600
+    profile_metadata = json.loads(authority.metadata_path.read_text())
+    assert not any(value in json.dumps(profile_metadata) for value in refreshed.values())
+
+
+def test_mcp_and_sdk_profiles_cannot_claim_one_verified_account_when_cookies_differ(tmp_path, monkeypatch):
+    home = tmp_path / "home"
+    monkeypatch.setenv("HOME", str(home))
+    master = home / ".local_worker" / "notebooklm.json"
+    mcp = home / ".notebooklm-mcp" / "auth.json"
+    mcp.parent.mkdir(parents=True)
+    mcp.write_text(json.dumps({"cookies": {name: f"sdk-{name}" for name in REQUIRED_COOKIES}}))
+    mcp.chmod(0o600)
+    create_synthetic_storage_state(master, {name: f"other-{name}" for name in REQUIRED_COOKIES})
+    authority = NotebookCredentialAuthority(master)
+    with pytest.raises(CredentialsValidationError) as mismatch:
+        authority.record_verified("owner-proof", master)
+    assert mismatch.value.code == "account_mismatch"
 
 
 @pytest.mark.parametrize("origin", ["https://notebook.google.com", "https://notebooklm.google.com"])

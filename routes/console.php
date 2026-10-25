@@ -21,6 +21,7 @@ Schedule::command('v3:mark-dormant-reviews')->daily();
 Schedule::command('v3:dispatch-admin-commands')->everyMinute();
 Schedule::command('v3:purge-expired-evidence-exports')->hourly();
 Schedule::command('v3:dispatch-web-pipeline')->everyMinute();
+Schedule::command('v3:expire-local-worker-leases')->everyMinute();
 
 Artisan::command('v3:mark-dormant-reviews', function (\App\Services\V3\Review\MarkDormantReviews $service) {
     $count = $service->mark();
@@ -31,3 +32,8 @@ Artisan::command('v3:dispatch-admin-commands', function (\App\Services\V3\Admin\
     $count = $service->dispatch();
     $this->info("Dispatched {$count} admin commands.");
 })->purpose('Dispatch pending and uncertain admin commands to Temporal bridge');
+
+// A timestamp written by the scheduler itself, scoped to its container.
+if (getenv("PRODUCT_PROJECT_PATH")) {
+    Schedule::call(fn () => touch("/tmp/scheduler-heartbeat"))->everyMinute();
+}

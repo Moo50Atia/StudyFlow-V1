@@ -3,6 +3,10 @@
 namespace App\Services\V3\WebPipeline;
 
 use App\Models\User;
+use App\Models\V3\LocalAssignment;
+use App\Models\V3\LocalJob;
+use App\Models\V3\LocalProviderEffect;
+use App\Models\V3\LocalTask;
 use App\Models\V3\PipelineCommand;
 use App\Models\V3\SubjectRun;
 use Illuminate\Support\Facades\DB;
@@ -31,8 +35,8 @@ class ApplyRunControl
         }
 
         $action = strtolower(trim((string) ($input['action'] ?? '')));
-        $allowedTeacherActions = ['pause', 'resume', 'cancel'];
-        $allowedAdminActions = ['pause', 'resume', 'cancel'];
+        $allowedTeacherActions = ['pause', 'resume', 'cancel', 'retry'];
+        $allowedAdminActions = ['pause', 'resume', 'cancel', 'retry'];
 
         if ($isAdmin) {
             if (! in_array($action, $allowedAdminActions, true)) {
@@ -100,38 +104,99 @@ class ApplyRunControl
                 );
             }
 
+            $localJob = LocalJob::query()->where('run_id', $lockedRun->id)->lockForUpdate()->first();
             // Cannot resume cancelled run
-            $effectiveState = in_array($workflowState, ['queued', 'staging', 'running', 'paused', 'paused_auth', 'paused_quota'], true)
+            $effectiveState = ! $localJob && in_array($workflowState, ['queued', 'staging', 'running', 'paused', 'paused_auth', 'paused_quota', 'awaiting_generation', 'failed', 'held_persistence', 'held_uncertain'], true)
                 ? $workflowState
                 : $lockedRun->state;
             $validTransition = match ($action) {
                 'pause' => $effectiveState === 'running',
                 'resume' => $effectiveState === 'paused',
-                'cancel' => in_array($effectiveState, ['staging', 'queued', 'running', 'paused', 'paused_auth', 'paused_quota'], true),
+                'cancel' => in_array($effectiveState, ['staging', 'queued', 'running', 'paused', 'paused_auth', 'paused_quota', 'awaiting_generation'], true),
+                'retry' => RunRetryEligibility::allows($lockedRun, $effectiveState),
                 default => false,
             };
             if (! $validTransition) {
                 throw new HttpException(409, "Run state '{$effectiveState}' does not accept '{$action}'");
             }
 
+            $localImmediateControl = $localJob && (
+                ($action === 'retry' && in_array($effectiveState, ['paused_auth', 'paused_quota'], true))
+                || ($action === 'cancel' && $effectiveState === 'awaiting_generation')
+            );
+
             $newVersion = (int) $lockedRun->state_version + 1;
+
+            $retryManifestRef = null;
+            if ($action === 'retry' && ! $localImmediateControl) {
+                $retryManifestRef = PipelineCommand::where('run_id', $lockedRun->id)
+                    ->where('action', 'submit')->latest('created_at')->value('private_payload_ref');
+                if (! $retryManifestRef || ! Str::isUuid($retryManifestRef)) {
+                    throw new HttpException(409, 'The original run input is unavailable for a safe retry.');
+                }
+            }
 
             $command = PipelineCommand::create([
                 'id' => $commandId,
                 'run_id' => $lockedRun->id,
                 'actor_user_id' => $actor->id,
                 'action' => $action,
+                'private_payload_ref' => $retryManifestRef,
                 'request_sha256' => $requestSha256,
                 'expected_version' => $expectedVersion,
-                'state' => 'requested',
+                'state' => $localImmediateControl ? 'applied' : 'requested',
                 'accepted_at' => now(),
                 'created_at' => now(),
             ]);
 
             $lockedRun->update([
+                'state' => $action === 'retry' ? ($localImmediateControl ? 'queued' : 'staging')
+                    : (($localImmediateControl && $action === 'cancel') ? 'cancelled' : $lockedRun->state),
+                'finished_at' => $action === 'retry' ? null
+                    : (($localImmediateControl && $action === 'cancel') ? now() : $lockedRun->finished_at),
                 'state_version' => $newVersion,
                 'last_updated_at' => now(),
             ]);
+
+            if ($localImmediateControl && $action === 'retry') {
+                $tasks = LocalTask::query()->where('job_id', $localJob->id)
+                    ->whereIn('status', ['paused_auth', 'paused_quota'])->lockForUpdate()->get();
+                if ($tasks->isEmpty()) {
+                    throw new HttpException(409, 'No paused local worker task is available to retry.');
+                }
+                foreach ($tasks as $task) {
+                    if ($task->effects()->whereIn('status', ['dispatching', 'unknown'])->exists()) {
+                        throw new HttpException(409, 'A local provider effect still requires reconciliation.');
+                    }
+                    if ($task->active_assignment_id) {
+                        $assignment = LocalAssignment::query()->whereKey($task->active_assignment_id)->lockForUpdate()->first();
+                        if ($assignment && $assignment->status === 'active') {
+                            $assignment->update(['status' => 'released']);
+                        }
+                    }
+                    $task->update(['status' => 'queued', 'active_assignment_id' => null]);
+                }
+                $localJob->update(['status' => 'queued']);
+            }
+
+            if ($localImmediateControl && $action === 'cancel') {
+                $tasks = LocalTask::query()->where('job_id', $localJob->id)
+                    ->whereIn('status', ['awaiting_pull', 'queued', 'paused', 'paused_auth', 'paused_quota'])
+                    ->lockForUpdate()->get();
+                foreach ($tasks as $task) {
+                    if ($task->effects()->whereIn('status', ['dispatching', 'unknown'])->exists()) {
+                        throw new HttpException(409, 'A local provider effect still requires reconciliation.');
+                    }
+                    if ($task->active_assignment_id) {
+                        $assignment = LocalAssignment::query()->whereKey($task->active_assignment_id)->lockForUpdate()->first();
+                        if ($assignment && $assignment->status === 'active') {
+                            $assignment->update(['status' => 'released']);
+                        }
+                    }
+                    $task->update(['status' => 'cancelled', 'active_assignment_id' => null]);
+                }
+                $localJob->update(['status' => 'cancelled']);
+            }
 
             // Record safe event
             $this->eventStore->recordEvent($lockedRun->id, [
@@ -146,10 +211,12 @@ class ApplyRunControl
 
             // Persist the control before delivery so a bridge outage cannot
             // turn an unapplied request into a claimed run-state transition.
-            $this->outbox->enqueue($command);
+            if (! $localImmediateControl) {
+                $this->outbox->enqueue($command);
+            }
 
             return [
-                'status' => 'requested',
+                'status' => $localImmediateControl ? 'applied' : 'requested',
                 'command_id' => $command->id,
                 'action' => $command->action,
                 'state' => $command->state,

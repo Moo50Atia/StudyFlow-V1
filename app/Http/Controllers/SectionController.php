@@ -9,19 +9,19 @@ use App\Models\Lecture;
 
 class SectionController extends Controller
 {
-    public function index(): \Illuminate\Contracts\View\View
+    public function index()
     {
         $query = Section::with('lecture.subject')->latest();
         $query = app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->scopeVisibleSections($query, auth()->user());
         $sections = $query->paginate(10);
-        return view('sections.index', compact('sections'));
+        return \App\Support\InertiaPage::render('sections.index', compact('sections'));
     }
 
-    public function create(): \Illuminate\Contracts\View\View
+    public function create()
     {
         $query = Lecture::with('subject')->orderBy('title');
         $lectures = app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->scopeVisibleLectures($query, auth()->user())->get();
-        return view('sections.create', compact('lectures'));
+        return \App\Support\InertiaPage::render('sections.create', compact('lectures'));
     }
 
     public function store(SectionRequest $request): \Illuminate\Http\RedirectResponse
@@ -32,7 +32,7 @@ class SectionController extends Controller
         return redirect()->route('sections.index')->with('success', 'Section created successfully!');
     }
 
-    public function show(Section $section): \Illuminate\Contracts\View\View
+    public function show(Section $section)
     {
         if (! app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessSection(auth()->user(), $section)) {
             abort(403);
@@ -50,10 +50,10 @@ class SectionController extends Controller
             ->orderBy('id', 'asc');
         $nextLecture = app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->scopeVisibleLectures($nextLectureQuery, auth()->user())->first();
 
-        return view('sections.show', compact('section', 'nextSection', 'nextLecture'));
+        return \App\Support\InertiaPage::render('sections.show', compact('section', 'nextSection', 'nextLecture'));
     }
 
-    public function edit(Section $section): \Illuminate\Contracts\View\View
+    public function edit(Section $section)
     {
         if (! app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->canAccessSection(auth()->user(), $section)) {
             abort(403);
@@ -61,7 +61,7 @@ class SectionController extends Controller
 
         $query = Lecture::with('subject')->orderBy('title');
         $lectures = app(\App\Services\V3\WebPipeline\LinkedContentAccess::class)->scopeVisibleLectures($query, auth()->user())->get();
-        return view('sections.edit', compact('section', 'lectures'));
+        return \App\Support\InertiaPage::render('sections.edit', compact('section', 'lectures'));
     }
 
     public function update(SectionRequest $request, Section $section): \Illuminate\Http\RedirectResponse

@@ -117,3 +117,12 @@ def test_same_scene_identity_in_different_subjects_gets_distinct_journal_events(
     events = journal.read_events(after_seq=0)
     assert len(events) == 2
     assert {event.subject_run_id for event in events} == {"subject-a", "subject-b"}
+
+
+def test_export_failure_then_success_does_not_conflict_in_journal(journal_env,monkeypatch):
+    root,journal=journal_env
+    monkeypatch.setenv('V3_TERMINAL_ROOT',str(root))
+    _record_event('subject','scene_prompts_exported','export_prompts','failed','input_invalid')
+    _record_event('subject','scene_prompts_exported','export_prompts','complete','ok')
+    _record_event('subject','scene_prompts_exported','export_prompts','complete','ok')
+    assert [event.outcome for event in journal.read_events(after_seq=0)]==['failed','complete']

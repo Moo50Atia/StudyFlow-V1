@@ -7,8 +7,6 @@ import json
 import logging
 import os
 import re
-import shutil
-import stat
 import tempfile
 from pathlib import Path
 from typing import Any, Sequence
@@ -16,13 +14,13 @@ from typing import Any, Sequence
 from v3_engine.lessons.canonical_prompts import DIVIDE_PROMPT, EXECUTION_PROMPT
 from v3_engine.notebooklm.bundle_parser import parse_combined_bundle
 from v3_engine.notebooklm.ports import (
-    AuthenticationRequiredError,
     ChatFormatSettings,
     NotebookRef,
     ProviderError,
     SessionProvider,
     SourceReceipt,
     TurnAnswer,
+    require_notebook_owner,
 )
 from v3_engine.notebooklm.protocol import (
     COMBINED_RESPONSE_FORMAT_TEXT,
@@ -35,9 +33,9 @@ except ImportError:
 
 logger = logging.getLogger("v3_engine.notebooklm.terminal")
 
-THIRD_HEADER = re.compile(r"^Lec\s*\d+\s*\(\s*Sec\s*\d+\s*\)\s*:", re.I)
+THIRD_HEADER = re.compile(r"^Lec\s*W?\s*\d+\s*\(\s*Sec\s*\d+\s*\)\s*:", re.I)
 LOOSE_THIRD_HEADER = re.compile(
-    r"^Lec\s*\d+\s*\(\s*Sec\s*(\d+)\s*\)\s*:\s*(.*)$", re.I | re.M
+    r"^Lec\s*W?\s*\d+\s*\(\s*Sec\s*(\d+)\s*\)\s*:\s*(.*)$", re.I | re.M
 )
 W_LABEL = re.compile(r"^W(\d+)\b")
 MARKER = re.compile(r"✅\s*Lesson\s*\[?(\d+)\]?\s*Completed")
@@ -112,24 +110,24 @@ def loose_work_nodes(raw: str) -> list[dict]:
 
 def raw_artifacts(answer: str) -> dict[str, str | None]:
     """Keep every byte in raw_answer; slices here are best-effort conveniences."""
-    markers = [
-        (name, answer.find(marker), len(marker))
-        for name, marker in (
-            ("first", "=== FIRST ==="),
-            ("second", "=== SECOND ==="),
-            ("third", "=== THIRD ==="),
-            ("end", "=== END ==="),
-        )
-    ]
-    result: dict[str, str | None] = {"first": None, "second": None, "third": None}
-    if all(position >= 0 for _, position, _ in markers) and all(
-        markers[i][1] < markers[i + 1][1] for i in range(3)
-    ):
-        for i in range(3):
-            result[markers[i][0]] = answer[
-                markers[i][1] + markers[i][2] : markers[i + 1][1]
-            ].strip()
-    return result
+    labels = ('first', 'second', 'third', 'end')
+    delimiters = {name: f"=== {name.upper()} ===" for name in labels}
+    # Responses can quote the requested envelope in a preamble. Select the
+    # final complete envelope, not the first quoted example/instruction.
+    starts = list(re.finditer(re.escape(delimiters['first']), answer))
+    for start in reversed(starts):
+        markers = [(start.start(), start.end())]
+        for name in labels[1:]:
+            pos = answer.find(delimiters[name], markers[-1][1])
+            if pos < 0:
+                break
+            markers.append((pos, pos + len(delimiters[name])))
+        if len(markers) != 4:
+            continue
+        slices = {labels[i]: answer[markers[i][1]:markers[i+1][0]].strip() for i in range(3)}
+        if all(slices.values()):
+            return slices
+    return {"first": None, "second": None, "third": None}
 
 
 def loose_scene_prompts(third: str | None) -> list[dict]:
@@ -197,23 +195,12 @@ def bootstrap_subject_credentials(
     subject_run_id: str,
     session_base_dir: Path | None = None,
 ) -> Path:
-    """Isolate credentials for a subject into a dedicated 0700/0600 storage directory and disable browser refresh."""
+    """Create a run copy managed by the shared NotebookLM credential authority."""
     os.environ.pop("NOTEBOOKLM_REFRESH_CMD", None)
-
-    if session_base_dir is not None:
-        base_dir = session_base_dir
-    else:
-        base_dir = Path.home() / ".notebooklm" / "v3-terminal-sessions"
-
-    subject_dir = base_dir / subject_run_id
-    subject_dir.mkdir(parents=True, exist_ok=True)
-    os.chmod(subject_dir, stat.S_IRWXU)  # 0700
-
-    target_file = subject_dir / "storage_state.json"
-    shutil.copy2(master_storage_path, target_file)
-    os.chmod(target_file, stat.S_IRUSR | stat.S_IWUSR)  # 0600
-
-    return target_file
+    from v3_engine.notebooklm.credentials import NotebookCredentialAuthority
+    return NotebookCredentialAuthority(master_storage_path).bind_run_copy(
+        master_storage_path, subject_run_id, session_base_dir=session_base_dir,
+    )
 
 
 class NotebookTerminalService:
@@ -225,13 +212,30 @@ class NotebookTerminalService:
         proof_notebook_id: str,
         storage_path: Path | None = None,
     ) -> bool:
-        async with self.session_provider.open(storage_path=storage_path) as session:
+        from v3_engine.notebooklm.credentials import NotebookCredentialAuthority
+        authority = NotebookCredentialAuthority()
+        verification_path = storage_path
+        if storage_path is not None:
+            marker_path = storage_path.expanduser().resolve().parent / authority.RUN_MARKER
+            if marker_path.is_file():
+                # A run-local copy may be stale after a manual refresh. Verify
+                # the configured profile first; only then may run copies adopt it.
+                status = authority.profile_status()
+                try:
+                    marker = json.loads(marker_path.read_text(encoding="utf-8"))
+                    is_old_generation = int(marker.get("generation", -1)) != int(status["generation"])
+                except (OSError, ValueError, TypeError):
+                    is_old_generation = True
+                if not status["verified"] or is_old_generation:
+                    verification_path = authority.master_path
+        verification_open = getattr(self.session_provider, "open_for_verification", None)
+        opener = verification_open or self.session_provider.open
+        async with opener(storage_path=verification_path) as session:
             role = await session.files.verify_owner(proof_notebook_id)
-            if role != "owner":
-                raise AuthenticationRequiredError(
-                    f"Owner verification failed for approved account mo50atiapro (role={role!r})",
-                    raw_detail=f"proof_notebook={proof_notebook_id}, role={role}",
-                )
+            require_notebook_owner(role)
+            authority.record_verified(proof_notebook_id, verification_path or authority.master_path)
+            if storage_path is not None and verification_path == authority.master_path:
+                authority.resolve_run_copy(storage_path)
             return True
 
     async def create_notebook(
@@ -240,6 +244,8 @@ class NotebookTerminalService:
         storage_path: Path | None = None,
     ) -> NotebookRef:
         async with self.session_provider.open(storage_path=storage_path) as session:
+            from v3_engine.local_worker.hosted_fence import verify_hosted_assignment_fence
+            verify_hosted_assignment_fence(storage_path)
             return await session.files.create_notebook(title)
 
     async def upload_source(
@@ -251,6 +257,8 @@ class NotebookTerminalService:
         storage_path: Path | None = None,
     ) -> SourceReceipt:
         async with self.session_provider.open(storage_path=storage_path) as session:
+            from v3_engine.local_worker.hosted_fence import verify_hosted_assignment_fence
+            verify_hosted_assignment_fence(storage_path)
             return await session.files.upload_file(
                 notebook_id=notebook_id,
                 local_path=local_path,
@@ -273,6 +281,8 @@ class NotebookTerminalService:
         storage_path: Path | None = None,
     ) -> None:
         async with self.session_provider.open(storage_path=storage_path) as session:
+            from v3_engine.local_worker.hosted_fence import verify_hosted_assignment_fence
+            verify_hosted_assignment_fence(storage_path)
             await session.conversation.configure_format(notebook_id, format_text)
 
     async def send_turn(
@@ -285,6 +295,8 @@ class NotebookTerminalService:
         fresh_after_conversation_id: str | None = None,
     ) -> TurnAnswer:
         async with self.session_provider.open(storage_path=storage_path) as session:
+            from v3_engine.local_worker.hosted_fence import verify_hosted_assignment_fence
+            verify_hosted_assignment_fence(storage_path)
             return await session.conversation.ask_once(
                 notebook_id=notebook_id,
                 question=question,
@@ -315,6 +327,8 @@ class NotebookTerminalService:
         self, notebook_id: str, conversation_id: str, storage_path: Path | None = None,
     ) -> None:
         async with self.session_provider.open(storage_path=storage_path) as session:
+            from v3_engine.local_worker.hosted_fence import verify_hosted_assignment_fence
+            verify_hosted_assignment_fence(storage_path)
             await session.conversation.reset_conversation(notebook_id, conversation_id)
 
     def capture_turn(
@@ -552,7 +566,7 @@ class NotebookTerminalService:
                 settings = await session.conversation.get_format(notebook_id)
                 if settings.custom_prompt == format_text:
                     return {"outcome": "complete"}
-                return {"outcome": "uncertain"}
+                return {"outcome": "uncertain", "configuration_matches": False}
 
             elif operation_type == "upload":
                 if not notebook_id:
@@ -560,7 +574,11 @@ class NotebookTerminalService:
                 sources = await session.files.list_sources(notebook_id)
                 matches = [s for s in sources if s.title == title]
                 if len(matches) == 1:
-                    return {"outcome": "complete", "source_id": matches[0].source_id}
+                    source = matches[0]
+                    if source.status == "ready":
+                        return {"outcome": "complete", "source_id": source.source_id}
+                    return {"outcome": "uncertain", "source_id": source.source_id,
+                            "source_status": source.status}
                 elif len(matches) > 1:
                     return {"outcome": "blocked", "error": "multiple_matching_sources"}
                 return {"outcome": "uncertain"}
@@ -593,7 +611,9 @@ class NotebookTerminalService:
             if len(history) > expected_turn_index:
                 actual_q, actual_a = history[expected_turn_index]
                 if actual_q == expected_question:
-                    return {"outcome": "complete", "raw_answer": actual_a, "turn_index": expected_turn_index}
+                    if actual_a.strip():
+                        return {"outcome": "complete", "raw_answer": actual_a, "turn_index": expected_turn_index}
+                    return {"outcome": "uncertain"}
                 else:
                     return {"outcome": "blocked", "error": "history_conflict"}
             return {"outcome": "uncertain"}

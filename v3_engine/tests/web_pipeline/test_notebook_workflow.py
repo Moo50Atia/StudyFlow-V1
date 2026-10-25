@@ -71,6 +71,25 @@ def test_workflow_control_pause_and_cancel():
 
 
 @pytest.mark.asyncio
+async def test_invalid_lesson_holds_without_deleting_history_or_advancing_pdf(base_web_run_manifest):
+    wf = ApplicationSubjectWorkflow()
+    calls = []
+    async def execute(name, args):
+        calls.append((name, args.get("pdf_ordinal")))
+        if name == "execute_lesson_turns":
+            return {"outcome": "failed", "safe_code": "protocol_validation"}
+        if name == "execute_divide_turn":
+            return {"outcome": "completed", "safe_code": "ok", "map": {"lessons": [{"ordinal": 1, "title": "Lesson"}]}}
+        return {"outcome": "completed", "safe_code": "ok"}
+    wf._activity_executor = execute
+    result = await wf.run(dict(base_web_run_manifest))
+    assert result["outcome"] == "blocked"
+    assert wf.status == "held_persistence"
+    assert not any(name == "reset_conversation_activity" for name, _ in calls)
+    assert not any(ordinal == 2 for _, ordinal in calls)
+
+
+@pytest.mark.asyncio
 async def test_two_pdfs_use_separate_divide_and_source_scopes(base_web_run_manifest):
     """
     FR-005, FR-006: Each PDF processes separately in order.
@@ -434,6 +453,10 @@ async def test_service_backed_per_pdf_scopes_turns_and_resets(tmp_path, monkeypa
     assert lesson2["counts"] == {"lessons_saved": 2, "prompts_saved": 3}
     assert [turn["question"] for turn in conversation.turns] == [DIVIDE_PROMPT, EXECUTION_PROMPT, "Start with First lesson", "Continue"]
     assert conversation.turns[0]["source_ids"] == ["src-pdf-2"]
+    current_turns = list(conversation.turns)
+    repeated_reset = await activities.reset_conversation_activity({"run_id": run_id, "pdf_ordinal": 1})
+    assert repeated_reset["outcome"] == "completed"
+    assert len(conversation.resets) == 1 and conversation.turns == current_turns
     assert all(turn["source_ids"] == ["src-pdf-2", "src-framework"] for turn in conversation.turns[1:])
 
     export = await activities.export_prompts_activity({"run_id": run_id})

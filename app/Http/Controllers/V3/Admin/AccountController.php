@@ -60,7 +60,7 @@ class AccountController extends Controller
 
         $paginated->setCollection($transformedItems);
 
-        return response()->view('v3.admin.accounts.index', [
+        return \App\Support\InertiaPage::render('v3.admin.accounts.index', [
             'accounts' => $paginated,
         ])->header('Cache-Control', 'private, no-store');
     }

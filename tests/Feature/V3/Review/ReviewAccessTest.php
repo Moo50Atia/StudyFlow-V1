@@ -148,17 +148,12 @@ test('R04: Owner review show returns exact prompt and all eleven fields in order
     $htmlContent = $htmlResp->getContent();
     expect($htmlResp->headers->get('Cache-Control'))->toContain('no-store');
 
-    // Prompt with <script> MUST be escaped in HTML, not rendered as raw unescaped script tag
-    expect($htmlContent)->not->toContain("<script>alert('xss')</script>")
-        ->and($htmlContent)->toContain('&lt;script&gt;alert(');
-
-    // Eleven fields must be visible in HTML
-    expect($htmlContent)->toContain('Transverse Waves')
-        ->and($htmlContent)->toContain('Oscillation is perpendicular to propagation.')
-        ->and($htmlContent)->toContain('الموجة بتمشي والجسيمات بتتهز عمودياً.')
-        ->and($htmlContent)->toContain('data-v3-review-page')
-        ->and($htmlContent)->toContain('v3-review-approve')
-        ->and($htmlContent)->toContain('v3-review-changes');
+    $htmlResp->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+        ->component('Teacher/ReviewShow')
+        ->where('data.prompt', $this->rawPrompt)
+        ->where('data.fields.section_identity', 'Transverse Waves')
+        ->where('data.fields.core_understanding', 'Oscillation is perpendicular to propagation.')
+        ->where('data.fields.colloquial_egyptian_explanation', 'الموجة بتمشي والجسيمات بتتهز عمودياً.'));
 });
 
 test('R04: Owner review show allows viewing approved scene while approval remains Section-current', function () {
@@ -204,9 +199,10 @@ test('R04: Owner review show allows viewing approved scene while approval remain
     $resp = $this->actingAs($this->teacher)->getJson($url);
     $resp->assertStatus(200);
     expect($resp->json('data.review_state'))->toBe('decided');
-    $page = $this->actingAs($this->teacher)->get($url)->assertOk()->getContent();
-    expect($page)->toContain('v3-postapproval-correction')
-        ->and($page)->toContain($appr->id);
+    $this->actingAs($this->teacher)->get($url)->assertOk()->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+        ->component('Teacher/ReviewShow')
+        ->where('data.review_state', 'decided')
+        ->where('data.approval_ref', $appr->id));
 
     // When approval is no longer current (e.g. cleared after post-approval correction), show returns 404
     ReviewSectionState::where('section_id', $this->section->id)->update([
@@ -323,4 +319,14 @@ test('R06: Admin case summary returns only safe closed DTO scalars and never lea
         ->and($raw)->not->toContain("<script>alert('xss')</script>")
         ->and($raw)->not->toContain('prompt_body')
         ->and($raw)->not->toContain('review-notes');
+});
+
+
+test('global review queue only lists the current teachers review items', function () {
+    $this->actingAs($this->teacher)->getJson('/v3/teacher/reviews')->assertOk()
+        ->assertJsonPath('data.0.review_ref', $this->reviewRef)->assertJsonCount(1, 'data');
+    $this->get('/v3/teacher/reviews')->assertOk()
+        ->assertInertia(fn ($page) => $page->component('Teacher/ReviewIndex'));
+    $this->actingAs($this->otherTeacher)->getJson('/v3/teacher/reviews')->assertOk()->assertJsonCount(0, 'data');
+    $this->actingAs($this->admin)->get('/v3/admin/cases/'.$this->case->id)->assertOk();
 });

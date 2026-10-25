@@ -37,13 +37,14 @@ Inspection checks:
 ## Deterministic Local PDF Preparation & Splitting
 
 Large PDFs can produce inconsistent lesson segmentation in NotebookLM. The pipeline uses deterministic local preparation to divide large originals before upload:
-- **Trigger limit**: Only originals with strictly **more than 100 pages** trigger splitting. Originals of 1–100 pages stay intact without range suffixes.
+- **Trigger limit (policy v2)**: New web uploads, terminal per-PDF captures, and `prepare-pdfs` split originals with strictly **more than 50 pages**. Originals of 1–50 pages stay intact without range suffixes. Existing policy-v1 packages retain their original >100-page decision and hashes.
 - **Terminal limit**: Once triggered, recursive halving divides **both** branches until every resulting part contains **at most 50 pages**.
 - **Odd-length halving rule**: For an odd range of length $L$, the first half receives $\lfloor L / 2 \rfloor$ pages and the second receives the remainder.
 - **Direct page preservation**: Pages are copied directly from retained originals using `qpdf` without text extraction, OCR, summarization, or re-rendering. 100% of physical pages (including diagrams, rotations, and blank pages) are preserved in order.
 
 ### Division Examples
-- **100 pages**: 1 intact PDF (`0001--Doc.pdf`, 100 pages).
+- **100 pages**: 2 parts: `1–50`, `51–100`.
+- **114 pages**: 4 parts: `1–28`, `29–57`, `58–85`, `86–114`.
 - **101 pages**: 3 parts: `1–50` (50 pages), `51–75` (25 pages), `76–101` (26 pages).
 - **150 pages**: 4 parts: `1–37` (37 pages), `38–75` (38 pages), `76–112` (37 pages), `113–150` (38 pages).
 - **200 pages**: 4 parts: `1–50`, `51–100`, `101–150`, `151–200` (50 pages each).
